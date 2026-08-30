@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Firefly.Core.Tests")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+d40370435dab3e79cdd0c65479dceef80a25970f")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+bf7fec8f205918562964315fc432987f99e8e3ce")]
 [assembly: System.Reflection.AssemblyProductAttribute("Firefly.Core.Tests")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Firefly.Core.Tests")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

@@ -78,7 +78,7 @@ namespace Firefly.Core.Map
         public bool CanMosey(string fromId, string toId)
         {
             if (fromId == toId)
-                return true;
+                return false;
             foreach (var neighbor in _map.Neighbors(fromId))
             {
                 if (neighbor == toId)
