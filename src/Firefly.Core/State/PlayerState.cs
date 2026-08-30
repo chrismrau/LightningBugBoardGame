@@ -11,6 +11,13 @@ namespace Firefly.Core.State
         public int DriveRange { get; set; }
         public bool FullBurnRequiresFuel { get; set; }
         public string? ShipId { get; set; }
+        public int Fight { get; set; }
+        public int Tech { get; set; }
+        public int Talk { get; set; }
+        public int Warrants { get; set; }
+        public int Contraband { get; set; }
+        public int Fugitives { get; set; }
+        public int WantedCrew { get; set; }
 
         public PlayerState(
             string id,
