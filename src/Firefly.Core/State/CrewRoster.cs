@@ -1,0 +1,129 @@
+using System;
+using System.Collections.Generic;
+using Firefly.Core.Cards;
+
+namespace Firefly.Core.State
+{
+    public sealed class CrewMember
+    {
+        public CrewCard Card { get; }
+        public bool Disgruntled { get; set; }
+
+        public CrewMember(CrewCard card, bool disgruntled = false)
+        {
+            Card = card ?? throw new ArgumentNullException(nameof(card));
+            Disgruntled = disgruntled;
+        }
+
+        public string Id => Card.Id;
+        public string Name => Card.Name;
+        public bool Wanted => Card.Wanted;
+        public bool Moral => Card.Moral;
+    }
+
+    public sealed class CrewRoster
+    {
+        private readonly List<CrewMember> _members = new List<CrewMember>();
+
+        public int MaxCrew { get; set; }
+
+        public CrewRoster(int maxCrew = 6)
+        {
+            MaxCrew = maxCrew;
+        }
+
+        public IReadOnlyList<CrewMember> Members => _members;
+        public int Count => _members.Count;
+
+        public int Fight => Sum(m => m.Card.Fight);
+        public int Tech => Sum(m => m.Card.Tech);
+        public int Talk => Sum(m => m.Card.Talk);
+        public int WantedCount => CountWhere(m => m.Wanted);
+        public int MoralCount => CountWhere(m => m.Moral);
+        public int DisgruntledCount => CountWhere(m => m.Disgruntled);
+
+        public bool TryHire(CrewCard card, out string? error)
+        {
+            error = null;
+            if (card == null)
+            {
+                error = "Crew card is required.";
+                return false;
+            }
+            if (_members.Count >= MaxCrew)
+            {
+                error = $"Roster is full ({MaxCrew}).";
+                return false;
+            }
+            _members.Add(new CrewMember(card));
+            return true;
+        }
+
+        public bool Remove(string crewId)
+        {
+            for (var i = 0; i < _members.Count; i++)
+            {
+                if (_members[i].Id == crewId)
+                {
+                    _members.RemoveAt(i);
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        public CrewMember? RemoveFirstWanted()
+        {
+            for (var i = 0; i < _members.Count; i++)
+            {
+                if (_members[i].Wanted)
+                {
+                    var member = _members[i];
+                    _members.RemoveAt(i);
+                    return member;
+                }
+            }
+            return null;
+        }
+
+        public IReadOnlyList<CrewMember> WantedMembers()
+        {
+            var list = new List<CrewMember>();
+            foreach (var member in _members)
+            {
+                if (member.Wanted)
+                    list.Add(member);
+            }
+            return list;
+        }
+
+        public bool HasProfession(string profession)
+        {
+            foreach (var member in _members)
+            {
+                if (member.Card.HasProfession(profession))
+                    return true;
+            }
+            return false;
+        }
+
+        private int Sum(Func<CrewMember, int> selector)
+        {
+            var total = 0;
+            foreach (var member in _members)
+                total += selector(member);
+            return total;
+        }
+
+        private int CountWhere(Func<CrewMember, bool> predicate)
+        {
+            var total = 0;
+            foreach (var member in _members)
+            {
+                if (predicate(member))
+                    total++;
+            }
+            return total;
+        }
+    }
+}
