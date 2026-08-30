@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Firefly.Core.Cards;
 using Firefly.Core.Map;
 using Firefly.Core.Movement;
 
@@ -37,8 +38,9 @@ namespace Firefly.Core.State
         public IList<PendingNavDraw> PendingNavDraws { get; }
         public TokenKind? PendingEncounter { get; set; }
         public string? PendingEncounterSectorId { get; set; }
+        public NavDecks? Decks { get; set; }
 
-        public GameState(SectorMap map, IReadOnlyList<PlayerState> players, MapTokens? tokens = null)
+        public GameState(SectorMap map, IReadOnlyList<PlayerState> players, MapTokens? tokens = null, NavDecks? decks = null)
         {
             Map = map ?? throw new ArgumentNullException(nameof(map));
             if (players == null || players.Count == 0)
@@ -46,6 +48,7 @@ namespace Firefly.Core.State
             Players = players;
             Tokens = tokens ?? MapTokens.None;
             PendingNavDraws = new List<PendingNavDraw>();
+            Decks = decks;
         }
 
         public PlayerState CurrentPlayer => Players[CurrentPlayerIndex];
