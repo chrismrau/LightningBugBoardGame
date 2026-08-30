@@ -10,21 +10,23 @@ namespace Firefly.Core.Actions
         public NavOption Option { get; }
         public FlightOutcome Outcome { get; }
         public bool Stopped { get; }
+        public SkillCheckResult? SkillCheck { get; }
 
-        public NavResolution(DrawnNav drawn, NavOption option, FlightOutcome outcome, bool stopped)
+        public NavResolution(
+            DrawnNav drawn,
+            NavOption option,
+            FlightOutcome outcome,
+            bool stopped,
+            SkillCheckResult? skillCheck = null)
         {
             Drawn = drawn;
             Option = option;
             Outcome = outcome;
             Stopped = stopped;
+            SkillCheck = skillCheck;
         }
     }
 
-    /// <summary>
-    /// Resolves queued Full Burn Nav draws in order.
-    /// Full Stop rewinds the ship to the sector of that draw and cancels remaining draws.
-    /// Alliance Cruiser cards move the Cruiser onto the ship.
-    /// </summary>
     public sealed class NavResolver
     {
         public DrawnNav? FaceUp { get; private set; }
@@ -47,7 +49,12 @@ namespace Firefly.Core.Actions
             return FaceUp;
         }
 
-        public bool TryResolve(GameState game, int optionIndex, out NavResolution? resolution, out string? error)
+        public bool TryResolve(
+            GameState game,
+            int optionIndex,
+            out NavResolution? resolution,
+            out string? error,
+            IRng? rng = null)
         {
             resolution = null;
             error = null;
@@ -65,6 +72,14 @@ namespace Firefly.Core.Actions
             var drawn = FaceUp;
             var option = drawn.Card.Options[optionIndex];
             var outcome = option.Outcome;
+            SkillCheckResult? check = null;
+            if (outcome == FlightOutcome.Conditional &&
+                SkillCheck.TryParse(option.Details, out var skillCheck))
+            {
+                check = skillCheck.Resolve(game.CurrentPlayer, rng ?? new SystemRng());
+                outcome = SkillCheck.OutcomeFor(option.Details, check.Success);
+            }
+
             ApplyTokenMoves(game, drawn);
 
             var stopped = outcome == FlightOutcome.FullStop;
@@ -76,24 +91,25 @@ namespace Firefly.Core.Actions
 
             game.Decks!.For(drawn.Region).ResolveIntoDiscard(drawn.Card);
             FaceUp = null;
-            resolution = new NavResolution(drawn, option, outcome, stopped);
+            resolution = new NavResolution(drawn, option, outcome, stopped, check);
             return true;
         }
 
-        /// <summary>
-        /// Draws and resolves when the card has a single non-conditional option.
-        /// Conditional / multi-option cards stay face up for the player to choose.
-        /// </summary>
-        public bool TryAutoResolve(GameState game, out NavResolution? resolution, out string? error)
+        public bool TryAutoResolve(GameState game, out NavResolution? resolution, out string? error, IRng? rng = null)
         {
             resolution = null;
             var drawn = DrawNext(game);
-            if (drawn.Card.Options.Count != 1 || drawn.Card.Options[0].Outcome == FlightOutcome.Conditional)
+            if (drawn.Card.Options.Count != 1)
             {
                 error = "Card requires an option choice.";
                 return false;
             }
-            return TryResolve(game, 0, out resolution, out error);
+            if (drawn.Card.Options[0].Outcome == FlightOutcome.Conditional && rng == null)
+            {
+                error = "Card requires an option choice.";
+                return false;
+            }
+            return TryResolve(game, 0, out resolution, out error, rng);
         }
 
         private static void ApplyTokenMoves(GameState game, DrawnNav drawn)
