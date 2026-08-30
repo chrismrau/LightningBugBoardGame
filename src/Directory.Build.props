@@ -1,0 +1,7 @@
+<Project>
+  <PropertyGroup>
+    <RepoRoot>$(MSBuildThisFileDirectory)..\</RepoRoot>
+    <GameDataRoot Condition="Exists('$(RepoRoot)Data')">$(RepoRoot)Data</GameDataRoot>
+    <GameDataRoot Condition="'$(GameDataRoot)' == '' AND Exists('$(RepoRoot)data')">$(RepoRoot)data</GameDataRoot>
+  </PropertyGroup>
+</Project>

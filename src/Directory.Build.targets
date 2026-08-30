@@ -1,0 +1,11 @@
+<Project>
+  <Target Name="CopyGameDataToOutput" AfterTargets="Build" Condition="'$(GameDataRoot)' != ''">
+    <ItemGroup>
+      <_GameDataJson Include="$(GameDataRoot)\**\*.json" />
+    </ItemGroup>
+    <Copy
+      SourceFiles="@(_GameDataJson)"
+      DestinationFiles="@(_GameDataJson->'$(OutputPath)Data\%(RecursiveDir)%(Filename)%(Extension)')"
+      SkipUnchangedFiles="true" />
+  </Target>
+</Project>

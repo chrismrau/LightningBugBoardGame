@@ -6,9 +6,18 @@
     <ImplicitUsings>disable</ImplicitUsings>
     <RootNamespace>Firefly.Core</RootNamespace>
     <AssemblyName>Firefly.Core</AssemblyName>
-    <Description>Rules kernel for Lightning Bug — map, pathfinding, destinations.</Description>
+    <Description>Rules kernel for Lightning Bug — map, pathfinding, destinations, fly, nav.</Description>
   </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="System.Text.Json" Version="10.0.11" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(GameDataRoot)' != ''">
+    <Content Include="$(GameDataRoot)\**\*.json">
+      <Link>Data\%(RecursiveDir)%(Filename)%(Extension)</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
   </ItemGroup>
 </Project>

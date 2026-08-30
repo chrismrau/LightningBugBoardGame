@@ -20,10 +20,4 @@
   <ItemGroup>
     <ProjectReference Include="..\Firefly.Core\Firefly.Core.csproj" />
   </ItemGroup>
-
-  <ItemGroup>
-    <None Include="..\..\data\map\Sectors.json" Link="Data\map\Sectors.json" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="..\..\data\map\Adjacency.json" Link="Data\map\Adjacency.json" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="..\..\data\cards\NavCards.json" Link="Data\cards\NavCards.json" CopyToOutputDirectory="PreserveNewest" />
-  </ItemGroup>
 </Project>
