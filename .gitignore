@@ -1,15 +1,20 @@
-# Visual Studio
+# Visual Studio local state
 .vs/
+**/.vs/
 *.vsidx
 *.suo
 *.user
 *.userosscache
 *.sln.docstates
 *.rsuser
+*.opendb
+*.VC.db
 
-# Build
+# Build output (already-tracked copies must still be git rm --cached)
 [Bb]in/
 [Oo]bj/
+**/bin/
+**/obj/
 [Dd]ebug/
 [Rr]elease/
 *.dll
@@ -23,6 +28,7 @@ TestResults/
 [Tt]est[Rr]esult*/
 *.coverage
 *.coveragexml
+*.testlog
 
 # NuGet
 *.nupkg
@@ -30,16 +36,18 @@ TestResults/
 !**/packages/build/
 *.nuget.props
 *.nuget.targets
+project.lock.json
+project.fragment.lock.json
+artifacts/
 
 # OS
 Thumbs.db
 Desktop.ini
 .DS_Store
 
-# Unity (when you add a Unity project later)
+# Unity (when added later)
 [Ll]ibrary/
 [Tt]emp/
-[Oo]bj/
 [Bb]uild/
 [Bb]uilds/
 [Ll]ogs/
@@ -48,10 +56,7 @@ Desktop.ini
 *.pidb
 *.booproj
 *.svd
-*.pdb
 *.mdb
-*.opendb
-*.VC.db
 *.pidb.meta
 *.pdb.meta
 *.mdb.meta
