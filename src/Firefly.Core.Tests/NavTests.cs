@@ -1,5 +1,6 @@
 using Firefly.Core.Actions;
 using Firefly.Core.Cards;
+using Firefly.Core.Data;
 using Firefly.Core.Map;
 using Firefly.Core.Movement;
 using Firefly.Core.State;
@@ -12,8 +13,8 @@ namespace Firefly.Core.Tests
         private const string Persephone = "alliance-lux-r1-01";
         private const string Pelorum = "alliance-lux-r1-02";
 
-        private static string NavPath => Path.Combine(AppContext.BaseDirectory, "Data", "cards", "NavCards.json");
-        private static string MapDir => Path.Combine(AppContext.BaseDirectory, "Data", "map");
+        private static string NavPath => GameData.NavCardsPath;
+        private static string MapDir => GameData.MapDirectory;
 
         [Fact]
         public void Regional_decks_each_have_sixty_cards()

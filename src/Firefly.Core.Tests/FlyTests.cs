@@ -1,4 +1,5 @@
 using Firefly.Core.Actions;
+using Firefly.Core.Data;
 using Firefly.Core.Map;
 using Firefly.Core.Movement;
 using Firefly.Core.State;
@@ -16,7 +17,7 @@ namespace Firefly.Core.Tests
             MapTokens? tokens = null,
             bool requiresFuel = true)
         {
-            var map = SectorMap.LoadFromDirectory(Path.Combine(AppContext.BaseDirectory, "Data", "map"));
+            var map = SectorMap.LoadFromDirectory(GameData.MapDirectory);
             var player = new PlayerState("p1", "Mal", Persephone, fuel: fuel, fullBurnRequiresFuel: requiresFuel);
             var game = new GameState(map, new[] { player }, tokens);
             var fly = new FlyAction(new MovementEngine(map));
