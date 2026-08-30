@@ -8,33 +8,45 @@ namespace Firefly.Core.State
     {
         public CrewCard Card { get; }
         public bool Disgruntled { get; set; }
+        private bool _wanted;
 
         public CrewMember(CrewCard card, bool disgruntled = false)
         {
             Card = card ?? throw new ArgumentNullException(nameof(card));
             Disgruntled = disgruntled;
+            _wanted = card.Wanted;
         }
 
         public string Id => Card.Id;
         public string Name => Card.Name;
-        public bool Wanted => Card.Wanted;
+        public bool PrintedWanted => Card.Wanted;
+        public bool Wanted => _wanted;
         public bool Moral => Card.Moral;
+        public bool CanClearWanted => !PrintedWanted && _wanted;
+
+        public bool MarkWanted()
+        {
+            _wanted = true;
+            return true;
+        }
+
+        public bool TryClearWanted()
+        {
+            if (PrintedWanted)
+                return false;
+            _wanted = false;
+            return true;
+        }
     }
 
     public sealed class CrewRoster
     {
         private readonly List<CrewMember> _members = new List<CrewMember>();
-
         public int MaxCrew { get; set; }
-
-        public CrewRoster(int maxCrew = 6)
-        {
-            MaxCrew = maxCrew;
-        }
+        public CrewRoster(int maxCrew = 6) { MaxCrew = maxCrew; }
 
         public IReadOnlyList<CrewMember> Members => _members;
         public int Count => _members.Count;
-
         public int Fight => Sum(m => m.Card.Fight);
         public int Tech => Sum(m => m.Card.Tech);
         public int Talk => Sum(m => m.Card.Talk);
@@ -45,16 +57,8 @@ namespace Firefly.Core.State
         public bool TryHire(CrewCard card, out string? error)
         {
             error = null;
-            if (card == null)
-            {
-                error = "Crew card is required.";
-                return false;
-            }
-            if (_members.Count >= MaxCrew)
-            {
-                error = $"Roster is full ({MaxCrew}).";
-                return false;
-            }
+            if (card == null) { error = "Crew card is required."; return false; }
+            if (_members.Count >= MaxCrew) { error = $"Roster is full ({MaxCrew})."; return false; }
             _members.Add(new CrewMember(card));
             return true;
         }
@@ -63,11 +67,7 @@ namespace Firefly.Core.State
         {
             for (var i = 0; i < _members.Count; i++)
             {
-                if (_members[i].Id == crewId)
-                {
-                    _members.RemoveAt(i);
-                    return true;
-                }
+                if (_members[i].Id == crewId) { _members.RemoveAt(i); return true; }
             }
             return false;
         }
@@ -91,18 +91,37 @@ namespace Firefly.Core.State
             var list = new List<CrewMember>();
             foreach (var member in _members)
             {
-                if (member.Wanted)
-                    list.Add(member);
+                if (member.Wanted) list.Add(member);
             }
             return list;
+        }
+
+        public CrewMember? Find(string crewId)
+        {
+            foreach (var member in _members)
+            {
+                if (member.Id == crewId) return member;
+            }
+            return null;
+        }
+
+        public bool MarkWanted(string crewId)
+        {
+            var member = Find(crewId);
+            return member != null && member.MarkWanted();
+        }
+
+        public bool TryClearWanted(string crewId)
+        {
+            var member = Find(crewId);
+            return member != null && member.TryClearWanted();
         }
 
         public bool HasProfession(string profession)
         {
             foreach (var member in _members)
             {
-                if (member.Card.HasProfession(profession))
-                    return true;
+                if (member.Card.HasProfession(profession)) return true;
             }
             return false;
         }
@@ -110,8 +129,7 @@ namespace Firefly.Core.State
         private int Sum(Func<CrewMember, int> selector)
         {
             var total = 0;
-            foreach (var member in _members)
-                total += selector(member);
+            foreach (var member in _members) total += selector(member);
             return total;
         }
 
@@ -120,8 +138,7 @@ namespace Firefly.Core.State
             var total = 0;
             foreach (var member in _members)
             {
-                if (predicate(member))
-                    total++;
+                if (predicate(member)) total++;
             }
             return total;
         }
