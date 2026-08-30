@@ -1,0 +1,1553 @@
+{
+  "meta": {
+    "description": "Firefly: The Game – Navigation cards",
+    "count": 66,
+    "schemaVersion": "1.0",
+    "notes": [
+      "counts.core/blueSun/kalidasa = copies contributed by that expansion",
+      "counts.alliance/border/rim = copies in that regional Nav deck"
+    ]
+  },
+  "navCards": [
+    {
+      "id": "nav_alliance-cruiser",
+      "name": "Alliance Cruiser",
+      "counts": {
+        "core": 1,
+        "blueSun": 0,
+        "kalidasa": 0,
+        "alliance": 1,
+        "border": 0,
+        "rim": 0
+      },
+      "options": [
+        {
+          "name": "Can't Run. They're Pullin' Us In!",
+          "details": "--Move Cruiser to your Sector. --Pay Fines: $1000 per Warrant --Clear Warrants --ALL Contraband & Fugitives seized, including those in your stash. --Roll for each Wanted Crew: 1: Remove Crew from Game. 2-6: Crew Dodges Capture --Full Stop."
+        }
+      ],
+      "type": "Alliance Cruiser",
+      "isReshuffle": true
+    },
+    {
+      "id": "nav_a-rogue-trader",
+      "name": "A Rogue Trader",
+      "counts": {
+        "core": 1,
+        "blueSun": 0,
+        "kalidasa": 0,
+        "alliance": 0,
+        "border": 1,
+        "rim": 0
+      },
+      "options": [
+        {
+          "name": "Deals on the Go!",
+          "details": "--You may buy Fuel for $200, Parts for $300 or up to 3 Contraband for $400 each. --Keep Flying."
+        },
+        {
+          "name": "Piracy!",
+          "details": "Moral Crew become Disgruntled. Fight 6. 1-5 Kill a Crew. Full Stop. 6+ Load 3 Contraband. Full Stop."
+        }
+      ],
+      "type": "Opportunity",
+      "isReshuffle": false
+    },
+    {
+      "id": "nav_alliance-entanglements",
+      "name": "Alliance Entanglements",
+      "counts": {
+        "core": 1,
+        "blueSun": 0,
+        "kalidasa": 0,
+        "alliance": 1,
+        "border": 0,
+        "rim": 0
+      },
+      "options": [
+        {
+          "name": "Wild Gosling Chase",
+          "details": "--Move the Alliance Cruiser to any Alliance Sector not occupied by a Firefly. --Keep Flying."
+        },
+        {
+          "name": "A Legitimate Tip",
+          "details": "Requires Solid Harken Rep: --Move the Cruiser to an Alliance Sector with an Outlaw Ship. --Take $500 & Keep Flying."
+        }
+      ],
+      "type": "Alliance Cruiser",
+      "isReshuffle": false
+    },
+    {
+      "id": "nav_abandoned-tanker",
+      "name": "Abandoned Tanker",
+      "counts": {
+        "core": 0,
+        "blueSun": 1,
+        "kalidasa": 0,
+        "alliance": 0,
+        "border": 0,
+        "rim": 1
+      },
+      "options": [
+        {
+          "name": "Smells Like Reavers",
+          "details": "--Keep Flying."
+        },
+        {
+          "name": "Fill 'er Up!",
+          "details": "--Requires Mechanic: --SALVAGE OP: Load Fuel, no limit. --Full Stop."
+        }
+      ],
+      "type": "Salvage Op",
+      "isReshuffle": false
+    },
+    {
+      "id": "nav_alliance-checkpoint",
+      "name": "Alliance Checkpoint",
+      "counts": {
+        "core": 0,
+        "blueSun": 0,
+        "kalidasa": 1,
+        "alliance": 1,
+        "border": 0,
+        "rim": 0
+      },
+      "options": [
+        {
+          "name": "Everything's in Order",
+          "details": "Requires Solid Rep with Harken: --Keep Flying."
+        },
+        {
+          "name": "Bluff Your Way Through",
+          "details": "Talk 6  1-5 Warrant Issued. Full Stop. Player to right moves Cruiser to adjacent, unoccupied Alliance Sector.  6+ Keep Flying."
+        }
+      ],
+      "type": "Contact-related",
+      "isReshuffle": false
+    },
+    {
+      "id": "nav_cruiser-patrol",
+      "name": "Cruiser Patrol",
+      "counts": {
+        "core": 4,
+        "blueSun": 0,
+        "kalidasa": 1,
+        "alliance": 5,
+        "border": 0,
+        "rim": 0
+      },
+      "options": [
+        {
+          "name": null,
+          "details": "--Player to your right must move Alliance Cruiser 1 Sector within Alliance Space. --Keep Flying."
+        }
+      ],
+      "type": "Alliance Cruiser",
+      "isReshuffle": false
+    },
+    {
+      "id": "nav_ifn-the-coil-busts-were-driftin",
+      "name": "If'n the Coil Busts, We're Driftin'",
+      "counts": {
+        "core": 1,
+        "blueSun": 0,
+        "kalidasa": 0,
+        "alliance": 1,
+        "border": 0,
+        "rim": 0
+      },
+      "options": [
+        {
+          "name": "Best not Bust Then!",
+          "details": "Tech 8 Breakdown; 1-7 Full Stop. 8+ Keep Flying."
+        },
+        {
+          "name": "Replace the Whole Damn Mess",
+          "details": "--Spend 2 Parts. --Keep Flying."
+        }
+      ],
+      "type": "Breakdown",
+      "isReshuffle": false
+    },
+    {
+      "id": "nav_alliance-harassment",
+      "name": "Alliance Harassment",
+      "counts": {
+        "core": 0,
+        "blueSun": 0,
+        "kalidasa": 2,
+        "alliance": 2,
+        "border": 0,
+        "rim": 0
+      },
+      "options": [
+        {
+          "name": null,
+          "details": "--Place an Alliance Alert Token in all Sectors adjacent to your current Sector. --Keep Flying."
+        }
+      ],
+      "type": "Law Enforcement",
+      "isReshuffle": false
+    },
+    {
+      "id": "nav_alliance-interrogation",
+      "name": "Alliance Interrogation",
+      "counts": {
+        "core": 0,
+        "blueSun": 0,
+        "kalidasa": 1,
+        "alliance": 1,
+        "border": 0,
+        "rim": 0
+      },
+      "options": [
+        {
+          "name": "Detained for Questioning",
+          "details": "Requires Discarding 1 Crew: --Keep Flying."
+        },
+        {
+          "name": "Charm… and Sidearms",
+          "details": "Talk 8  1-7 [Fight 8  1-7 Kill 1 Crew. Warrant Issued. Full Stop.  8+ Evade.] 8+ Keep Flying."
+        }
+      ],
+      "type": "Law Enforcement",
+      "isReshuffle": false
+    },
+    {
+      "id": "nav_alliance-spy-satellite",
+      "name": "Alliance Spy Satellite",
+      "counts": {
+        "core": 0,
+        "blueSun": 0,
+        "kalidasa": 1,
+        "alliance": 0,
+        "border": 0,
+        "rim": 1
+      },
+      "options": [
+        {
+          "name": "Dodge Detection",
+          "details": "Requires Pilot: --Place Alliance Alert Token in this Sector. --Keep Flying."
+        },
+        {
+          "name": "Scanned & Tagged",
+          "details": "--If you are an Outlaw Ship, Warrant Issued. --Keep Flying."
+        }
+      ],
+      "type": "Law Enforcement",
+      "isReshuffle": false
+    },
+    {
+      "id": "nav_an-adrift-transport",
+      "name": "An Adrift Transport",
+      "counts": {
+        "core": 0,
+        "blueSun": 0,
+        "kalidasa": 1,
+        "alliance": 0,
+        "border": 1,
+        "rim": 0
+      },
+      "options": [
+        {
+          "name": "Their Hull's Breached!",
+          "details": "Requires Loading 4 Fugitives: --Salvage Op: --Full Stop."
+        },
+        {
+          "name": "Not My Problem…",
+          "details": "--Disgruntle all Moral Crew. --Keep Flying."
+        }
+      ],
+      "type": "Moral Compass",
+      "isReshuffle": false
+    },
+    {
+      "id": "nav_badgers-boys",
+      "name": "Badger's Boys",
+      "counts": {
+        "core": 0,
+        "blueSun": 0,
+        "kalidasa": 1,
+        "alliance": 1,
+        "border": 0,
+        "rim": 0
+      },
+      "options": [
+        {
+          "name": "You Know We're Good for It",
+          "details": "Requires Solid with Badger: --Keep Flying."
+        },
+        {
+          "name": "The Repo Man Cometh",
+          "details": "Talk 10 Bribes  1-9 [Fight 8  1-7 Discard 1 Ship Upgrade, if able. Full Stop.  8+ Evade.] 10+ Keep Flying."
+        }
+      ],
+      "type": "Contact-related",
+      "isReshuffle": false
+    },
+    {
+      "id": "nav_blown-out-buffer-panel",
+      "name": "Blown Out Buffer Panel",
+      "counts": {
+        "core": 0,
+        "blueSun": 1,
+        "kalidasa": 0,
+        "alliance": 0,
+        "border": 0,
+        "rim": 1
+      },
+      "options": [
+        {
+          "name": "Not to Fret",
+          "details": "--Spend 1 Fuel. --Keep Flying."
+        },
+        {
+          "name": "Shoulda Replaced That…",
+          "details": "Tech 6 Breakdown; 1-5 Full Stop. 6+ Keep Flying."
+        }
+      ],
+      "type": "Breakdown",
+      "isReshuffle": false
+    },
+    {
+      "id": "nav_broken-down-shuttle",
+      "name": "Broken Down Shuttle",
+      "counts": {
+        "core": 0,
+        "blueSun": 0,
+        "kalidasa": 1,
+        "alliance": 1,
+        "border": 0,
+        "rim": 0
+      },
+      "options": [
+        {
+          "name": "We Got Room for Two More",
+          "details": "--Load exactly 2 Passengers. --Take $400. --Full Stop."
+        },
+        {
+          "name": "Sorry Pal, We're Full Up",
+          "details": "--Moral Crew become Disgruntled. --Keep Flying."
+        }
+      ],
+      "type": "Moral Compass",
+      "isReshuffle": false
+    },
+    {
+      "id": "nav_minor-technical-difficulty",
+      "name": "Minor Technical Difficulty",
+      "counts": {
+        "core": 1,
+        "blueSun": 0,
+        "kalidasa": 0,
+        "alliance": 1,
+        "border": 0,
+        "rim": 0
+      },
+      "options": [
+        {
+          "name": "Just Keep Her in the Air",
+          "details": "Tech 5 Breakdown; 1-4 Full Stop. 5+ Keep Flying."
+        },
+        {
+          "name": "Swap in the Spare",
+          "details": "--Spend 1 Part. --Keep Flying."
+        }
+      ],
+      "type": "Breakdown",
+      "isReshuffle": false
+    },
+    {
+      "id": "nav_whats-going-on-in-the-engine-room",
+      "name": "What’s Going on in the Engine Room?",
+      "counts": {
+        "core": 1,
+        "blueSun": 0,
+        "kalidasa": 0,
+        "alliance": 1,
+        "border": 0,
+        "rim": 0
+      },
+      "options": [
+        {
+          "name": "Were there Space Monkeys?",
+          "details": "Tech 7 Breakdown; 1-6 Full Stop. 7+ Keep Flying."
+        },
+        {
+          "name": "Just Rewire the Grav-Thrust",
+          "details": "--Spend 1 Part. --Keep Flying."
+        }
+      ],
+      "type": "Breakdown",
+      "isReshuffle": false
+    },
+    {
+      "id": "nav_damaged-spy-satellite",
+      "name": "Damaged Spy Satellite",
+      "counts": {
+        "core": 0,
+        "blueSun": 0,
+        "kalidasa": 1,
+        "alliance": 0,
+        "border": 0,
+        "rim": 1
+      },
+      "options": [
+        {
+          "name": "Leave Well Enough Alone",
+          "details": "--Keep Flying."
+        },
+        {
+          "name": "No! Cut the Red Wire!",
+          "details": "--Salvage Op: You may take one \"Cry Baby\" card from any Supply Deck discard pile. --Place an Alliance Alert Token in all adjacent Sectors. --Full Stop."
+        }
+      ],
+      "type": "Salvage Op",
+      "isReshuffle": false
+    },
+    {
+      "id": "nav_dangerous-salvage",
+      "name": "Dangerous Salvage",
+      "counts": {
+        "core": 0,
+        "blueSun": 0,
+        "kalidasa": 1,
+        "alliance": 0,
+        "border": 1,
+        "rim": 0
+      },
+      "options": [
+        {
+          "name": "Ain't Got the Chops",
+          "details": "--Keep Flying."
+        },
+        {
+          "name": "Suit Up, We're Goin' In",
+          "details": "Tech 8 Salvage Ops  1-4 Kill 2 Crew, Load 2 Goods.  5-7 Kill 1 Crew, Load 3 Goods.  8+ Load 5 Goods. --Full Stop."
+        }
+      ],
+      "type": "Salvage Op",
+      "isReshuffle": false
+    },
+    {
+      "id": "nav_derelict-ship",
+      "name": "Derelict Ship",
+      "counts": {
+        "core": 2,
+        "blueSun": 0,
+        "kalidasa": 0,
+        "alliance": 0,
+        "border": 2,
+        "rim": 0
+      },
+      "options": [
+        {
+          "name": "Pick the Bones",
+          "details": "--Salvage Op: Load 2 Cargo. --Full Stop."
+        },
+        {
+          "name": "Hold to Course",
+          "details": "--Keep Flying."
+        }
+      ],
+      "type": "Salvage Op",
+      "isReshuffle": false
+    },
+    {
+      "id": "nav_customs-inspection",
+      "name": "Customs Inspection",
+      "counts": {
+        "core": 2,
+        "blueSun": 0,
+        "kalidasa": 0,
+        "alliance": 2,
+        "border": 0,
+        "rim": 0
+      },
+      "options": [
+        {
+          "name": "Prepare to be Boarded!",
+          "details": "--Contraband & Fugitives not in your Stash are seized. --Full Stop."
+        },
+        {
+          "name": "Turn and Burn!",
+          "details": "--Spend 1 Fuel. --Warrant Issued. --Evade."
+        }
+      ],
+      "type": "Law Enforcement",
+      "isReshuffle": false
+    },
+    {
+      "id": "nav_enhanced-enforcement",
+      "name": "Enhanced Enforcement",
+      "counts": {
+        "core": 0,
+        "blueSun": 0,
+        "kalidasa": 4,
+        "alliance": 1,
+        "border": 2,
+        "rim": 1
+      },
+      "options": [
+        {
+          "name": null,
+          "details": "--Place an Alliance Alert Token in every Sector occupied by an Outlaw Ship. --Keep Flying."
+        }
+      ],
+      "type": "Law Enforcement",
+      "isReshuffle": false
+    },
+    {
+      "id": "nav_failure-to-communicate",
+      "name": "Failure to Communicate",
+      "counts": {
+        "core": 0,
+        "blueSun": 0,
+        "kalidasa": 1,
+        "alliance": 0,
+        "border": 0,
+        "rim": 1
+      },
+      "options": [
+        {
+          "name": "Keep Flyin', Cowboy…",
+          "details": "Requires Soldier: --Keep Flying."
+        },
+        {
+          "name": "Make Like Civil Folk",
+          "details": "Talk 7  1-6 [Fight 8  1-7 Kill a Crew. Discard 2 Goods. Full Stop.  8+ Evade.] 7+ Keep Flying."
+        }
+      ],
+      "type": "Career Opportunities",
+      "isReshuffle": false
+    },
+    {
+      "id": "nav_fire-in-the-engine-room",
+      "name": "Fire in the Engine Room",
+      "counts": {
+        "core": 0,
+        "blueSun": 0,
+        "kalidasa": 1,
+        "alliance": 1,
+        "border": 0,
+        "rim": 0
+      },
+      "options": [
+        {
+          "name": "All Hands on Deck!",
+          "details": "--Tech 8  1-7 Kill 2 Crew.  8+ Whew… Fire's Out. --Full Stop."
+        },
+        {
+          "name": "Decompress the Hold!",
+          "details": "--Discard all Goods in Hold; do not discard Passengers or Fugitives. --Full Stop."
+        }
+      ],
+      "type": "Unique",
+      "isReshuffle": false
+    },
+    {
+      "id": "nav_first-rule-of-flying",
+      "name": "First Rule of Flying",
+      "counts": {
+        "core": 0,
+        "blueSun": 0,
+        "kalidasa": 1,
+        "alliance": 0,
+        "border": 0,
+        "rim": 1
+      },
+      "options": [
+        {
+          "name": "Love Keeps Her in the Air",
+          "details": "Requires 1 or more Moral Crew: --Add 1 to the Range of this Fly Action for each Moral Crew on board. --Keep Flying."
+        },
+        {
+          "name": "When She Oughta Fall Down",
+          "details": "Breakdown: --Spend 1 Part to Keep Flying. Otherwise, Full Stop."
+        }
+      ],
+      "type": "Moral Compass/Breakdown",
+      "isReshuffle": false
+    },
+    {
+      "id": "nav_first-come-first-serve",
+      "name": "First-Come, First-Serve",
+      "counts": {
+        "core": 0,
+        "blueSun": 0,
+        "kalidasa": 1,
+        "alliance": 0,
+        "border": 0,
+        "rim": 1
+      },
+      "options": [
+        {
+          "name": "Dine & Dash",
+          "details": "--Load 1 Goods. --Keep Flying."
+        },
+        {
+          "name": "Clean Your Plate",
+          "details": "--Tech 9 Salvage Op  1-4 Load 1 Goods. Full Stop.  5-8 Load 3 Goods. Full Stop.  9+ Load 5 Goods. Full Stop."
+        }
+      ],
+      "type": "Salvage Op",
+      "isReshuffle": false
+    },
+    {
+      "id": "nav_fly-by-night-casino-ship",
+      "name": "Fly-By-Night Casino Ship",
+      "counts": {
+        "core": 0,
+        "blueSun": 0,
+        "kalidasa": 1,
+        "alliance": 0,
+        "border": 0,
+        "rim": 1
+      },
+      "options": [
+        {
+          "name": "Lead Us Not into Temptation",
+          "details": "Requires 1 or more Moral Crew: --Keep Flying."
+        },
+        {
+          "name": "Make Your Own Luck",
+          "details": "--Pay up to $1000. Draw 5 Misbehave Cards. If 3 or more of the cards have matching Suits, take triple the amount you paid. --Full Stop."
+        }
+      ],
+      "type": "Moral Compass/Opportunity",
+      "isReshuffle": false
+    },
+    {
+      "id": "nav_distress-signal",
+      "name": "Distress Signal",
+      "counts": {
+        "core": 1,
+        "blueSun": 0,
+        "kalidasa": 0,
+        "alliance": 1,
+        "border": 0,
+        "rim": 0
+      },
+      "options": [
+        {
+          "name": "We a Search & Rescue Tug?",
+          "details": "--Spend 1 Fuel. --Remove Disgruntled from all Moral Crew and take $200. --Full Stop."
+        },
+        {
+          "name": "Say a Prayer & Slide on By",
+          "details": "--All Moral Crew are Disgruntled. --Keep Flying."
+        }
+      ],
+      "type": "Moral Compass",
+      "isReshuffle": false
+    },
+    {
+      "id": "nav_fuel-coupling-failure",
+      "name": "Fuel Coupling Failure",
+      "counts": {
+        "core": 0,
+        "blueSun": 1,
+        "kalidasa": 0,
+        "alliance": 0,
+        "border": 0,
+        "rim": 1
+      },
+      "options": [
+        {
+          "name": "Everything's Shiny Cap'n",
+          "details": "--Breakdown: Spend 1 Part. --Keep Flying."
+        },
+        {
+          "name": "She's Hemorrhaging Fuel!",
+          "details": "--Keep Flying. --Discard 1 Fuel for each additional Sector you move into this turn."
+        }
+      ],
+      "type": "Breakdown",
+      "isReshuffle": false
+    },
+    {
+      "id": "nav_ghost-ship",
+      "name": "Ghost Ship",
+      "counts": {
+        "core": 1,
+        "blueSun": 0,
+        "kalidasa": 0,
+        "alliance": 0,
+        "border": 1,
+        "rim": 0
+      },
+      "options": [
+        {
+          "name": "I Got a Bad Feelin'",
+          "details": "--Keep Flying."
+        },
+        {
+          "name": "Reaver on Board!",
+          "details": "Fight 7 Salvage Op; 1-6 Kill 2 Crew. Full Stop. 7+ Take $1000. Full Stop."
+        }
+      ],
+      "type": "Salvage Op",
+      "isReshuffle": false
+    },
+    {
+      "id": "nav_grav-well-maneuver",
+      "name": "Grav-Well Maneuver",
+      "counts": {
+        "core": 0,
+        "blueSun": 1,
+        "kalidasa": 0,
+        "alliance": 0,
+        "border": 0,
+        "rim": 1
+      },
+      "options": [
+        {
+          "name": "Slingshot Roundhouse",
+          "details": "--Requires Pilot: --If in a Planetary Sector, +3 to Ship's Range this turn. --Keep Flying."
+        },
+        {
+          "name": "Steady at the Helm",
+          "details": "--Keep Flying."
+        }
+      ],
+      "type": "Opportunity",
+      "isReshuffle": false
+    },
+    {
+      "id": "nav_hell-come-at-you-sideways",
+      "name": "He'll Come at You Sideways",
+      "counts": {
+        "core": 0,
+        "blueSun": 0,
+        "kalidasa": 3,
+        "alliance": 1,
+        "border": 1,
+        "rim": 1
+      },
+      "options": [
+        {
+          "name": null,
+          "details": "--Player to your right must move Operative's Corvette to an unoccupied Alliance, Border, or Rim Sector adjacent to your current location. --Keep Flying."
+        }
+      ],
+      "type": "Operative's Corvette",
+      "isReshuffle": false
+    },
+    {
+      "id": "nav_hollowed-out-space-liner",
+      "name": "Hollowed Out Space-Liner",
+      "counts": {
+        "core": 0,
+        "blueSun": 0,
+        "kalidasa": 1,
+        "alliance": 0,
+        "border": 1,
+        "rim": 0
+      },
+      "options": [
+        {
+          "name": "Still Some Good Stuff Here",
+          "details": "Requires Mechanic: Salvage Op: --Load up to 6 parts. --Full Stop."
+        },
+        {
+          "name": "Nothin' We Can Do With That",
+          "details": "--Keep Flying."
+        }
+      ],
+      "type": "Salvage Op",
+      "isReshuffle": false
+    },
+    {
+      "id": "nav_horowitzs-trading-scow",
+      "name": "Horowitz's Trading Scow",
+      "counts": {
+        "core": 0,
+        "blueSun": 0,
+        "kalidasa": 1,
+        "alliance": 0,
+        "border": 0,
+        "rim": 1
+      },
+      "options": [
+        {
+          "name": "Bits O' Junk Can Wait",
+          "details": "--Keep Flying."
+        },
+        {
+          "name": "The Barter System",
+          "details": "Talk 10 Bribes   1-4 Swap 2 Goods.  5-9 Swap up to 4 Goods.  10+ Swap up to 5 Goods. You may swap any type of Goods for any other type. --Full Stop."
+        }
+      ],
+      "type": "Opportunity",
+      "isReshuffle": false
+    },
+    {
+      "id": "nav_family-dinner",
+      "name": "Family Dinner",
+      "counts": {
+        "core": 2,
+        "blueSun": 0,
+        "kalidasa": 0,
+        "alliance": 1,
+        "border": 1,
+        "rim": 0
+      },
+      "options": [
+        {
+          "name": "Kind of You to Share",
+          "details": "--Spend 1 Cargo. --Remove Disgruntled from all Crew. --Keep Flying."
+        },
+        {
+          "name": "I'll be in my Bunk",
+          "details": "--Keep Flying."
+        }
+      ],
+      "type": "Opportunity",
+      "isReshuffle": false
+    },
+    {
+      "id": "nav_leave-no-ground-to-go-to",
+      "name": "Leave No Ground To Go To",
+      "counts": {
+        "core": 0,
+        "blueSun": 0,
+        "kalidasa": 3,
+        "alliance": 1,
+        "border": 1,
+        "rim": 1
+      },
+      "options": [
+        {
+          "name": null,
+          "details": "--Player to your right must move Operative's Corvette to an unoccupied Alliance, Border, or Rim Planetary Sector. -- Keep Flying."
+        }
+      ],
+      "type": "Operative's Corvette",
+      "isReshuffle": false
+    },
+    {
+      "id": "nav_local-tariff-patrol",
+      "name": "Local Tariff Patrol",
+      "counts": {
+        "core": 0,
+        "blueSun": 1,
+        "kalidasa": 0,
+        "alliance": 0,
+        "border": 0,
+        "rim": 1
+      },
+      "options": [
+        {
+          "name": "Heavy Handed Enforcement",
+          "details": "--Talk 9 Bribes; 1-8 5 Goods not in Stash are seized. 9+ Keep Flying."
+        },
+        {
+          "name": "Turn and Burn!",
+          "details": "--Spend 1 Fuel. --Warrant Issued. --Evade."
+        }
+      ],
+      "type": "Law Enforcement",
+      "isReshuffle": false
+    },
+    {
+      "id": "nav_locking-horns-over-scraps",
+      "name": "Locking Horns Over Scraps",
+      "counts": {
+        "core": 0,
+        "blueSun": 1,
+        "kalidasa": 0,
+        "alliance": 0,
+        "border": 0,
+        "rim": 1
+      },
+      "options": [
+        {
+          "name": "Finagle the Lion's Share",
+          "details": "Talk 6; 1-5 Load 1 Goods; 6+ SALVAGE OP: Load 3 Goods. -- Full Stop."
+        },
+        {
+          "name": "Winner Takes All",
+          "details": "Fight 10; 1-9 Load no Goods. 10+ SALVAGE OP: Load 4 Goods. --Full Stop."
+        }
+      ],
+      "type": "Salvage Op",
+      "isReshuffle": false
+    },
+    {
+      "id": "nav_freighter-convoy",
+      "name": "Freighter Convoy",
+      "counts": {
+        "core": 1,
+        "blueSun": 0,
+        "kalidasa": 0,
+        "alliance": 1,
+        "border": 0,
+        "rim": 0
+      },
+      "options": [
+        {
+          "name": "Shrewd Bartering",
+          "details": "--You may purchase Fuel for $200, Parts for $300 and up to 3 Cargo for $300 each. --Keep Flying."
+        },
+        {
+          "name": "Goin' Pirate!",
+          "details": "--Moral Crew become Disgruntled. Fight 8; 1-7 Kill a Crew. Full Stop. 8+ Load 3 Contraband. Full Stop."
+        }
+      ],
+      "type": "Opportunity",
+      "isReshuffle": false
+    },
+    {
+      "id": "nav_nav-hazard-asteroid",
+      "name": "Nav Hazard: Asteroid",
+      "counts": {
+        "core": 1,
+        "blueSun": 0,
+        "kalidasa": 0,
+        "alliance": 0,
+        "border": 1,
+        "rim": 0
+      },
+      "options": [
+        {
+          "name": "A Leave on the Wind…",
+          "details": "--If you have Pilot, Keep Flying. --Otherwise: Spend 1 Fuel, Keep Flying."
+        },
+        {
+          "name": "Take the Long Way 'Round",
+          "details": "--Full Stop."
+        }
+      ],
+      "type": "Hazard",
+      "isReshuffle": false
+    },
+    {
+      "id": "nav_nav-hazard-debris-field",
+      "name": "Nav Hazard: Debris Field",
+      "counts": {
+        "core": 1,
+        "blueSun": 0,
+        "kalidasa": 0,
+        "alliance": 0,
+        "border": 1,
+        "rim": 0
+      },
+      "options": [
+        {
+          "name": "Push on Through",
+          "details": "--If you have Pilot, Keep Flying. --Otherwise: Spend 1 Fuel, Keep Flying."
+        },
+        {
+          "name": "Stop and Take a Look",
+          "details": "Tech 6 Salvage Op 1-3 Full Stop. 4-5 Load 1 Cargo, Full Stop. 6+ Load 2 Cargo, Full Stop."
+        }
+      ],
+      "type": "Hazard",
+      "isReshuffle": false
+    },
+    {
+      "id": "nav_nav-system-on-the-fritz",
+      "name": "Nav System on the Fritz",
+      "counts": {
+        "core": 0,
+        "blueSun": 1,
+        "kalidasa": 0,
+        "alliance": 0,
+        "border": 0,
+        "rim": 1
+      },
+      "options": [
+        {
+          "name": "Those Stars Look Right to You?",
+          "details": "--The player to your right must move your ship two Sectors. --Keep Flying."
+        },
+        {
+          "name": "Recalibrate on the Fly",
+          "details": "Requires Mechanic: Tech 7 Breakdown; 1-6 Full Stop. 7+ Keep Flying."
+        }
+      ],
+      "type": "Breakdown",
+      "isReshuffle": false
+    },
+    {
+      "id": "nav_niskas-neer-do-wells",
+      "name": "Niska's Ne'er-Do-Wells",
+      "counts": {
+        "core": 0,
+        "blueSun": 0,
+        "kalidasa": 1,
+        "alliance": 0,
+        "border": 0,
+        "rim": 1
+      },
+      "options": [
+        {
+          "name": "You Know Who We Are?",
+          "details": "Requires Solid with Niska. --Keep Flying."
+        },
+        {
+          "name": "Shakedown",
+          "details": "Talk 10  1-9 [Fight 8  1-7 Lose 3 Goods. Full Stop. 8+ Evade.] 10+ Keep Flying."
+        }
+      ],
+      "type": "Contact-related",
+      "isReshuffle": false
+    },
+    {
+      "id": "nav_objects-in-space",
+      "name": "Objects in Space",
+      "counts": {
+        "core": 0,
+        "blueSun": 1,
+        "kalidasa": 0,
+        "alliance": 0,
+        "border": 0,
+        "rim": 1
+      },
+      "options": [
+        {
+          "name": "Fancy Meetin' You Here",
+          "details": "--If you have space in your Crew, take 1 Crew Card from any discard pile., for free. --Full Stop."
+        },
+        {
+          "name": "Not Another Mouth to Feed",
+          "details": "--Keep Flying."
+        }
+      ],
+      "type": "Opportunity",
+      "isReshuffle": false
+    },
+    {
+      "id": "nav_orphaned-cargo-pod",
+      "name": "Orphaned Cargo Pod",
+      "counts": {
+        "core": 0,
+        "blueSun": 0,
+        "kalidasa": 1,
+        "alliance": 0,
+        "border": 0,
+        "rim": 1
+      },
+      "options": [
+        {
+          "name": "No Time for Good Ideas",
+          "details": "--Keep Flying."
+        },
+        {
+          "name": "Give it a Good Home",
+          "details": "Salvage Op: --Load 2 Goods. --Full Stop."
+        }
+      ],
+      "type": "Salvage Op",
+      "isReshuffle": false
+    },
+    {
+      "id": "nav_outbound-colonists",
+      "name": "Outbound Colonists",
+      "counts": {
+        "core": 0,
+        "blueSun": 0,
+        "kalidasa": 1,
+        "alliance": 1,
+        "border": 0,
+        "rim": 0
+      },
+      "options": [
+        {
+          "name": "We'll Help Out with That",
+          "details": "--You may sell up to 3 Parts for $500 per Part. --Keep Flying."
+        },
+        {
+          "name": "We'll Just Help Ourselves",
+          "details": "--Moral Crew become Disgruntled. --Fight 6  1-5 Kill 1 Crew. Full Stop.  6+ Load 2 Cargo. Full Stop."
+        }
+      ],
+      "type": "Moral Compass",
+      "isReshuffle": false
+    },
+    {
+      "id": "nav_passenger-unrest",
+      "name": "Passenger Unrest",
+      "counts": {
+        "core": 0,
+        "blueSun": 0,
+        "kalidasa": 1,
+        "alliance": 1,
+        "border": 0,
+        "rim": 0
+      },
+      "options": [
+        {
+          "name": "Keep it Quiet Down There!",
+          "details": "Requires Soldier: --Keep Flying."
+        },
+        {
+          "name": "Fisticuffs in the Hold!",
+          "details": "--Roll a Dice: If your roll is lower than the total of Passenger and Fugitive Tokens on your ship, discard a number equal to your roll. --Keep Flying."
+        }
+      ],
+      "type": "Career Opportunities",
+      "isReshuffle": false
+    },
+    {
+      "id": "nav_patiences-posse",
+      "name": "Patience's Posse",
+      "counts": {
+        "core": 0,
+        "blueSun": 0,
+        "kalidasa": 1,
+        "alliance": 0,
+        "border": 1,
+        "rim": 0
+      },
+      "options": [
+        {
+          "name": "We Got a History…",
+          "details": "Requires Solid with Patience: --Keep Flying."
+        },
+        {
+          "name": "Shanghai Surprise!",
+          "details": "Talk 7  Talk 1-6 [Fight 8  1-7 Kill a Crew. Full Stop.  8+ Full Stop,] 7+ Take 1 Crew from Regina's Discard Pile. Keep Flying."
+        }
+      ],
+      "type": "Contact-related",
+      "isReshuffle": false
+    },
+    {
+      "id": "nav_persistent-pursuit",
+      "name": "Persistent Pursuit",
+      "counts": {
+        "core": 0,
+        "blueSun": 0,
+        "kalidasa": 12,
+        "alliance": 4,
+        "border": 4,
+        "rim": 4
+      },
+      "options": [
+        {
+          "name": null,
+          "details": "--Player to your right must move Operative's Corvette 1 or 2 Sectors within Alliance, Border or Rim Space. --Keep Flying."
+        }
+      ],
+      "type": "Operative's Corvette",
+      "isReshuffle": false
+    },
+    {
+      "id": "nav_punctured-fuel-lines",
+      "name": "Punctured Fuel Lines",
+      "counts": {
+        "core": 1,
+        "blueSun": 0,
+        "kalidasa": 0,
+        "alliance": 0,
+        "border": 1,
+        "rim": 0
+      },
+      "options": [
+        {
+          "name": "Patch It Best Ya Can",
+          "details": "Tech 5 Breakdown; 1-4 Lose 2 Fuel. Full Stop. 5+ Keep Flying."
+        },
+        {
+          "name": "Replace the Whole Damn Mess",
+          "details": "--Spend 1 Part. --Keep Flying."
+        }
+      ],
+      "type": "Breakdown",
+      "isReshuffle": false
+    },
+    {
+      "id": "nav_ravaged-transport",
+      "name": "Ravaged Transport",
+      "counts": {
+        "core": 0,
+        "blueSun": 1,
+        "kalidasa": 0,
+        "alliance": 0,
+        "border": 0,
+        "rim": 1
+      },
+      "options": [
+        {
+          "name": "Left Nothin' but Ghosts…",
+          "details": "--Keep Flying."
+        },
+        {
+          "name": "Surveyors of What's Left",
+          "details": "--Requires Mechanic: --SALVAGE OP: Load 2 Goods. --Full Stop."
+        }
+      ],
+      "type": "Salvage Op",
+      "isReshuffle": false
+    },
+    {
+      "id": "nav_reaver-bait",
+      "name": "Reaver Bait",
+      "counts": {
+        "core": 1,
+        "blueSun": 0,
+        "kalidasa": 0,
+        "alliance": 0,
+        "border": 1,
+        "rim": 0
+      },
+      "options": [
+        {
+          "name": "Decoy 'Em",
+          "details": "--You must move a Reaver Ship to any Border Sector not occupied by a Firefly. --Keep Flying."
+        },
+        {
+          "name": "They Won't See This Comin'",
+          "details": "--You must move a Reaver Ship to your current location. --Evade."
+        }
+      ],
+      "type": "Reaver Cutter",
+      "isReshuffle": false
+    },
+    {
+      "id": "nav_reaver-booby-trap",
+      "name": "Reaver Booby Trap",
+      "counts": {
+        "core": 0,
+        "blueSun": 1,
+        "kalidasa": 0,
+        "alliance": 0,
+        "border": 0,
+        "rim": 1
+      },
+      "options": [
+        {
+          "name": "Hard to Port!",
+          "details": "Requires Pilot: --Place Reaver Token in Sector. --Spend 1 Fuel. --Keep Flying."
+        },
+        {
+          "name": "Reavers! Wong Dahn!",
+          "details": "--Place Reaver Token in Sector. --Full Stop."
+        }
+      ],
+      "type": "Hazard",
+      "isReshuffle": false
+    },
+    {
+      "id": "nav_reaver-cutter",
+      "name": "Reaver Cutter",
+      "counts": {
+        "core": 1,
+        "blueSun": 1,
+        "kalidasa": 1,
+        "alliance": 0,
+        "border": 1,
+        "rim": 1
+      },
+      "options": [
+        {
+          "name": "If We're Very Lucky…",
+          "details": "Player to your right moves a Reaver Cutter to your Sector. Kill all Passengers & Fugitives. Fight 8; 1-7 Kill 2 Crew, Evade. 8+ Kill 1 Crew Evade."
+        },
+        {
+          "name": "Crazy Ivan!",
+          "details": "Requires Pilot and Mechanic: --Spend 1 Fuel. --Evade."
+        }
+      ],
+      "type": "Reaver Cutter",
+      "isReshuffle": true
+    },
+    {
+      "id": "nav_reavers-dead-ahead",
+      "name": "Reavers Dead Ahead!",
+      "counts": {
+        "core": 3,
+        "blueSun": 0,
+        "kalidasa": 0,
+        "alliance": 0,
+        "border": 3,
+        "rim": 0
+      },
+      "options": [
+        {
+          "name": null,
+          "details": "--The player to your right must move a Reaver Ship to a Sector adjacent to your current location, not occupied by a Firefly. --Keep Flying."
+        }
+      ],
+      "type": "Reaver Cutter",
+      "isReshuffle": false
+    },
+    {
+      "id": "nav_reavers-in-orbit",
+      "name": "Reavers in Orbit",
+      "counts": {
+        "core": 0,
+        "blueSun": 3,
+        "kalidasa": 0,
+        "alliance": 0,
+        "border": 0,
+        "rim": 3
+      },
+      "options": [
+        {
+          "name": null,
+          "details": "--The player to your right must move a Reaver Ship to a Planetary Sector not occupied by a Firefly, in Border or Rim Space. --Keep Flying."
+        }
+      ],
+      "type": "Reaver Cutter",
+      "isReshuffle": false
+    },
+    {
+      "id": "nav_reavers-on-the-hunt",
+      "name": "Reavers on the Hunt",
+      "counts": {
+        "core": 5,
+        "blueSun": 6,
+        "kalidasa": 4,
+        "alliance": 0,
+        "border": 7,
+        "rim": 8
+      },
+      "options": [
+        {
+          "name": null,
+          "details": "--Player to your right must move a Reaver Ship 1 Sector within Border or Rim Space. --Keep Flying."
+        }
+      ],
+      "type": "Reaver Cutter",
+      "isReshuffle": false
+    },
+    {
+      "id": "nav_regulated-salvage",
+      "name": "Regulated Salvage",
+      "counts": {
+        "core": 0,
+        "blueSun": 0,
+        "kalidasa": 1,
+        "alliance": 1,
+        "border": 0,
+        "rim": 0
+      },
+      "options": [
+        {
+          "name": "By Hook or By Crook",
+          "details": "Salvage Op: --If you have FAKE ID, you may: Load 3 Cargo and Full Stop. Otherwise: Load 3 Contraband. Warrant Issued. Full Stop."
+        },
+        {
+          "name": "More Trouble Than it's Worth",
+          "details": "--Keep Flying."
+        }
+      ],
+      "type": "Salvage Op",
+      "isReshuffle": false
+    },
+    {
+      "id": "nav_ruttin-drive-cores-blown",
+      "name": "Ruttin' Drive Core's Blown",
+      "counts": {
+        "core": 1,
+        "blueSun": 0,
+        "kalidasa": 0,
+        "alliance": 0,
+        "border": 1,
+        "rim": 0
+      },
+      "options": [
+        {
+          "name": "See What's Ailin' Her",
+          "details": "Tech 8 Breakdown; 1-7 Full Stop. 8+ Keep Flying."
+        },
+        {
+          "name": "Tell Me We Got a Spare…",
+          "details": "--Spend 2 Parts. --Keep Flying."
+        }
+      ],
+      "type": "Breakdown",
+      "isReshuffle": false
+    },
+    {
+      "id": "nav_scrapper-ambush",
+      "name": "Scrapper Ambush",
+      "counts": {
+        "core": 1,
+        "blueSun": 0,
+        "kalidasa": 0,
+        "alliance": 0,
+        "border": 1,
+        "rim": 0
+      },
+      "options": [
+        {
+          "name": "Slip the Net",
+          "details": "Tech 5; 1-4 Discard 1 Ship Upgrade. Full Stop. 5+ Keep Flying."
+        },
+        {
+          "name": "Take 'em Head On!",
+          "details": "Fight 9 Salvage Op; 1-8 Kill a Crew. Full Stop. 9+ Take $500 and 2 Parts. Full Stop."
+        }
+      ],
+      "type": "Salvage Op",
+      "isReshuffle": false
+    },
+    {
+      "id": "nav_shes-tore-up-plenty",
+      "name": "She's Tore Up Plenty",
+      "counts": {
+        "core": 0,
+        "blueSun": 0,
+        "kalidasa": 2,
+        "alliance": 0,
+        "border": 1,
+        "rim": 1
+      },
+      "options": [
+        {
+          "name": "But She'll Fly True",
+          "details": "--Tech 7 Breakdown  1-6 Discard 2 Fuel. Full Stop.  7+ Keep Flying."
+        },
+        {
+          "name": "Patch Up Our Hurt",
+          "details": "Requires Mechanic: --Spend 1 Part. --Keep Flying."
+        }
+      ],
+      "type": "Breakdown",
+      "isReshuffle": false
+    },
+    {
+      "id": "nav_ship-graveyard",
+      "name": "Ship Graveyard",
+      "counts": {
+        "core": 1,
+        "blueSun": 0,
+        "kalidasa": 0,
+        "alliance": 0,
+        "border": 1,
+        "rim": 0
+      },
+      "options": [
+        {
+          "name": "Premium Salvage",
+          "details": "Tech 8 Salvage Op; 1-7 Load 2 Parts. Full Stop. 8+ Take 1 Ship Upgrade from any discard pile. Full Stop."
+        },
+        {
+          "name": "No Time to Dilly Dally",
+          "details": "--Keep Flying."
+        }
+      ],
+      "type": "Salvage Op",
+      "isReshuffle": false
+    },
+    {
+      "id": "nav_space-pox",
+      "name": "Space Pox!",
+      "counts": {
+        "core": 0,
+        "blueSun": 0,
+        "kalidasa": 1,
+        "alliance": 0,
+        "border": 1,
+        "rim": 0
+      },
+      "options": [
+        {
+          "name": "Shot a This Oughta Do Ya",
+          "details": "Requires Medic: --Keep Flying."
+        },
+        {
+          "name": "Outbreak!",
+          "details": "--Roll a Dice: If your roll is lower than the total of Passenger and Fugitive tokens on your ship, discard a number equal to your roll. --Keep Flying."
+        }
+      ],
+      "type": "Career Opportunities",
+      "isReshuffle": false
+    },
+    {
+      "id": "nav_storms-gettin-worse",
+      "name": "Storm's Gettin' Worse",
+      "counts": {
+        "core": 0,
+        "blueSun": 0,
+        "kalidasa": 2,
+        "alliance": 0,
+        "border": 1,
+        "rim": 1
+      },
+      "options": [
+        {
+          "name": "Could Be Bumpy",
+          "details": "Requires Pilot: --Tech 7 Breakdown  1-6 Kill a Crew. Keep Flying.  7+ Keep Flying."
+        },
+        {
+          "name": "Pass Through Soon Enough",
+          "details": "--Evade."
+        }
+      ],
+      "type": "Breakdown",
+      "isReshuffle": false
+    },
+    {
+      "id": "nav_abandoned-ship",
+      "name": "Abandoned Ship",
+      "counts": {
+        "core": 1,
+        "blueSun": 0,
+        "kalidasa": 0,
+        "alliance": 1,
+        "border": 0,
+        "rim": 0
+      },
+      "options": [
+        {
+          "name": "Rescue the Valuables",
+          "details": "--SALVAGE OP: Load 2 Contraband. --Full Stop."
+        },
+        {
+          "name": "Slide on By",
+          "details": "--Keep Flying."
+        }
+      ],
+      "type": "Salvage Op",
+      "isReshuffle": false
+    },
+    {
+      "id": "nav_the-big-black",
+      "name": "The Big Black",
+      "counts": {
+        "core": 43,
+        "blueSun": 10,
+        "kalidasa": 15,
+        "alliance": 27,
+        "border": 21,
+        "rim": 20
+      },
+      "options": [
+        {
+          "name": null,
+          "details": "Keep Flying!"
+        }
+      ],
+      "type": "The Big Black",
+      "isReshuffle": false
+    },
+    {
+      "id": "nav_whats-that-noise",
+      "name": "What's That Noise?",
+      "counts": {
+        "core": 1,
+        "blueSun": 0,
+        "kalidasa": 0,
+        "alliance": 0,
+        "border": 1,
+        "rim": 0
+      },
+      "options": [
+        {
+          "name": "That Doesn't Sound Good…",
+          "details": "Tech 6 Breakdown; 1-5 Full Stop. 6+ Keep Flying."
+        },
+        {
+          "name": "Gorram Parts Ain't Free",
+          "details": "--Spend 1 Part. --Keep Flying."
+        }
+      ],
+      "type": "Breakdown",
+      "isReshuffle": false
+    }
+  ]
+}

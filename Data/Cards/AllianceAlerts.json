@@ -1,0 +1,99 @@
+{
+  "meta": {
+    "description": "Firefly: The Game – Alliance Alert cards",
+    "count": 10,
+    "schemaVersion": "1.0"
+  },
+  "allianceAlerts": [
+    {
+      "id": "alert_persons-of-interest",
+      "source": "CrimeAndPunishment",
+      "sourceLabel": "C&P",
+      "name": "Persons of Interest",
+      "detail": "When you Botch a Job, Disgruntle your entire Crew.",
+      "systemWide": true,
+      "systemWideText": ":::SYSTEM WIDE:::\\nAuthority granted for increased surveillance and detention of any suspicious persons. Probable cause protocols suspended."
+    },
+    {
+      "id": "alert_alliance-audit",
+      "source": "CrimeAndPunishment",
+      "sourceLabel": "C&P",
+      "name": "Alliance Audit",
+      "detail": "Each time a player completes a Job, place this card on that Contact's deck. Players may not take a Deal Action with that Contact until this card moves.",
+      "systemWide": false,
+      "systemWideText": null
+    },
+    {
+      "id": "alert_rapid-response",
+      "source": "CrimeAndPunishment",
+      "sourceLabel": "C&P",
+      "name": "Rapid Response",
+      "detail": "When a player moves an Alliance Ship, they may move it one extra Sector.\\nDoes not apply to the \"Alliance Contact\" Nav Card.",
+      "systemWide": false,
+      "systemWideText": null
+    },
+    {
+      "id": "alert_criminal-sighting",
+      "source": "CrimeAndPunishment",
+      "sourceLabel": "C&P",
+      "name": "Criminal Sighting",
+      "detail": "Each time a player Hires a Wanted Crew, place this card on that Supply Deck. Players may not take a Buy Action at this location until this card moves.",
+      "systemWide": false,
+      "systemWideText": null
+    },
+    {
+      "id": "alert_privledge-suspension",
+      "source": "CrimeAndPunishment",
+      "sourceLabel": "C&P",
+      "name": "Privledge Suspension",
+      "detail": "Players do not count as Solid with Harken while this card is in play.",
+      "systemWide": true,
+      "systemWideText": ":::SYSTEM WIDE:::\\nDispersion of work contracts to independent contractors is suspended until further notice, pending investigation into new regulatoy framework."
+    },
+    {
+      "id": "alert_incarceration-order",
+      "source": "CrimeAndPunishment",
+      "sourceLabel": "C&P",
+      "name": "Incarceration Order",
+      "detail": "When resolving Alliance Contact, you may remove on of your Wanted Crew from Play instead of paying one Warrant's fine.",
+      "systemWide": true,
+      "systemWideText": ":::SYSTEM WIDE:::\\nSee Order 24.4b: Increased Detention Quotas"
+    },
+    {
+      "id": "alert_white-sun-commerce",
+      "source": "CrimeAndPunishment",
+      "sourceLabel": "C&P",
+      "name": "White Sun Commerce",
+      "detail": "If you have any Warrants, you may not Buy at Osiris or Persephone.",
+      "systemWide": true,
+      "systemWideText": ":::SYSTEM WIDE:::\\nAll financial transactions are not subject to three-level Cortex authentication."
+    },
+    {
+      "id": "alert_criminal-activity",
+      "source": "CrimeAndPunishment",
+      "sourceLabel": "C&P",
+      "name": "Criminal Activity",
+      "detail": "+1 Misbehave when you Work an Illegal Job while you have any Warrants.",
+      "systemWide": true,
+      "systemWideText": ":::SYSTEM WIDE:::\\nAdditional Security Patrols Required"
+    },
+    {
+      "id": "alert_background-checks",
+      "source": "CrimeAndPunishment",
+      "sourceLabel": "C&P",
+      "name": "Background Checks",
+      "detail": "If you have any Warrants when you roll for Wanted Crew, you must roll higher than your number of Warrants for each Crew to Dodge Capture.",
+      "systemWide": true,
+      "systemWideText": ":::SYSTEM WIDE:::\\nAll imported shipments are subject to increased Customs Inspection and Scrutiny."
+    },
+    {
+      "id": "alert_enhanced-inspection",
+      "source": "CrimeAndPunishment",
+      "sourceLabel": "C&P",
+      "name": "Enhanced Inspection",
+      "detail": "You may not Sell Cargo to Contacts.",
+      "systemWide": false,
+      "systemWideText": null
+    }
+  ]
+}

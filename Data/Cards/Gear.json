@@ -1,0 +1,1965 @@
+{
+  "meta": {
+    "description": "Firefly: The Game – Gear cards",
+    "count": 74,
+    "schemaVersion": "1.0"
+  },
+  "gear": [
+    {
+      "class": "Promo",
+      "source": "LootCrate",
+      "sourceLabel": "Loot Crate",
+      "name": "Loot Crate: Silverhold",
+      "cost": 300,
+      "costRaw": "300",
+      "description": "Remove from Play to Use: Draw a card from the Silverhold Supply Deck. If it is a Gear Card, keep it. If not, discard it and draw another card. Repeat until a Gear Card is drawn.",
+      "skills": {
+        "fight": null,
+        "tech": null,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [],
+      "locations": {
+        "Persephone": 1
+      },
+      "count": null,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "gear_loot-crate-silverhold_lootcrate"
+    },
+    {
+      "class": "Promo",
+      "source": "Promo",
+      "sourceLabel": "Promo Pack",
+      "name": "Mal's Pretty Floral Bonnet",
+      "cost": 0,
+      "costRaw": "0",
+      "description": "Crew carrying Bonnet ignores Wanted Crew Rolls. Does not count towards Gear Limit.",
+      "skills": {
+        "fight": null,
+        "tech": null,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [],
+      "locations": {
+        "Silverhold": 1
+      },
+      "count": 1,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "gear_mals-pretty-floral-bonnet_promo"
+    },
+    {
+      "class": "Promo",
+      "source": "Promo",
+      "sourceLabel": "Promo Pack",
+      "name": "Wash's Lucky Dinosaurs",
+      "cost": 0,
+      "costRaw": "0",
+      "description": "When Flying, re-roll any Test result of 1. Does not count towards Gear Limit.",
+      "skills": {
+        "fight": null,
+        "tech": null,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [],
+      "locations": {
+        "Space Bazaar": 1
+      },
+      "count": 1,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "gear_washs-lucky-dinosaurs_promo"
+    },
+    {
+      "class": "Standard",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Bona Fide Credentials",
+      "cost": 1000,
+      "costRaw": "1000",
+      "description": null,
+      "skills": {
+        "fight": null,
+        "tech": null,
+        "talk": 1
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [
+        "Fake ID"
+      ],
+      "locations": {
+        "Space Bazaar": 1,
+        "Persephone": 1,
+        "Osiris": 1
+      },
+      "count": 3,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "gear_bona-fide-credentials"
+    },
+    {
+      "class": "Standard",
+      "source": "PiratesBountyHunters",
+      "sourceLabel": "PBH",
+      "name": "Friendly Game of Cards",
+      "cost": 0,
+      "costRaw": "0",
+      "description": "GAMBLING. Discard to Use: Pay Bank $300. Name a Suit. Flip over 3 Misbehave Cards. Take $500 and remove 1 Disgruntled token for each card that matches the named suit.",
+      "skills": {
+        "fight": null,
+        "tech": null,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [],
+      "locations": {
+        "Silverhold": 1
+      },
+      "count": 1,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "gear_friendly-game-of-cards_piratesbountyhunters"
+    },
+    {
+      "class": "Standard",
+      "source": "BreakinAtmo",
+      "sourceLabel": "BA",
+      "name": "The Best in the House",
+      "cost": 400,
+      "costRaw": "400",
+      "description": "Discard to remove Disgruntled from all Crew.",
+      "skills": {
+        "fight": null,
+        "tech": null,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [],
+      "locations": {
+        "Silverhold": 1
+      },
+      "count": 1,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "gear_the-best-in-the-house_breakinatmo"
+    },
+    {
+      "class": "Standard",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Vera",
+      "cost": 1600,
+      "costRaw": "1600",
+      "description": null,
+      "skills": {
+        "fight": 2,
+        "tech": null,
+        "talk": 1
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [
+        "Firearm",
+        "Sniper Rifle"
+      ],
+      "locations": {
+        "Silverhold": 1
+      },
+      "count": 1,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "gear_vera"
+    },
+    {
+      "class": "Standard",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "4WD Mule",
+      "cost": 1000,
+      "costRaw": "1000",
+      "description": "After completing a Crime Job, Load 1 Cargo.",
+      "skills": {
+        "fight": null,
+        "tech": null,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [
+        "Transport"
+      ],
+      "locations": {
+        "Space Bazaar": 1,
+        "Persephone": 2
+      },
+      "count": 3,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "gear_4wd-mule"
+    },
+    {
+      "class": "Standard",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "A Very Fine Hat",
+      "cost": 1000,
+      "costRaw": "1000",
+      "description": "When Dealing with Contacts, you may Consider up to 4 Jobs.",
+      "skills": {
+        "fight": null,
+        "tech": null,
+        "talk": 1
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [
+        "Fancy Duds"
+      ],
+      "locations": {
+        "Persephone": 1
+      },
+      "count": 1,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "gear_a-very-fine-hat"
+    },
+    {
+      "class": "Standard",
+      "source": "BreakinAtmo",
+      "sourceLabel": "BA",
+      "name": "Alliance Body Armor",
+      "cost": 400,
+      "costRaw": "400",
+      "description": "If Crew carrying Armor is Killed, roll: 1-3: Crew is Killed. 4-6: Crew is not Killed.",
+      "skills": {
+        "fight": 1,
+        "tech": null,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [],
+      "locations": {
+        "Osiris": 2
+      },
+      "count": 2,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "gear_alliance-body-armor_breakinatmo"
+    },
+    {
+      "class": "Standard",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Alliance Ident Card",
+      "cost": 1600,
+      "costRaw": "1600",
+      "description": "Counts as Solid with Harken. Crew carrying ignores Wanted Crew Roll.",
+      "skills": {
+        "fight": null,
+        "tech": null,
+        "talk": 2
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [
+        "Fake ID"
+      ],
+      "locations": {
+        "Osiris": 1
+      },
+      "count": 1,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "gear_alliance-ident-card"
+    },
+    {
+      "class": "Standard",
+      "source": "PiratesBountyHunters",
+      "sourceLabel": "PBH",
+      "name": "Alliance Sonic Rifle",
+      "cost": 800,
+      "costRaw": "800",
+      "description": "Rivals using Fight Skill in SHOWDOWNS must follow Kosherized Rules.",
+      "skills": {
+        "fight": null,
+        "tech": null,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [],
+      "locations": {
+        "Osiris": 2
+      },
+      "count": 2,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "gear_alliance-sonic-rifle_piratesbountyhunters"
+    },
+    {
+      "class": "Standard",
+      "source": "Kalidasa",
+      "sourceLabel": "Kal",
+      "name": "Billiards Betting",
+      "cost": 500,
+      "costRaw": "500",
+      "description": "GAMBLING. When you buy this card, roll two dice. Take $100 times the total of the dice and discard this card.",
+      "skills": {
+        "fight": null,
+        "tech": null,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [],
+      "locations": {
+        "Beaumonde": 1
+      },
+      "count": 1,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "gear_billiards-betting_kalidasa"
+    },
+    {
+      "class": "Standard",
+      "source": "BreakinAtmo",
+      "sourceLabel": "BA",
+      "name": "Breaching Tool",
+      "cost": 1200,
+      "costRaw": "1200",
+      "description": "+1 Contraband from Salvage Ops.",
+      "skills": {
+        "fight": null,
+        "tech": 1,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [
+        "Explosives"
+      ],
+      "locations": {
+        "Space Bazaar": 2
+      },
+      "count": 2,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "gear_breaching-tool_breakinatmo"
+    },
+    {
+      "class": "Standard",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Burgess's Hovering Bad-Ass Space Jeep",
+      "cost": 1600,
+      "costRaw": "1600",
+      "description": null,
+      "skills": {
+        "fight": 2,
+        "tech": null,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [
+        "Transport",
+        "Firearm"
+      ],
+      "locations": {
+        "Silverhold": 1
+      },
+      "count": 1,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "gear_burgesss-hovering-bad-ass-space-jeep"
+    },
+    {
+      "class": "Standard",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Burgess's Laser",
+      "cost": 1800,
+      "costRaw": "1800",
+      "description": "Requires [Tech] to Carry.",
+      "skills": {
+        "fight": 3,
+        "tech": null,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [
+        "Firearm",
+        "Explosives"
+      ],
+      "locations": {
+        "Silverhold": 1
+      },
+      "count": 1,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "gear_burgesss-laser"
+    },
+    {
+      "class": "Standard",
+      "source": "BreakinAtmo",
+      "sourceLabel": "BA",
+      "name": "Cortex Uplink",
+      "cost": 1200,
+      "costRaw": "1200",
+      "description": "From any location, you may use a Deal Action to Consider the top, face down card from any Contact. Accept or discard the Job as normal.",
+      "skills": {
+        "fight": null,
+        "tech": 1,
+        "talk": 1
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [],
+      "locations": {
+        "Persephone": 2
+      },
+      "count": 2,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "gear_cortex-uplink_breakinatmo"
+    },
+    {
+      "class": "Standard",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Crow's Knife",
+      "cost": 200,
+      "costRaw": "200",
+      "description": null,
+      "skills": {
+        "fight": "2D",
+        "tech": null,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [],
+      "locations": {
+        "Regina": 1
+      },
+      "count": 1,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "gear_crows-knife"
+    },
+    {
+      "class": "Standard",
+      "source": "PiratesBountyHunters",
+      "sourceLabel": "PBH",
+      "name": "Dobson's Vector Pistol",
+      "cost": 600,
+      "costRaw": "600",
+      "description": "May be used in Kosherized Fights. Does not count towards Gear Limit.",
+      "skills": {
+        "fight": 1,
+        "tech": null,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [
+        "Firearm"
+      ],
+      "locations": {
+        "Persephone": 1
+      },
+      "count": 1,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "gear_dobsons-vector-pistol_piratesbountyhunters"
+    },
+    {
+      "class": "Standard",
+      "source": "PiratesBountyHunters",
+      "sourceLabel": "PBH",
+      "name": "Early's Combat Armor",
+      "cost": 1000,
+      "costRaw": "1000",
+      "description": "If Crew carrying Armor is Killed, roll: 1-3: Crew is Killed. 4-6: Crew is not Killed.",
+      "skills": {
+        "fight": 1,
+        "tech": 1,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [],
+      "locations": {
+        "Space Bazaar": 1
+      },
+      "count": 1,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "gear_earlys-combat-armor_piratesbountyhunters"
+    },
+    {
+      "class": "Standard",
+      "source": "PiratesBountyHunters",
+      "sourceLabel": "PBH",
+      "name": "Early's Datascope",
+      "cost": 1000,
+      "costRaw": "1000",
+      "description": "As a Work Action, you may reveal the top 3 cards for your current location's Supply Deck and place them all in the discard pile.",
+      "skills": {
+        "fight": null,
+        "tech": null,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [
+        "Hacking Rig"
+      ],
+      "locations": {
+        "Space Bazaar": 1
+      },
+      "count": 1,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "gear_earlys-datascope_piratesbountyhunters"
+    },
+    {
+      "class": "Standard",
+      "source": "PiratesBountyHunters",
+      "sourceLabel": "PBH",
+      "name": "Early's Pistol",
+      "cost": 600,
+      "costRaw": "600",
+      "description": "+2 Fight in SHOWDOWN",
+      "skills": {
+        "fight": 1,
+        "tech": null,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [
+        "Firearm"
+      ],
+      "locations": {
+        "Space Bazaar": 1
+      },
+      "count": 1,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "gear_earlys-pistol_piratesbountyhunters"
+    },
+    {
+      "class": "Standard",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Explosive Charge",
+      "cost": 400,
+      "costRaw": "400",
+      "description": null,
+      "skills": {
+        "fight": "1D",
+        "tech": null,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [
+        "Explosives:D"
+      ],
+      "locations": {
+        "Space Bazaar": 1,
+        "Persephone": 1,
+        "Silverhold": 2
+      },
+      "count": 4,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "gear_explosive-charge"
+    },
+    {
+      "class": "Standard",
+      "source": "Kalidasa",
+      "sourceLabel": "Kal",
+      "name": "Extra Ammo Clips",
+      "cost": 200,
+      "costRaw": "200",
+      "description": "Discard to re-roll a [FIGHTING] Test.",
+      "skills": {
+        "fight": null,
+        "tech": null,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [],
+      "locations": {
+        "Silverhold": 2,
+        "Beaumonde": 1
+      },
+      "count": 3,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "gear_extra-ammo-clips_kalidasa"
+    },
+    {
+      "class": "Standard",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Fast Horses",
+      "cost": 200,
+      "costRaw": "200",
+      "description": null,
+      "skills": {
+        "fight": null,
+        "tech": null,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [
+        "Transport:D"
+      ],
+      "locations": {
+        "Silverhold": 2,
+        "Regina": 2
+      },
+      "count": 4,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "gear_fast-horses"
+    },
+    {
+      "class": "Standard",
+      "source": "BlueSun",
+      "sourceLabel": "BS",
+      "name": "Fruity Oaty Bar",
+      "cost": 100,
+      "costRaw": "100",
+      "description": "Discard before rolling to add +1 to any test result. OR Discard to remove Disgruntled from the owner.",
+      "skills": {
+        "fight": null,
+        "tech": null,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [],
+      "locations": {
+        "Persephone": 1,
+        "Meridian": 2
+      },
+      "count": 3,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "gear_fruity-oaty-bar_bluesun"
+    },
+    {
+      "class": "Standard",
+      "source": "BreakinAtmo",
+      "sourceLabel": "BA",
+      "name": "Gentleman's Dueling Sword",
+      "cost": 1000,
+      "costRaw": "1000",
+      "description": "Counts as Knife: Discard to add +Fight to a Fight Test after rolling.",
+      "skills": {
+        "fight": 1,
+        "tech": null,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [
+        "Fancy Duds"
+      ],
+      "locations": {
+        "Persephone": 1
+      },
+      "count": 1,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "gear_gentlemans-dueling-sword_breakinatmo"
+    },
+    {
+      "class": "Standard",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "GJ Flashkill Pod Grenades",
+      "cost": 1000,
+      "costRaw": "1000",
+      "description": null,
+      "skills": {
+        "fight": 2,
+        "tech": null,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [
+        "Explosives"
+      ],
+      "locations": {
+        "Silverhold": 2
+      },
+      "count": 2,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "gear_gj-flashkill-pod-grenades"
+    },
+    {
+      "class": "Standard",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Glucklich Jia 642X",
+      "cost": 800,
+      "costRaw": "800",
+      "description": null,
+      "skills": {
+        "fight": 1,
+        "tech": null,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [
+        "Firearm",
+        "Sniper Rifle"
+      ],
+      "locations": {
+        "Silverhold": 2,
+        "Regina": 1
+      },
+      "count": 3,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "gear_glucklich-jia-642x"
+    },
+    {
+      "class": "Standard",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Hastily Forged Documents",
+      "cost": 400,
+      "costRaw": "400",
+      "description": null,
+      "skills": {
+        "fight": null,
+        "tech": null,
+        "talk": "1D"
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [
+        "Fake ID:D"
+      ],
+      "locations": {
+        "Space Bazaar": 1,
+        "Persephone": 1
+      },
+      "count": 2,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "gear_hastily-forged-documents"
+    },
+    {
+      "class": "Standard",
+      "source": "BlueSun",
+      "sourceLabel": "BS",
+      "name": "Heist Intel",
+      "cost": 500,
+      "costRaw": "500",
+      "description": "On your turn, discard to look at the top 3 cards of the Misbehave deck. Return them to the deck, in any order, or discard all of them.",
+      "skills": {
+        "fight": null,
+        "tech": null,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [],
+      "locations": {
+        "Meridian": 1
+      },
+      "count": 1,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "gear_heist-intel_bluesun"
+    },
+    {
+      "class": "Standard",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Improvised Hacking Rig",
+      "cost": 400,
+      "costRaw": "400",
+      "description": null,
+      "skills": {
+        "fight": null,
+        "tech": "1D",
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [
+        "Hacking Rig:D"
+      ],
+      "locations": {
+        "Space Bazaar": 1,
+        "Persephone": 1
+      },
+      "count": 2,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "gear_improvised-hacking-rig"
+    },
+    {
+      "class": "Standard",
+      "source": "Kalidasa",
+      "sourceLabel": "Kal",
+      "name": "Inara's Bow",
+      "cost": 500,
+      "costRaw": "500",
+      "description": "When carried by a Companion, re-roll 1s in all [FIGHTING] Tests.",
+      "skills": {
+        "fight": 2,
+        "tech": null,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [],
+      "locations": {
+        "Beaumonde": 1
+      },
+      "count": 1,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "gear_inaras-bow_kalidasa"
+    },
+    {
+      "class": "Standard",
+      "source": "Kalidasa",
+      "sourceLabel": "Kal",
+      "name": "Inara's Guild Papers",
+      "cost": 1000,
+      "costRaw": "1000",
+      "description": "Counts as COMPANION.",
+      "skills": {
+        "fight": null,
+        "tech": null,
+        "talk": 2
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [
+        "Companion"
+      ],
+      "keywords": [],
+      "locations": {
+        "Beaumonde": 1
+      },
+      "count": 1,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "gear_inaras-guild-papers_kalidasa"
+    },
+    {
+      "class": "Standard",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Jayne's Cunning Hat",
+      "cost": 0,
+      "costRaw": "0",
+      "description": "When Misbehaving, re-roll any Test result of 1. Does not count towards Gear Limit.",
+      "skills": {
+        "fight": null,
+        "tech": null,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [],
+      "locations": {
+        "Space Bazaar": 1
+      },
+      "count": 1,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "gear_jaynes-cunning-hat"
+    },
+    {
+      "class": "Standard",
+      "source": "Kalidasa",
+      "sourceLabel": "Kal",
+      "name": "Jayne's Holdout Pistol",
+      "cost": 500,
+      "costRaw": "500",
+      "description": "May be used in Kosherized Fights. Does not count towards Gear Limit.",
+      "skills": {
+        "fight": 1,
+        "tech": null,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [
+        "Firearm"
+      ],
+      "locations": {
+        "Beaumonde": 1
+      },
+      "count": 1,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "gear_jaynes-holdout-pistol_kalidasa"
+    },
+    {
+      "class": "Standard",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Kaylee's Fluffy Pink Dress",
+      "cost": 1000,
+      "costRaw": "1000",
+      "description": "When Buying from Suppliers, you may Buy up to 3 cards.",
+      "skills": {
+        "fight": null,
+        "tech": null,
+        "talk": 1
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [
+        "Fancy Duds"
+      ],
+      "locations": {
+        "Persephone": 1
+      },
+      "count": 1,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "gear_kaylees-fluffy-pink-dress"
+    },
+    {
+      "class": "Standard",
+      "source": "BlueSun",
+      "sourceLabel": "BS",
+      "name": "Kaylee's Parasol",
+      "cost": 0,
+      "costRaw": "0",
+      "description": "Does not count toward Gear Limit.",
+      "skills": {
+        "fight": null,
+        "tech": null,
+        "talk": 1
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [],
+      "locations": {
+        "Meridian": 1
+      },
+      "count": 1,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "gear_kaylees-parasol_bluesun"
+    },
+    {
+      "class": "Standard",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Kaylee's Reprogrammer",
+      "cost": 1000,
+      "costRaw": "1000",
+      "description": null,
+      "skills": {
+        "fight": null,
+        "tech": 2,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [
+        "Hacking Rig"
+      ],
+      "locations": {
+        "Regina": 1
+      },
+      "count": 1,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "gear_kaylees-reprogrammer"
+    },
+    {
+      "class": "Standard",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Knife",
+      "cost": 200,
+      "costRaw": "200",
+      "description": null,
+      "skills": {
+        "fight": "1D",
+        "tech": null,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [],
+      "locations": {
+        "Space Bazaar": 1,
+        "Persephone": 1,
+        "Silverhold": 1
+      },
+      "count": 3,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "gear_knife"
+    },
+    {
+      "class": "Standard",
+      "source": "Kalidasa",
+      "sourceLabel": "Kal",
+      "name": "Labor Contract: Persephone",
+      "cost": 500,
+      "costRaw": "500",
+      "description": "From any location, you may use a Buy Action to Hire 1 Crew from the Persephone Discard Pile for free.",
+      "skills": {
+        "fight": null,
+        "tech": null,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [],
+      "locations": {
+        "Beaumonde": 1
+      },
+      "count": 1,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "gear_labor-contract-persephone_kalidasa"
+    },
+    {
+      "class": "Standard",
+      "source": "Kalidasa",
+      "sourceLabel": "Kal",
+      "name": "Labor Contract: Regina",
+      "cost": 500,
+      "costRaw": "500",
+      "description": "From any location, you may use a Buy Action to Hire 1 Crew from the Regina Discard Pile for free.",
+      "skills": {
+        "fight": null,
+        "tech": null,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [],
+      "locations": {
+        "Beaumonde": 1
+      },
+      "count": 1,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "gear_labor-contract-regina_kalidasa"
+    },
+    {
+      "class": "Standard",
+      "source": "Kalidasa",
+      "sourceLabel": "Kal",
+      "name": "Labor Contract: Silverhold",
+      "cost": 500,
+      "costRaw": "500",
+      "description": "From any location, you may use a Buy Action to Hire 1 Crew from the Silverhold Discard Pile for free.",
+      "skills": {
+        "fight": null,
+        "tech": null,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [],
+      "locations": {
+        "Beaumonde": 1
+      },
+      "count": 1,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "gear_labor-contract-silverhold_kalidasa"
+    },
+    {
+      "class": "Standard",
+      "source": "Kalidasa",
+      "sourceLabel": "Kal",
+      "name": "Labor Contract: Space Bazaar",
+      "cost": 500,
+      "costRaw": "500",
+      "description": "From any location, you may use a Buy Action to Hire 1 Crew from the Space Bazaar Discard Pile for free.",
+      "skills": {
+        "fight": null,
+        "tech": null,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [],
+      "locations": {
+        "Beaumonde": 1
+      },
+      "count": 1,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "gear_labor-contract-space-bazaar_kalidasa"
+    },
+    {
+      "class": "Standard",
+      "source": "BlueSun",
+      "sourceLabel": "BS",
+      "name": "Love Bot",
+      "cost": 1200,
+      "costRaw": "1200",
+      "description": "You may use an Action on your turn to Remove Disgruntled from a Crew.",
+      "skills": {
+        "fight": null,
+        "tech": null,
+        "talk": 1
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [
+        "Companion"
+      ],
+      "keywords": [],
+      "locations": {
+        "Meridian": 1
+      },
+      "count": 1,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "gear_love-bot_bluesun"
+    },
+    {
+      "class": "Standard",
+      "source": "BlueSun",
+      "sourceLabel": "BS",
+      "name": "Mal's Brown Coat",
+      "cost": 800,
+      "costRaw": "800",
+      "description": "Disgruntle Owner to add their Fight to a Negotiate Test. Does not count towards Gear Limit.",
+      "skills": {
+        "fight": null,
+        "tech": null,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [],
+      "locations": {
+        "Meridian": 1
+      },
+      "count": 1,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "gear_mals-brown-coat_bluesun"
+    },
+    {
+      "class": "Standard",
+      "source": "BlueSun",
+      "sourceLabel": "BS",
+      "name": "Mal's Frontier Model B",
+      "cost": 800,
+      "costRaw": "800",
+      "description": "Before each Fight Test, remove Disgruntled from the Owner.",
+      "skills": {
+        "fight": 2,
+        "tech": null,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [
+        "Firearm"
+      ],
+      "locations": {
+        "Meridian": 1
+      },
+      "count": 1,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "gear_mals-frontier-model-b_bluesun"
+    },
+    {
+      "class": "Standard",
+      "source": "Kalidasa",
+      "sourceLabel": "Kal",
+      "name": "Mal's Sniper Rifle",
+      "cost": 800,
+      "costRaw": "800",
+      "description": "Before each [FIGHTING] Test, remove Disgruntled from the Owner.",
+      "skills": {
+        "fight": 1,
+        "tech": null,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [
+        "Firearm",
+        "Sniper Rifle"
+      ],
+      "locations": {
+        "Beaumonde": 1
+      },
+      "count": 1,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "gear_mals-sniper-rifle_kalidasa"
+    },
+    {
+      "class": "Standard",
+      "source": "BlueSun",
+      "sourceLabel": "BS",
+      "name": "Maque Tiles",
+      "cost": 200,
+      "costRaw": "200",
+      "description": "GAMBLING. Discard to Use: Choose red or black. Draw 2 Misbehave Cards. If both suits match choice, take $1200.",
+      "skills": {
+        "fight": null,
+        "tech": null,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [],
+      "locations": {
+        "Meridian": 1
+      },
+      "count": 1,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "gear_maque-tiles_bluesun"
+    },
+    {
+      "class": "Standard",
+      "source": "Kalidasa",
+      "sourceLabel": "Kal",
+      "name": "Med Foam",
+      "cost": 300,
+      "costRaw": "300",
+      "description": "Discard to count as having made a successful Medic Check.",
+      "skills": {
+        "fight": null,
+        "tech": null,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [],
+      "locations": {
+        "Osiris": 2,
+        "Beaumonde": 1
+      },
+      "count": 3,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "gear_med-foam_kalidasa"
+    },
+    {
+      "class": "Standard",
+      "source": "BlueSun",
+      "sourceLabel": "BS",
+      "name": "MF-813 Flying Mule",
+      "cost": 1400,
+      "costRaw": "1400",
+      "description": "After completing a Crime Job, Load 6 Goods, minus 1 per Crew Working the Job.",
+      "skills": {
+        "fight": null,
+        "tech": null,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [
+        "Transport"
+      ],
+      "locations": {
+        "Meridian": 1
+      },
+      "count": 1,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "gear_mf-813-flying-mule_bluesun"
+    },
+    {
+      "class": "Standard",
+      "source": "BreakinAtmo",
+      "sourceLabel": "BA",
+      "name": "Mud Dog ATV",
+      "cost": 1000,
+      "costRaw": "1000",
+      "description": "After completing a Smuggling Job, Load 1 Contraband.",
+      "skills": {
+        "fight": null,
+        "tech": null,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [
+        "Transport"
+      ],
+      "locations": {
+        "Regina": 2
+      },
+      "count": 2,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "gear_mud-dog-atv_breakinatmo"
+    },
+    {
+      "class": "Standard",
+      "source": "BreakinAtmo",
+      "sourceLabel": "BA",
+      "name": "Nandi's Gun Collection",
+      "cost": 1200,
+      "costRaw": "1200",
+      "description": "Reroll any Negotiate Test results of 1.",
+      "skills": {
+        "fight": 1,
+        "tech": null,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [
+        "Fancy Duds",
+        "Firearm"
+      ],
+      "locations": {
+        "Regina": 1
+      },
+      "count": 1,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "gear_nandis-gun-collection_breakinatmo"
+    },
+    {
+      "class": "Standard",
+      "source": "Kalidasa",
+      "sourceLabel": "Kal",
+      "name": "Nav Charts: Alliance Space",
+      "cost": 300,
+      "costRaw": "300",
+      "description": "Discard to look at the top 5 Cards of the Alliance Space Nav  Deck. Return the cards to the top of the Deck in any order.",
+      "skills": {
+        "fight": null,
+        "tech": 1,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [],
+      "locations": {
+        "Space Bazaar": 1,
+        "Osiris": 2
+      },
+      "count": 3,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "gear_nav-charts-alliance-space_kalidasa"
+    },
+    {
+      "class": "Standard",
+      "source": "Kalidasa",
+      "sourceLabel": "Kal",
+      "name": "Nav Charts: Border Space",
+      "cost": 300,
+      "costRaw": "300",
+      "description": "Discard to look at the top 5 Cards of the Border Space Nav Deck. Return the cards to the top of the Deck in any order.",
+      "skills": {
+        "fight": null,
+        "tech": 1,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [],
+      "locations": {
+        "Space Bazaar": 1,
+        "Regina": 2
+      },
+      "count": 3,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "gear_nav-charts-border-space_kalidasa"
+    },
+    {
+      "class": "Standard",
+      "source": "Kalidasa",
+      "sourceLabel": "Kal",
+      "name": "Nav Charts: Rim Space",
+      "cost": 300,
+      "costRaw": "300",
+      "description": "Discard to look at the top 5 Cards of the Rim Space Nav Deck. Return the cards to the top of the Deck in any order.",
+      "skills": {
+        "fight": null,
+        "tech": 1,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [],
+      "locations": {
+        "Space Bazaar": 1,
+        "Persephone": 2
+      },
+      "count": 3,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "gear_nav-charts-rim-space_kalidasa"
+    },
+    {
+      "class": "Standard",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Official Lookin' Vehicle",
+      "cost": 1400,
+      "costRaw": "1400",
+      "description": null,
+      "skills": {
+        "fight": null,
+        "tech": null,
+        "talk": 2
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [
+        "Transport"
+      ],
+      "locations": {
+        "Osiris": 1
+      },
+      "count": 1,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "gear_official-lookin-vehicle"
+    },
+    {
+      "class": "Standard",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Pistol",
+      "cost": 400,
+      "costRaw": "400",
+      "description": null,
+      "skills": {
+        "fight": 1,
+        "tech": null,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [
+        "Firearm"
+      ],
+      "locations": {
+        "Space Bazaar": 1,
+        "Silverhold": 2,
+        "Regina": 2
+      },
+      "count": 5,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "gear_pistol"
+    },
+    {
+      "class": "Standard",
+      "source": "PiratesBountyHunters",
+      "sourceLabel": "PBH",
+      "name": "Sash's Hand Cannon",
+      "cost": 800,
+      "costRaw": "800",
+      "description": "Before rolling SHOWDOWN Test, Disgruntle Rival's Leader.",
+      "skills": {
+        "fight": 1,
+        "tech": null,
+        "talk": 1
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [
+        "Firearm"
+      ],
+      "locations": {
+        "Regina": 1
+      },
+      "count": 1,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "gear_sashs-hand-cannon_piratesbountyhunters"
+    },
+    {
+      "class": "Standard",
+      "source": "PiratesBountyHunters",
+      "sourceLabel": "PBH",
+      "name": "Scan Proof Shades",
+      "cost": 1000,
+      "costRaw": "1000",
+      "description": "Crew carrying Scan-Proof Shades may ignore Alliance Wanted Crew Rolls.",
+      "skills": {
+        "fight": null,
+        "tech": null,
+        "talk": 1
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [
+        "Fancy Duds"
+      ],
+      "locations": {
+        "Persephone": 1
+      },
+      "count": 1,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "gear_scan-proof-shades_piratesbountyhunters"
+    },
+    {
+      "class": "Standard",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Security Interface Pad",
+      "cost": 1000,
+      "costRaw": "1000",
+      "description": null,
+      "skills": {
+        "fight": null,
+        "tech": 1,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [
+        "Hacking Rig"
+      ],
+      "locations": {
+        "Space Bazaar": 1,
+        "Persephone": 1,
+        "Osiris": 1
+      },
+      "count": 3,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "gear_security-interface-pad"
+    },
+    {
+      "class": "Standard",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Shiny Neck Tie",
+      "cost": 800,
+      "costRaw": "800",
+      "description": null,
+      "skills": {
+        "fight": null,
+        "tech": null,
+        "talk": 1
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [
+        "Fancy Duds"
+      ],
+      "locations": {
+        "Space Bazaar": 1
+      },
+      "count": 1,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "gear_shiny-neck-tie"
+    },
+    {
+      "class": "Standard",
+      "source": "BlueSun",
+      "sourceLabel": "BS",
+      "name": "Simon's Sonic Stun Baton",
+      "cost": 1000,
+      "costRaw": "1000",
+      "description": "Discard, after a Fight Test, to count the roll as a 6 and add Thrillin' Heroics bonus roll.",
+      "skills": {
+        "fight": null,
+        "tech": null,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [
+        "Fake ID"
+      ],
+      "locations": {
+        "Meridian": 1
+      },
+      "count": 1,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "gear_simons-sonic-stun-baton_bluesun"
+    },
+    {
+      "class": "Standard",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Simon's Surgical Kit",
+      "cost": 800,
+      "costRaw": "800",
+      "description": "+1 to Medic Checks.",
+      "skills": {
+        "fight": null,
+        "tech": 1,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [],
+      "locations": {
+        "Osiris": 1
+      },
+      "count": 1,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "gear_simons-surgical-kit"
+    },
+    {
+      "class": "Standard",
+      "source": "BreakinAtmo",
+      "sourceLabel": "BA",
+      "name": "Tall Playing Cards",
+      "cost": 0,
+      "costRaw": "0",
+      "description": "GAMBLING: Discard to Use: Pay the Bank $500. Draw 5 Misbehave Cards. If at least 3 of the 5 cards have matching suits, take $1500.",
+      "skills": {
+        "fight": null,
+        "tech": null,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [],
+      "locations": {
+        "Space Bazaar": 1
+      },
+      "count": 1,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "gear_tall-playing-cards_breakinatmo"
+    },
+    {
+      "class": "Standard",
+      "source": "BlueSun",
+      "sourceLabel": "BS",
+      "name": "The Operative's Sword",
+      "cost": 1000,
+      "costRaw": "1000",
+      "description": "Counts as a Knife. Discard to count as an \"Ace\" for any Misbehave Card: Proceed.",
+      "skills": {
+        "fight": 2,
+        "tech": null,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [],
+      "locations": {
+        "Meridian": 1
+      },
+      "count": 1,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "gear_the-operatives-sword_bluesun"
+    },
+    {
+      "class": "Standard",
+      "source": "BreakinAtmo",
+      "sourceLabel": "BA",
+      "name": "Two-Fry's Carbine",
+      "cost": 1200,
+      "costRaw": "1200",
+      "description": "Reroll any Fight Test results of 1.",
+      "skills": {
+        "fight": 1,
+        "tech": null,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [
+        "Firearm",
+        "Sniper Rifle"
+      ],
+      "locations": {
+        "Regina": 1
+      },
+      "count": 1,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "gear_two-frys-carbine_breakinatmo"
+    },
+    {
+      "class": "Standard",
+      "source": "BreakinAtmo",
+      "sourceLabel": "BA",
+      "name": "Universal Encyclopedia",
+      "cost": 1200,
+      "costRaw": "1200",
+      "description": "From any location, you may use a Deal Action to look at the top 3 cards of the Misbehave Deck. Replace them in any order.",
+      "skills": {
+        "fight": null,
+        "tech": 1,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [],
+      "locations": {
+        "Osiris": 1
+      },
+      "count": 1,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "gear_universal-encyclopedia_breakinatmo"
+    },
+    {
+      "class": "Standard",
+      "source": "BreakinAtmo",
+      "sourceLabel": "BA",
+      "name": "Vehicle Mounted BFG",
+      "cost": 600,
+      "costRaw": "600",
+      "description": "Requires Transport",
+      "skills": {
+        "fight": 2,
+        "tech": null,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [
+        "Firearm"
+      ],
+      "locations": {
+        "Silverhold": 2
+      },
+      "count": 2,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "gear_vehicle-mounted-bfg_breakinatmo"
+    },
+    {
+      "class": "Standard",
+      "source": "Kalidasa",
+      "sourceLabel": "Kal",
+      "name": "Wash's Hawaiian Shirt",
+      "cost": 300,
+      "costRaw": "300",
+      "description": "Discard to reshuffle any 1 Nav Deck.",
+      "skills": {
+        "fight": null,
+        "tech": null,
+        "talk": 1
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [],
+      "locations": {
+        "Space Bazaar": 1
+      },
+      "count": 1,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "gear_washs-hawaiian-shirt_kalidasa"
+    },
+    {
+      "class": "Standard",
+      "source": "Kalidasa",
+      "sourceLabel": "Kal",
+      "name": "Wash's Nav Charts",
+      "cost": 300,
+      "costRaw": "300",
+      "description": "Discard to look at the top of cards of ANY Nav Deck. Return the cards to the top of the Deck in any order.",
+      "skills": {
+        "fight": null,
+        "tech": 1,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [],
+      "locations": {
+        "Beaumonde": 1
+      },
+      "count": 1,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "gear_washs-nav-charts_kalidasa"
+    },
+    {
+      "class": "Standard",
+      "source": "Kalidasa",
+      "sourceLabel": "Kal",
+      "name": "Yolonda's Pistol",
+      "cost": 400,
+      "costRaw": "400",
+      "description": "Discard to re-roll a [FIGHTING] Test.",
+      "skills": {
+        "fight": 1,
+        "tech": null,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [
+        "Firearm"
+      ],
+      "locations": {
+        "Osiris": 1
+      },
+      "count": 1,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "gear_yolondas-pistol_kalidasa"
+    },
+    {
+      "class": "Standard",
+      "source": "Kalidasa",
+      "sourceLabel": "Kal",
+      "name": "Zoe's Flak Jacket",
+      "cost": 200,
+      "costRaw": "200",
+      "description": "If the Crew carrying this is Killed, discard this card instead.",
+      "skills": {
+        "fight": null,
+        "tech": null,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [],
+      "locations": {
+        "Beaumonde": 1
+      },
+      "count": 1,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "gear_zoes-flak-jacket_kalidasa"
+    },
+    {
+      "class": "Standard",
+      "source": "Kalidasa",
+      "sourceLabel": "Kal",
+      "name": "Zoe's Mare's Leg Rifle",
+      "cost": 800,
+      "costRaw": "800",
+      "description": "When making a [FIGHTING] Test, roll two dice and use the highest.",
+      "skills": {
+        "fight": 1,
+        "tech": null,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [
+        "Firearm"
+      ],
+      "locations": {
+        "Beaumonde": 1
+      },
+      "count": 1,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "gear_zoes-mares-leg-rifle_kalidasa"
+    }
+  ]
+}

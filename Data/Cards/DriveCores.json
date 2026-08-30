@@ -1,0 +1,259 @@
+{
+  "meta": {
+    "description": "Firefly: The Game – Drive Core cards",
+    "count": 10,
+    "schemaVersion": "1.0"
+  },
+  "driveCores": [
+    {
+      "class": "Standard",
+      "source": "PiratesBountyHunters",
+      "sourceLabel": "PBH",
+      "name": "Echelon LR-8",
+      "cost": null,
+      "costRaw": null,
+      "description": "Range: 8. No Fuel required to initiate Full Burn. Cannot be replaced.",
+      "skills": {
+        "fight": null,
+        "tech": null,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [],
+      "locations": {
+        "YCTtS": 1
+      },
+      "count": 1,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "drive-core_echelon-lr-8_piratesbountyhunters"
+    },
+    {
+      "class": "Standard",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Enhanced Graviton Accelerator",
+      "cost": 2400,
+      "costRaw": "2400",
+      "description": "Range: 6. 1 Fuel to Initiate Full Burn. May Mosey up to 2 Sectors. Ignore all Breakdowns.",
+      "skills": {
+        "fight": null,
+        "tech": null,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [],
+      "locations": {
+        "Osiris": 1
+      },
+      "count": 1,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "drive-core_enhanced-graviton-accelerator"
+    },
+    {
+      "class": "Standard",
+      "source": "Esmeralda",
+      "sourceLabel": "Esm",
+      "name": "Graviton Accelerator V1",
+      "cost": null,
+      "costRaw": null,
+      "description": "Range: 5. 1 Fuel to initiate Full Burn. When initiating a Full Burn, Spend 1 additional Fuel to increase your Max Range by 2 this turn.",
+      "skills": {
+        "fight": null,
+        "tech": null,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [],
+      "locations": {
+        "YCTtS": 1
+      },
+      "count": 1,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "drive-core_graviton-accelerator-v1_esmeralda"
+    },
+    {
+      "class": "Standard",
+      "source": "Jetwash",
+      "sourceLabel": "Jet",
+      "name": "Graviton Accelerator V1",
+      "cost": null,
+      "costRaw": null,
+      "description": "Range: 5. 1 Fuel to initiate Full Burn. When initiating a Full Burn, Spend 1 additional Fuel to increase your Max Range by 2 this turn.",
+      "skills": {
+        "fight": null,
+        "tech": null,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [],
+      "locations": {
+        "YCTtS": 1
+      },
+      "count": 1,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "drive-core_graviton-accelerator-v1_jetwash"
+    },
+    {
+      "class": "Standard",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Hyper-Efficient Radion Accelerator Mark III",
+      "cost": 800,
+      "costRaw": "800",
+      "description": "Range: 4. No fuel required to Initiate Full Burn.",
+      "skills": {
+        "fight": null,
+        "tech": null,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [],
+      "locations": {
+        "Osiris": 2
+      },
+      "count": 2,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "drive-core_hyper-efficient-radion-accelerator-mark-iii"
+    },
+    {
+      "class": "Standard",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Modified Radion Accelerator Mark II",
+      "cost": 1200,
+      "costRaw": "1200",
+      "description": "Range: 6. 1 Fuel to Initiate Full Burn.",
+      "skills": {
+        "fight": null,
+        "tech": null,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [],
+      "locations": {
+        "Osiris": 2
+      },
+      "count": 2,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "drive-core_modified-radion-accelerator-mark-ii"
+    },
+    {
+      "class": "Standard",
+      "source": "ArtfulDodger",
+      "sourceLabel": "AD",
+      "name": "Modified Radion Accelerator Mark II",
+      "cost": null,
+      "costRaw": null,
+      "description": "Range: 6. 1 Fuel to Initiate Full Burn.",
+      "skills": {
+        "fight": null,
+        "tech": null,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [],
+      "locations": {
+        "YCTtS": 1
+      },
+      "count": 1,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "drive-core_modified-radion-accelerator-mark-ii_artfuldodger"
+    },
+    {
+      "class": "Standard",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Radion Accelerator Mark I",
+      "cost": null,
+      "costRaw": null,
+      "description": "1 Fuel to initiate Full Burn.",
+      "skills": {
+        "fight": null,
+        "tech": null,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [],
+      "locations": {
+        "YCTtS": 4
+      },
+      "count": 4,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "drive-core_radion-accelerator-mark-i"
+    },
+    {
+      "class": "Standard",
+      "source": "PiratesBountyHunters",
+      "sourceLabel": "PBH",
+      "name": "Tri-Capissen 28HD",
+      "cost": null,
+      "costRaw": null,
+      "description": "Unique Core: May not be replaced. May only be used on S.S. Walden. Range: 4. Immune to Heavy Load penalty.",
+      "skills": {
+        "fight": null,
+        "tech": null,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [],
+      "locations": {
+        "YCTtS": 1
+      },
+      "count": 1,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "drive-core_tri-capissen-28hd_piratesbountyhunters"
+    },
+    {
+      "class": "Standard",
+      "source": "BlueSun",
+      "sourceLabel": "BS",
+      "name": "Xunsu Whisper X1",
+      "cost": 1600,
+      "costRaw": "1600",
+      "description": "Range 6. 1 Fuel to initiate Full Burn. Whenever a Reaver or Alliance Ship enters your current Sector, you may immediately roll a Dice: 1-2: No effect. 3-6: Evade.",
+      "skills": {
+        "fight": null,
+        "tech": null,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [],
+      "locations": {
+        "Meridian": 1
+      },
+      "count": 1,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "drive-core_xunsu-whisper-x1_bluesun"
+    }
+  ]
+}

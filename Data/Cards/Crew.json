@@ -1,0 +1,1949 @@
+{
+  "meta": {
+    "description": "Firefly: The Game – Crew cards",
+    "count": 71,
+    "schemaVersion": "1.0"
+  },
+  "crew": [
+    {
+      "class": "Promo",
+      "source": "Promo",
+      "sourceLabel": "Promo Pack",
+      "name": "Jayne",
+      "cost": 300,
+      "costRaw": "300",
+      "description": "Public Relations: May Carry 3 Gear. * Big Damn Heroes: When you Proceed while Misbehaving, take $100.",
+      "skills": {
+        "fight": 2,
+        "tech": null,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": true,
+      "professions": [
+        "Merc"
+      ],
+      "keywords": [],
+      "locations": {
+        "Silverhold": 1
+      },
+      "count": 1,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "crew_jayne_promo"
+    },
+    {
+      "class": "Promo",
+      "source": "Promo",
+      "sourceLabel": "Promo Pack",
+      "name": "Kaylee",
+      "cost": 300,
+      "costRaw": "300",
+      "description": "Natural Know How: May re-roll [Tech] Tests. * Big Damn Heroes: When you Proceed while Misbehaving, take $100.",
+      "skills": {
+        "fight": null,
+        "tech": 3,
+        "talk": null
+      },
+      "moral": true,
+      "wanted": false,
+      "professions": [
+        "Mechanic"
+      ],
+      "keywords": [],
+      "locations": {
+        "Regina": 1
+      },
+      "count": 1,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "crew_kaylee_promo"
+    },
+    {
+      "class": "Promo",
+      "source": "Promo",
+      "sourceLabel": "Promo Pack",
+      "name": "Wash",
+      "cost": 200,
+      "costRaw": "200",
+      "description": "Hard Burn: +1 to Full Burn Range. * Big Damn Heroes: When you Proceed while Misbehaving, take $100.",
+      "skills": {
+        "fight": null,
+        "tech": 1,
+        "talk": 1
+      },
+      "moral": true,
+      "wanted": false,
+      "professions": [
+        "Pilot"
+      ],
+      "keywords": [],
+      "locations": {
+        "Space Bazaar": 1
+      },
+      "count": 1,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "crew_wash_promo"
+    },
+    {
+      "class": "Promo",
+      "source": "Promo",
+      "sourceLabel": "Promo Pack",
+      "name": "Zoe",
+      "cost": 300,
+      "costRaw": "300",
+      "description": "Dust Devil: May re-roll Fighting Tests. * Big Damn Heroes: When you Proceed while Misbehaving, take $100.",
+      "skills": {
+        "fight": 2,
+        "tech": null,
+        "talk": null
+      },
+      "moral": true,
+      "wanted": true,
+      "professions": [
+        "Soldier"
+      ],
+      "keywords": [],
+      "locations": {
+        "Silverhold": 1
+      },
+      "count": 1,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "crew_zoe_promo"
+    },
+    {
+      "class": "Standard",
+      "source": "BreakinAtmo",
+      "sourceLabel": "BA",
+      "name": "Accountant",
+      "cost": 300,
+      "costRaw": "300",
+      "description": "Cooking the Books: Whenever you receive a Goal token, take $500.",
+      "skills": {
+        "fight": null,
+        "tech": 1,
+        "talk": 1
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [
+        "Grifter"
+      ],
+      "keywords": [],
+      "locations": {
+        "Persephone": 1
+      },
+      "count": 1,
+      "specialAbilityType": "Resources (Goal)",
+      "ability": "0",
+      "id": "crew_accountant_breakinatmo"
+    },
+    {
+      "class": "Standard",
+      "source": "PiratesBountyHunters",
+      "sourceLabel": "PBH",
+      "name": "Agent McGinnis",
+      "cost": 0,
+      "costRaw": "0",
+      "description": "Fed: Whenever you lose a SHOWDOWN - Warrant Issued to Rival. Bounty Bonus +$500. Will not Work Illegal Jobs.",
+      "skills": {
+        "fight": null,
+        "tech": 1,
+        "talk": 1
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [
+        "Lawman"
+      ],
+      "keywords": [],
+      "locations": {
+        "Osiris": 1
+      },
+      "count": 1,
+      "specialAbilityType": "Unique",
+      "ability": "0",
+      "id": "crew_agent-mcginnis_piratesbountyhunters"
+    },
+    {
+      "class": "Standard",
+      "source": "PiratesBountyHunters",
+      "sourceLabel": "PBH",
+      "name": "Bandit",
+      "cost": 200,
+      "costRaw": "200",
+      "description": "Bird-Doggin': When you complete a Piracy Job, steal $200 from the targeted Rival.",
+      "skills": {
+        "fight": 2,
+        "tech": null,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": true,
+      "professions": [
+        "Merc"
+      ],
+      "keywords": [],
+      "locations": {
+        "Silverhold": 2,
+        "Regina": 2
+      },
+      "count": 4,
+      "specialAbilityType": "Resources (Job Type)",
+      "ability": "0",
+      "id": "crew_bandit_piratesbountyhunters"
+    },
+    {
+      "class": "Standard",
+      "source": "Kalidasa",
+      "sourceLabel": "Kal",
+      "name": "Barkeep",
+      "cost": 200,
+      "costRaw": "200",
+      "description": "Good Times: Giving your Crew Shore Leave at Supply Planets is free.",
+      "skills": {
+        "fight": 1,
+        "tech": null,
+        "talk": 1
+      },
+      "moral": false,
+      "wanted": true,
+      "professions": [
+        "Mudder"
+      ],
+      "keywords": [],
+      "locations": {
+        "Silverhold": 1
+      },
+      "count": 1,
+      "specialAbilityType": "Resources (Shore Leave)",
+      "ability": "0",
+      "id": "crew_barkeep_kalidasa"
+    },
+    {
+      "class": "Standard",
+      "source": "Kalidasa",
+      "sourceLabel": "Kal",
+      "name": "Barkeep",
+      "cost": 200,
+      "costRaw": "200",
+      "description": "Good Times: Giving your Crew Shore Leave at Supply Planets is free.",
+      "skills": {
+        "fight": 1,
+        "tech": null,
+        "talk": 1
+      },
+      "moral": false,
+      "wanted": true,
+      "professions": [
+        "Grifter"
+      ],
+      "keywords": [],
+      "locations": {
+        "Beaumonde": 1
+      },
+      "count": 1,
+      "specialAbilityType": "Resources (Shore Leave)",
+      "ability": "0",
+      "id": "crew_barkeep_kalidasa_2"
+    },
+    {
+      "class": "Standard",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Bester",
+      "cost": 100,
+      "costRaw": "100",
+      "description": "Genius Mechanic: On [Tech] Tests, \"Thrillin' Heroics\" bonus dice do not apply.",
+      "skills": {
+        "fight": null,
+        "tech": 1,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [
+        "Mechanic"
+      ],
+      "keywords": [],
+      "locations": {
+        "Regina": 1
+      },
+      "count": 1,
+      "specialAbilityType": "Downside",
+      "ability": "-1",
+      "id": "crew_bester"
+    },
+    {
+      "class": "Standard",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Billy",
+      "cost": 200,
+      "costRaw": "200",
+      "description": "Salvage Pro: +1 Cargo from Salvage Ops.",
+      "skills": {
+        "fight": null,
+        "tech": 2,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": true,
+      "professions": [
+        "Mechanic"
+      ],
+      "keywords": [],
+      "locations": {
+        "Persephone": 1
+      },
+      "count": 1,
+      "specialAbilityType": "Resources (Salvage Op)",
+      "ability": "0",
+      "id": "crew_billy"
+    },
+    {
+      "class": "Standard",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Bree",
+      "cost": 200,
+      "costRaw": "200",
+      "description": "Black Market Ties: May sell Parts to any Solid Contact for $300.",
+      "skills": {
+        "fight": null,
+        "tech": 2,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": true,
+      "professions": [
+        "Mechanic"
+      ],
+      "keywords": [],
+      "locations": {
+        "Persephone": 1
+      },
+      "count": 1,
+      "specialAbilityType": "Resources (Sell)",
+      "ability": "0",
+      "id": "crew_bree"
+    },
+    {
+      "class": "Standard",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Bridgit",
+      "cost": 300,
+      "costRaw": "300",
+      "description": "Deceptive: If Yolonda or Saffron are hired by anyone, Remove Bridgit from Play.",
+      "skills": {
+        "fight": null,
+        "tech": 1,
+        "talk": 2
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [
+        "Grifter",
+        "Companion"
+      ],
+      "keywords": [],
+      "locations": {
+        "Regina": 1
+      },
+      "count": 1,
+      "specialAbilityType": "Downside",
+      "ability": "-1",
+      "id": "crew_bridgit"
+    },
+    {
+      "class": "Standard",
+      "source": "Kalidasa",
+      "sourceLabel": "Kal",
+      "name": "Busker",
+      "cost": 200,
+      "costRaw": "200",
+      "description": "Work the Crowd: When you Make-Work, take an extra $100.",
+      "skills": {
+        "fight": null,
+        "tech": null,
+        "talk": 1
+      },
+      "moral": false,
+      "wanted": true,
+      "professions": [
+        "Mudder",
+        "Grifter"
+      ],
+      "keywords": [],
+      "locations": {
+        "Beaumonde": 1
+      },
+      "count": 1,
+      "specialAbilityType": "Resources (Make-Work)",
+      "ability": "0",
+      "id": "crew_busker_kalidasa"
+    },
+    {
+      "class": "Standard",
+      "source": "PiratesBountyHunters",
+      "sourceLabel": "PBH",
+      "name": "Chari",
+      "cost": 200,
+      "costRaw": "200",
+      "description": "Turncoat: In a SHOWDOWN, you may force a Rival to re-roll.",
+      "skills": {
+        "fight": null,
+        "tech": null,
+        "talk": 2
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [
+        "Grifter"
+      ],
+      "keywords": [],
+      "locations": {
+        "Silverhold": 1
+      },
+      "count": 1,
+      "specialAbilityType": "Circumstance bonus",
+      "ability": "0",
+      "id": "crew_chari_piratesbountyhunters"
+    },
+    {
+      "class": "Standard",
+      "source": "BlueSun",
+      "sourceLabel": "BS",
+      "name": "Cortland",
+      "cost": 300,
+      "costRaw": "300",
+      "description": "Laws Are For the Poor: May pay Bribes before any Negotiate Test. Bribes may not be used on SHOWDOWNS.",
+      "skills": {
+        "fight": 1,
+        "tech": 1,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [
+        "Mechanic",
+        "Soldier"
+      ],
+      "keywords": [],
+      "locations": {
+        "Meridian": 1
+      },
+      "count": 1,
+      "specialAbilityType": "Boost (tests), spend for bonus",
+      "ability": "0",
+      "id": "crew_cortland_bluesun"
+    },
+    {
+      "class": "Standard",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Crow",
+      "cost": 200,
+      "costRaw": "200",
+      "description": "Knife Fighter: +[Fight] When Carrying a Knife. May not Carry a Firearm.",
+      "skills": {
+        "fight": 2,
+        "tech": null,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": true,
+      "professions": [
+        "Merc"
+      ],
+      "keywords": [],
+      "locations": {
+        "Regina": 1
+      },
+      "count": 1,
+      "specialAbilityType": "Conditional bonus (Gear)",
+      "ability": "0",
+      "id": "crew_crow"
+    },
+    {
+      "class": "Standard",
+      "source": "PiratesBountyHunters",
+      "sourceLabel": "PBH",
+      "name": "Dalin",
+      "cost": 200,
+      "costRaw": "200",
+      "description": "Intel Broker: Once per Work Action, you may pay $200 to discard and re-draw a Misbehave Card.",
+      "skills": {
+        "fight": null,
+        "tech": 1,
+        "talk": 1
+      },
+      "moral": false,
+      "wanted": true,
+      "professions": [],
+      "keywords": [],
+      "locations": {
+        "Space Bazaar": 1
+      },
+      "count": 1,
+      "specialAbilityType": "Misbehave option",
+      "ability": "1",
+      "id": "crew_dalin_piratesbountyhunters"
+    },
+    {
+      "class": "Standard",
+      "source": "PiratesBountyHunters",
+      "sourceLabel": "PBH",
+      "name": "Deputy",
+      "cost": 0,
+      "costRaw": "0",
+      "description": "Posse: +1 Fight in SHOWDOWN. Bounty Bonus: +$300. Will not work Illegal Jobs.",
+      "skills": {
+        "fight": null,
+        "tech": null,
+        "talk": 1
+      },
+      "moral": true,
+      "wanted": false,
+      "professions": [
+        "Lawman"
+      ],
+      "keywords": [],
+      "locations": {
+        "Regina": 1
+      },
+      "count": 1,
+      "specialAbilityType": "Conditional bonus (Showdown)",
+      "ability": "0",
+      "id": "crew_deputy_piratesbountyhunters"
+    },
+    {
+      "class": "Standard",
+      "source": "PiratesBountyHunters",
+      "sourceLabel": "PBH",
+      "name": "Dobson",
+      "cost": 0,
+      "costRaw": "0",
+      "description": "Mole: In Alliance Space, you may move Alliance Cruiser to your Sector as a Fly Action. Bounty Bonus +$500. Will not work Illegal Jobs.",
+      "skills": {
+        "fight": 1,
+        "tech": 1,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [
+        "Lawman"
+      ],
+      "keywords": [],
+      "locations": {
+        "Persephone": 1
+      },
+      "count": 1,
+      "specialAbilityType": "Constant bonus",
+      "ability": "1",
+      "id": "crew_dobson_piratesbountyhunters"
+    },
+    {
+      "class": "Standard",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Doralee",
+      "cost": 100,
+      "costRaw": "100",
+      "description": "Angry Mob: +[Fighting] when you have at least 3 Hill Folk in your crew. Hill Folk.",
+      "skills": {
+        "fight": null,
+        "tech": null,
+        "talk": null
+      },
+      "moral": true,
+      "wanted": false,
+      "professions": [
+        "Hill Folk",
+        "Medic"
+      ],
+      "keywords": [],
+      "locations": {
+        "Silverhold": 1
+      },
+      "count": 1,
+      "specialAbilityType": "Conditional bonus (Crew)",
+      "ability": "0",
+      "id": "crew_doralee"
+    },
+    {
+      "class": "Standard",
+      "source": "BreakinAtmo",
+      "sourceLabel": "BA",
+      "name": "Elder Gommen",
+      "cost": 0,
+      "costRaw": "0",
+      "description": "Devout: If Working Immoral Job, Elder Gommen must stay Onboard Ship.",
+      "skills": {
+        "fight": null,
+        "tech": null,
+        "talk": 2
+      },
+      "moral": true,
+      "wanted": false,
+      "professions": [
+        "Hill Folk"
+      ],
+      "keywords": [],
+      "locations": {
+        "Silverhold": 1
+      },
+      "count": 1,
+      "specialAbilityType": "Downside",
+      "ability": "-2",
+      "id": "crew_elder-gommen_breakinatmo"
+    },
+    {
+      "class": "Standard",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Emma",
+      "cost": 200,
+      "costRaw": "200",
+      "description": "Morale Booster: You may use an Action on your turn to remove Disgruntled from a Crew other than Emma.",
+      "skills": {
+        "fight": null,
+        "tech": null,
+        "talk": 2
+      },
+      "moral": true,
+      "wanted": false,
+      "professions": [
+        "Grifter"
+      ],
+      "keywords": [],
+      "locations": {
+        "Persephone": 1
+      },
+      "count": 1,
+      "specialAbilityType": "Morale Booster",
+      "ability": "0",
+      "id": "crew_emma"
+    },
+    {
+      "class": "Standard",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Enforcer",
+      "cost": 200,
+      "costRaw": "200",
+      "description": "Intimidating: +[Negotiate] When Carrying a Firearm.",
+      "skills": {
+        "fight": 1,
+        "tech": null,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [
+        "Merc"
+      ],
+      "keywords": [],
+      "locations": {
+        "Space Bazaar": 2,
+        "Persephone": 2
+      },
+      "count": 4,
+      "specialAbilityType": "Conditional bonus (Gear)",
+      "ability": "0",
+      "id": "crew_enforcer"
+    },
+    {
+      "class": "Standard",
+      "source": "Kalidasa",
+      "sourceLabel": "Kal",
+      "name": "Fan Dancer",
+      "cost": 300,
+      "costRaw": "300",
+      "description": "Mesmerize: Discard to ignore a Warrant issued.",
+      "skills": {
+        "fight": null,
+        "tech": null,
+        "talk": 2
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [
+        "Grifter"
+      ],
+      "keywords": [],
+      "locations": {
+        "Beaumonde": 1
+      },
+      "count": 1,
+      "specialAbilityType": "Discard for bonus",
+      "ability": "0",
+      "id": "crew_fan-dancer_kalidasa"
+    },
+    {
+      "class": "Standard",
+      "source": "PiratesBountyHunters",
+      "sourceLabel": "PBH",
+      "name": "Fed Marshal",
+      "cost": 0,
+      "costRaw": "0",
+      "description": "Posse: +1 Fight in SHOWDOWN. Bounty Bonus: +$300. Will not work Illegal Jobs.",
+      "skills": {
+        "fight": 1,
+        "tech": null,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [
+        "Lawman"
+      ],
+      "keywords": [],
+      "locations": {
+        "Silverhold": 1
+      },
+      "count": 1,
+      "specialAbilityType": "Conditional bonus (Showdown)",
+      "ability": "0",
+      "id": "crew_fed-marshal_piratesbountyhunters"
+    },
+    {
+      "class": "Standard",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Fendris",
+      "cost": 100,
+      "costRaw": "100",
+      "description": "Henchman #2: If your Leader becomes Disgruntled, Disgruntle Fendris instead.",
+      "skills": {
+        "fight": 1,
+        "tech": null,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [
+        "Soldier"
+      ],
+      "keywords": [],
+      "locations": {
+        "Silverhold": 1
+      },
+      "count": 1,
+      "specialAbilityType": "Downside",
+      "ability": "-1",
+      "id": "crew_fendris"
+    },
+    {
+      "class": "Standard",
+      "source": "Kalidasa",
+      "sourceLabel": "Kal",
+      "name": "Fess",
+      "cost": 300,
+      "costRaw": "300",
+      "description": "Phone Home: From any location, you may use a Deal Action to Deal with Higgins. Accept or discard the jobs normally.",
+      "skills": {
+        "fight": null,
+        "tech": 2,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [
+        "Hacking Rig"
+      ],
+      "locations": {
+        "Beaumonde": 1
+      },
+      "count": 1,
+      "specialAbilityType": "Constant bonus",
+      "ability": "1",
+      "id": "crew_fess_kalidasa"
+    },
+    {
+      "class": "Standard",
+      "source": "Kalidasa",
+      "sourceLabel": "Kal",
+      "name": "Foreman",
+      "cost": 200,
+      "costRaw": "200",
+      "description": "Mudder Manager:+2 [FIGHT] when you have at least 3 Mudders in your Crew.",
+      "skills": {
+        "fight": 1,
+        "tech": 1,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [
+        "Mudder",
+        "Mechanic"
+      ],
+      "keywords": [],
+      "locations": {
+        "Beaumonde": 1
+      },
+      "count": 1,
+      "specialAbilityType": "Conditional bonus (Crew)",
+      "ability": "1",
+      "id": "crew_foreman_kalidasa"
+    },
+    {
+      "class": "Standard",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Grange Brothers",
+      "cost": 200,
+      "costRaw": "200",
+      "description": "Two of a Kind: May Carry 2 Gear. Must pass 2 Alliance Wanted Crew rolls to dodge capture.",
+      "skills": {
+        "fight": 2,
+        "tech": null,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": true,
+      "professions": [
+        "Merc"
+      ],
+      "keywords": [],
+      "locations": {
+        "Regina": 1
+      },
+      "count": 1,
+      "specialAbilityType": "Extra Gear, Downside",
+      "ability": "0",
+      "id": "crew_grange-brothers"
+    },
+    {
+      "class": "Standard",
+      "source": "Kalidasa",
+      "sourceLabel": "Kal",
+      "name": "Grimey",
+      "cost": 0,
+      "costRaw": "0",
+      "description": "Errand Boy: When you discard a Gear Card, roll a dice. If you roll a 6, keep the Gear Card. Otherwise, Discard it normally.",
+      "skills": {
+        "fight": null,
+        "tech": null,
+        "talk": 1
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [
+        "Mudder"
+      ],
+      "keywords": [],
+      "locations": {
+        "Beaumonde": 1
+      },
+      "count": 1,
+      "specialAbilityType": "Unique",
+      "ability": "0",
+      "id": "crew_grimey_kalidasa"
+    },
+    {
+      "class": "Standard",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Gun Hand",
+      "cost": 100,
+      "costRaw": "100",
+      "description": "Expendable: When Killed, discard instead of Removing from Play.",
+      "skills": {
+        "fight": 1,
+        "tech": null,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [
+        "Merc"
+      ],
+      "keywords": [],
+      "locations": {
+        "Space Bazaar": 4,
+        "Persephone": 2,
+        "Regina": 2,
+        "Meridian": 2
+      },
+      "count": 10,
+      "specialAbilityType": "N/A",
+      "ability": "0",
+      "id": "crew_gun-hand"
+    },
+    {
+      "class": "Standard",
+      "source": "BreakinAtmo",
+      "sourceLabel": "BA",
+      "name": "Head Goon",
+      "cost": 300,
+      "costRaw": "300",
+      "description": "Goon Squad: +2 Negotiate when you have at least 3 Mercs in Crew.",
+      "skills": {
+        "fight": 2,
+        "tech": null,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [
+        "Merc"
+      ],
+      "keywords": [],
+      "locations": {
+        "Silverhold": 1,
+        "Meridian": 1
+      },
+      "count": 2,
+      "specialAbilityType": "Conditional bonus (Crew)",
+      "ability": "1",
+      "id": "crew_head-goon_breakinatmo"
+    },
+    {
+      "class": "Standard",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Helen",
+      "cost": 200,
+      "costRaw": "200",
+      "description": "Morale Booster: You may use an Action on your turn to remove Disgruntled from a Crew other than Helen.",
+      "skills": {
+        "fight": 1,
+        "tech": null,
+        "talk": 1
+      },
+      "moral": true,
+      "wanted": true,
+      "professions": [
+        "Grifter"
+      ],
+      "keywords": [],
+      "locations": {
+        "Space Bazaar": 1
+      },
+      "count": 1,
+      "specialAbilityType": "Morale Booster",
+      "ability": "0",
+      "id": "crew_helen"
+    },
+    {
+      "class": "Standard",
+      "source": "BreakinAtmo",
+      "sourceLabel": "BA",
+      "name": "Helmsman",
+      "cost": 200,
+      "costRaw": "200",
+      "description": "Alliance Training: Counts as Solid with Harken.",
+      "skills": {
+        "fight": null,
+        "tech": 1,
+        "talk": null
+      },
+      "moral": true,
+      "wanted": false,
+      "professions": [
+        "Pilot"
+      ],
+      "keywords": [],
+      "locations": {
+        "Osiris": 2
+      },
+      "count": 2,
+      "specialAbilityType": "Constant bonus",
+      "ability": "1",
+      "id": "crew_helmsman_breakinatmo"
+    },
+    {
+      "class": "Standard",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Hill Folk",
+      "cost": 0,
+      "costRaw": "0",
+      "description": "Angry Mob: +[Fighting] when you have at least 3 Hill Folk in your crew. Hill Folk.",
+      "skills": {
+        "fight": null,
+        "tech": null,
+        "talk": null
+      },
+      "moral": true,
+      "wanted": false,
+      "professions": [
+        "Hill Folk"
+      ],
+      "keywords": [],
+      "locations": {
+        "Silverhold": 2
+      },
+      "count": 2,
+      "specialAbilityType": "Conditional bonus (Crew)",
+      "ability": "0",
+      "id": "crew_hill-folk"
+    },
+    {
+      "class": "Standard",
+      "source": "Kalidasa",
+      "sourceLabel": "Kal",
+      "name": "Holder",
+      "cost": 200,
+      "costRaw": "200",
+      "description": "Shanghai: When you Make-Work, you may also take a Fugitive Token.",
+      "skills": {
+        "fight": 1,
+        "tech": 1,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": true,
+      "professions": [
+        "Pilot"
+      ],
+      "keywords": [],
+      "locations": {
+        "Beaumonde": 1
+      },
+      "count": 1,
+      "specialAbilityType": "Resources (Make-Work)",
+      "ability": "0",
+      "id": "crew_holder_kalidasa"
+    },
+    {
+      "class": "Standard",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Inara",
+      "cost": 300,
+      "costRaw": "300",
+      "description": "Ambassador: May re-roll Negotiate Tests.",
+      "skills": {
+        "fight": null,
+        "tech": null,
+        "talk": 3
+      },
+      "moral": true,
+      "wanted": false,
+      "professions": [
+        "Companion"
+      ],
+      "keywords": [
+        "Fancy Duds"
+      ],
+      "locations": {
+        "Osiris": 1
+      },
+      "count": 1,
+      "specialAbilityType": "Boost (tests), reroll",
+      "ability": "1",
+      "id": "crew_inara"
+    },
+    {
+      "class": "Standard",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Interrogator",
+      "cost": 100,
+      "costRaw": "100",
+      "description": null,
+      "skills": {
+        "fight": null,
+        "tech": null,
+        "talk": 1
+      },
+      "moral": false,
+      "wanted": true,
+      "professions": [
+        "Medic"
+      ],
+      "keywords": [],
+      "locations": {
+        "Osiris": 1
+      },
+      "count": 1,
+      "specialAbilityType": "N/A",
+      "ability": "0",
+      "id": "crew_interrogator"
+    },
+    {
+      "class": "Standard",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Jayne",
+      "cost": 300,
+      "costRaw": "300",
+      "description": "Public Relations: May Carry 3 Gear.",
+      "skills": {
+        "fight": 2,
+        "tech": null,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": true,
+      "professions": [
+        "Merc"
+      ],
+      "keywords": [],
+      "locations": {
+        "Silverhold": 1
+      },
+      "count": 1,
+      "specialAbilityType": "Extra Gear",
+      "ability": "2",
+      "id": "crew_jayne"
+    },
+    {
+      "class": "Standard",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Jesse",
+      "cost": 200,
+      "costRaw": "200",
+      "description": "Opportunist: +1 Contraband from Salvage Ops.",
+      "skills": {
+        "fight": 1,
+        "tech": 1,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": true,
+      "professions": [
+        "Pilot"
+      ],
+      "keywords": [],
+      "locations": {
+        "Space Bazaar": 1
+      },
+      "count": 1,
+      "specialAbilityType": "Resources (Salvage Op)",
+      "ability": "0",
+      "id": "crew_jesse"
+    },
+    {
+      "class": "Standard",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Kaylee",
+      "cost": 300,
+      "costRaw": "300",
+      "description": "Natural Know How: May re-roll [Tech] Tests.",
+      "skills": {
+        "fight": null,
+        "tech": 3,
+        "talk": null
+      },
+      "moral": true,
+      "wanted": false,
+      "professions": [
+        "Mechanic"
+      ],
+      "keywords": [],
+      "locations": {
+        "Regina": 1
+      },
+      "count": 1,
+      "specialAbilityType": "Boost (tests), reroll",
+      "ability": "1",
+      "id": "crew_kaylee"
+    },
+    {
+      "class": "Standard",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Lucy",
+      "cost": 200,
+      "costRaw": "200",
+      "description": "Morale Booster: You may use an Action on your turn to remove Disgruntled from a Crew other than Lucy.",
+      "skills": {
+        "fight": null,
+        "tech": null,
+        "talk": 2
+      },
+      "moral": true,
+      "wanted": false,
+      "professions": [
+        "Grifter"
+      ],
+      "keywords": [],
+      "locations": {
+        "Regina": 1
+      },
+      "count": 1,
+      "specialAbilityType": "Morale Booster",
+      "ability": "0",
+      "id": "crew_lucy"
+    },
+    {
+      "class": "Standard",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Lund",
+      "cost": 200,
+      "costRaw": "200",
+      "description": "Cheap Shot: May use Gear in \"Kosherized\" Fight Tests.",
+      "skills": {
+        "fight": 2,
+        "tech": null,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [
+        "Soldier"
+      ],
+      "keywords": [],
+      "locations": {
+        "Regina": 1
+      },
+      "count": 1,
+      "specialAbilityType": "Circumstance bonus",
+      "ability": "0",
+      "id": "crew_lund"
+    },
+    {
+      "class": "Standard",
+      "source": "PiratesBountyHunters",
+      "sourceLabel": "PBH",
+      "name": "Meadows",
+      "cost": 0,
+      "costRaw": "0",
+      "description": "Hero Worship: Any time a Crew is Killed, Apprehended, or Seized by the Alliance, you may Kill Meadows instead.",
+      "skills": {
+        "fight": null,
+        "tech": null,
+        "talk": null
+      },
+      "moral": true,
+      "wanted": false,
+      "professions": [],
+      "keywords": [],
+      "locations": {
+        "Silverhold": 1
+      },
+      "count": 1,
+      "specialAbilityType": "Constant bonus",
+      "ability": "1",
+      "id": "crew_meadows_piratesbountyhunters"
+    },
+    {
+      "class": "Standard",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Med Staff",
+      "cost": 200,
+      "costRaw": "200",
+      "description": null,
+      "skills": {
+        "fight": null,
+        "tech": 1,
+        "talk": null
+      },
+      "moral": true,
+      "wanted": false,
+      "professions": [
+        "Medic"
+      ],
+      "keywords": [],
+      "locations": {
+        "Osiris": 4
+      },
+      "count": 4,
+      "specialAbilityType": "N/A",
+      "ability": "0",
+      "id": "crew_med-staff"
+    },
+    {
+      "class": "Standard",
+      "source": "BreakinAtmo",
+      "sourceLabel": "BA",
+      "name": "Merchant",
+      "cost": 200,
+      "costRaw": "200",
+      "description": "Shrewd Trader: Whenever you sell Cargo to a Contact, take an extra $100 per Cargo.",
+      "skills": {
+        "fight": null,
+        "tech": 1,
+        "talk": 1
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [],
+      "locations": {
+        "Space Bazaar": 2
+      },
+      "count": 2,
+      "specialAbilityType": "Resources (Sell)",
+      "ability": "0",
+      "id": "crew_merchant_breakinatmo"
+    },
+    {
+      "class": "Standard",
+      "source": "Kalidasa",
+      "sourceLabel": "Kal",
+      "name": "Mudder",
+      "cost": 100,
+      "costRaw": "100",
+      "description": "Indentured: Remove from Play at Harvest, Red Sun to take $500. This counts as Immoral.",
+      "skills": {
+        "fight": null,
+        "tech": 1,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": true,
+      "professions": [
+        "Mudder"
+      ],
+      "keywords": [],
+      "locations": {
+        "Persephone": 2,
+        "Silverhold": 2,
+        "Regina": 2
+      },
+      "count": 6,
+      "specialAbilityType": "Discard for bonus",
+      "ability": "0",
+      "id": "crew_mudder_kalidasa"
+    },
+    {
+      "class": "Standard",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "River Tam",
+      "cost": 0,
+      "costRaw": "0",
+      "description": "Gifted: See card.",
+      "skills": {
+        "fight": null,
+        "tech": null,
+        "talk": null
+      },
+      "moral": true,
+      "wanted": true,
+      "professions": [],
+      "keywords": [],
+      "locations": {
+        "Persephone": 1
+      },
+      "count": 1,
+      "specialAbilityType": "Constant bonus",
+      "ability": "3",
+      "id": "crew_river-tam"
+    },
+    {
+      "class": "Standard",
+      "source": "Kalidasa",
+      "sourceLabel": "Kal",
+      "name": "Roberta",
+      "cost": 300,
+      "costRaw": "300",
+      "description": "Make Nice: You May Discard Roberta instead of losing Solid Rep with a Contact.",
+      "skills": {
+        "fight": 1,
+        "tech": null,
+        "talk": 2
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [
+        "Companion"
+      ],
+      "keywords": [
+        "Fake ID"
+      ],
+      "locations": {
+        "Beaumonde": 1
+      },
+      "count": 1,
+      "specialAbilityType": "Discard for bonus",
+      "ability": "0",
+      "id": "crew_roberta_kalidasa"
+    },
+    {
+      "class": "Standard",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Saffron",
+      "cost": 300,
+      "costRaw": "300",
+      "description": "Deceptive: If Bridgit or Yolonda are hired by anyone, Remove Saffron from Play.",
+      "skills": {
+        "fight": null,
+        "tech": 1,
+        "talk": 2
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [
+        "Grifter",
+        "Companion"
+      ],
+      "keywords": [],
+      "locations": {
+        "Silverhold": 1
+      },
+      "count": 1,
+      "specialAbilityType": "Downside",
+      "ability": "-1",
+      "id": "crew_saffron"
+    },
+    {
+      "class": "Standard",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Scrapper",
+      "cost": 200,
+      "costRaw": "200",
+      "description": "Dirty Leech: +2 Fuel from Salvage Ops.",
+      "skills": {
+        "fight": null,
+        "tech": 1,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [
+        "Pilot"
+      ],
+      "keywords": [],
+      "locations": {
+        "Space Bazaar": 3
+      },
+      "count": 3,
+      "specialAbilityType": "Resources (Salvage Op)",
+      "ability": "0",
+      "id": "crew_scrapper"
+    },
+    {
+      "class": "Standard",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Scrapper",
+      "cost": 200,
+      "costRaw": "200",
+      "description": "Low Life Vulture: +1 Part from Salvage Ops.",
+      "skills": {
+        "fight": null,
+        "tech": 1,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [
+        "Mechanic"
+      ],
+      "keywords": [],
+      "locations": {
+        "Persephone": 3
+      },
+      "count": 3,
+      "specialAbilityType": "Resources (Salvage Op)",
+      "ability": "0",
+      "id": "crew_scrapper_2"
+    },
+    {
+      "class": "Standard",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Shepherd Book",
+      "cost": 0,
+      "costRaw": "0",
+      "description": "Secret Past: If Working Immoral Job, Shepherd Book must stay Onboard Ship.",
+      "skills": {
+        "fight": 1,
+        "tech": null,
+        "talk": 1
+      },
+      "moral": true,
+      "wanted": false,
+      "professions": [
+        "Soldier"
+      ],
+      "keywords": [
+        "Fake ID"
+      ],
+      "locations": {
+        "Persephone": 1
+      },
+      "count": 1,
+      "specialAbilityType": "Downside",
+      "ability": "-2",
+      "id": "crew_shepherd-book"
+    },
+    {
+      "class": "Standard",
+      "source": "PiratesBountyHunters",
+      "sourceLabel": "PBH",
+      "name": "Sheriff Bourne",
+      "cost": 0,
+      "costRaw": "0",
+      "description": "Jurisdiction: +2 Fight while in Border Space. Bounty Bonus: +$500. Will not work Illegal Jobs.",
+      "skills": {
+        "fight": null,
+        "tech": null,
+        "talk": 2
+      },
+      "moral": true,
+      "wanted": false,
+      "professions": [
+        "Lawman"
+      ],
+      "keywords": [],
+      "locations": {
+        "Regina": 1
+      },
+      "count": 1,
+      "specialAbilityType": "Conditional bonus (Location)",
+      "ability": "1",
+      "id": "crew_sheriff-bourne_piratesbountyhunters"
+    },
+    {
+      "class": "Standard",
+      "source": "BlueSun",
+      "sourceLabel": "BS",
+      "name": "Sheydra",
+      "cost": 300,
+      "costRaw": "300",
+      "description": "Composure: Once per job, may treat a Fight as a Negotiate Test.",
+      "skills": {
+        "fight": null,
+        "tech": 1,
+        "talk": 2
+      },
+      "moral": true,
+      "wanted": false,
+      "professions": [
+        "Companion"
+      ],
+      "keywords": [
+        "Fancy Duds"
+      ],
+      "locations": {
+        "Meridian": 1
+      },
+      "count": 1,
+      "specialAbilityType": "Boost (tests), switch",
+      "ability": "1",
+      "id": "crew_sheydra_bluesun"
+    },
+    {
+      "class": "Standard",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Simon Tam",
+      "cost": 200,
+      "costRaw": "200",
+      "description": "I am very smart: +2 to Medic Checks. +2 to River Tam's \"Gifted\" rolls.",
+      "skills": {
+        "fight": null,
+        "tech": 2,
+        "talk": null
+      },
+      "moral": true,
+      "wanted": true,
+      "professions": [
+        "Medic"
+      ],
+      "keywords": [
+        "Fancy Duds"
+      ],
+      "locations": {
+        "Persephone": 1
+      },
+      "count": 1,
+      "specialAbilityType": "Circumstance bonus, +1",
+      "ability": "1",
+      "id": "crew_simon-tam"
+    },
+    {
+      "class": "Standard",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Skunk",
+      "cost": 200,
+      "costRaw": "200",
+      "description": "Firebug: +[Negotiate] when Carrying Explosives.",
+      "skills": {
+        "fight": 1,
+        "tech": null,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [
+        "Soldier"
+      ],
+      "keywords": [],
+      "locations": {
+        "Silverhold": 1
+      },
+      "count": 1,
+      "specialAbilityType": "Conditional bonus (Gear)",
+      "ability": "0",
+      "id": "crew_skunk"
+    },
+    {
+      "class": "Standard",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Stark",
+      "cost": 100,
+      "costRaw": "100",
+      "description": "Angry Mob: +[Fighting] when you have at least 3 Hill Folk in your crew. Hill Folk.",
+      "skills": {
+        "fight": 1,
+        "tech": null,
+        "talk": null
+      },
+      "moral": true,
+      "wanted": false,
+      "professions": [
+        "Hill Folk"
+      ],
+      "keywords": [],
+      "locations": {
+        "Silverhold": 1
+      },
+      "count": 1,
+      "specialAbilityType": "Conditional bonus (Crew)",
+      "ability": "0",
+      "id": "crew_stark"
+    },
+    {
+      "class": "Standard",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Stitch",
+      "cost": 300,
+      "costRaw": "300",
+      "description": "Cantankerous: Once per job, may treat a Negotiate as a Fighting Test.",
+      "skills": {
+        "fight": 2,
+        "tech": null,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": true,
+      "professions": [
+        "Merc"
+      ],
+      "keywords": [],
+      "locations": {
+        "Silverhold": 1
+      },
+      "count": 1,
+      "specialAbilityType": "Boost (tests), switch",
+      "ability": "1",
+      "id": "crew_stitch"
+    },
+    {
+      "class": "Standard",
+      "source": "BreakinAtmo",
+      "sourceLabel": "BA",
+      "name": "The Fixer",
+      "cost": 300,
+      "costRaw": "300",
+      "description": "Shady Connections",
+      "skills": {
+        "fight": null,
+        "tech": 1,
+        "talk": 1
+      },
+      "moral": false,
+      "wanted": true,
+      "professions": [
+        "Grifter"
+      ],
+      "keywords": [
+        "Fake ID"
+      ],
+      "locations": {
+        "Persephone": 1
+      },
+      "count": 1,
+      "specialAbilityType": "N/A",
+      "ability": "0",
+      "id": "crew_the-fixer_breakinatmo"
+    },
+    {
+      "class": "Standard",
+      "source": "PiratesBountyHunters",
+      "sourceLabel": "PBH",
+      "name": "The Guardian",
+      "cost": 300,
+      "costRaw": "300",
+      "description": "Security Pro: May re-roll SHOWDOWN Tests.",
+      "skills": {
+        "fight": 1,
+        "tech": 1,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [
+        "Soldier",
+        "Medic"
+      ],
+      "keywords": [],
+      "locations": {
+        "Osiris": 1
+      },
+      "count": 1,
+      "specialAbilityType": "Circumstance bonus",
+      "ability": "0",
+      "id": "crew_the-guardian_piratesbountyhunters"
+    },
+    {
+      "class": "Standard",
+      "source": "BlueSun",
+      "sourceLabel": "BS",
+      "name": "The Middleman",
+      "cost": 200,
+      "costRaw": "200",
+      "description": "Facilitator: Whenever you sell Contraband to a Contact, take an extra $100 per Contraband.",
+      "skills": {
+        "fight": 1,
+        "tech": null,
+        "talk": 1
+      },
+      "moral": false,
+      "wanted": true,
+      "professions": [
+        "Grifter"
+      ],
+      "keywords": [],
+      "locations": {
+        "Meridian": 1
+      },
+      "count": 1,
+      "specialAbilityType": "Resources (Sell)",
+      "ability": "0",
+      "id": "crew_the-middleman_bluesun"
+    },
+    {
+      "class": "Standard",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "The Patron",
+      "cost": 200,
+      "costRaw": "200",
+      "description": "Angry Mob: +[Fighting] when you have at least 3 Hill Folk in your crew. Hill Folk.",
+      "skills": {
+        "fight": 1,
+        "tech": null,
+        "talk": 1
+      },
+      "moral": true,
+      "wanted": false,
+      "professions": [
+        "Hill Folk"
+      ],
+      "keywords": [],
+      "locations": {
+        "Silverhold": 1
+      },
+      "count": 1,
+      "specialAbilityType": "Conditional bonus (Crew)",
+      "ability": "0",
+      "id": "crew_the-patron"
+    },
+    {
+      "class": "Standard",
+      "source": "BlueSun",
+      "sourceLabel": "BS",
+      "name": "The Salesman",
+      "cost": 200,
+      "costRaw": "200",
+      "description": "Wholesaler: As a Buy Action, discard to purchase a Ship Upgrade or Drive Core from any discard pile, at half price. This may be done from any location.",
+      "skills": {
+        "fight": null,
+        "tech": null,
+        "talk": 1
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [
+        "Grifter"
+      ],
+      "keywords": [],
+      "locations": {
+        "Meridian": 1
+      },
+      "count": 1,
+      "specialAbilityType": "Discard for bonus",
+      "ability": "0",
+      "id": "crew_the-salesman_bluesun"
+    },
+    {
+      "class": "Standard",
+      "source": "BreakinAtmo",
+      "sourceLabel": "BA",
+      "name": "The Specialist",
+      "cost": 300,
+      "costRaw": "300",
+      "description": "Wet Work: May not Carry Gear.",
+      "skills": {
+        "fight": 1,
+        "tech": 1,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": true,
+      "professions": [
+        "Soldier"
+      ],
+      "keywords": [
+        "Firearm",
+        "Sniper Rifle"
+      ],
+      "locations": {
+        "Regina": 1
+      },
+      "count": 1,
+      "specialAbilityType": "Downside",
+      "ability": "-1",
+      "id": "crew_the-specialist_breakinatmo"
+    },
+    {
+      "class": "Standard",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Tracey",
+      "cost": 100,
+      "costRaw": "100",
+      "description": "Unlucky: Whenever a Crew is Killed, Tracey must be Killed first.",
+      "skills": {
+        "fight": 1,
+        "tech": null,
+        "talk": 1
+      },
+      "moral": false,
+      "wanted": true,
+      "professions": [
+        "Grifter"
+      ],
+      "keywords": [],
+      "locations": {
+        "Space Bazaar": 1
+      },
+      "count": 1,
+      "specialAbilityType": "Downside",
+      "ability": "-1",
+      "id": "crew_tracey"
+    },
+    {
+      "class": "Standard",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Two-Fry",
+      "cost": 200,
+      "costRaw": "200",
+      "description": "Dead-Eye: When Carrying a Sniper Rifle on Jobs, draw 1 fewer Misbehave Card, down to a minimum of 1.",
+      "skills": {
+        "fight": 1,
+        "tech": null,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": true,
+      "professions": [
+        "Merc"
+      ],
+      "keywords": [],
+      "locations": {
+        "Regina": 1
+      },
+      "count": 1,
+      "specialAbilityType": "Misbehave option",
+      "ability": "2",
+      "id": "crew_two-fry"
+    },
+    {
+      "class": "Standard",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Wash",
+      "cost": 200,
+      "costRaw": "200",
+      "description": "Hard Burn: +1 to Full Burn Range.",
+      "skills": {
+        "fight": null,
+        "tech": 1,
+        "talk": 1
+      },
+      "moral": true,
+      "wanted": false,
+      "professions": [
+        "Pilot"
+      ],
+      "keywords": [],
+      "locations": {
+        "Space Bazaar": 1
+      },
+      "count": 1,
+      "specialAbilityType": "Constant bonus",
+      "ability": "1",
+      "id": "crew_wash"
+    },
+    {
+      "class": "Standard",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Yolonda",
+      "cost": 300,
+      "costRaw": "300",
+      "description": "Deceptive: If Saffron or Bridgit are hired by anyone, Remove Yolanda from Play.",
+      "skills": {
+        "fight": null,
+        "tech": 1,
+        "talk": 2
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [
+        "Grifter",
+        "Companion"
+      ],
+      "keywords": [],
+      "locations": {
+        "Osiris": 1
+      },
+      "count": 1,
+      "specialAbilityType": "Downside",
+      "ability": "-1",
+      "id": "crew_yolonda"
+    },
+    {
+      "class": "Standard",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Zoe",
+      "cost": 300,
+      "costRaw": "300",
+      "description": "Dust Devil: May re-roll Fighting Tests.",
+      "skills": {
+        "fight": 2,
+        "tech": null,
+        "talk": null
+      },
+      "moral": true,
+      "wanted": true,
+      "professions": [
+        "Soldier"
+      ],
+      "keywords": [],
+      "locations": {
+        "Silverhold": 1
+      },
+      "count": 1,
+      "specialAbilityType": "Boost (tests), reroll",
+      "ability": "1",
+      "id": "crew_zoe"
+    }
+  ]
+}

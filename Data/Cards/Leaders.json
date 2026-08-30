@@ -1,0 +1,392 @@
+{
+  "meta": {
+    "description": "Firefly: The Game – Leader cards",
+    "count": 14,
+    "schemaVersion": "1.0"
+  },
+  "leaders": [
+    {
+      "class": "Promo",
+      "source": "Promo",
+      "sourceLabel": "Promo Pack",
+      "name": "Malcolm",
+      "cost": 500,
+      "costRaw": "500",
+      "description": "Brown Coat: When you complete a Crime Job, take $500. * Big Damn Heroes: When you Proceed while Misbehaving, take $100.",
+      "skills": {
+        "fight": 2,
+        "tech": null,
+        "talk": 1
+      },
+      "moral": true,
+      "wanted": false,
+      "professions": [
+        "Pilot",
+        "Soldier"
+      ],
+      "keywords": [],
+      "locations": {
+        "YCTtS": 1
+      },
+      "count": 1,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "leader_malcolm_promo"
+    },
+    {
+      "class": "Standard",
+      "source": "BlueSun",
+      "sourceLabel": "BS",
+      "name": "Atherton",
+      "cost": null,
+      "costRaw": null,
+      "description": "Black Mark: May not hire Crew with the Companion Profession.",
+      "skills": {
+        "fight": 1,
+        "tech": null,
+        "talk": 2
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [
+        "Fake ID",
+        "Fancy Duds"
+      ],
+      "locations": {
+        "YCTtS": 1
+      },
+      "count": 1,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "leader_atherton_bluesun"
+    },
+    {
+      "class": "Standard",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Burgess",
+      "cost": null,
+      "costRaw": null,
+      "description": "Taker: When you complete a Shipping Job, Load 1 Cargo.",
+      "skills": {
+        "fight": 1,
+        "tech": 1,
+        "talk": 1
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [
+        "Fancy Duds"
+      ],
+      "locations": {
+        "YCTtS": 1
+      },
+      "count": 1,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "leader_burgess"
+    },
+    {
+      "class": "Standard",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Corbin",
+      "cost": null,
+      "costRaw": null,
+      "description": "Chop Shop: You may Buy Drive Cores and Ship Upgrades at half price.",
+      "skills": {
+        "fight": null,
+        "tech": 2,
+        "talk": 1
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [
+        "Mechanic"
+      ],
+      "keywords": [],
+      "locations": {
+        "YCTtS": 1
+      },
+      "count": 1,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "leader_corbin"
+    },
+    {
+      "class": "Standard",
+      "source": "PiratesBountyHunters",
+      "sourceLabel": "PBH",
+      "name": "Jubal Early",
+      "cost": null,
+      "costRaw": null,
+      "description": "Bounty Hunter: +2 Fight when Attacking in SHOWDOWN. May Carry 2 Gear.",
+      "skills": {
+        "fight": 1,
+        "tech": 1,
+        "talk": 1
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [
+        "Pilot"
+      ],
+      "keywords": [],
+      "locations": {
+        "YCTtS": 1
+      },
+      "count": 1,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "leader_jubal-early_piratesbountyhunters"
+    },
+    {
+      "class": "Standard",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Malcolm",
+      "cost": null,
+      "costRaw": null,
+      "description": "Brown Coat: When you complete a Crime Job, take $500.",
+      "skills": {
+        "fight": 2,
+        "tech": null,
+        "talk": 1
+      },
+      "moral": true,
+      "wanted": false,
+      "professions": [
+        "Pilot",
+        "Soldier"
+      ],
+      "keywords": [],
+      "locations": {
+        "YCTtS": 1
+      },
+      "count": 1,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "leader_malcolm"
+    },
+    {
+      "class": "Standard",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Marco",
+      "cost": null,
+      "costRaw": null,
+      "description": "Gun Runner: You may Buy Gear with the \"Explosives\" or \"Firearm\" Keywords at half price.",
+      "skills": {
+        "fight": 2,
+        "tech": 1,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [
+        "Transport"
+      ],
+      "locations": {
+        "YCTtS": 1
+      },
+      "count": 1,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "leader_marco"
+    },
+    {
+      "class": "Standard",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Monty",
+      "cost": null,
+      "costRaw": null,
+      "description": "Smuggler Extraordinaire: When you complete a Smuggling Job, take $500.",
+      "skills": {
+        "fight": 2,
+        "tech": 1,
+        "talk": null
+      },
+      "moral": true,
+      "wanted": false,
+      "professions": [
+        "Mechanic",
+        "Soldier"
+      ],
+      "keywords": [],
+      "locations": {
+        "YCTtS": 1
+      },
+      "count": 1,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "leader_monty"
+    },
+    {
+      "class": "Standard",
+      "source": "BlueSun",
+      "sourceLabel": "BS",
+      "name": "Murphy",
+      "cost": null,
+      "costRaw": null,
+      "description": "Trade Baron: Whenever you sell Cargo or Contraband to a Contact, take an extra $100 each.",
+      "skills": {
+        "fight": 1,
+        "tech": 2,
+        "talk": null
+      },
+      "moral": true,
+      "wanted": false,
+      "professions": [
+        "Mechanic",
+        "Medic"
+      ],
+      "keywords": [],
+      "locations": {
+        "YCTtS": 1
+      },
+      "count": 1,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "leader_murphy_bluesun"
+    },
+    {
+      "class": "Standard",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Nandi",
+      "cost": null,
+      "costRaw": null,
+      "description": "Heart of Gold: May Hire Crew at no cost.",
+      "skills": {
+        "fight": 1,
+        "tech": null,
+        "talk": 2
+      },
+      "moral": true,
+      "wanted": false,
+      "professions": [
+        "Companion"
+      ],
+      "keywords": [],
+      "locations": {
+        "YCTtS": 1
+      },
+      "count": 1,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "leader_nandi"
+    },
+    {
+      "class": "Standard",
+      "source": "PiratesBountyHunters",
+      "sourceLabel": "PBH",
+      "name": "Sash",
+      "cost": null,
+      "costRaw": null,
+      "description": "Pirate: When you complete a Piracy Job, steal $500 from the targeted Rival.",
+      "skills": {
+        "fight": null,
+        "tech": 1,
+        "talk": 2
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [
+        "Hacking Rig"
+      ],
+      "locations": {
+        "YCTtS": 1
+      },
+      "count": 1,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "leader_sash_piratesbountyhunters"
+    },
+    {
+      "class": "Standard",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Womack",
+      "cost": null,
+      "costRaw": null,
+      "description": "Cold and Heartless: When you complete an Immoral Job take $500.",
+      "skills": {
+        "fight": 2,
+        "tech": null,
+        "talk": 1
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [
+        "Soldier"
+      ],
+      "keywords": [],
+      "locations": {
+        "YCTtS": 1
+      },
+      "count": 1,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "leader_womack"
+    },
+    {
+      "class": "Standard",
+      "source": "Kalidasa",
+      "sourceLabel": "Kal",
+      "name": "Wright",
+      "cost": null,
+      "costRaw": null,
+      "description": "Dirty Slaver: Whenever you deliver Fugitives, you may take an extra $100 per Fugitive. This counts as Immoral.",
+      "skills": {
+        "fight": 1,
+        "tech": 1,
+        "talk": 1
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [
+        "Grifter"
+      ],
+      "keywords": [],
+      "locations": {
+        "YCTtS": 1
+      },
+      "count": 1,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "leader_wright_kalidasa"
+    },
+    {
+      "class": "Standard",
+      "source": "Jetwash",
+      "sourceLabel": "Jet",
+      "name": "Zoe",
+      "cost": null,
+      "costRaw": null,
+      "description": "Loyalty: Soldiers in your Crew do not become Disgruntled if they are not paid their Cut of successful Jobs. May Carry 2 Gear.",
+      "skills": {
+        "fight": 3,
+        "tech": null,
+        "talk": null
+      },
+      "moral": true,
+      "wanted": false,
+      "professions": [
+        "Soldier"
+      ],
+      "keywords": [],
+      "locations": {
+        "YCTtS": 1
+      },
+      "count": 1,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "leader_zoe_jetwash"
+    }
+  ]
+}

@@ -1,0 +1,420 @@
+{
+  "meta": {
+    "description": "Firefly: The Game – Bounty / Wanted cards",
+    "count": 20,
+    "schemaVersion": "1.0"
+  },
+  "bounties": [
+    {
+      "id": "bounty_the-fixer",
+      "source": "PiratesBountyHunters",
+      "sourceLabel": "PBH",
+      "name": "The Fixer",
+      "type": "Wanted",
+      "immoral": false,
+      "pickup": {
+        "planet": "Persephone",
+        "sun": "Lux"
+      },
+      "dropoff": {
+        "planet": "Ariel",
+        "sun": "White Sun"
+      },
+      "botchKill": 1,
+      "pay": 3000,
+      "description": "REAL NAME: Unknown\\nFOR THE CRIMES OF:\\nCounterfeiting\\nForgery\\nFalsifying Ident Cards",
+      "crimes": null,
+      "associates": null
+    },
+    {
+      "id": "bounty_grange-brothers",
+      "source": "PiratesBountyHunters",
+      "sourceLabel": "PBH",
+      "name": "Grange Brothers",
+      "type": "Wanted",
+      "immoral": false,
+      "pickup": {
+        "planet": "Regina",
+        "sun": "Georgia"
+      },
+      "dropoff": {
+        "planet": "Athens",
+        "sun": "Georgia"
+      },
+      "botchKill": 2,
+      "pay": 3000,
+      "description": "WANTED BY:\\nPatience, for Cattle Rustlin' and Horse Snatchin'",
+      "crimes": null,
+      "associates": null
+    },
+    {
+      "id": "bounty_simon-tam",
+      "source": "PiratesBountyHunters",
+      "sourceLabel": "PBH",
+      "name": "Simon Tam",
+      "type": "Wanted",
+      "immoral": true,
+      "pickup": {
+        "planet": "Persephone",
+        "sun": "Lux"
+      },
+      "dropoff": {
+        "planet": "Command Cruiser",
+        "sun": "White Sun"
+      },
+      "botchKill": 0,
+      "pay": 2600,
+      "description": "FOR THE CRIMES OF:\\nResisting Arrest\\nImpersonating an Officer\\nCriminal Trespass\\nFelony Aiding & Abetting\\nPublic Indecency",
+      "crimes": null,
+      "associates": null
+    },
+    {
+      "id": "bounty_river-tam",
+      "source": "PiratesBountyHunters",
+      "sourceLabel": "PBH",
+      "name": "River Tam",
+      "type": "Wanted",
+      "immoral": true,
+      "pickup": {
+        "planet": "Persephone",
+        "sun": "Lux"
+      },
+      "dropoff": {
+        "planet": "Command Cruiser",
+        "sun": "White Sun"
+      },
+      "botchKill": 2,
+      "pay": 4000,
+      "description": "RECORD CLASSIFIED\\nParliament-level security clearance required.\\nTarget Wanted Alive\\nARMED & DANGEROUS",
+      "crimes": null,
+      "associates": null
+    },
+    {
+      "id": "bounty_the-specialist",
+      "source": "PiratesBountyHunters",
+      "sourceLabel": "PBH",
+      "name": "The Specialist",
+      "type": "Wanted",
+      "immoral": false,
+      "pickup": {
+        "planet": "Regina",
+        "sun": "Georgia"
+      },
+      "dropoff": {
+        "planet": "Command Cruiser",
+        "sun": "White Sun"
+      },
+      "botchKill": 2,
+      "pay": 3200,
+      "description": "REAL NAME: Classified\\nDo not interrogate.\\nDeliver bound/sedated.\\nARMED & DANGEROUS",
+      "crimes": null,
+      "associates": null
+    },
+    {
+      "id": "bounty_dalin",
+      "source": "PiratesBountyHunters",
+      "sourceLabel": "PBH",
+      "name": "Dalin",
+      "type": "Wanted",
+      "immoral": false,
+      "pickup": {
+        "planet": "Space Bazaar",
+        "sun": "Red Sun"
+      },
+      "dropoff": {
+        "planet": "Command Cruiser",
+        "sun": "White Sun"
+      },
+      "botchKill": 1,
+      "pay": 2600,
+      "description": "FOR THE CRIMES OF:\\nCortex Protocol Breach\\nUAP Encryption Violations\\nClassified Data Transfer\\nIdentity Theft",
+      "crimes": null,
+      "associates": null
+    },
+    {
+      "id": "bounty_stitch",
+      "source": "PiratesBountyHunters",
+      "sourceLabel": "PBH",
+      "name": "Stitch",
+      "type": "Wanted",
+      "immoral": false,
+      "pickup": {
+        "planet": "Silverhold",
+        "sun": "Heinlein"
+      },
+      "dropoff": {
+        "planet": "Harvest",
+        "sun": "Red Sun"
+      },
+      "botchKill": 2,
+      "pay": 3200,
+      "description": "FOR THE CRIMES OF:\\nGrand Larceny\\nMurder\\nDisorderly Conduct\\n\\nARMED & DANGEROUS",
+      "crimes": null,
+      "associates": null
+    },
+    {
+      "id": "bounty_jayne",
+      "source": "PiratesBountyHunters",
+      "sourceLabel": "PBH",
+      "name": "Jayne",
+      "type": "Wanted",
+      "immoral": false,
+      "pickup": {
+        "planet": "Silverhold",
+        "sun": "Heinlein"
+      },
+      "dropoff": {
+        "planet": "Harvest",
+        "sun": "Red Sun"
+      },
+      "botchKill": 2,
+      "pay": 3600,
+      "description": "AKA: Hero of Canton\\nFOR THE CRIMES OF:\\nGrand Larceny\\nInciting a Riot\\nARMED & DANGEROUS",
+      "crimes": null,
+      "associates": null
+    },
+    {
+      "id": "bounty_interrogator",
+      "source": "PiratesBountyHunters",
+      "sourceLabel": "PBH",
+      "name": "Interrogator",
+      "type": "Wanted",
+      "immoral": false,
+      "pickup": {
+        "planet": "Osiris",
+        "sun": "White Sun"
+      },
+      "dropoff": {
+        "planet": "Londinium",
+        "sun": "White Sun"
+      },
+      "botchKill": 1,
+      "pay": 2600,
+      "description": "REAL NAME: Unknown\\nFOR THE CRIMES OF:\\nCounterfeiting\\nForgery\\nFalsifying Ident Cards",
+      "crimes": null,
+      "associates": null
+    },
+    {
+      "id": "bounty_bree",
+      "source": "PiratesBountyHunters",
+      "sourceLabel": "PBH",
+      "name": "Bree",
+      "type": "Wanted",
+      "immoral": false,
+      "pickup": {
+        "planet": "Persephone",
+        "sun": "Lux"
+      },
+      "dropoff": {
+        "planet": "Londinium",
+        "sun": "White Sun"
+      },
+      "botchKill": 1,
+      "pay": 2600,
+      "description": "FOR THE CRIMES OF:\\nIllegal Salvage Activity\\nTrafficking Stolen Goods\\nKNOWN ASSOCIATES:\\nCorbin, Saffron",
+      "crimes": null,
+      "associates": null
+    },
+    {
+      "id": "bounty_crow",
+      "source": "PiratesBountyHunters",
+      "sourceLabel": "PBH",
+      "name": "Crow",
+      "type": "Wanted",
+      "immoral": false,
+      "pickup": {
+        "planet": "Regina",
+        "sun": "Georgia"
+      },
+      "dropoff": {
+        "planet": "Londinium",
+        "sun": "White Sun"
+      },
+      "botchKill": 2,
+      "pay": 3500,
+      "description": "FOR THE CRIMES OF:\\nFelony Murder\\nPremeditated Murder\\nInvoluntary Murder\\nAggravated Murder\\nARMED & DANGEROUS",
+      "crimes": null,
+      "associates": null
+    },
+    {
+      "id": "bounty_zoe",
+      "source": "PiratesBountyHunters",
+      "sourceLabel": "PBH",
+      "name": "Zoe",
+      "type": "Wanted",
+      "immoral": true,
+      "pickup": {
+        "planet": "Silverhold",
+        "sun": "Heinlein"
+      },
+      "dropoff": {
+        "planet": "Londinium",
+        "sun": "White Sun"
+      },
+      "botchKill": 2,
+      "pay": 3600,
+      "description": "*KNOWN DUST DEVIL*\\nFOR THE CRIMES OF:\\nTerrorism\\nSedition\\nARMED & DANGEROUS",
+      "crimes": "Terrorism, Sedition",
+      "associates": null
+    },
+    {
+      "id": "bounty_jesse",
+      "source": "PiratesBountyHunters",
+      "sourceLabel": "PBH",
+      "name": "Jesse",
+      "type": "Wanted",
+      "immoral": false,
+      "pickup": {
+        "planet": "Space Bazaar",
+        "sun": "Red Sun"
+      },
+      "dropoff": {
+        "planet": "Londinium",
+        "sun": "White Sun"
+      },
+      "botchKill": 1,
+      "pay": 2600,
+      "description": "FOR THE CRIMES OF:\\nUnauthorized Salvage\\nAssault & Battery\\nPiracy\\nSmuggling",
+      "crimes": null,
+      "associates": null
+    },
+    {
+      "id": "bounty_helen",
+      "source": "PiratesBountyHunters",
+      "sourceLabel": "PBH",
+      "name": "Helen",
+      "type": "Wanted",
+      "immoral": true,
+      "pickup": {
+        "planet": "Space Bazaar",
+        "sun": "Red Sun"
+      },
+      "dropoff": {
+        "planet": "Newhope",
+        "sun": "Georgia"
+      },
+      "botchKill": 1,
+      "pay": 2600,
+      "description": "FOR THE CRIMES OF:\\nAggravated Assault\\nManslaughter\\n\\nKNOWN ASSOCIATES:\\nNandi, Jayne Cobb",
+      "crimes": null,
+      "associates": null
+    },
+    {
+      "id": "bounty_billy",
+      "source": "PiratesBountyHunters",
+      "sourceLabel": "PBH",
+      "name": "Billy",
+      "type": "Wanted",
+      "immoral": false,
+      "pickup": {
+        "planet": "Persephone",
+        "sun": "Lux"
+      },
+      "dropoff": {
+        "planet": "Osiris",
+        "sun": "White Sun"
+      },
+      "botchKill": 1,
+      "pay": 2500,
+      "description": "FOR THE CRIMES OF:\\nUnauthorized Salvage\\nTheft of Property\\nJaywalking\\nDisturbing the Peace\\nLittering",
+      "crimes": null,
+      "associates": null
+    },
+    {
+      "id": "bounty_two-fry",
+      "source": "PiratesBountyHunters",
+      "sourceLabel": "PBH",
+      "name": "Two-Fry",
+      "type": "Wanted",
+      "immoral": false,
+      "pickup": {
+        "planet": "Regina",
+        "sun": "Georgia"
+      },
+      "dropoff": {
+        "planet": "Persephone",
+        "sun": "Lux"
+      },
+      "botchKill": 1,
+      "pay": 2600,
+      "description": "FOR THE CRIMES OF:\\nDuplicitous Dealings\\nFelony Weapons Possession\\nEquine Larceny\\nUnlicensed Haberdashery",
+      "crimes": null,
+      "associates": null
+    },
+    {
+      "id": "bounty_tracey",
+      "source": "PiratesBountyHunters",
+      "sourceLabel": "PBH",
+      "name": "Tracey",
+      "type": "Wanted",
+      "immoral": true,
+      "pickup": {
+        "planet": "Space Bazaar",
+        "sun": "Red Sun"
+      },
+      "dropoff": {
+        "planet": "Sihnon",
+        "sun": "White Sun"
+      },
+      "botchKill": 1,
+      "pay": 2600,
+      "description": "FOR THE CRIMES OF:\\nShoplifting\\nPetty Theft\\nForgery\\nOrgan Smuggling\\nViolation of Postal Code",
+      "crimes": null,
+      "associates": null
+    },
+    {
+      "id": "bounty_enforcers",
+      "source": "PiratesBountyHunters",
+      "sourceLabel": "PBH",
+      "name": "Enforcers",
+      "type": "Cortex Alert",
+      "immoral": false,
+      "pickup": null,
+      "dropoff": {
+        "planet": "Londinium",
+        "sun": "White Sun"
+      },
+      "botchKill": 1,
+      "pay": 2000,
+      "description": "Operating as a security contractor without proper licence and authorization is against Alliance reg-74F-88. Apprehend and deliver for career retraining.",
+      "crimes": null,
+      "associates": null
+    },
+    {
+      "id": "bounty_scrappers",
+      "source": "PiratesBountyHunters",
+      "sourceLabel": "PBH",
+      "name": "Scrappers",
+      "type": "Cortex Alert",
+      "immoral": false,
+      "pickup": null,
+      "dropoff": {
+        "planet": "Osiris",
+        "sun": "White Sun"
+      },
+      "botchKill": 1,
+      "pay": 2000,
+      "description": "Conducting unauthorized salvage operations is a violation of UAP reg-18.4b and may be in violation of Blue Sun Patents. Deliver to Trade Ministry re-purposing center.",
+      "crimes": null,
+      "associates": null
+    },
+    {
+      "id": "bounty_bandits",
+      "source": "PiratesBountyHunters",
+      "sourceLabel": "PBH",
+      "name": "Bandits",
+      "type": "Cortex Alert",
+      "immoral": false,
+      "pickup": null,
+      "dropoff": {
+        "planet": "Triumph",
+        "sun": "Heinlein"
+      },
+      "botchKill": 1,
+      "pay": 2000,
+      "description": "UAP Ordinance 871.P23 prohibits redistribution of any properties bearing Alliance marks. Any persons in violation are to be bound by law for processing.",
+      "crimes": null,
+      "associates": null
+    }
+  ]
+}

@@ -1,0 +1,672 @@
+{
+  "meta": {
+    "description": "Firefly: The Game – Ship Upgrade cards",
+    "count": 26,
+    "schemaVersion": "1.0"
+  },
+  "shipUpgrades": [
+    {
+      "class": "Standard",
+      "source": "Kalidasa",
+      "sourceLabel": "Kal",
+      "name": "Board Game Collection",
+      "cost": 200,
+      "costRaw": "200",
+      "description": "You may use a Buy Action to give your Crew Shore Leave in any Sector.",
+      "skills": {
+        "fight": null,
+        "tech": null,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [],
+      "locations": {
+        "Beaumonde": 1
+      },
+      "count": 1,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "ship-upgrade_board-game-collection_kalidasa"
+    },
+    {
+      "class": "Standard",
+      "source": "PiratesBountyHunters",
+      "sourceLabel": "PBH",
+      "name": "Booby Trap",
+      "cost": 600,
+      "costRaw": "600",
+      "description": "-2 to Rival's Tech Boarding Tests. If Rival rolls a 1 when Boarding your ship, 1 of their Crew is Killed. Discard to count as EXPLOSIVES.",
+      "skills": {
+        "fight": null,
+        "tech": null,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [
+        "Explosives:D"
+      ],
+      "locations": {
+        "Persephone": 2
+      },
+      "count": 2,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "ship-upgrade_booby-trap_piratesbountyhunters"
+    },
+    {
+      "class": "Standard",
+      "source": "Esmeralda",
+      "sourceLabel": "Esm",
+      "name": "Caravan Pods",
+      "cost": 400,
+      "costRaw": "400",
+      "description": "Cargo 2. May only hold Passengers/Fugitives. +1 to Ship's Max Crew.",
+      "skills": {
+        "fight": null,
+        "tech": null,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [],
+      "locations": {
+        "Persephone": 2,
+        "YCTtS": 1
+      },
+      "count": 3,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "ship-upgrade_caravan-pods_esmeralda"
+    },
+    {
+      "class": "Standard",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Cargo Hold",
+      "cost": 600,
+      "costRaw": "600",
+      "description": "Exterior Cargo Pods: 2 Additional Cargo Hold areas.",
+      "skills": {
+        "fight": null,
+        "tech": null,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [],
+      "locations": {
+        "Osiris": 2
+      },
+      "count": 2,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "ship-upgrade_cargo-hold"
+    },
+    {
+      "class": "Standard",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Cry Baby",
+      "cost": 400,
+      "costRaw": "400",
+      "description": "When in a Sector with Alliance Cruiser, discard to ignore Alliance Cruiser's effects and move the Cruiser 1 Sector within Alliance Space.",
+      "skills": {
+        "fight": null,
+        "tech": null,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [],
+      "locations": {
+        "Space Bazaar": 2,
+        "Persephone": 2,
+        "Regina": 1
+      },
+      "count": 5,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "ship-upgrade_cry-baby"
+    },
+    {
+      "class": "Standard",
+      "source": "PiratesBountyHunters",
+      "sourceLabel": "PBH",
+      "name": "Cryo Stasis Chamber",
+      "cost": 600,
+      "costRaw": "600",
+      "description": "Rivals may not Jump your Bounties. 1 Crew aboard ship may ignore Alliance Wanted Crew Rolls.",
+      "skills": {
+        "fight": null,
+        "tech": null,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [],
+      "locations": {
+        "Persephone": 1
+      },
+      "count": 1,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "ship-upgrade_cryo-stasis-chamber_piratesbountyhunters"
+    },
+    {
+      "class": "Standard",
+      "source": "Jetwash",
+      "sourceLabel": "Jet",
+      "name": "Decoy Nav Sat Cluster",
+      "cost": 400,
+      "costRaw": "400",
+      "description": "Discard at the beginning of a Move Action to treat all Nav Cards that would normally move a Reaver or Alliance Ship as a \"Big Black\" card instead.",
+      "skills": {
+        "fight": null,
+        "tech": null,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [],
+      "locations": {
+        "Space Bazaar": 1,
+        "YCTtS": 1
+      },
+      "count": 2,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "ship-upgrade_decoy-nav-sat-cluster_jetwash"
+    },
+    {
+      "class": "Standard",
+      "source": "PiratesBountyHunters",
+      "sourceLabel": "PBH",
+      "name": "Electronic Defense Suite",
+      "cost": 800,
+      "costRaw": "800",
+      "description": "Rivals boarding your ship may not use Tech Skill for Boarding Tests. Spend 1 Fuel to Evade Reaver Cutter. Ignore the effects of either the Reaver Cutter Nav Card or Contact Event.",
+      "skills": {
+        "fight": null,
+        "tech": null,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [],
+      "locations": {
+        "Osiris": 2
+      },
+      "count": 2,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "ship-upgrade_electronic-defense-suite_piratesbountyhunters"
+    },
+    {
+      "class": "Standard",
+      "source": "Kalidasa",
+      "sourceLabel": "Kal",
+      "name": "Emissions Recycler",
+      "cost": 800,
+      "costRaw": "800",
+      "description": "+1 to Full Burn Range. If you draw two \"Big Black\" Nav Cards in a row while Full Burning, you may take 1 Fuel. Limit once per Fly Action.",
+      "skills": {
+        "fight": null,
+        "tech": null,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [],
+      "locations": {
+        "Space Bazaar": 1,
+        "Regina": 1,
+        "Beaumonde": 1
+      },
+      "count": 3,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "ship-upgrade_emissions-recycler_kalidasa"
+    },
+    {
+      "class": "Standard",
+      "source": "PiratesBountyHunters",
+      "sourceLabel": "PBH",
+      "name": "EVA Suit",
+      "cost": 600,
+      "costRaw": "600",
+      "description": "+1 Tech for Boarding Tests. +1 Cargo from Salvage Ops. 1 Crew aboard ship may ignore Alliance Wanted Crew rolls.",
+      "skills": {
+        "fight": null,
+        "tech": null,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [],
+      "locations": {
+        "Space Bazaar": 2
+      },
+      "count": 2,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "ship-upgrade_eva-suit_piratesbountyhunters"
+    },
+    {
+      "class": "Standard",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Expanded Crew Quarters",
+      "cost": 600,
+      "costRaw": "600",
+      "description": "+3 to Ship's Max Crew.",
+      "skills": {
+        "fight": null,
+        "tech": null,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [],
+      "locations": {
+        "Osiris": 2
+      },
+      "count": 2,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "ship-upgrade_expanded-crew-quarters"
+    },
+    {
+      "class": "Standard",
+      "source": "Esmeralda",
+      "sourceLabel": "Esm",
+      "name": "Full Mess Deck",
+      "cost": 400,
+      "costRaw": "400",
+      "description": "During a Fly Action, you may discard a Cargo or Contraband to remove Disgruntled from all your Crew.",
+      "skills": {
+        "fight": null,
+        "tech": null,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [],
+      "locations": {
+        "Persephone": 1,
+        "YCTtS": 1
+      },
+      "count": 2,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "ship-upgrade_full-mess-deck_esmeralda"
+    },
+    {
+      "class": "Standard",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Full Tune-Up & Retro-Fit",
+      "cost": 800,
+      "costRaw": "800",
+      "description": "Ignore all Breakdowns.",
+      "skills": {
+        "fight": null,
+        "tech": null,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [],
+      "locations": {
+        "Osiris": 1
+      },
+      "count": 1,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "ship-upgrade_full-tune-up-retro-fit"
+    },
+    {
+      "class": "Standard",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Fully Equipped Med Bay",
+      "cost": 600,
+      "costRaw": "600",
+      "description": "May re-roll Medic Checks.",
+      "skills": {
+        "fight": null,
+        "tech": null,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [],
+      "locations": {
+        "Osiris": 2
+      },
+      "count": 2,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "ship-upgrade_fully-equipped-med-bay"
+    },
+    {
+      "class": "Standard",
+      "source": "BlueSun",
+      "sourceLabel": "BS",
+      "name": "Hull-Mounted Flak Gun",
+      "cost": 400,
+      "costRaw": "400",
+      "description": "When in a Sector with a Reaver Cutter, discard to ignore Reaver Cutter's effects and move that Reaver Cutter 1 Sector within Rim or Border Space.",
+      "skills": {
+        "fight": null,
+        "tech": null,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [],
+      "locations": {
+        "Meridian": 2
+      },
+      "count": 2,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "ship-upgrade_hull-mounted-flak-gun_bluesun"
+    },
+    {
+      "class": "Standard",
+      "source": "Kalidasa",
+      "sourceLabel": "Kal",
+      "name": "Hydraulic Docking Clamps",
+      "cost": 600,
+      "costRaw": "600",
+      "description": "Crime Jobs also count as Salvage Ops.",
+      "skills": {
+        "fight": null,
+        "tech": null,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [],
+      "locations": {
+        "Persephone": 1,
+        "Beaumonde": 1
+      },
+      "count": 2,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "ship-upgrade_hydraulic-docking-clamps_kalidasa"
+    },
+    {
+      "class": "Standard",
+      "source": "BlueSun",
+      "sourceLabel": "BS",
+      "name": "Long-Range Scanner Array",
+      "cost": 800,
+      "costRaw": "800",
+      "description": "During a Fly Action you may resolve Reaver or Alliance Alert Tokens in adjacent Sectors.",
+      "skills": {
+        "fight": null,
+        "tech": null,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [],
+      "locations": {
+        "Meridian": 1
+      },
+      "count": 1,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "ship-upgrade_long-range-scanner-array_bluesun"
+    },
+    {
+      "class": "Standard",
+      "source": "PiratesBountyHunters",
+      "sourceLabel": "PBH",
+      "name": "Mag-Grappler Launchers",
+      "cost": 800,
+      "costRaw": "800",
+      "description": "+3 Tech for Boarding Tests. After Salvage Ops, Roll: Tech 8 - 1-7: Nothing Shiny. 8+ Take 1 Ship Upgrade from any discard pile.",
+      "skills": {
+        "fight": null,
+        "tech": null,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [],
+      "locations": {
+        "Regina": 1
+      },
+      "count": 1,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "ship-upgrade_mag-grappler-launchers_piratesbountyhunters"
+    },
+    {
+      "class": "Standard",
+      "source": "BlueSun",
+      "sourceLabel": "BS",
+      "name": "Modded Fuel Catalyzer",
+      "cost": 600,
+      "costRaw": "600",
+      "description": "When initiating a Full Burn, Spend 1 additional Fuel to add +2 to your Drive Core's Max Range this turn.",
+      "skills": {
+        "fight": null,
+        "tech": null,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [],
+      "locations": {
+        "Meridian": 1
+      },
+      "count": 1,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "ship-upgrade_modded-fuel-catalyzer_bluesun"
+    },
+    {
+      "class": "Standard",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Onboard Chop Shop",
+      "cost": 1600,
+      "costRaw": "1600",
+      "description": "After any Salvage Op, take $500 and Load 1 Contraband.",
+      "skills": {
+        "fight": null,
+        "tech": null,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [],
+      "locations": {
+        "Regina": 2
+      },
+      "count": 2,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "ship-upgrade_onboard-chop-shop"
+    },
+    {
+      "class": "Standard",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Overcharged Grav Thrusters",
+      "cost": 1000,
+      "costRaw": "1000",
+      "description": "+1 to Full Burn Range.",
+      "skills": {
+        "fight": null,
+        "tech": null,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [],
+      "locations": {
+        "Regina": 1
+      },
+      "count": 1,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "ship-upgrade_overcharged-grav-thrusters"
+    },
+    {
+      "class": "Standard",
+      "source": "BlueSun",
+      "sourceLabel": "BS",
+      "name": "Reaver-Flage",
+      "cost": 600,
+      "costRaw": "600",
+      "description": "Ship may move into a Sector occupied by a Reaver Ship. Discard after losing any Crew to the Reavers.",
+      "skills": {
+        "fight": null,
+        "tech": null,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [],
+      "locations": {
+        "Meridian": 2
+      },
+      "count": 2,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "ship-upgrade_reaver-flage_bluesun"
+    },
+    {
+      "class": "Standard",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Shiny New State-of-the-Art Compression Coils",
+      "cost": 1600,
+      "costRaw": "1600",
+      "description": "May Mosey up to 2 Sectors. Ignore all Breakdowns.",
+      "skills": {
+        "fight": null,
+        "tech": null,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [],
+      "locations": {
+        "Osiris": 1
+      },
+      "count": 1,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "ship-upgrade_shiny-new-state-of-the-art-compression-coils"
+    },
+    {
+      "class": "Standard",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Sky Hook",
+      "cost": 600,
+      "costRaw": "600",
+      "description": "Requires Pilot to use. After completing a Crime Job, Load 1 Contraband.",
+      "skills": {
+        "fight": null,
+        "tech": null,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [
+        "Transport"
+      ],
+      "locations": {
+        "Regina": 2
+      },
+      "count": 2,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "ship-upgrade_sky-hook"
+    },
+    {
+      "class": "Standard",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Stash",
+      "cost": 1000,
+      "costRaw": "1000",
+      "description": "Concealed Smuggling Compartments: 2 Additional Stash areas. Up to 2 Crew Onboard Ship may ignore Alliance Wanted Crew rolls.",
+      "skills": {
+        "fight": null,
+        "tech": null,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [],
+      "locations": {
+        "Regina": 2
+      },
+      "count": 2,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "ship-upgrade_stash"
+    },
+    {
+      "class": "Standard",
+      "source": "Jetwash",
+      "sourceLabel": "Jet",
+      "name": "Xunsu Emergency Ram Jets",
+      "cost": 600,
+      "costRaw": "600",
+      "description": "Discard and use an Action to Initiate a Full Burn. May be used in addition to a standard Move Action.",
+      "skills": {
+        "fight": null,
+        "tech": null,
+        "talk": null
+      },
+      "moral": false,
+      "wanted": false,
+      "professions": [],
+      "keywords": [],
+      "locations": {
+        "Space Bazaar": 1,
+        "YCTtS": 1
+      },
+      "count": 2,
+      "specialAbilityType": null,
+      "ability": null,
+      "id": "ship-upgrade_xunsu-emergency-ram-jets_jetwash"
+    }
+  ]
+}

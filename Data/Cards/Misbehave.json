@@ -1,0 +1,2045 @@
+{
+  "meta": {
+    "description": "Firefly: The Game – Misbehave cards",
+    "count": 80,
+    "schemaVersion": "1.0"
+  },
+  "misbehaveCards": [
+    {
+      "id": "misbehave_a-formal-affair",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "A Formal Affair",
+      "suit": "Clubs",
+      "ace": "Companion",
+      "options": [
+        {
+          "name": "Look'n the Part",
+          "details": "Requires FANCY DUDS. Proceed."
+        },
+        {
+          "name": "Work the Crowd",
+          "details": "Negotiate 6; 1-5 Attempt Botched. 6+ Proceed."
+        }
+      ],
+      "isReshuffle": false,
+      "skillThresholds": {
+        "fight": null,
+        "tech": null,
+        "talk": 5
+      },
+      "keyword": "Fancy Duds",
+      "other": null
+    },
+    {
+      "id": "misbehave_a-vote-of-no-confidence",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "A Vote of No Confidence",
+      "suit": "Clubs",
+      "ace": null,
+      "options": [
+        {
+          "name": "I Love My Captain",
+          "details": "Requires no Disgruntled Crew: Load 1 Cargo. Proceed."
+        },
+        {
+          "name": "We'll be Takin' Out Cuts Now!",
+          "details": "Pay each Disgruntled Crew an extra Cut now or discard them. Proceed."
+        }
+      ],
+      "isReshuffle": false,
+      "skillThresholds": {
+        "fight": null,
+        "tech": null,
+        "talk": null
+      },
+      "keyword": null,
+      "other": "No Disgruntled"
+    },
+    {
+      "id": "misbehave_alliance-operatives",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Alliance Operatives",
+      "suit": "Clubs",
+      "ace": "River Tam",
+      "options": [
+        {
+          "name": "Two by Two, Hands of Blue",
+          "details": "Requires TRANSPORT. Attempt Botched."
+        },
+        {
+          "name": "Trouble You've Not Known…",
+          "details": "Fight 10; 1-5 Kill all Crew; Warrant Issued. 6-9 Kill 2 Crew, Warrant Issued. 10+ Attempt Botched."
+        }
+      ],
+      "isReshuffle": true,
+      "skillThresholds": {
+        "fight": 9,
+        "tech": null,
+        "talk": null
+      },
+      "keyword": "Transport",
+      "other": null
+    },
+    {
+      "id": "misbehave_ambush",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Ambush",
+      "suit": "Clubs",
+      "ace": "Sniper Rifle",
+      "options": [
+        {
+          "name": "They've Got Us Surrounded",
+          "details": "8+ Fight; 1-7 Kill a Crew, Warrant Issued. 8+ Attempt Botched."
+        },
+        {
+          "name": "We've Got Ya Outnumbered!",
+          "details": "Requires 5 or more Crew on Job: Proceed."
+        }
+      ],
+      "isReshuffle": false,
+      "skillThresholds": {
+        "fight": 7,
+        "tech": null,
+        "talk": null
+      },
+      "keyword": null,
+      "other": "Crew of 5"
+    },
+    {
+      "id": "misbehave_an-interesting-day",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "An Interesting Day",
+      "suit": "Clubs",
+      "ace": null,
+      "options": [
+        {
+          "name": "Money Weren't Good Enough",
+          "details": "Negotiate 12 Bribes; 1-11 Discard All Mercs. Attempt Botched. 12+ Proceed."
+        },
+        {
+          "name": "Curse Your Sudden But Inevitable Betrayal!",
+          "details": "If Mercs' Fight total is higher than the rest of the Crew's, discard all Mercs. Include Gear in Fight totals. Proceed."
+        }
+      ],
+      "isReshuffle": false,
+      "skillThresholds": {
+        "fight": null,
+        "tech": null,
+        "talk": 11
+      },
+      "keyword": null,
+      "other": "Bribes"
+    },
+    {
+      "id": "misbehave_everything-thats-not-nailed-down",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Everything That's Not Nailed Down",
+      "suit": "Clubs",
+      "ace": null,
+      "options": [
+        {
+          "name": "Load 'er Up!",
+          "details": "Requires TRANSPORT. Load up to 3 Contraband. Proceed."
+        },
+        {
+          "name": "Idle Hands are the Devil's Workshop",
+          "details": "For each Crew on Job without Gear, Load 1 Contraband. Proceed."
+        }
+      ],
+      "isReshuffle": false,
+      "skillThresholds": {
+        "fight": null,
+        "tech": null,
+        "talk": null
+      },
+      "keyword": null,
+      "other": "Pass"
+    },
+    {
+      "id": "misbehave_everything-thats-not-nailed-down_2",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Everything That's Not Nailed Down",
+      "suit": "Clubs",
+      "ace": null,
+      "options": [
+        {
+          "name": "Load 'er Up!",
+          "details": "Requires TRANSPORT. Load up to 3 Contraband. Proceed."
+        },
+        {
+          "name": "Idle Hands are the Devil's Workshop",
+          "details": "For each Crew on Job without Gear, Load 1 Contraband. Proceed."
+        }
+      ],
+      "isReshuffle": false,
+      "skillThresholds": {
+        "fight": null,
+        "tech": null,
+        "talk": null
+      },
+      "keyword": null,
+      "other": "Pass"
+    },
+    {
+      "id": "misbehave_it-takes-a-womans-touch",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "It Takes a Woman's Touch",
+      "suit": "Clubs",
+      "ace": "Companion",
+      "options": [
+        {
+          "name": "Poise and Grace",
+          "details": "Negotiate 7 +3 Negotiate with FANCY DUDS; 1-6 Attempt Botched. 7+ Proceed."
+        },
+        {
+          "name": "Subtlety and Subterfuge",
+          "details": "Tech 7 +3 Tech with HACKING RIG; 1-6 Attempt Botched. 7+ Proceed."
+        }
+      ],
+      "isReshuffle": false,
+      "skillThresholds": {
+        "fight": null,
+        "tech": 6,
+        "talk": 6
+      },
+      "keyword": null,
+      "other": null
+    },
+    {
+      "id": "misbehave_knife-fight",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Knife Fight",
+      "suit": "Clubs",
+      "ace": "Crow",
+      "options": [
+        {
+          "name": "Brought a Gun, Eh?",
+          "details": "Requires FIREARM. Proceed."
+        },
+        {
+          "name": "Slice & Dice",
+          "details": "Fight 8 +3 Fight with any Knife. 1-7 Attempt Botched. 8+ Proceed."
+        }
+      ],
+      "isReshuffle": false,
+      "skillThresholds": {
+        "fight": 7,
+        "tech": null,
+        "talk": null
+      },
+      "keyword": "Firearm",
+      "other": null
+    },
+    {
+      "id": "misbehave_locals-in-need",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Locals in Need",
+      "suit": "Clubs",
+      "ace": null,
+      "options": [
+        {
+          "name": "Feed Some Mouths",
+          "details": "Discard 1 Cargo. Remove Disgruntled from all Moral Crew. Proceed."
+        },
+        {
+          "name": "We Don't Have Time for This",
+          "details": "Fight 3; 1-2 Attempt Botched. 3+ Disgruntle all Moral Crew. Proceed."
+        }
+      ],
+      "isReshuffle": false,
+      "skillThresholds": {
+        "fight": 2,
+        "tech": null,
+        "talk": null
+      },
+      "keyword": null,
+      "other": "1 Cargo"
+    },
+    {
+      "id": "misbehave_old-vendetta",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Old Vendetta",
+      "suit": "Clubs",
+      "ace": null,
+      "options": [
+        {
+          "name": "One on One",
+          "details": "Fight 6 Choose 1 Crew for Fight; 1-5 Kill Chosen Crew. Attempt Botched. 6+ Proceed."
+        },
+        {
+          "name": "Run Like Cowardly Pisspots",
+          "details": "Requires TRANSPORT. Disgruntle all Crew. Proceed."
+        }
+      ],
+      "isReshuffle": false,
+      "skillThresholds": {
+        "fight": 5,
+        "tech": null,
+        "talk": null
+      },
+      "keyword": "Transport",
+      "other": null
+    },
+    {
+      "id": "misbehave_a-bit-of-local-color",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "A Bit of Local Color",
+      "suit": "Diamond",
+      "ace": "Wash",
+      "options": [
+        {
+          "name": "Bar Fight!",
+          "details": "Fight 6 Kosherized Rules; 1-5 Disgruntle all Crew on Job. Attempt Botched. 6+ Proceed."
+        },
+        {
+          "name": "We Will Blow a New Crater in This Little Moon…",
+          "details": "Negotiate 6; 1-5 Attempt Botched. 6+ Proceed."
+        }
+      ],
+      "isReshuffle": false,
+      "skillThresholds": {
+        "fight": 5,
+        "tech": null,
+        "talk": 5
+      },
+      "keyword": null,
+      "other": null
+    },
+    {
+      "id": "misbehave_a-bit-of-local-color_2",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "A Bit of Local Color",
+      "suit": "Diamond",
+      "ace": "Wash",
+      "options": [
+        {
+          "name": "Bar Fight!",
+          "details": "Fight 6 Kosherized Rules; 1-5 Disgruntle all Crew on Job. Attempt Botched. 6+ Proceed."
+        },
+        {
+          "name": "We Will Blow a New Crater in This Little Moon…",
+          "details": "Negotiate 6; 1-5 Attempt Botched. 6+ Proceed."
+        }
+      ],
+      "isReshuffle": false,
+      "skillThresholds": {
+        "fight": 5,
+        "tech": null,
+        "talk": 5
+      },
+      "keyword": null,
+      "other": null
+    },
+    {
+      "id": "misbehave_a-rival-crew",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "A Rival Crew",
+      "suit": "Diamond",
+      "ace": null,
+      "options": [
+        {
+          "name": "Getting Awfully Crowded in My Sky…",
+          "details": "Fight 9; 1-8 Kill a Crew, Warrant Issued. 9+ Proceed."
+        },
+        {
+          "name": "Maybe We Can Make a Deal.",
+          "details": "Proceed. If this Job attempt is successful, cut Pay in half, rounded down. Bonuses are unaffected."
+        }
+      ],
+      "isReshuffle": false,
+      "skillThresholds": {
+        "fight": 8,
+        "tech": null,
+        "talk": null
+      },
+      "keyword": null,
+      "other": "Pass"
+    },
+    {
+      "id": "misbehave_gun-play",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Gun Play",
+      "suit": "Diamond",
+      "ace": null,
+      "options": [
+        {
+          "name": "My Guns Will Do the Talkin'",
+          "details": "Fight 7; 1-6 Kill a Crew, Attempt Botched. 7+ Proceed."
+        },
+        {
+          "name": "Crawl Away Like a Bitty Little Bug",
+          "details": "Disgruntle all Crew. Attempt Botched."
+        }
+      ],
+      "isReshuffle": false,
+      "skillThresholds": {
+        "fight": 6,
+        "tech": null,
+        "talk": null
+      },
+      "keyword": null,
+      "other": "Pass"
+    },
+    {
+      "id": "misbehave_gun-play_2",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Gun Play",
+      "suit": "Diamond",
+      "ace": null,
+      "options": [
+        {
+          "name": "My Guns Will Do the Talkin'",
+          "details": "Fight 7; 1-6 Kill a Crew, Attempt Botched. 7+ Proceed."
+        },
+        {
+          "name": "Crawl Away Like a Bitty Little Bug",
+          "details": "Disgruntle all Crew. Attempt Botched."
+        }
+      ],
+      "isReshuffle": false,
+      "skillThresholds": {
+        "fight": 6,
+        "tech": null,
+        "talk": null
+      },
+      "keyword": null,
+      "other": "Pass"
+    },
+    {
+      "id": "misbehave_keep-a-low-profile",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Keep a Low Profile",
+      "suit": "Diamond",
+      "ace": "Sniper Rifle",
+      "options": [
+        {
+          "name": "Take the Guards Out… Quiet Like",
+          "details": "Fight 6 Kosherized Rules; 1-5 Kill a Crew, Attempt Botched. 6+ Proceed."
+        },
+        {
+          "name": "Let's See Ya Talk Your Walk Out of This One",
+          "details": "Negotiate 9 Bribes; 1-8 Warrant Issued. 9+ Proceed."
+        }
+      ],
+      "isReshuffle": false,
+      "skillThresholds": {
+        "fight": 5,
+        "tech": null,
+        "talk": 8
+      },
+      "keyword": null,
+      "other": "Bribes"
+    },
+    {
+      "id": "misbehave_keep-a-low-profile_2",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Keep a Low Profile",
+      "suit": "Diamond",
+      "ace": "Sniper Rifle",
+      "options": [
+        {
+          "name": "Take the Guards Out… Quiet Like",
+          "details": "Fight 6 Kosherized Rules; 1-5 Kill a Crew, Attempt Botched. 6+ Proceed."
+        },
+        {
+          "name": "Let's See Ya Talk Your Walk Out of This One",
+          "details": "Negotiate 9 Bribes; 1-8 Warrant Issued. 9+ Proceed."
+        }
+      ],
+      "isReshuffle": false,
+      "skillThresholds": {
+        "fight": 5,
+        "tech": null,
+        "talk": 8
+      },
+      "keyword": null,
+      "other": "Bribes"
+    },
+    {
+      "id": "misbehave_old-fashioned-shoot-out",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Old-Fashioned Shoot-out",
+      "suit": "Diamond",
+      "ace": null,
+      "options": [
+        {
+          "name": "Let the Bullets Fly",
+          "details": "Fight 8; 1-7 Kill a Crew, Attempt Botched. 8+ Proceed."
+        },
+        {
+          "name": "Can't Get Paid If Yer Dead",
+          "details": "Requires Transport. Proceed."
+        }
+      ],
+      "isReshuffle": false,
+      "skillThresholds": {
+        "fight": 7,
+        "tech": null,
+        "talk": null
+      },
+      "keyword": "Transport",
+      "other": null
+    },
+    {
+      "id": "misbehave_time-for-some-thrillin-heroics",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Time for Some Thrillin' Heroics",
+      "suit": "Diamond",
+      "ace": null,
+      "options": [
+        {
+          "name": "Savin' the Day",
+          "details": "Fight 7; 1-6 Kill a Crew, Warrant Issued. 7+ Remove Disgruntled from Moral Crew, Proceed."
+        },
+        {
+          "name": "Hump 'Em",
+          "details": "Disgruntle all Moral Crew. Proceed."
+        }
+      ],
+      "isReshuffle": false,
+      "skillThresholds": {
+        "fight": 6,
+        "tech": null,
+        "talk": null
+      },
+      "keyword": null,
+      "other": "Pass"
+    },
+    {
+      "id": "misbehave_alliance-patrol",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Alliance Patrol",
+      "suit": "Hearts",
+      "ace": "Fake ID",
+      "options": [
+        {
+          "name": "Identification Please",
+          "details": "Negotiate 8 - 1 for each of your Warrants. 1-7 Warrant Issued. 8+ Proceed."
+        },
+        {
+          "name": "Hightail It Outta There!",
+          "details": "Requires Transport. Attempt Botched."
+        }
+      ],
+      "isReshuffle": false,
+      "skillThresholds": {
+        "fight": null,
+        "tech": null,
+        "talk": 7
+      },
+      "keyword": "Transport",
+      "other": null
+    },
+    {
+      "id": "misbehave_alliance-patrol_2",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Alliance Patrol",
+      "suit": "Hearts",
+      "ace": "Fake ID",
+      "options": [
+        {
+          "name": "Identification Please",
+          "details": "Negotiate 8 - 1 for each of your Warrants. 1-7 Warrant Issued. 8+ Proceed."
+        },
+        {
+          "name": "Hightail It Outta There!",
+          "details": "Requires Transport. Attempt Botched."
+        }
+      ],
+      "isReshuffle": false,
+      "skillThresholds": {
+        "fight": null,
+        "tech": null,
+        "talk": 7
+      },
+      "keyword": "Transport",
+      "other": null
+    },
+    {
+      "id": "misbehave_alliance-patrol_3",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Alliance Patrol",
+      "suit": "Hearts",
+      "ace": "Fake ID",
+      "options": [
+        {
+          "name": "Identification Please",
+          "details": "Negotiate 8 - 1 for each of your Warrants. 1-7 Warrant Issued. 8+ Proceed."
+        },
+        {
+          "name": "Hightail It Outta There!",
+          "details": "Requires Transport. Attempt Botched."
+        }
+      ],
+      "isReshuffle": false,
+      "skillThresholds": {
+        "fight": null,
+        "tech": null,
+        "talk": 7
+      },
+      "keyword": "Transport",
+      "other": null
+    },
+    {
+      "id": "misbehave_backwater-deputies",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Backwater Deputies",
+      "suit": "Hearts",
+      "ace": null,
+      "options": [
+        {
+          "name": "Maybe We Can Work Something Out?",
+          "details": "Negotiate 9 Bribes; 1-8 Attempt Botched. 9+ Proceed."
+        },
+        {
+          "name": "There's Only a Couple of 'Em!",
+          "details": "Fight 7; 1-6 Kill a Crew, Warrant Issued. 7+ Proceed."
+        }
+      ],
+      "isReshuffle": false,
+      "skillThresholds": {
+        "fight": 6,
+        "tech": null,
+        "talk": 8
+      },
+      "keyword": null,
+      "other": "Bribes"
+    },
+    {
+      "id": "misbehave_denied-docking-rights",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Denied Docking Rights",
+      "suit": "Hearts",
+      "ace": "Fake ID",
+      "options": [
+        {
+          "name": "Cost of Doing Business",
+          "details": "Negotiate 9 Bribes; 1-8 Attempt Botched. 9+ Proceed."
+        },
+        {
+          "name": "These Are Not the Crooks You're Looking For…",
+          "details": "Tech 6; 1-5 Warrant Issued. 6+ Proceed."
+        }
+      ],
+      "isReshuffle": false,
+      "skillThresholds": {
+        "fight": null,
+        "tech": 5,
+        "talk": 8
+      },
+      "keyword": null,
+      "other": "Bribes"
+    },
+    {
+      "id": "misbehave_kidnapped-by-hill-folk",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Kidnapped By Hill Folk",
+      "suit": "Hearts",
+      "ace": "Hill Folk",
+      "options": [
+        {
+          "name": "The Witch Must Burn!",
+          "details": "Negotiate 8; 1-7 Kill a Crew, Attempt Botched. 8+ Proceed."
+        },
+        {
+          "name": "Note the Man with the Really Big Gun",
+          "details": "Requires at least 2 Fight from FIREARM Gear: Proceed."
+        }
+      ],
+      "isReshuffle": false,
+      "skillThresholds": {
+        "fight": null,
+        "tech": null,
+        "talk": 7
+      },
+      "keyword": null,
+      "other": "Firearm 2"
+    },
+    {
+      "id": "misbehave_lets-go-to-the-crappy-town-where-im-a-hero",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Let's Go to the Crappy Town Where I'm a Hero!",
+      "suit": "Hearts",
+      "ace": "Jayne's Hat",
+      "options": [
+        {
+          "name": "Speech! Speech! Speech!",
+          "details": "Negotiate 6; 1-5 Disgruntled all Crew. Attempt Botched. 6+ Proceed."
+        },
+        {
+          "name": "Diabolical Master of Disguise",
+          "details": "Tech 6; 1-5 Warrant Issued. 6+ Proceed."
+        }
+      ],
+      "isReshuffle": false,
+      "skillThresholds": {
+        "fight": null,
+        "tech": 5,
+        "talk": 5
+      },
+      "keyword": null,
+      "other": null
+    },
+    {
+      "id": "misbehave_the-local-law",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "The Local Law",
+      "suit": "Hearts",
+      "ace": null,
+      "options": [
+        {
+          "name": "Money Talks!",
+          "details": "Negotiate 11 Bribes; 1-10 Attempt Botched. 11+ Proceed."
+        },
+        {
+          "name": "Guns A'Blazin'!",
+          "details": "Fight 8; 1-7 Kill a Crew, Warrant Issued. 8+ Proceed."
+        }
+      ],
+      "isReshuffle": false,
+      "skillThresholds": {
+        "fight": 7,
+        "tech": null,
+        "talk": 10
+      },
+      "keyword": null,
+      "other": "Bribes"
+    },
+    {
+      "id": "misbehave_the-local-law_2",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "The Local Law",
+      "suit": "Hearts",
+      "ace": null,
+      "options": [
+        {
+          "name": "Money Talks!",
+          "details": "Negotiate 11 Bribes; 1-10 Attempt Botched. 11+ Proceed."
+        },
+        {
+          "name": "Guns A'Blazin'!",
+          "details": "Fight 8; 1-7 Kill a Crew, Warrant Issued. 8+ Proceed."
+        }
+      ],
+      "isReshuffle": false,
+      "skillThresholds": {
+        "fight": 7,
+        "tech": null,
+        "talk": 10
+      },
+      "keyword": null,
+      "other": "Bribes"
+    },
+    {
+      "id": "misbehave_the-sheriffs-justice",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "The Sheriff's Justice",
+      "suit": "Hearts",
+      "ace": "Companion",
+      "options": [
+        {
+          "name": "A Hard Man to Sway",
+          "details": "Negotiate 8; 1-7 Warrant Issued. 8+ Attempt Botched."
+        },
+        {
+          "name": "An' Hell Followed With Him…",
+          "details": "Fight 9; 1-4 Kill all Crew, Warrant Issued. 5-8 Kill 2 Crew, Warrant Issued. 9+ Kill 1 Crew, Proceed."
+        }
+      ],
+      "isReshuffle": false,
+      "skillThresholds": {
+        "fight": 8,
+        "tech": null,
+        "talk": 7
+      },
+      "keyword": null,
+      "other": null
+    },
+    {
+      "id": "misbehave_a-little-job-on-the-side",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "A Little Job on the Side",
+      "suit": "Spades",
+      "ace": null,
+      "options": [
+        {
+          "name": "Profitable Detour",
+          "details": "Tech 7; 1-6 Attempt Botched. 7+ Take 1500. Attempt Botched."
+        },
+        {
+          "name": "Stay on Target…",
+          "details": "Proceed."
+        }
+      ],
+      "isReshuffle": false,
+      "skillThresholds": {
+        "fight": null,
+        "tech": 6,
+        "talk": null
+      },
+      "keyword": null,
+      "other": "Pass"
+    },
+    {
+      "id": "misbehave_an-unexpected-opportunity",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "An Unexpected Opportunity",
+      "suit": "Spades",
+      "ace": null,
+      "options": [
+        {
+          "name": "Deal of the Century",
+          "details": "Negotiate 7; 1-6 Attempt Botched. 7+ Buy up to 3 Contraband for $100 each. Attempt Botched."
+        },
+        {
+          "name": "Walk Away Entirely",
+          "details": "Proceed."
+        }
+      ],
+      "isReshuffle": false,
+      "skillThresholds": {
+        "fight": null,
+        "tech": null,
+        "talk": 6
+      },
+      "keyword": null,
+      "other": "Pass"
+    },
+    {
+      "id": "misbehave_it-was-the-best-day-ever",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "It Was the Best Day Ever!",
+      "suit": "Spades",
+      "ace": "Simon Tam",
+      "options": [
+        {
+          "name": "I Was Pompous…",
+          "details": "If you have FANCY DUDS, Proceed. Otherwise, Negotiate 6; 1-5 Attempt Botched. 6+ Proceed."
+        },
+        {
+          "name": "My Sister Was Crazy…",
+          "details": "If you have Medic, Proceed. Otherwise, Tech 6; 1-5 Attempt Botched. 6+ Proceed."
+        }
+      ],
+      "isReshuffle": false,
+      "skillThresholds": {
+        "fight": null,
+        "tech": 5,
+        "talk": 5
+      },
+      "keyword": null,
+      "other": "Fancy Duds. Medic"
+    },
+    {
+      "id": "misbehave_kill-the-alarm",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Kill the Alarm",
+      "suit": "Spades",
+      "ace": "Hacking Rig",
+      "options": [
+        {
+          "name": "Rig a Bypass",
+          "details": "Tech 5; 1-4 Attempt Botched. 5+ Proceed."
+        },
+        {
+          "name": "Just Shoot the Gorram Thing!",
+          "details": "Fight 7; 1-6 Warrant Issued. 7+ Proceed."
+        }
+      ],
+      "isReshuffle": false,
+      "skillThresholds": {
+        "fight": 6,
+        "tech": 4,
+        "talk": null
+      },
+      "keyword": null,
+      "other": null
+    },
+    {
+      "id": "misbehave_kill-the-alarm_2",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Kill the Alarm",
+      "suit": "Spades",
+      "ace": "Hacking Rig",
+      "options": [
+        {
+          "name": "Rig a Bypass",
+          "details": "Tech 5; 1-4 Attempt Botched. 5+ Proceed."
+        },
+        {
+          "name": "Just Shoot the Gorram Thing!",
+          "details": "Fight 7; 1-6 Warrant Issued. 7+ Proceed."
+        }
+      ],
+      "isReshuffle": false,
+      "skillThresholds": {
+        "fight": 6,
+        "tech": 4,
+        "talk": null
+      },
+      "keyword": null,
+      "other": null
+    },
+    {
+      "id": "misbehave_reaver-raid",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Reaver Raid",
+      "suit": "Spades",
+      "ace": "River Tam",
+      "options": [
+        {
+          "name": "Run for Your Gorram Life!",
+          "details": "Requires TRANSPORT. Kill a Crew, Attempt Botched."
+        },
+        {
+          "name": "Hide in the Vault",
+          "details": "Tech 5; 1-4 Kill all Crew, Attempt Botched. 5+ Take $1000, Attempt Botched."
+        }
+      ],
+      "isReshuffle": false,
+      "skillThresholds": {
+        "fight": null,
+        "tech": 4,
+        "talk": null
+      },
+      "keyword": "Transport",
+      "other": null
+    },
+    {
+      "id": "misbehave_state-of-the-art-security-system",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "State of the Art Security System",
+      "suit": "Spades",
+      "ace": "Alliance Ident Card",
+      "options": [
+        {
+          "name": "Work Some Hacking Magic",
+          "details": "Tech 9 +3 Tech with HACKING RIG; 1-8 Warrant Issued. 9+ Proceed."
+        },
+        {
+          "name": "Bao Xin Jiu Huo",
+          "details": "Requires EXPLOSIVES. Attempt Botched."
+        }
+      ],
+      "isReshuffle": false,
+      "skillThresholds": {
+        "fight": null,
+        "tech": 8,
+        "talk": null
+      },
+      "keyword": null,
+      "other": "Explosives"
+    },
+    {
+      "id": "misbehave_tight-security",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Tight Security",
+      "suit": "Spades",
+      "ace": "Hacking Rig",
+      "options": [
+        {
+          "name": "See What You Can Do…",
+          "details": "Tech 7; 1-6 Attempt Botched. 7+ Proceed."
+        },
+        {
+          "name": "Oh, Real Subtle Guys…",
+          "details": "Fight 9; 1-8 Kill a Crew, Warrant Issued. 9+ Proceed."
+        }
+      ],
+      "isReshuffle": false,
+      "skillThresholds": {
+        "fight": 8,
+        "tech": 6,
+        "talk": null
+      },
+      "keyword": null,
+      "other": null
+    },
+    {
+      "id": "misbehave_tight-security_2",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Tight Security",
+      "suit": "Spades",
+      "ace": "Hacking Rig",
+      "options": [
+        {
+          "name": "See What You Can Do…",
+          "details": "Tech 7; 1-6 Attempt Botched. 7+ Proceed."
+        },
+        {
+          "name": "Oh, Real Subtle Guys…",
+          "details": "Fight 9; 1-8 Kill a Crew, Warrant Issued. 9+ Proceed."
+        }
+      ],
+      "isReshuffle": false,
+      "skillThresholds": {
+        "fight": 8,
+        "tech": 6,
+        "talk": null
+      },
+      "keyword": null,
+      "other": null
+    },
+    {
+      "id": "misbehave_we-need-a-distraction",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "We Need a Distraction!",
+      "suit": "Spades",
+      "ace": "Companion",
+      "options": [
+        {
+          "name": "Big Gorram Blast",
+          "details": "Requires EXPLOSIVES. Proceed."
+        },
+        {
+          "name": "Jigger a Surprise for 'Em",
+          "details": "Tech 7; 1-6 Warrant Issued. 7+ Proceed."
+        }
+      ],
+      "isReshuffle": false,
+      "skillThresholds": {
+        "fight": null,
+        "tech": 6,
+        "talk": null
+      },
+      "keyword": null,
+      "other": "Explosives"
+    },
+    {
+      "id": "misbehave_larcenous-opportunity",
+      "source": "CrimeAndPunishment",
+      "sourceLabel": "C&P",
+      "name": "Larcenous Opportunity",
+      "suit": "Clubs",
+      "ace": null,
+      "options": [
+        {
+          "name": "Job Will Keep: Settlers ain't gonna rob Themselves...",
+          "details": "Requires FIREARM. Disgruntle all Moral Crew. Take 4 Goods. Attempt Botched."
+        },
+        {
+          "name": "Lead us not into Temptation...",
+          "details": "Draw Another Misbehave Card to replace this card. Discard this card."
+        }
+      ],
+      "isReshuffle": false,
+      "skillThresholds": {
+        "fight": null,
+        "tech": null,
+        "talk": null
+      },
+      "keyword": "FIREARM",
+      "other": null
+    },
+    {
+      "id": "misbehave_fork-in-the-road",
+      "source": "CrimeAndPunishment",
+      "sourceLabel": "C&P",
+      "name": "Fork in the Road",
+      "suit": "Clubs",
+      "ace": null,
+      "options": [
+        {
+          "name": "Meet Back on the After",
+          "details": "Divide your Crew into two teams: Draw 2 Misbehave Cards, one for each team. If neither team has a Warrant Issued, Proceed Past this card. Any team with Botches their card must return to the Ship. If all Crew Return to the Ship, this Job Attempt is Botched."
+        }
+      ],
+      "isReshuffle": false,
+      "skillThresholds": {
+        "fight": null,
+        "tech": null,
+        "talk": null
+      },
+      "keyword": null,
+      "other": "Split Crew"
+    },
+    {
+      "id": "misbehave_fork-in-the-road_2",
+      "source": "CrimeAndPunishment",
+      "sourceLabel": "C&P",
+      "name": "Fork in the Road",
+      "suit": "Clubs",
+      "ace": null,
+      "options": [
+        {
+          "name": "Meet Back on the After",
+          "details": "Divide your Crew into two teams: Draw 2 Misbehave Cards, one for each team. If neither team has a Warrant Issued, Proceed Past this card. Any team with Botches their card must return to the Ship. If all Crew Return to the Ship, this Job Attempt is Botched."
+        }
+      ],
+      "isReshuffle": false,
+      "skillThresholds": {
+        "fight": null,
+        "tech": null,
+        "talk": null
+      },
+      "keyword": null,
+      "other": "Split Crew"
+    },
+    {
+      "id": "misbehave_the-black-market-express",
+      "source": "CrimeAndPunishment",
+      "sourceLabel": "C&P",
+      "name": "The Black Market Express",
+      "suit": "Clubs",
+      "ace": null,
+      "options": [
+        {
+          "name": "Job Will Keep: Can't pass up a Bargain",
+          "details": "You may Buy any Firearms and Explosives from the Silverhold Discard Pile at half price. Attempt Botched."
+        },
+        {
+          "name": "Lead us not into Temptation...",
+          "details": "Draw Another Misbehave Card to replace this card. Discard this card."
+        }
+      ],
+      "isReshuffle": false,
+      "skillThresholds": {
+        "fight": null,
+        "tech": null,
+        "talk": null
+      },
+      "keyword": null,
+      "other": null
+    },
+    {
+      "id": "misbehave_the-manures-hit-the-turbine",
+      "source": "CrimeAndPunishment",
+      "sourceLabel": "C&P",
+      "name": "The Manure's hit the Turbine",
+      "suit": "Clubs",
+      "ace": "Solid with Patience",
+      "options": [
+        {
+          "name": "It wasn't my Fault! We were set Up!",
+          "details": "Lose 1 Solid Rep and Proceed OR Attempt Botched"
+        },
+        {
+          "name": "It was their Fault! I'm Surrounded by Idiots!",
+          "details": "Disgruntle all Crew except Leader."
+        }
+      ],
+      "isReshuffle": false,
+      "skillThresholds": {
+        "fight": null,
+        "tech": null,
+        "talk": null
+      },
+      "keyword": null,
+      "other": null
+    },
+    {
+      "id": "misbehave_you-set-off-the-alarm",
+      "source": "CrimeAndPunishment",
+      "sourceLabel": "C&P",
+      "name": "You set off the Alarm!",
+      "suit": "Clubs",
+      "ace": "Hacking Rig",
+      "options": [
+        {
+          "name": "Isn't going to Look Good...Run!",
+          "details": "Lose Rep with 1 Contact, if able. Disgruntle any Crew who are not already Disgruntled. Attempt Botched."
+        },
+        {
+          "name": "青蛙操的流氓! We're Boned...",
+          "details": "Roll for all Wanted Crew. If any Crew are Seized, Warrant Issued. Otherwise, Proceed."
+        }
+      ],
+      "isReshuffle": false,
+      "skillThresholds": {
+        "fight": null,
+        "tech": null,
+        "talk": null
+      },
+      "keyword": null,
+      "other": null
+    },
+    {
+      "id": "misbehave_grumpy-malcontent",
+      "source": "CrimeAndPunishment",
+      "sourceLabel": "C&P",
+      "name": "Grumpy Malcontent",
+      "suit": "Clubs",
+      "ace": "Jayne's Hat",
+      "options": [
+        {
+          "name": "Shut your gorram pie Hole! We've heard our Fill!",
+          "details": "Disgruntle any crew who are not already Disgruntled. Proceed"
+        },
+        {
+          "name": "I'll be in my Bunk",
+          "details": "Return the Crew Member with the highest total FIGHT to the Ship. If the are not already Disgruntled, Disgruntle them. Proceed."
+        }
+      ],
+      "isReshuffle": false,
+      "skillThresholds": {
+        "fight": null,
+        "tech": null,
+        "talk": null
+      },
+      "keyword": null,
+      "other": null
+    },
+    {
+      "id": "misbehave_stop-and-frisk",
+      "source": "CrimeAndPunishment",
+      "sourceLabel": "C&P",
+      "name": "Stop and Frisk",
+      "suit": "Clubs",
+      "ace": "Fake Id",
+      "options": [
+        {
+          "name": "A Well-Greased Handshake",
+          "details": "Negotiate 12 Bribes; 1-11 All FIREARMS are Seized. Attempt Botched. 12+ Proceed"
+        },
+        {
+          "name": "Grit yer teeth and Submit",
+          "details": "All FIREARMS are Seized. If you discard any, disgruntle all Wanted Crew. Proceed."
+        }
+      ],
+      "isReshuffle": false,
+      "skillThresholds": {
+        "fight": null,
+        "tech": null,
+        "talk": 11
+      },
+      "keyword": null,
+      "other": "Bribes"
+    },
+    {
+      "id": "misbehave_local-bootleggin-outfit",
+      "source": "CrimeAndPunishment",
+      "sourceLabel": "C&P",
+      "name": "Local Bootleggin' Outfit",
+      "suit": "Clubs",
+      "ace": "The Best in the House",
+      "options": [
+        {
+          "name": "That's the good Stuff!",
+          "details": "Requires: Pay $400. Take 1 Contraband. Remove Disgruntled from all Crew. Attempt Botched."
+        },
+        {
+          "name": "No Imbibing on the Job. We're Workin' Here!",
+          "details": "Disgruntle all Mercs & Soldiers. Proceed."
+        }
+      ],
+      "isReshuffle": false,
+      "skillThresholds": {
+        "fight": null,
+        "tech": null,
+        "talk": null
+      },
+      "keyword": null,
+      "other": null
+    },
+    {
+      "id": "misbehave_gambling-den",
+      "source": "CrimeAndPunishment",
+      "sourceLabel": "C&P",
+      "name": "Gambling Den",
+      "suit": "Diamond",
+      "ace": "Solid with Badger",
+      "options": [
+        {
+          "name": "Rollin's with the High Rollers",
+          "details": "GAMBLING. Pay $1000, roll 2 dice: if you roll Doubles, take $2000. Proceed"
+        },
+        {
+          "name": "Thieves & Cheaters. All!",
+          "details": "Fight 8 Kosherized; 1-7 Crew Wanted, Attempt Botched. 8+ Take $1000. Proceed."
+        }
+      ],
+      "isReshuffle": false,
+      "skillThresholds": {
+        "fight": 7,
+        "tech": null,
+        "talk": null
+      },
+      "keyword": null,
+      "other": null
+    },
+    {
+      "id": "misbehave_double-dealing",
+      "source": "CrimeAndPunishment",
+      "sourceLabel": "C&P",
+      "name": "Double Dealing",
+      "suit": "Diamond",
+      "ace": "Solid with Fanty & Mingo",
+      "options": [
+        {
+          "name": "Betrayal...For a Price",
+          "details": "Requires at least 1 Solid Rep: Take $1000. Disgruntle Moral Crew. Discard 1 Solid rep. Proceed."
+        },
+        {
+          "name": "There's no Pleasin' some Folks",
+          "details": "Fight 9; 1-8 Attempt Botched. 9+ Proceed."
+        }
+      ],
+      "isReshuffle": false,
+      "skillThresholds": {
+        "fight": 8,
+        "tech": null,
+        "talk": null
+      },
+      "keyword": null,
+      "other": "1 Solid Rep"
+    },
+    {
+      "id": "misbehave_hired-local-goons",
+      "source": "CrimeAndPunishment",
+      "sourceLabel": "C&P",
+      "name": "Hired Local Goons",
+      "suit": "Diamond",
+      "ace": "Companion",
+      "options": [
+        {
+          "name": "The Easy Way",
+          "details": "Negotiate 8; 1-7 Attempt Botched. 8+ Proceed."
+        },
+        {
+          "name": "The Hard Way",
+          "details": "Fight 9; 1-8 Kill 1 Crew. Warrant Issued. 9+ Crew is now Wanted. Proceed."
+        }
+      ],
+      "isReshuffle": false,
+      "skillThresholds": {
+        "fight": 8,
+        "tech": null,
+        "talk": 7
+      },
+      "keyword": null,
+      "other": null
+    },
+    {
+      "id": "misbehave_purple-bellies",
+      "source": "CrimeAndPunishment",
+      "sourceLabel": "C&P",
+      "name": "Purple Bellies!",
+      "suit": "Diamond",
+      "ace": "Shepherd Book",
+      "options": [
+        {
+          "name": "We are just too Pretty for god to let us Die!",
+          "details": "Fight 14; 1-6 Kill 3 Crew. Proceed. 7-13 Kill 2 Crew. Proceed. 14+ Kill 1 Crew. Proceed."
+        },
+        {
+          "name": "The Long way Around",
+          "details": "Draw Another Misbehave Card to replace this card. Discard this card."
+        }
+      ],
+      "isReshuffle": false,
+      "skillThresholds": {
+        "fight": 13,
+        "tech": null,
+        "talk": null
+      },
+      "keyword": null,
+      "other": null
+    },
+    {
+      "id": "misbehave_pushy-salesman",
+      "source": "CrimeAndPunishment",
+      "sourceLabel": "C&P",
+      "name": "Pushy Salesman",
+      "suit": "Diamond",
+      "ace": "Merchant",
+      "options": [
+        {
+          "name": "Fine, Show us what you've Got",
+          "details": "you may buy up to 3 Cargo for $100 each. Attempt Botched."
+        },
+        {
+          "name": "We're not Buyers. We're Takers",
+          "details": "Crew is Now Wanted. Fight 6; 1-5 Warrant Issued. 6+ Take 2 Parts. Proceed."
+        }
+      ],
+      "isReshuffle": false,
+      "skillThresholds": {
+        "fight": 5,
+        "tech": null,
+        "talk": null
+      },
+      "keyword": null,
+      "other": null
+    },
+    {
+      "id": "misbehave_all-out-brawl",
+      "source": "CrimeAndPunishment",
+      "sourceLabel": "C&P",
+      "name": "All-Out Brawl!",
+      "suit": "Diamond",
+      "ace": null,
+      "options": [
+        {
+          "name": "Fight Clean",
+          "details": "Fight 9 Kosherized; 1-8 Attempt Botched. 9+ Proceed"
+        },
+        {
+          "name": "Fight Dirty",
+          "details": "Fight 9; 1-8 Kill 2 Crew. Warrant Issued. 9+ Disgruntle Moral Crew. Proceed"
+        }
+      ],
+      "isReshuffle": false,
+      "skillThresholds": {
+        "fight": 8,
+        "tech": null,
+        "talk": null
+      },
+      "keyword": null,
+      "other": null
+    },
+    {
+      "id": "misbehave_all-out-brawl_2",
+      "source": "CrimeAndPunishment",
+      "sourceLabel": "C&P",
+      "name": "All-Out Brawl!",
+      "suit": "Diamond",
+      "ace": null,
+      "options": [
+        {
+          "name": "Fight Clean",
+          "details": "Fight 9 Kosherized; 1-8 Attempt Botched. 9+ Proceed"
+        },
+        {
+          "name": "Fight Dirty",
+          "details": "Fight 9; 1-8 Kill 2 Crew. Warrant Issued. 9+ Disgruntle Moral Crew. Proceed"
+        }
+      ],
+      "isReshuffle": false,
+      "skillThresholds": {
+        "fight": 8,
+        "tech": null,
+        "talk": null
+      },
+      "keyword": null,
+      "other": null
+    },
+    {
+      "id": "misbehave_security-scare",
+      "source": "CrimeAndPunishment",
+      "sourceLabel": "C&P",
+      "name": "Security Scare",
+      "suit": "Diamond",
+      "ace": "Solid with Higgins",
+      "options": [
+        {
+          "name": "Kow-Tow, Curtsy and bite your Tongue",
+          "details": "All carried SNIPER RIFLEs and EXPLOSIVES are Seized. Disgruntle Crew carrying them. Proceed"
+        },
+        {
+          "name": "Over my dead Body!",
+          "details": "Fight 9; 1-8 Kill 1 Crew. Warrant Issued. 9+ Crew is now Wanted. Proceed."
+        }
+      ],
+      "isReshuffle": false,
+      "skillThresholds": {
+        "fight": 8,
+        "tech": null,
+        "talk": null
+      },
+      "keyword": null,
+      "other": null
+    },
+    {
+      "id": "misbehave_check-point",
+      "source": "CrimeAndPunishment",
+      "sourceLabel": "C&P",
+      "name": "Check Point",
+      "suit": "Diamond",
+      "ace": "Solid with Harken",
+      "options": [
+        {
+          "name": "Can't risk 'em Digging' in your Records",
+          "details": "Disgruntle all Wanted Crew. Return all Wanted Crew to Ship. Proceed"
+        },
+        {
+          "name": "Look Casual and keep your eyes Low",
+          "details": "Roll for all Wanted Crew. If any Crew are Seized, Warrant Issued. Otherwise, Proceed."
+        }
+      ],
+      "isReshuffle": false,
+      "skillThresholds": {
+        "fight": null,
+        "tech": null,
+        "talk": null
+      },
+      "keyword": null,
+      "other": null
+    },
+    {
+      "id": "misbehave_check-point_2",
+      "source": "CrimeAndPunishment",
+      "sourceLabel": "C&P",
+      "name": "Check Point",
+      "suit": "Diamond",
+      "ace": "Solid with Harken",
+      "options": [
+        {
+          "name": "Can't risk 'em Digging' in your Records",
+          "details": "Disgruntle all Wanted Crew. Return all Wanted Crew to Ship. Proceed"
+        },
+        {
+          "name": "Look Casual and keep your eyes Low",
+          "details": "Roll for all Wanted Crew. If any Crew are Seized, Warrant Issued. Otherwise, Proceed."
+        }
+      ],
+      "isReshuffle": false,
+      "skillThresholds": {
+        "fight": null,
+        "tech": null,
+        "talk": null
+      },
+      "keyword": null,
+      "other": null
+    },
+    {
+      "id": "misbehave_packed-market",
+      "source": "CrimeAndPunishment",
+      "sourceLabel": "C&P",
+      "name": "Packed Market",
+      "suit": "Diamond",
+      "ace": "Transport",
+      "options": [
+        {
+          "name": "Push Through the Crowd",
+          "details": "Fight 8 Kosherized; 1-7 Attempt Botched. 8+ Crew is Now Wanted. Proceed"
+        },
+        {
+          "name": "Squeeze off a couple shots in the Air",
+          "details": "Requires FIREARM. Any Crew carrying a Firearm is now Wanted. Disgruntle all Moral Crew. Proceed."
+        }
+      ],
+      "isReshuffle": false,
+      "skillThresholds": {
+        "fight": 7,
+        "tech": null,
+        "talk": null
+      },
+      "keyword": "FIREARM",
+      "other": null
+    },
+    {
+      "id": "misbehave_dangerous-gossip",
+      "source": "CrimeAndPunishment",
+      "sourceLabel": "C&P",
+      "name": "Dangerous Gossip",
+      "suit": "Hearts",
+      "ace": "Solid with Niska",
+      "options": [
+        {
+          "name": "Rumor Control",
+          "details": "Requires at least 1 Solid Rep: Negotiate 7; 1-6 Loose 1 Solid Rep. Attempt Botched. 7+ Proceed."
+        },
+        {
+          "name": "Oh, We're gonna be Rollin' in work after this One...",
+          "details": "Discard all Jobs in Hand. Attempt Botched."
+        }
+      ],
+      "isReshuffle": false,
+      "skillThresholds": {
+        "fight": null,
+        "tech": null,
+        "talk": 6
+      },
+      "keyword": null,
+      "other": "1 Solid Rep"
+    },
+    {
+      "id": "misbehave_we-got-a-plan-anyone",
+      "source": "CrimeAndPunishment",
+      "sourceLabel": "C&P",
+      "name": "We got a Plan? Anyone?",
+      "suit": "Hearts",
+      "ace": "Heist Intel",
+      "options": [
+        {
+          "name": "We'll make it up on the Fly",
+          "details": "First determine which Skill to use. Roll a die: 1-2: Negotiate, 3-4: Tech, 5-6 Fight. Then, roll your Skill Test 8; 1-4 Warrant Issued. 5-7 Attempt Botched. 8+ Proceed."
+        },
+        {
+          "name": "Best head back to the Ship, Rethink our life Choices",
+          "details": "Attempt Botched. You may take a third Action this turn."
+        }
+      ],
+      "isReshuffle": false,
+      "skillThresholds": {
+        "fight": 7,
+        "tech": 7,
+        "talk": 7
+      },
+      "keyword": null,
+      "other": null
+    },
+    {
+      "id": "misbehave_magisterial-entanglements",
+      "source": "CrimeAndPunishment",
+      "sourceLabel": "C&P",
+      "name": "Magisterial Entanglements",
+      "suit": "Hearts",
+      "ace": "Companion",
+      "options": [
+        {
+          "name": "A bit of Civil Discourse",
+          "details": "Negotiate 12; 1-11 Crew Wanted. Attempt Botched 12+ Proceed"
+        },
+        {
+          "name": "The Long way Around",
+          "details": "Draw Another Misbehave Card to replace this card. Discard this card."
+        }
+      ],
+      "isReshuffle": false,
+      "skillThresholds": {
+        "fight": null,
+        "tech": 11,
+        "talk": null
+      },
+      "keyword": null,
+      "other": null
+    },
+    {
+      "id": "misbehave_theyre-right-on-our-tails",
+      "source": "CrimeAndPunishment",
+      "sourceLabel": "C&P",
+      "name": "They're right on our Tails!",
+      "suit": "Hearts",
+      "ace": null,
+      "options": [
+        {
+          "name": "That's not Heroics, that's Suicide!",
+          "details": "Split your Crew in to two teams. First, the team without your Leader must: Fight 12; 1-11 Kill all Crew in Team. 12+ Return Team to Ship. Next, Proceed with the Team which includes your Leader."
+        }
+      ],
+      "isReshuffle": false,
+      "skillThresholds": {
+        "fight": 11,
+        "tech": null,
+        "talk": null
+      },
+      "keyword": null,
+      "other": "Split"
+    },
+    {
+      "id": "misbehave_central-data-access",
+      "source": "CrimeAndPunishment",
+      "sourceLabel": "C&P",
+      "name": "Central Data Access",
+      "suit": "Hearts",
+      "ace": null,
+      "options": [
+        {
+          "name": "Alter the Security Protocols",
+          "details": "FIRST, Get Past the Front Desk: Negotiate 9 Bribes; 1-8 Attempt Botched. 9+ Proceed. NEXT, Find the Terminal: Tech 7 + 2 Tech with HACKING RIG; 1-6 Warrant Issued. 7+ Proceed."
+        }
+      ],
+      "isReshuffle": false,
+      "skillThresholds": {
+        "fight": null,
+        "tech": 6,
+        "talk": 8
+      },
+      "keyword": null,
+      "other": "2 Steps"
+    },
+    {
+      "id": "misbehave_unification-day-festivities",
+      "source": "CrimeAndPunishment",
+      "sourceLabel": "C&P",
+      "name": "Unification Day Festivities",
+      "suit": "Hearts",
+      "ace": "Barkeep",
+      "options": [
+        {
+          "name": "Unfriendly Difference of Opinion",
+          "details": "FIRST, Whiskey & Fisticuffs: Fight 7 Kosherized; 1-6 Crew is not Wanted. Attempt Botched. NEXT, A Round for the House: Negotiate 8 Bribes; 1-7 Attempt Botched. 9+ Proceed."
+        }
+      ],
+      "isReshuffle": false,
+      "skillThresholds": {
+        "fight": 6,
+        "tech": null,
+        "talk": 7
+      },
+      "keyword": null,
+      "other": "Bribes. 2 Steps"
+    },
+    {
+      "id": "misbehave_secure-perimeter",
+      "source": "CrimeAndPunishment",
+      "sourceLabel": "C&P",
+      "name": "Secure Perimeter",
+      "suit": "Hearts",
+      "ace": "Sniper Rifle",
+      "options": [
+        {
+          "name": "Let's at Least Event the Odds",
+          "details": "FIRST, Kill the Weapon Scanner: Tech 7; 1-6 next Fight Test is Kosherized, Continue. 7+ Continue. NEXT: Take out the Guards: Fight 10; 1-9 Kill 1 Crew. Attempt Botched. 10+ Take 2 Goods. Proceed."
+        }
+      ],
+      "isReshuffle": false,
+      "skillThresholds": {
+        "fight": 9,
+        "tech": 6,
+        "talk": null
+      },
+      "keyword": null,
+      "other": "2 Steps"
+    },
+    {
+      "id": "misbehave_alliance-restricted-activity-zone",
+      "source": "CrimeAndPunishment",
+      "sourceLabel": "C&P",
+      "name": "Alliance Restricted Activity Zone",
+      "suit": "Hearts",
+      "ace": null,
+      "options": [
+        {
+          "name": "In like Lambs, Out like Lions",
+          "details": "FIRST, Be all Soft & Cuddly: Negotiate 8 + 3 Negotiate with FANCY DUDS; 1-4 Warrant Issued. 5-7 Attempt Botched. 8+ Continue. NEXT, A Roaring Exit: Fight 10 + 3 Fight with EXPLOSIVES; 1-9 Kill 1 Crew. Warrant Issued. 10+ Proceed."
+        }
+      ],
+      "isReshuffle": false,
+      "skillThresholds": {
+        "fight": 9,
+        "tech": null,
+        "talk": 7
+      },
+      "keyword": null,
+      "other": "2 Steps"
+    },
+    {
+      "id": "misbehave_invitation-only-gala",
+      "source": "CrimeAndPunishment",
+      "sourceLabel": "C&P",
+      "name": "Invitation Only Gala",
+      "suit": "Hearts",
+      "ace": "Solid with Harrow",
+      "options": [
+        {
+          "name": "Callin' in a Favor",
+          "details": "Requires at least 1 Solid Rep: Negotiate 7; 1-6 Loose 1 Solid Rep. Attempt Botched. 7+ Proceed."
+        },
+        {
+          "name": "Scalped by the Scalpers",
+          "details": "Pay $2000 to Proceed OR Attempt Botched"
+        }
+      ],
+      "isReshuffle": false,
+      "skillThresholds": {
+        "fight": null,
+        "tech": null,
+        "talk": 6
+      },
+      "keyword": null,
+      "other": "1 Solid Rep"
+    },
+    {
+      "id": "misbehave_ill-advised-rendezvous",
+      "source": "CrimeAndPunishment",
+      "sourceLabel": "C&P",
+      "name": "Ill-Advised Rendezvous",
+      "suit": "Hearts",
+      "ace": "Solid with Patience",
+      "options": [
+        {
+          "name": "Patience's Wearing Thing",
+          "details": "Requires at least 1 Solid Rep: Negotiate 7; 1-6 Loose 1 Solid Rep. Attempt Botched. 7+ Proceed."
+        },
+        {
+          "name": "Exchanging Words and Bullets",
+          "details": "Fight 9; 1-8 Kill 1 Crew, Attempt Botched. 9+ Proceed"
+        }
+      ],
+      "isReshuffle": false,
+      "skillThresholds": {
+        "fight": 8,
+        "tech": null,
+        "talk": 6
+      },
+      "keyword": null,
+      "other": "1 Solid Rep"
+    },
+    {
+      "id": "misbehave_disable-the-cortex-uplink",
+      "source": "CrimeAndPunishment",
+      "sourceLabel": "C&P",
+      "name": "Disable the Cortex Uplink",
+      "suit": "Spades",
+      "ace": "Explosives",
+      "options": [
+        {
+          "name": "Shimmy up there and Cut the Connection",
+          "details": "Tech 6; 1-5 Attempt Botched. 6+ Proceed."
+        },
+        {
+          "name": "Figure it'll Quit Workin' if we put Enough Holes in It?",
+          "details": "Fight 8; 1-7 Kill a Crew, Warrant Issued. 8+ Proceed."
+        }
+      ],
+      "isReshuffle": false,
+      "skillThresholds": {
+        "fight": 7,
+        "tech": 5,
+        "talk": null
+      },
+      "keyword": null,
+      "other": null
+    },
+    {
+      "id": "misbehave_dockside-scanner",
+      "source": "CrimeAndPunishment",
+      "sourceLabel": "C&P",
+      "name": "Dockside Scanner",
+      "suit": "Spades",
+      "ace": "Solid with Amon Duul",
+      "options": [
+        {
+          "name": "See if this old Code still Works",
+          "details": "Tech 8; 1-7 Warrant Issued. 8+ Proceed"
+        },
+        {
+          "name": "Submit Authorization Form AL324, in Triplicate",
+          "details": "Pay $100. Disgruntle all Mercs & Soldiers. Attempt Botched"
+        }
+      ],
+      "isReshuffle": false,
+      "skillThresholds": {
+        "fight": null,
+        "tech": 7,
+        "talk": null
+      },
+      "keyword": null,
+      "other": null
+    },
+    {
+      "id": "misbehave_food-riots",
+      "source": "CrimeAndPunishment",
+      "sourceLabel": "C&P",
+      "name": "Food Riots",
+      "suit": "Spades",
+      "ace": "Fruity Oaty Bar",
+      "options": [
+        {
+          "name": "Good Samaritans",
+          "details": "Requires: Discard 1 Cargo or Contraband. Remove Disgruntled from Moral Crew. Proceed."
+        },
+        {
+          "name": "Try to Slip Through the Crowd",
+          "details": "You may return any number of Crew to the Ship. Roll a die: If you roll higher than the number of remaining Crew, Proceed. Otherwise, Attempt Botched"
+        }
+      ],
+      "isReshuffle": false,
+      "skillThresholds": {
+        "fight": null,
+        "tech": null,
+        "talk": null
+      },
+      "keyword": null,
+      "other": "Discard 1 Cargo or Contraband"
+    },
+    {
+      "id": "misbehave_port-control-land-lock",
+      "source": "CrimeAndPunishment",
+      "sourceLabel": "C&P",
+      "name": "Port Control Land-Lock",
+      "suit": "Spades",
+      "ace": "Cortex Uplink",
+      "options": [
+        {
+          "name": "Bypass the Local Cortex Array",
+          "details": "Tech 12; +2 Tech with HACKING RIG; 1-11 Warrant Issued. 12+ Proceed"
+        },
+        {
+          "name": "The Long Way Around",
+          "details": "Draw another Misbehave Card to replace this card. Discard this card."
+        }
+      ],
+      "isReshuffle": false,
+      "skillThresholds": {
+        "fight": null,
+        "tech": 11,
+        "talk": null
+      },
+      "keyword": null,
+      "other": null
+    },
+    {
+      "id": "misbehave_hotel-back-office-terminal",
+      "source": "CrimeAndPunishment",
+      "sourceLabel": "C&P",
+      "name": "Hotel Back-Office Terminal",
+      "suit": "Spades",
+      "ace": "Fancy Duds",
+      "options": [
+        {
+          "name": "A Gaggle of Folks is Gonna Raise Eyebrows",
+          "details": "Tech 6 Choose 1 Crew for the Test;1-5 Chosen Crew is now Wanted. Attempt Botched. 6+ Proceed."
+        },
+        {
+          "name": "Well, This'll make everything Harder...",
+          "details": "Draw two Misbehave Cards. If you Proceed past both cards, Proceed."
+        }
+      ],
+      "isReshuffle": false,
+      "skillThresholds": {
+        "fight": null,
+        "tech": 5,
+        "talk": null
+      },
+      "keyword": null,
+      "other": null
+    },
+    {
+      "id": "misbehave_recalcitrant-official",
+      "source": "CrimeAndPunishment",
+      "sourceLabel": "C&P",
+      "name": "Recalcitrant Official",
+      "suit": "Spades",
+      "ace": "Solid with Mr. Universe",
+      "options": [
+        {
+          "name": "Patch into their Uplink. Make them see Reason",
+          "details": "FIRST, Upload Incriminating Photos: Tech 10; 1-4 Attempt Botched. 5-9 +1 Negotiate to next Test, Continue. 10+ +3 Negotiate to next Test, Continue. NEXT, a Wee Bit of Blackmail: Negotiate 10; 1-5 Warrant Issued. 6-9 Attempt Botched. 10+ Proceed."
+        }
+      ],
+      "isReshuffle": false,
+      "skillThresholds": {
+        "fight": null,
+        "tech": 9,
+        "talk": 9
+      },
+      "keyword": null,
+      "other": "2 Steps"
+    },
+    {
+      "id": "misbehave_theyve-got-us-dead-to-rights",
+      "source": "CrimeAndPunishment",
+      "sourceLabel": "C&P",
+      "name": "They've got us Dead to Rights",
+      "suit": "Spades",
+      "ace": "Solid with Mr. Universe",
+      "options": [
+        {
+          "name": "Destroy the Evidence",
+          "details": "FIRST, Knock out the Uplink Guards: Fight 8 Kosherized; 1-7 Warrant Issued. 8+ Continue. NEXT, Scrub the Records: Tech 9; 1-8 Attempt Botched. 9+ you may discard up to 2 Warrants or 2 Wanted Tokens. Proceed."
+        }
+      ],
+      "isReshuffle": false,
+      "skillThresholds": {
+        "fight": 7,
+        "tech": 8,
+        "talk": null
+      },
+      "keyword": null,
+      "other": "2 Steps"
+    },
+    {
+      "id": "misbehave_improbably-complex-alliance-gizmo",
+      "source": "CrimeAndPunishment",
+      "sourceLabel": "C&P",
+      "name": "Improbably Complex Alliance Gizmo",
+      "suit": "Spades",
+      "ace": "Hacking Rig",
+      "options": [
+        {
+          "name": "Finagle the Doohickey; It's all Caddywhompus",
+          "details": "Tech 8; 1-7 Warrant Issued. 8+ you may discard a Warrant. Proceed"
+        },
+        {
+          "name": "Quit Pokin' at it. Yer Doin' more Harm than Good.",
+          "details": "Disgruntle all Crew with Tech Skill on their card (not Gear). Attempt Botched."
+        }
+      ],
+      "isReshuffle": false,
+      "skillThresholds": {
+        "fight": null,
+        "tech": 7,
+        "talk": null
+      },
+      "keyword": null,
+      "other": null
+    },
+    {
+      "id": "misbehave_alliance-alert",
+      "source": "CrimeAndPunishment",
+      "sourceLabel": "C&P",
+      "name": "Alliance Alert!",
+      "suit": "Spades",
+      "ace": null,
+      "options": [
+        {
+          "name": "System-Wide Bulletin",
+          "details": "Draw a new Alliance Alert Card; this rule is now in effect. If there is already an Alert Card in play, replace it with the new Alert. Roll a die: If you roll equal to or lower than the number of Warrants you currently have, Attempt Botched. If you roll higher, Proceed."
+        }
+      ],
+      "isReshuffle": false,
+      "skillThresholds": {
+        "fight": null,
+        "tech": null,
+        "talk": null
+      },
+      "keyword": null,
+      "other": "Alliance Alert"
+    },
+    {
+      "id": "misbehave_alliance-alert_2",
+      "source": "CrimeAndPunishment",
+      "sourceLabel": "C&P",
+      "name": "Alliance Alert!",
+      "suit": "Spades",
+      "ace": null,
+      "options": [
+        {
+          "name": "System-Wide Bulletin",
+          "details": "Draw a new Alliance Alert Card; this rule is now in effect. If there is already an Alert Card in play, replace it with the new Alert. Roll a die: If you roll equal to or lower than the number of Warrants you currently have, Attempt Botched. If you roll higher, Proceed."
+        }
+      ],
+      "isReshuffle": false,
+      "skillThresholds": {
+        "fight": null,
+        "tech": null,
+        "talk": null
+      },
+      "keyword": null,
+      "other": "Alliance Alert"
+    }
+  ]
+}
