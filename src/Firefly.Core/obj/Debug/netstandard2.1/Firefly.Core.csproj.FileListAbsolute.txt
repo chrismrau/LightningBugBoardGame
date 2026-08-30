@@ -1,0 +1,11 @@
+D:\Users\Chris\Source\Repos\LightningBugBoardGame\src\Firefly.Core\obj\Debug\netstandard2.1\Firefly.Core.GeneratedMSBuildEditorConfig.editorconfig
+D:\Users\Chris\Source\Repos\LightningBugBoardGame\src\Firefly.Core\obj\Debug\netstandard2.1\Firefly.Core.AssemblyInfoInputs.cache
+D:\Users\Chris\Source\Repos\LightningBugBoardGame\src\Firefly.Core\obj\Debug\netstandard2.1\Firefly.Core.AssemblyInfo.cs
+D:\Users\Chris\Source\Repos\LightningBugBoardGame\src\Firefly.Core\obj\Debug\netstandard2.1\Firefly.Core.csproj.CoreCompileInputs.cache
+D:\Users\Chris\Source\Repos\LightningBugBoardGame\src\Firefly.Core\obj\Debug\netstandard2.1\Firefly.Core.sourcelink.json
+D:\Users\Chris\Source\Repos\LightningBugBoardGame\src\Firefly.Core\bin\Debug\netstandard2.1\Firefly.Core.deps.json
+D:\Users\Chris\Source\Repos\LightningBugBoardGame\src\Firefly.Core\bin\Debug\netstandard2.1\Firefly.Core.dll
+D:\Users\Chris\Source\Repos\LightningBugBoardGame\src\Firefly.Core\bin\Debug\netstandard2.1\Firefly.Core.pdb
+D:\Users\Chris\Source\Repos\LightningBugBoardGame\src\Firefly.Core\obj\Debug\netstandard2.1\Firefly.Core.csproj.AssemblyReference.cache
+D:\Users\Chris\Source\Repos\LightningBugBoardGame\src\Firefly.Core\obj\Debug\netstandard2.1\Firefly.Core.dll
+D:\Users\Chris\Source\Repos\LightningBugBoardGame\src\Firefly.Core\obj\Debug\netstandard2.1\Firefly.Core.pdb

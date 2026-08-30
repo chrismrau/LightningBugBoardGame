@@ -1,0 +1,197 @@
+{
+  "meta": {
+    "description": "Firefly: The Game – Contacts",
+    "count": 9,
+    "schemaVersion": "1.1",
+    "notes": [
+      "Data transcribed from official Contact card images.",
+      "solidAbility = benefit that requires being Solid with the contact.",
+      "specialRules = standing rules that apply regardless of Solid status (as printed).",
+      "sellPrices = prices the contact pays when you sell goods to them.",
+      "buyPrices = prices for purchasing resources from the contact (e.g. Harken fuel).",
+      "activeJobsBonus / handSizeBonus = permanent modifiers printed on the card."
+    ]
+  },
+  "contacts": [
+    {
+      "id": "contact_amnon-duul",
+      "name": "Amnon Duul",
+      "location": {
+        "planet": "Space Bazaar",
+        "system": "Red Sun"
+      },
+      "solidAbility": {
+        "name": "Travel Hub",
+        "text": "When Solid, may Load Passengers and Fugitives at Space Bazaar, no limit."
+      },
+      "buyPrices": null,
+      "sellPrices": {
+        "contraband": 500,
+        "cargo": 600
+      },
+      "specialRules": null,
+      "handSizeBonus": null,
+      "activeJobsBonus": null,
+      "notes": "Core contact. Sells Contraband and Cargo."
+    },
+    {
+      "id": "contact_badger",
+      "name": "Badger",
+      "location": {
+        "planet": "Persephone",
+        "system": "Lux"
+      },
+      "solidAbility": {
+        "name": "Favor for a Favor",
+        "text": "When Solid and Dealing with Badger, pay $1000 to Clear all Warrants."
+      },
+      "buyPrices": null,
+      "sellPrices": {
+        "contraband": 700,
+        "cargo": 400
+      },
+      "specialRules": null,
+      "handSizeBonus": null,
+      "activeJobsBonus": null,
+      "notes": "Core contact. Sells Contraband and Cargo."
+    },
+    {
+      "id": "contact_fanty-and-mingo",
+      "name": "Fanty & Mingo",
+      "location": {
+        "planet": "Beaumonde",
+        "system": "Kalidasa"
+      },
+      "solidAbility": null,
+      "buyPrices": null,
+      "sellPrices": {
+        "contraband": 400
+      },
+      "specialRules": {
+        "name": "Coyotes",
+        "text": "When you complete a Transport Job, Take $500."
+      },
+      "handSizeBonus": null,
+      "activeJobsBonus": null,
+      "notes": "Kalidasa expansion contact. Ability appears always-on (not gated by Solid)."
+    },
+    {
+      "id": "contact_harken",
+      "name": "Harken",
+      "location": {
+        "planet": "Command Cruiser",
+        "system": "White Sun"
+      },
+      "solidAbility": {
+        "name": "Your Papers are in Order",
+        "text": "When Solid with Harken, you may ignore the \"Customs Inspections\" Nav Card."
+      },
+      "buyPrices": {
+        "fuel": 100
+      },
+      "sellPrices": null,
+      "specialRules": null,
+      "handSizeBonus": null,
+      "activeJobsBonus": null,
+      "notes": "Core / Alliance contact. Fuel buy price shown as $100. Location is the Alliance Command Cruiser."
+    },
+    {
+      "id": "contact_lord-harrow",
+      "name": "Lord Harrow",
+      "location": {
+        "planet": "Highgate",
+        "system": "Blue Sun"
+      },
+      "solidAbility": null,
+      "buyPrices": null,
+      "sellPrices": {
+        "cargo": 300
+      },
+      "specialRules": {
+        "name": "Protect My Property",
+        "text": "When you complete a Smuggling or Shipping Job, take $500."
+      },
+      "handSizeBonus": null,
+      "activeJobsBonus": null,
+      "notes": "Blue Sun expansion contact. Ability appears always-on (not gated by Solid)."
+    },
+    {
+      "id": "contact_magistrate-higgins",
+      "name": "Magistrate Higgins",
+      "location": {
+        "planet": "Harvest",
+        "system": "Red Sun"
+      },
+      "solidAbility": null,
+      "buyPrices": null,
+      "sellPrices": null,
+      "specialRules": {
+        "name": "Stubborn Grudge",
+        "text": "You may not Deal with or Work a Job for Higgins with Jayne in your Crew."
+      },
+      "handSizeBonus": null,
+      "activeJobsBonus": 1,
+      "notes": "Kalidasa / expansion contact. Grants +1 Active Jobs. Restriction involving Jayne is always-on."
+    },
+    {
+      "id": "contact_mr-universe",
+      "name": "Mr. Universe",
+      "location": {
+        "planet": "Cortex Relay 7",
+        "system": null
+      },
+      "solidAbility": {
+        "name": "Can't Stop the Signal",
+        "text": "If you are Solid with Mr. Universe, you may Deal with Mr. Universe from any Sector."
+      },
+      "buyPrices": null,
+      "sellPrices": null,
+      "specialRules": null,
+      "handSizeBonus": 2,
+      "activeJobsBonus": null,
+      "notes": "Expansion contact. Grants +2 Hand Size. Location is Cortex Relay 7 (not a standard planet)."
+    },
+    {
+      "id": "contact_niska",
+      "name": "Niska",
+      "location": {
+        "planet": "Ezra",
+        "system": "Georgia"
+      },
+      "solidAbility": null,
+      "buyPrices": null,
+      "sellPrices": {
+        "contraband": 800,
+        "cargo": 400
+      },
+      "specialRules": {
+        "name": "Pound of Flesh",
+        "text": "If you are Issued a Warrant while working a Niska Job, Kill a Crew."
+      },
+      "handSizeBonus": null,
+      "activeJobsBonus": null,
+      "notes": "Core contact. Pound of Flesh is a standing rule for his jobs (not gated by Solid). Sells Contraband and Cargo."
+    },
+    {
+      "id": "contact_patience",
+      "name": "Patience",
+      "location": {
+        "planet": "Athens",
+        "system": "Georgia"
+      },
+      "solidAbility": {
+        "name": "We Can Deal",
+        "text": "When Solid, you may Consider 4 Jobs when Dealing with Patience."
+      },
+      "buyPrices": null,
+      "sellPrices": {
+        "contraband": 600,
+        "cargo": 500
+      },
+      "specialRules": null,
+      "handSizeBonus": null,
+      "activeJobsBonus": null,
+      "notes": "Core contact. Sells Contraband and Cargo."
+    }
+  ]
+}

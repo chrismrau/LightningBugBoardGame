@@ -1,0 +1,27 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Firefly.Core", "src\Firefly.Core\Firefly.Core.csproj", "{7C3A1E90-6B2F-4D41-9E5A-2F8C0B14A001}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Firefly.Core.Tests", "src\Firefly.Core.Tests\Firefly.Core.Tests.csproj", "{7C3A1E90-6B2F-4D41-9E5A-2F8C0B14A002}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{7C3A1E90-6B2F-4D41-9E5A-2F8C0B14A001}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7C3A1E90-6B2F-4D41-9E5A-2F8C0B14A001}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7C3A1E90-6B2F-4D41-9E5A-2F8C0B14A001}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7C3A1E90-6B2F-4D41-9E5A-2F8C0B14A001}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7C3A1E90-6B2F-4D41-9E5A-2F8C0B14A002}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7C3A1E90-6B2F-4D41-9E5A-2F8C0B14A002}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7C3A1E90-6B2F-4D41-9E5A-2F8C0B14A002}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7C3A1E90-6B2F-4D41-9E5A-2F8C0B14A002}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

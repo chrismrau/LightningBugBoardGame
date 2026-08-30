@@ -1,0 +1,198 @@
+{
+  "meta": {
+    "description": "Firefly: The Game – Player ships",
+    "count": 9,
+    "schemaVersion": "1.0"
+  },
+  "ships": [
+    {
+      "id": "ship_serenity",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Serenity",
+      "shipClass": "Firefly III",
+      "mainDrive": "Radion Accelerator Mark I",
+      "cost": 7800,
+      "canUpgradeDrive": true,
+      "cargoHolds": 8,
+      "stash": 4,
+      "fuelStash": 0,
+      "maxCrew": 6,
+      "upgradeSlots": 3,
+      "specialRules": null,
+      "color": {
+        "r": 255,
+        "g": 255,
+        "b": 192
+      }
+    },
+    {
+      "id": "ship_yun-qi",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Yun Qi",
+      "shipClass": "Firefly III",
+      "mainDrive": "Radion Accelerator Mark I",
+      "cost": 7800,
+      "canUpgradeDrive": true,
+      "cargoHolds": 8,
+      "stash": 4,
+      "fuelStash": 0,
+      "maxCrew": 6,
+      "upgradeSlots": 3,
+      "specialRules": null,
+      "color": {
+        "r": 166,
+        "g": 125,
+        "b": 69
+      }
+    },
+    {
+      "id": "ship_bonanza",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Bonanza",
+      "shipClass": "Firefly III",
+      "mainDrive": "Radion Accelerator Mark I",
+      "cost": 7800,
+      "canUpgradeDrive": true,
+      "cargoHolds": 8,
+      "stash": 4,
+      "fuelStash": 0,
+      "maxCrew": 6,
+      "upgradeSlots": 3,
+      "specialRules": null,
+      "color": {
+        "r": 83,
+        "g": 95,
+        "b": 65
+      }
+    },
+    {
+      "id": "ship_bonnie-mae",
+      "source": "Core",
+      "sourceLabel": "F:tG",
+      "name": "Bonnie Mae",
+      "shipClass": "Firefly III",
+      "mainDrive": "Radion Accelerator Mark I",
+      "cost": 7800,
+      "canUpgradeDrive": true,
+      "cargoHolds": 8,
+      "stash": 4,
+      "fuelStash": 0,
+      "maxCrew": 6,
+      "upgradeSlots": 3,
+      "specialRules": null,
+      "color": {
+        "r": 88,
+        "g": 115,
+        "b": 192
+      }
+    },
+    {
+      "id": "ship_artful-dodger",
+      "source": "ArtfulDodger",
+      "sourceLabel": "AD",
+      "name": "Artful Dodger",
+      "shipClass": "Firefly III",
+      "mainDrive": "Modified Radion Accelerator Mark II",
+      "cost": 8500,
+      "canUpgradeDrive": true,
+      "cargoHolds": 6,
+      "stash": 4,
+      "fuelStash": 0,
+      "maxCrew": 7,
+      "upgradeSlots": 3,
+      "specialRules": null,
+      "color": {
+        "r": 100,
+        "g": 192,
+        "b": 180
+      }
+    },
+    {
+      "id": "ship_interceptor",
+      "source": "PiratesBountyHunters",
+      "sourceLabel": "PBH",
+      "name": "Interceptor",
+      "shipClass": "Thunderbird",
+      "mainDrive": "Echelon LR-8",
+      "cost": 7500,
+      "canUpgradeDrive": false,
+      "cargoHolds": 4,
+      "stash": 0,
+      "fuelStash": 0,
+      "maxCrew": 4,
+      "upgradeSlots": 2,
+      "specialRules": "INTERLOPER - May re-roll tech boarding tests. OPTIMAL SPEC - Each currently installed Ship Upgrade reduced Drive Core range by 1.",
+      "color": {
+        "r": 116,
+        "g": 112,
+        "b": 92
+      }
+    },
+    {
+      "id": "ship_ss-walden",
+      "source": "PiratesBountyHunters",
+      "sourceLabel": "PBH",
+      "name": "S.S. Walden",
+      "shipClass": "Salvage Scow",
+      "mainDrive": "Tri-Capissen 28HD",
+      "cost": 8600,
+      "canUpgradeDrive": false,
+      "cargoHolds": 15,
+      "stash": 0,
+      "fuelStash": 0,
+      "maxCrew": 6,
+      "upgradeSlots": 3,
+      "specialRules": "SALVAGE SCOW - Completed Piracy Jobs also count as Salvage Ops.",
+      "color": {
+        "r": 113,
+        "g": 66,
+        "b": 64
+      }
+    },
+    {
+      "id": "ship_esmeralda",
+      "source": "Esmeralda",
+      "sourceLabel": "ES",
+      "name": "Esmeralda",
+      "shipClass": "Firefly IV",
+      "mainDrive": "Graviton Accelerator V1",
+      "cost": 9300,
+      "canUpgradeDrive": false,
+      "cargoHolds": 12,
+      "stash": 0,
+      "fuelStash": 6,
+      "maxCrew": 5,
+      "upgradeSlots": 2,
+      "specialRules": "MOBILE REFUGE - fugitives on board cannot be seized by the Alliance",
+      "color": {
+        "r": 145,
+        "g": 85,
+        "b": 192
+      }
+    },
+    {
+      "id": "ship_jetwash",
+      "source": "Jetwash",
+      "sourceLabel": "JW",
+      "name": "Jetwash",
+      "shipClass": "Firefly IV",
+      "mainDrive": "Graviton Accelerator V1",
+      "cost": 9500,
+      "canUpgradeDrive": false,
+      "cargoHolds": 12,
+      "stash": 0,
+      "fuelStash": 6,
+      "maxCrew": 5,
+      "upgradeSlots": 2,
+      "specialRules": "EMERGENCY NAV ASSIST - Discard a Part to count as Pilot",
+      "color": {
+        "r": 199,
+        "g": 227,
+        "b": 124
+      }
+    }
+  ]
+}

@@ -1,0 +1,1 @@
+- Adjacency.json schema 4.142 (155 sectors, 397 edges). White Sun r4-02 is not adjacent to r4-03; Lux sits between them (intentional). Always propagate. [2026-08-29]
