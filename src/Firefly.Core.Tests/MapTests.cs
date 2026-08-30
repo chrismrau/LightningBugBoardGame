@@ -1,3 +1,4 @@
+using Firefly.Core.Data;
 using Firefly.Core.Map;
 using Xunit;
 
@@ -7,8 +8,7 @@ namespace Firefly.Core.Tests
     {
         private static SectorMap LoadMap()
         {
-            var dir = Path.Combine(AppContext.BaseDirectory, "Data", "map");
-            return SectorMap.LoadFromDirectory(dir);
+            return SectorMap.LoadFromDirectory(GameData.MapDirectory);
         }
 
         [Fact]

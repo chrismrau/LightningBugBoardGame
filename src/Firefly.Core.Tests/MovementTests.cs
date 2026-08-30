@@ -1,3 +1,4 @@
+using Firefly.Core.Data;
 using Firefly.Core.Map;
 using Firefly.Core.Movement;
 using Xunit;
@@ -11,8 +12,7 @@ namespace Firefly.Core.Tests
 
         private static MovementEngine Engine()
         {
-            var dir = Path.Combine(AppContext.BaseDirectory, "Data", "map");
-            return new MovementEngine(SectorMap.LoadFromDirectory(dir));
+            return new MovementEngine(SectorMap.LoadFromDirectory(GameData.MapDirectory));
         }
 
         [Fact]
