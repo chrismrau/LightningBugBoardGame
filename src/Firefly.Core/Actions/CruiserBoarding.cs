@@ -8,7 +8,6 @@ namespace Firefly.Core.Actions
     {
         public int Die { get; }
         public bool RemovedFromGame { get; }
-
         public WantedCrewFate(int die, bool removedFromGame)
         {
             Die = die;
@@ -25,12 +24,7 @@ namespace Firefly.Core.Actions
         public WantedCrewFate[] WantedRolls { get; }
         public int WantedRemoved { get; }
 
-        public CruiserBoardingResult(
-            int fineAssessed,
-            int finePaid,
-            int contrabandSeized,
-            int fugitivesSeized,
-            WantedCrewFate[] wantedRolls)
+        public CruiserBoardingResult(int fineAssessed, int finePaid, int contrabandSeized, int fugitivesSeized, WantedCrewFate[] wantedRolls)
         {
             FineAssessed = fineAssessed;
             FinePaid = finePaid;
@@ -40,8 +34,7 @@ namespace Firefly.Core.Actions
             var removed = 0;
             foreach (var fate in wantedRolls)
             {
-                if (fate.RemovedFromGame)
-                    removed++;
+                if (fate.RemovedFromGame) removed++;
             }
             WantedRemoved = removed;
         }
@@ -75,22 +68,20 @@ namespace Firefly.Core.Actions
             player.Contraband = 0;
             player.Fugitives = 0;
 
-            var rolls = new WantedCrewFate[player.WantedCrew];
-            var remainingWanted = 0;
-            for (var i = 0; i < rolls.Length; i++)
+            var wanted = player.Roster.WantedMembers();
+            var rolls = new WantedCrewFate[wanted.Count];
+            for (var i = 0; i < wanted.Count; i++)
             {
                 var die = Dice.D6(rng);
                 var removed = die == 1;
                 rolls[i] = new WantedCrewFate(die, removed);
-                if (!removed)
-                    remainingWanted++;
+                if (removed)
+                    player.Roster.Remove(wanted[i].Id);
             }
-            player.WantedCrew = remainingWanted;
 
             game.PendingEncounter = null;
             game.PendingEncounterSectorId = null;
             game.PendingNavDraws.Clear();
-
             result = new CruiserBoardingResult(fine, paid, contraband, fugitives, rolls);
             return true;
         }

@@ -4,15 +4,13 @@ using System.Reflection;
 
 namespace Firefly.Core.Data
 {
-    /// <summary>
-    /// Locates the solution game-data JSON next to this assembly or by walking up to the repo Data folder.
-    /// </summary>
     public static class GameData
     {
         public static string Root => _root.Value;
         public static string MapDirectory => FirstExisting(Path.Combine(Root, "Map"), Path.Combine(Root, "map"));
         public static string CardsDirectory => FirstExisting(Path.Combine(Root, "Cards"), Path.Combine(Root, "cards"));
         public static string NavCardsPath => Path.Combine(CardsDirectory, "NavCards.json");
+        public static string CrewPath => Path.Combine(CardsDirectory, "Crew.json");
 
         private static readonly Lazy<string> _root = new Lazy<string>(FindRoot);
 
