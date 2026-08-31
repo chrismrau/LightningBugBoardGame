@@ -27,6 +27,7 @@ namespace Firefly.Core.State
         public IList<string> JobHand { get; }
         public IList<string> ActiveJobs { get; }
         public ISet<string> SolidWith { get; }
+        public DealModifiers Deal { get; }
 
         public int Fight => Roster.Fight + FightBonus;
         public int Tech => Roster.Tech + TechBonus;
@@ -60,6 +61,7 @@ namespace Firefly.Core.State
             JobHand = new List<string>();
             ActiveJobs = new List<string>();
             SolidWith = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            Deal = new DealModifiers();
         }
 
         public bool IsSolidWith(string contactIdOrName) => SolidWith.Contains(contactIdOrName);
