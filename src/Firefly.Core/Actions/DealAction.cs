@@ -4,11 +4,24 @@ using Firefly.Core.State;
 
 namespace Firefly.Core.Actions
 {
+    public sealed class DealRequest
+    {
+        public string ContactName { get; set; } = "";
+        public int ConsiderCount { get; set; }
+        public IList<string> KeepFromConsidered { get; set; } = new List<string>();
+        public IList<string> TakeFromDiscard { get; set; } = new List<string>();
+        public int SellContraband { get; set; }
+        public int SellCargo { get; set; }
+        public bool ClearWarrants { get; set; }
+    }
+
     public sealed class DealResult
     {
         public ContactCard Contact { get; }
-        public IReadOnlyList<JobCard> Considered { get; }
-        public JobCard? Kept { get; }
+        public bool Considered { get; }
+        public IReadOnlyList<JobCard> Drawn { get; }
+        public IReadOnlyList<JobCard> KeptFromConsider { get; }
+        public IReadOnlyList<JobCard> TakenFromDiscard { get; }
         public int ContrabandSold { get; }
         public int CargoSold { get; }
         public int CashFromSales { get; }
@@ -16,8 +29,10 @@ namespace Firefly.Core.Actions
 
         public DealResult(
             ContactCard contact,
-            IReadOnlyList<JobCard> considered,
-            JobCard? kept,
+            bool considered,
+            IReadOnlyList<JobCard> drawn,
+            IReadOnlyList<JobCard> keptFromConsider,
+            IReadOnlyList<JobCard> takenFromDiscard,
             int contrabandSold,
             int cargoSold,
             int cashFromSales,
@@ -25,7 +40,9 @@ namespace Firefly.Core.Actions
         {
             Contact = contact;
             Considered = considered;
-            Kept = kept;
+            Drawn = drawn;
+            KeptFromConsider = keptFromConsider;
+            TakenFromDiscard = takenFromDiscard;
             ContrabandSold = contrabandSold;
             CargoSold = cargoSold;
             CashFromSales = cashFromSales;
@@ -33,26 +50,9 @@ namespace Firefly.Core.Actions
         }
     }
 
-    /// <summary>
-    /// Official Deal action: consider jobs from a Contact in range, optionally keep one,
-    /// and sell cargo/contraband at that Contact's printed prices.
-    /// </summary>
     public sealed class DealAction
     {
-        public const int DefaultConsider = 3;
-        public const int PatienceSolidConsider = 4;
-        public const int BadgerWarrantClearCost = 1000;
-
-        public bool TryDeal(
-            GameState game,
-            string playerId,
-            string contactName,
-            string? keepJobId,
-            int sellContraband,
-            int sellCargo,
-            bool clearWarrants,
-            out DealResult? result,
-            out string? error)
+        public bool TryDeal(GameState game, string playerId, DealRequest request, out DealResult? result, out string? error)
         {
             result = null;
             var player = game.GetPlayer(playerId);
@@ -68,9 +68,14 @@ namespace Firefly.Core.Actions
                 error = "Contact and job decks are not loaded.";
                 return false;
             }
-            if (!game.Contacts.TryFindByName(contactName, out var contact))
+            if (request == null || string.IsNullOrWhiteSpace(request.ContactName))
             {
-                error = $"Unknown contact '{contactName}'.";
+                error = "A contact is required.";
+                return false;
+            }
+            if (!game.Contacts.TryFindByName(request.ContactName, out var contact))
+            {
+                error = $"Unknown contact '{request.ContactName}'.";
                 return false;
             }
             if (contact.IsHiggins && player.Roster.HasName("Jayne"))
@@ -78,7 +83,9 @@ namespace Firefly.Core.Actions
                 error = "Higgins will not Deal while Jayne is in the crew.";
                 return false;
             }
-            if (!CanReachContact(game, player, contact, out error))
+
+            var atLocation = IsAtContact(game, player, contact);
+            if (!CanReachContact(game, player, contact, atLocation, out error))
                 return false;
             if (!game.ContactDecks.TryGet(contact.Name, out var deck))
             {
@@ -86,136 +93,200 @@ namespace Firefly.Core.Actions
                 return false;
             }
 
-            var considerCount = contact.IsPatience && player.IsSolidWith(contact.Id)
-                ? PatienceSolidConsider
-                : DefaultConsider;
-            var considered = deck.DrawConsider(considerCount);
-
-            JobCard? kept = null;
-            if (!string.IsNullOrWhiteSpace(keepJobId))
+            var remote = !atLocation;
+            if (remote && (request.SellContraband > 0 || request.SellCargo > 0 || request.ClearWarrants))
             {
-                foreach (var job in considered)
-                {
-                    if (job.Id == keepJobId)
-                    {
-                        kept = job;
-                        break;
-                    }
-                }
-                if (kept == null)
-                {
-                    deck.PutOnBottom(considered);
-                    error = $"Job '{keepJobId}' was not among the considered cards.";
-                    return false;
-                }
-                if (player.JobHand.Count >= player.JobHandLimit)
-                {
-                    deck.PutOnBottom(considered);
-                    error = $"Job hand is full ({player.JobHandLimit}).";
-                    return false;
-                }
+                error = "Selling and Badger's warrant wipe require being in the Contact's sector.";
+                return false;
             }
 
-            if (sellContraband < 0 || sellCargo < 0)
+            var limit = ConsiderLimit(player, contact, remote);
+            if (request.ConsiderCount < 0)
             {
-                deck.PutOnBottom(considered);
+                error = "Consider count cannot be negative.";
+                return false;
+            }
+            if (request.ConsiderCount > limit)
+            {
+                error = $"May consider at most {limit} job(s) with this Contact.";
+                return false;
+            }
+
+            var considering = request.ConsiderCount > 0;
+            var keepIds = request.KeepFromConsidered ?? new List<string>();
+            var discardIds = request.TakeFromDiscard ?? new List<string>();
+            var maxKeep = player.Deal.MaxKeepFromConsider;
+
+            if (!considering && keepIds.Count > 0)
+            {
+                error = "Cannot keep considered jobs unless cards were drawn.";
+                return false;
+            }
+            if (keepIds.Count > maxKeep)
+            {
+                error = $"May take at most {maxKeep} jobs from those considered.";
+                return false;
+            }
+
+            var drawn = considering ? deck.DrawConsider(request.ConsiderCount) : (IReadOnlyList<JobCard>)new List<JobCard>();
+            var kept = new List<JobCard>();
+            foreach (var id in keepIds)
+            {
+                JobCard? match = null;
+                foreach (var job in drawn)
+                {
+                    if (job.Id == id) { match = job; break; }
+                }
+                if (match == null)
+                {
+                    deck.PutOnBottom(drawn);
+                    error = $"Job '{id}' was not among the considered cards.";
+                    return false;
+                }
+                if (ContainsId(kept, id))
+                {
+                    deck.PutOnBottom(drawn);
+                    error = "Cannot keep the same considered job twice.";
+                    return false;
+                }
+                kept.Add(match);
+            }
+
+            var fromDiscard = new List<JobCard>();
+            foreach (var id in discardIds)
+            {
+                if (!deck.TryTakeFromDiscard(id, out var job))
+                {
+                    foreach (var taken in fromDiscard) deck.MoveToDiscard(taken);
+                    deck.PutOnBottom(drawn);
+                    error = $"Job '{id}' is not in {contact.Name}'s discard pile.";
+                    return false;
+                }
+                fromDiscard.Add(job);
+            }
+
+            if (player.JobHand.Count + kept.Count + fromDiscard.Count > player.JobHandLimit)
+            {
+                foreach (var taken in fromDiscard) deck.MoveToDiscard(taken);
+                deck.PutOnBottom(drawn);
+                error = $"Job hand is full ({player.JobHandLimit}).";
+                return false;
+            }
+
+            if (request.SellContraband < 0 || request.SellCargo < 0)
+            {
+                foreach (var taken in fromDiscard) deck.MoveToDiscard(taken);
+                deck.PutOnBottom(drawn);
                 error = "Cannot sell a negative quantity.";
                 return false;
             }
-            if (sellContraband > player.Contraband || sellCargo > player.Cargo)
+            if (request.SellContraband > player.Contraband || request.SellCargo > player.Cargo)
             {
-                deck.PutOnBottom(considered);
+                foreach (var taken in fromDiscard) deck.MoveToDiscard(taken);
+                deck.PutOnBottom(drawn);
                 error = "Not enough cargo or contraband to sell.";
                 return false;
             }
-            if ((sellContraband > 0 && (contact.SellPrices?.Contraband == null)) ||
-                (sellCargo > 0 && (contact.SellPrices?.Cargo == null)))
+            if ((request.SellContraband > 0 && contact.SellPrices?.Contraband == null) ||
+                (request.SellCargo > 0 && contact.SellPrices?.Cargo == null))
             {
-                deck.PutOnBottom(considered);
+                foreach (var taken in fromDiscard) deck.MoveToDiscard(taken);
+                deck.PutOnBottom(drawn);
                 error = $"{contact.Name} does not buy that good.";
                 return false;
             }
 
             var cash = 0;
-            if (sellContraband > 0)
-                cash += sellContraband * contact.SellPrices!.Contraband!.Value;
-            if (sellCargo > 0)
-                cash += sellCargo * contact.SellPrices!.Cargo!.Value;
+            if (request.SellContraband > 0)
+                cash += request.SellContraband * contact.SellPrices!.Contraband!.Value;
+            if (request.SellCargo > 0)
+                cash += request.SellCargo * contact.SellPrices!.Cargo!.Value;
 
-            var warrantsCleared = false;
-            if (clearWarrants)
+            if (request.ClearWarrants)
             {
                 if (!contact.IsBadger || !player.IsSolidWith(contact.Id))
                 {
-                    deck.PutOnBottom(considered);
+                    foreach (var taken in fromDiscard) deck.MoveToDiscard(taken);
+                    deck.PutOnBottom(drawn);
                     error = "Only a Solid Deal with Badger can clear warrants.";
                     return false;
                 }
-                if (player.Cash + cash < BadgerWarrantClearCost)
+                if (player.Cash + cash < DealActionDefaults.BadgerWarrantClearCost)
                 {
-                    deck.PutOnBottom(considered);
+                    foreach (var taken in fromDiscard) deck.MoveToDiscard(taken);
+                    deck.PutOnBottom(drawn);
                     error = "Not enough cash to clear warrants with Badger.";
                     return false;
                 }
             }
 
-            foreach (var job in considered)
+            foreach (var job in drawn)
             {
-                if (kept != null && job.Id == kept.Id)
-                    continue;
-                deck.PutOnBottom(job);
+                if (!ContainsId(kept, job.Id))
+                    deck.PutOnBottom(job);
             }
-
-            if (kept != null)
-                player.JobHand.Add(kept.Id);
-
-            player.Contraband -= sellContraband;
-            player.Cargo -= sellCargo;
+            foreach (var job in kept) player.JobHand.Add(job.Id);
+            foreach (var job in fromDiscard) player.JobHand.Add(job.Id);
+            player.Contraband -= request.SellContraband;
+            player.Cargo -= request.SellCargo;
             player.Cash += cash;
-
-            if (clearWarrants)
+            var warrantsCleared = false;
+            if (request.ClearWarrants)
             {
-                player.Cash -= BadgerWarrantClearCost;
+                player.Cash -= DealActionDefaults.BadgerWarrantClearCost;
                 player.Warrants = 0;
                 warrantsCleared = true;
             }
 
             game.TryConsumeAction(TurnAction.Deal, out _);
-            result = new DealResult(contact, considered, kept, sellContraband, sellCargo, cash, warrantsCleared);
+            result = new DealResult(contact, considering, drawn, kept, fromDiscard, request.SellContraband, request.SellCargo, cash, warrantsCleared);
             error = null;
             return true;
         }
 
-        public static bool CanReachContact(
-            GameState game,
-            PlayerState player,
-            ContactCard contact,
-            out string? error)
+        public static int ConsiderLimit(PlayerState player, ContactCard contact, bool remote)
+        {
+            if (remote && player.Deal.ConsiderTopCardFromAnyContact && !player.IsSolidWith(contact.Id))
+                return DealActionDefaults.CortexUplinkConsider;
+
+            var limit = DealActionDefaults.BaseConsider;
+            if (contact.IsPatience && player.IsSolidWith(contact.Id))
+                limit = DealActionDefaults.PatienceSolidConsider;
+            if (player.Deal.ConsiderUpTo.HasValue && player.Deal.ConsiderUpTo.Value > limit)
+                limit = player.Deal.ConsiderUpTo.Value;
+            limit += player.Deal.ExtraConsider;
+            return limit < 0 ? 0 : limit;
+        }
+
+        public static bool CanReachContact(GameState game, PlayerState player, ContactCard contact, bool atLocation, out string? error)
         {
             error = null;
-            if (contact.IsMrUniverse && player.IsSolidWith(contact.Id))
-                return true;
+            if (atLocation) return true;
+            if (contact.IsMrUniverse && player.IsSolidWith(contact.Id)) return true;
+            if (player.Deal.CanDealFromAnySector || player.Deal.ConsiderTopCardFromAnyContact) return true;
+            error = contact.IsHarken
+                ? "Harken can only be Dealt with on the Alliance Cruiser."
+                : $"Must be in {contact.Name}'s sector to Deal.";
+            return false;
+        }
 
+        public static bool IsAtContact(GameState game, PlayerState player, ContactCard contact)
+        {
             if (contact.IsHarken)
-            {
-                if (string.IsNullOrEmpty(game.Tokens.AllianceCruiserSectorId) ||
-                    game.Tokens.AllianceCruiserSectorId != player.SectorId)
-                {
-                    error = "Harken can only be Dealt with on the Alliance Cruiser.";
-                    return false;
-                }
-                return true;
-            }
+                return !string.IsNullOrEmpty(game.Tokens.AllianceCruiserSectorId)
+                    && game.Tokens.AllianceCruiserSectorId == player.SectorId;
+            return !string.IsNullOrEmpty(contact.Planet)
+                && game.Map.TryResolveName(contact.Planet, out var sector)
+                && sector.Id == player.SectorId;
+        }
 
-            if (string.IsNullOrEmpty(contact.Planet) ||
-                !game.Map.TryResolveName(contact.Planet, out var sector) ||
-                sector.Id != player.SectorId)
+        private static bool ContainsId(List<JobCard> jobs, string id)
+        {
+            foreach (var job in jobs)
             {
-                error = $"Must be in {contact.Name}'s sector to Deal.";
-                return false;
+                if (job.Id == id) return true;
             }
-
-            return true;
+            return false;
         }
     }
 }
