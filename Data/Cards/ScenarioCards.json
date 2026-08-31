@@ -1,0 +1,259 @@
+{
+  "meta": {
+    "description": "Firefly: The Game – Story / Scenario cards",
+    "count": 19,
+    "schemaVersion": "1.0",
+    "sourceFolder": "reference/ScenarioCards"
+  },
+  "scenarioCards": [
+    {
+      "id": "scenario_first-time-in-the-captains-chair",
+      "name": "First Time in the Captain's Chair",
+      "duration": "1-2 Hours",
+      "audience": "Recommended for New Players",
+      "setup": { "startingJobs": { "mode": "oneFromEachContact", "contacts": ["Harken", "Amnon Duul"], "mayDiscardAny": true } },
+      "goals": [
+        { "number": 1, "name": "Makin' Friends", "type": "solidWithDistinctContacts", "count": 2, "grantsGoalToken": true },
+        { "number": 2, "name": "Seein' Daylight", "type": "cashAndGoalToken", "cash": 6000, "goalTokens": 1, "grantsGoalToken": true },
+        { "number": 3, "name": "Feeding the Shark", "type": "travelPayAndWin", "location": "Ezra", "system": "Georgia", "goalTokens": 2, "pay": 6000 }
+      ],
+      "win": { "type": "firstToCompleteGoal", "goal": 3 }
+    },
+    {
+      "id": "scenario_any-port-in-a-storm",
+      "name": "Any Port in a Storm",
+      "duration": "2-3 Hours",
+      "audience": "Recommended for Experienced Players",
+      "setup": {
+        "chooseHavens": { "required": true, "space": "Alliance", "excludeLocations": ["Londinium"] },
+        "allianceAlertTokensOnNonHavenAlliancePlanets": true,
+        "startingWarrants": 1
+      },
+      "specialRules": [
+        { "name": "Increased Enforcement", "text": "Any time a player successfully completes an Illegal Job, they receive a Warrant Token." },
+        { "name": "Safe Harbor", "text": "The Alliance Cruiser may not be moved to a Haven. If a Card would move it to a Haven, the player to the right places it in an adjacent Sector." },
+        { "name": "Friends in Low Places", "text": "At any Haven, one Buy Action may both Buy Fuel and give Shore Leave. At your own Haven, Shore Leave is free and you may Load up to 4 free Fuel." }
+      ],
+      "win": { "type": "firstAtHavenWithCash", "cash": 12000 }
+    },
+    {
+      "id": "scenario_down-and-out",
+      "name": "Down and Out",
+      "duration": "2-3 Hours",
+      "audience": "Recommended for Experienced Players",
+      "setup": { "faceUpSharedJobPerContact": true, "startingWarrants": 1, "noPersonalJobHand": true },
+      "specialRules": [{ "name": "Shared Inactive Jobs", "text": "No personal Job hands. Deal only buys/sells with Contacts. Work any face-up Contact Job, then replace it. Discarded Jobs leave the game." }],
+      "win": { "type": "firstSolidWithDistinctContacts", "count": 5 }
+    },
+    {
+      "id": "scenario_wanted-men",
+      "name": "Wanted Men",
+      "duration": "2-3 Hours",
+      "audience": "For Experienced Players",
+      "setup": {
+        "startingWarrants": 1,
+        "startingLocationsNotInAllianceSpace": true,
+        "startingAlertCard": true,
+        "startingJobs": { "mode": "fromContactsOnly", "contacts": ["Patience", "Badger", "Niska", "Mr. Universe", "Fanty and Mingo"] }
+      },
+      "specialRules": [
+        { "name": "Crime Pays", "text": "Illegal Jobs pay +$1000 per current Warrant." },
+        { "name": "Didn't sign on to Sight-see", "text": "Completing a Legal Job Disgruntles all Wanted Crew." },
+        { "name": "Nabbed!", "text": "Alliance Cruiser contact removes your highest cost Crew member." }
+      ],
+      "win": { "type": "endTurnWithCash", "cash": 20000, "optionalCash": 30000 }
+    },
+    {
+      "id": "scenario_the-great-recession",
+      "name": "The Great Recession",
+      "duration": "2-3 Hours",
+      "audience": "Recommended for Experienced Players",
+      "setup": { "startingJobs": { "mode": "none" }, "contactDeckSizeEqualsPlayerCount": true },
+      "specialRules": [
+        { "name": "The Sudden, Inevitable Betrayal", "text": "When four Contact decks and discards are empty, the game ends. The last accepted Job is discarded." },
+        { "name": "Settle Incomplete Jobs", "text": "Pay the bank the Pay Value of Active and in-hand Jobs." }
+      ],
+      "win": { "type": "mostCreditsAfterSettlingJobs" }
+    },
+    {
+      "id": "scenario_its-all-in-who-you-know",
+      "name": "It's All in Who You Know",
+      "duration": "2 Hours",
+      "audience": "For All Experience Levels",
+      "setup": {
+        "startingJobs": { "mode": "none" },
+        "gameLengthTokens": { "token": "AllianceAlert", "countPerPlayer": 3, "note": "Setup uses Alliance Alert Tokens as a timer. Special-rules text says Disgruntled Token; treated as the same stack." }
+      },
+      "specialRules": [{ "name": "Job Timer", "text": "Each completed Job discards one timer token. Last token ends the game immediately." }],
+      "win": { "type": "mostSolidThenHighestCrewValue" }
+    },
+    {
+      "id": "scenario_patiences-war",
+      "name": "Patience's War",
+      "duration": "2-3 Hours",
+      "goals": [
+        { "number": 1, "name": "Gunfight at the Silverhold Corral", "location": "Silverhold", "system": "Heinlein", "misbehave": 3, "skill": "Fight", "target": 8, "fail": "Kill 2 Crew. Attempt Botched & Warrant Issued.", "success": "Kill 1 Crew & Goal Complete." },
+        { "number": 2, "name": "The Hills Have Eyes... And Guns!", "location": "Three Hills", "system": "Georgia", "misbehave": 3, "skill": "Fight", "target": 10, "fail": "Kill 3 Crew. Attempt Botched & Warrant Issued.", "success": "Kill 2 Crew & Goal Complete." },
+        { "number": 3, "name": "The Quick and the Deadwood", "location": "Deadwood", "system": "Blue Sun", "misbehave": 3, "skill": "Fight", "target": 12, "fail": "Kill 4 Crew. Attempt Botched & Warrant Issued.", "success": "Goal Complete. You Win!" }
+      ],
+      "specialRules": [{ "name": "Proving Your Worth", "text": "Must be Solid with Patience and Mr. Universe to Work Goals. Warrants from Goals do not drop Solid with those Contacts." }],
+      "win": { "type": "firstToCompleteGoal", "goal": 3 }
+    },
+    {
+      "id": "scenario_respectable-persons-of-business",
+      "name": "\"Respectable\" Persons of Business",
+      "duration": "2 Hours",
+      "goals": [{ "number": 1, "name": "Money Keeps the 'Verse Spinning...", "type": "cashGrantsGoalToken", "cash": 12000 }],
+      "specialRules": [
+        { "name": "Last Call", "text": "A player with a Goal Token may spend an Action to declare Last Call. Others take one more turn. Declarer does not go again." },
+        { "name": "Settle Incomplete Jobs", "text": "Pay the bank the Pay Value of Active and in-hand Jobs." }
+      ],
+      "win": { "type": "mostCreditsAfterLastCallAndSettlingJobs" }
+    },
+    {
+      "id": "scenario_another-mans-treasure",
+      "name": "...Another Man's Treasure",
+      "duration": "2-3 Hours",
+      "audience": "PvP Focused : For Experienced Players",
+      "setup": { "chooseHavens": { "required": true, "space": "Border" }, "moveRemainingPiracyJobsToDiscard": true },
+      "specialRules": [
+        { "name": "Haven Sanctuary", "text": "Ships at their Haven may not be boarded by Rivals." },
+        { "name": "One Man's Trash...", "text": "Work at your Haven to deliver sets of 4 Contraband, 4 Cargo, or 8 Parts. Each complete set grants a Goal Token." }
+      ],
+      "win": { "type": "firstWithGoalTokens", "goalTokens": 4 }
+    },
+    {
+      "id": "scenario_awful-lonely-in-the-big-black",
+      "name": "Awful Lonely in the Big Black",
+      "duration": "1 Hour, Solo Play",
+      "audience": "Solo Play",
+      "solo": true,
+      "setup": { "bonusStartingCrew": { "maxCards": 4, "maxTotalCost": 1000 }, "gameLengthTokens": { "token": "Disgruntled", "count": 20 } },
+      "specialRules": [{ "name": "Solo Game Turn", "text": "Each of the 4 Actions at most once per turn. Fly ends the turn and spends a Game Length Token. After 20 tokens, one final turn with no Fly." }],
+      "selectableGoals": [
+        { "number": 1, "name": "The Good - Making Connections", "type": "solidWithDistinctContacts", "count": 5 },
+        { "number": 2, "name": "The Bad - Crime Does Pay", "type": "endWithCash", "cash": 15000 },
+        { "number": 3, "name": "The Ugly - No Rest for the Wicked", "type": "proceedPastMisbehave", "count": 20 }
+      ],
+      "win": { "type": "selectedSoloGoalBeforeTimeExpires" }
+    },
+    {
+      "id": "scenario_desperadoes",
+      "name": "Desperadoes",
+      "duration": "2 Hours",
+      "setup": { "startingWarrants": 1, "illegalJobBonus": 1000, "bannedContacts": ["Harken"], "startingJobs": { "excludeContacts": ["Harken"] } },
+      "goals": [{ "number": 1, "name": "Get While the Gettin's Good!", "type": "cashGrantsGoalToken", "cash": 15000 }],
+      "specialRules": [{ "name": "Last Call", "text": "A player with a Goal Token may declare Last Call. Others take one more turn." }],
+      "win": { "type": "mostCreditsAfterLastCall" }
+    },
+    {
+      "id": "scenario_harkens-folly",
+      "name": "Harken's Folly",
+      "duration": "2 Hours",
+      "goals": [
+        { "number": 1, "name": "Making Friends in High & Low Places", "type": "solidWithContacts", "contacts": ["Badger", "Patience", "Amnon Duul", "Niska"] },
+        { "number": 2, "name": "Crying Wolf", "location": "Valentine", "system": "White Sun", "misbehave": 3, "skill": "Tech", "target": 8, "fail": "Attempt Botched & Warrant Issued.", "success": "Move Alliance Cruiser to Valentine & Evade. Goal Complete." },
+        { "number": 3, "name": "Belle of the Ball", "location": "Ariel", "system": "White Sun", "misbehave": 3, "skill": "Talk", "target": 8, "fail": "Attempt Botched & Warrant Issued.", "success": "Intel Gathered. First player to gather the intel wins." }
+      ],
+      "win": { "type": "firstToCompleteGoal", "goal": 3 }
+    },
+    {
+      "id": "scenario_jail-break",
+      "name": "Jail Break",
+      "duration": "2 Hours",
+      "setup": { "chooseBountyAsPrisoner": true },
+      "goals": [
+        { "number": 1, "name": "Belly of the Beast", "location": "Alliance Cruiser", "system": "White Sun", "requiresSolidWith": ["Harken"], "boardingTestSkill": "Talk", "boardingTestTarget": null, "note": "Printed text is Talk Boarding Test with no difficulty number.", "skill": "Fight", "target": 10, "fail": "Kill 2 Crew. Evade. Warrant Issued.", "success": "Kill 1 Crew. Rescue Bound Fugitive. Evade and Warrant Issued. Goal Complete." },
+        { "number": 2, "name": "Badger will make it all better...", "location": "Persephone", "system": "Lux", "requiresSolidWith": ["Badger"], "type": "dealAndPay", "pay": 5000, "clearsWarrants": true },
+        { "number": 3, "name": "Head for the Hills!", "location": "Three Hills", "system": "Georgia", "type": "arriveWithGoalTokens", "goalTokens": 2 }
+      ],
+      "win": { "type": "firstToCompleteGoal", "goal": 3 }
+    },
+    {
+      "id": "scenario_king-of-all-londinium",
+      "name": "The King of All Londinium",
+      "duration": "2 Hours",
+      "goals": [
+        { "number": 1, "name": "Takes a Master's Touch", "location": "Jiangyin", "system": "Red Sun", "misbehave": 2, "skill": "Talk", "target": 9, "bands": [{ "range": "1-5", "text": "Pay $1,000. Attempt Botched" }, { "range": "6-8", "text": "Pay $7,000 to Complete Goal or Attempt Botched" }, { "range": "9+", "text": "Pay $5,000 to Complete Goal or Attempt Botched" }] },
+        { "number": 2, "name": "...and Knowing is Half the Battle", "location": "Londinium", "system": "White Sun", "misbehave": 3, "skill": "Tech", "target": 7, "fail": "Attempt Botched & Warrant Issued.", "success": "Goal Complete" },
+        { "number": 3, "name": "Two Card Monty", "location": "Boros", "system": "Georgia", "misbehave": 4, "skill": "Fight", "target": 10, "fail": "Attempt Botched & Warrant Issued.", "success": "The crown is yours. First player to steal the crown wins." }
+      ],
+      "win": { "type": "firstToCompleteGoal", "goal": 3 }
+    },
+    {
+      "id": "scenario_smugglers-blues",
+      "name": "Smugglers Blues",
+      "duration": "2 Hours",
+      "audience": "For Experienced Players",
+      "setup": {
+        "contrabandOnAlliancePlanets": 3,
+        "optionalRimContrabandIfBothExpansions": 2,
+        "bonusUnderContacts": { "amount": 2000, "contacts": ["Amnon Duul", "Patience", "Badger", "Niska"] },
+        "startingJobs": { "mode": "none" },
+        "allPlayersStartAt": "Londinium",
+        "startingAlertCard": true
+      },
+      "specialRules": [
+        { "name": "Smuggling Runs", "text": "Work in an Alliance Sector with Contraband and Misbehave. Each card Proceeded Past takes 1 System Contraband." },
+        { "name": "Special Delivery", "text": "First player to Sell at least 3 Contraband to a Contact takes that Contact's $2000." }
+      ],
+      "win": { "type": "lastContactBonusTriggersLastCallThenMostCredits" }
+    },
+    {
+      "id": "scenario_the-choices-we-make",
+      "name": "The Choices We Make",
+      "duration": "2-3 Hours",
+      "audience": "PvP Focused : For Experienced Players",
+      "setup": { "moveRemainingPiracyJobsToDiscard": true },
+      "specialRules": [
+        { "name": "Piracy Steals Goal Token", "text": "Completing a Piracy Job may steal 1 Goal Token from the targeted Rival." },
+        { "name": "The Hard Choices", "text": "Earn a Goal Token for completing Piracy, Crime, Bounty delivery, or Smuggling." }
+      ],
+      "win": { "type": "firstWithGoalTokensAtStartOfTurn", "goalTokens": 5 }
+    },
+    {
+      "id": "scenario_the-scavengers-verse",
+      "name": "The Scavenger's 'Verse",
+      "duration": "2 Hours",
+      "audience": "For Experienced, Friendly Folk",
+      "flavorPoem": ["Something that's purt'y", "a job most dirty", "a thing that be loud", "a Warrant worn proud", "a temptress", "a saint", "a shipmate full of complaint", "a Friend in High Places", "and a Hold with no spaces"],
+      "checklist": [
+        { "id": "pretty", "text": "Something that's purt'y", "suggested": "Companion or other pretty crew/gear; confirm" },
+        { "id": "dirty-job", "text": "a job most dirty", "suggested": "Complete an Illegal Job" },
+        { "id": "loud", "text": "a thing that be loud", "suggested": "Firearm or explosive gear" },
+        { "id": "warrant", "text": "a Warrant worn proud", "suggested": "Have a Warrant" },
+        { "id": "temptress", "text": "a temptress", "suggested": "Companion crew" },
+        { "id": "saint", "text": "a saint", "suggested": "Moral crew / Shepherd" },
+        { "id": "complaint", "text": "a shipmate full of complaint", "suggested": "Disgruntled crew" },
+        { "id": "high-places", "text": "a Friend in High Places", "suggested": "Solid with Harken" },
+        { "id": "full-hold", "text": "a Hold with no spaces", "suggested": "No empty cargo hold spaces" }
+      ],
+      "specialRules": [{ "name": "Rival Vote", "text": "Rivals vote as each item is acquired. Majority declares Master of the Hunt." }],
+      "win": { "type": "majorityVoteChecklistComplete" }
+    },
+    {
+      "id": "scenario_the-wells-run-dry",
+      "name": "The Well's Run Dry",
+      "duration": "2-3 Hours",
+      "audience": "For All Experience Levels",
+      "setup": { "bankCreditsPerPlayer": 5000, "bankIsInAdditionToStartingCredits": true },
+      "specialRules": [
+        { "name": "Limited Funds", "text": "Spent credits return to the bank. Game ends when the bank is empty." },
+        { "name": "Runaway Leader", "text": "A player with more than half of all money available may claim victory. Four players on Standard need $16,000." }
+      ],
+      "win": { "type": "mostCreditsWhenBankEmptyOrHalfAllMoney" }
+    },
+    {
+      "id": "scenario_where-the-wind-takes-us",
+      "name": "Where the Wind Takes Us",
+      "duration": "2-3 Hours",
+      "audience": "Recommended for Experienced Players",
+      "setup": {
+        "startingJobs": { "mode": "none" },
+        "seedGoalTokensFromJobDestinations": { "jobsPerPlayerIfMoreThanThree": 3, "jobsPerPlayerIfThreeOrFewer": 4 }
+      },
+      "specialRules": [{ "name": "Claim Destination Token", "text": "Completing a Job in a Sector with a Goal Token lets you claim that token." }],
+      "win": { "type": "firstWithGoalTokens", "goalTokens": 3 }
+    }
+  ]
+}
