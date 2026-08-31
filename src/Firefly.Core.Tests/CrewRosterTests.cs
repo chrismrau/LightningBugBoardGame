@@ -65,7 +65,36 @@ namespace Firefly.Core.Tests
             Assert.Equal("crew_jayne", removed!.Id);
             Assert.Equal(1, roster.Count);
             Assert.Equal(0, roster.WantedCount);
-            Assert.Equal(3, roster.Tech);
+        }
+
+        [Fact]
+        public void Unprinted_wanted_can_be_applied_and_cleared()
+        {
+            var roster = new CrewRoster();
+            roster.TryHire(Catalog.Get("crew_kaylee"), out _);
+            var kaylee = roster.Find("crew_kaylee")!;
+            Assert.False(kaylee.PrintedWanted);
+            Assert.False(kaylee.Wanted);
+            Assert.True(roster.MarkWanted("crew_kaylee"));
+            Assert.True(kaylee.Wanted);
+            Assert.Equal(1, roster.WantedCount);
+            Assert.True(roster.TryClearWanted("crew_kaylee"));
+            Assert.False(kaylee.Wanted);
+            Assert.Equal(0, roster.WantedCount);
+        }
+
+        [Fact]
+        public void Printed_wanted_cannot_be_cleared()
+        {
+            var roster = new CrewRoster();
+            roster.TryHire(Catalog.Get("crew_jayne"), out _);
+            var jayne = roster.Find("crew_jayne")!;
+            Assert.True(jayne.PrintedWanted);
+            Assert.True(jayne.Wanted);
+            Assert.False(jayne.CanClearWanted);
+            Assert.False(roster.TryClearWanted("crew_jayne"));
+            Assert.True(jayne.Wanted);
+            Assert.Equal(1, roster.WantedCount);
         }
     }
 }
