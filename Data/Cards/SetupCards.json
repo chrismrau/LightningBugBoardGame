@@ -1,0 +1,177 @@
+{
+  "meta": {
+    "description": "Firefly: The Game – Set Up cards. Story Cards take precedence over Set Up Cards.",
+    "count": 8,
+    "schemaVersion": "1.0",
+    "sourceFolder": "reference/SetUpCards"
+  },
+  "setupCards": [
+    {
+      "id": "setup_standard",
+      "name": "Standard Game Set Up",
+      "audience": "For All Players",
+      "timeModifier": "Standard",
+      "experience": "all",
+      "startingSupplies": { "cash": 3000, "fuel": 6, "parts": 2 },
+      "startingJobs": {
+        "mode": "oneFromEachContact",
+        "contacts": ["Harken", "Badger", "Amnon Duul", "Patience", "Niska"],
+        "mayDiscardAny": true,
+        "mustDiscardDownTo": 3
+      },
+      "navReshuffle": { "mode": "discardIfPlayerCountAtLeast", "playerCount": 3 },
+      "primeSupplyReveal": 3,
+      "steps": [
+        { "order": 1, "title": "Nav Decks", "mode": "standard", "text": "Place the RESHUFFLE cards in their discard piles in games with 3 or more players." },
+        { "order": 2, "title": "Alliance & Reaver Ships", "mode": "standard", "text": "Place the Alliance & Reaver ships at their appropriate starting locations." },
+        { "order": 3, "title": "Choose Ships & Leaders", "mode": "standard", "text": "The player with the highest dice roll chooses a Leader & Ship first. The last player to choose a Leader places their Ship first. Remaining players then place their Ship in the reverse order in which they chose Leaders." },
+        { "order": 4, "title": "Goal of the Game", "mode": "standard", "text": "Choose a Story Card." },
+        { "order": 5, "title": "Starting Supplies", "mode": "standard", "text": "Give each player $3000, 6 Fuel & 2 Parts." },
+        { "order": 6, "title": "Starting Jobs", "mode": "standard", "text": "Deal each player a Job Card from Harken, Badger, Amnon Duul, Patience, & Niska. Players may discard any, or all, of these Starting Jobs. Players must discard down to their Max Hand size of 3." },
+        { "order": 7, "title": "Priming the Pump", "mode": "standard", "text": "Reveal the top 3 cards of each Supply Deck. Place the revealed cards in their discard piles." }
+      ]
+    },
+    {
+      "id": "setup_alliance-high-alert",
+      "name": "Alliance High Alert",
+      "audience": "For Experienced Players",
+      "timeModifier": "Standard",
+      "experience": "experienced",
+      "startingAlertCard": true,
+      "bannedContacts": ["Harken"],
+      "startingJobs": { "mode": "drawAnyContacts", "drawCount": 3, "mayDiscardAny": true, "excludeContacts": ["Harken"] },
+      "steps": [
+        { "order": 1, "title": "Alliance Alert Cards", "mode": "special", "text": "Begin the game with one random Alliance Alert Card in play. Each Alert has a rule that affects all players. When a Misbehave Card directs you to draw a new Alert Card, place the current Alert at the bottom of the Alert Deck." },
+        { "order": 2, "title": "Nav Decks", "mode": "standard" },
+        { "order": 3, "title": "Alliance & Reaver Ships", "mode": "standard" },
+        { "order": 4, "title": "Choose Ships & Leaders", "mode": "standard" },
+        { "order": 5, "title": "Goal of the Game", "mode": "standard" },
+        { "order": 6, "title": "Starting Supplies", "mode": "standard" },
+        { "order": 7, "title": "Starting Jobs", "mode": "special", "text": "Do not use the Harken's Contact Deck this game. Harken may not be Dealt with. Players each draw 3 Starting Jobs, from any Contact or combination of Contacts they'd like. Players may keep, or discard, any of the three Jobs they've drawn." },
+        { "order": 8, "title": "Priming the Pump", "mode": "standard" }
+      ]
+    },
+    {
+      "id": "setup_awful-crowded-in-my-sky",
+      "name": "Awful Crowded in My Sky",
+      "audience": "For Solo Play & Experienced Players",
+      "timeModifier": "Standard",
+      "experience": "soloOrExperienced",
+      "navReshuffle": { "mode": "shuffleIntoDecksRegardlessOfPlayerCount" },
+      "alertTokensOnEveryPlanetarySector": true,
+      "skipAlertTokensOnPlayerStarts": true,
+      "allianceShipMovementGeneratesAlertTokens": false,
+      "reaverShipMovementGeneratesAlertTokens": true,
+      "startingJobs": { "mode": "oneFromEachContact", "contacts": ["Harken", "Amnon Duul", "Patience"], "mayDiscardAny": true },
+      "steps": [
+        { "order": 1, "title": "Nav Decks", "mode": "special", "text": "Place the RESHUFFLE cards in the Nav Decks at the start of the game, regardless of the number of players." },
+        { "order": 2, "title": "Choose Ships & Leaders", "mode": "standard" },
+        { "order": 3, "title": "Alliance & Reaver Ships", "mode": "special", "text": "Place an Alert Token in every planetary sector: Alliance Alert Tokens in Alliance Space, Reaver Alert Tokens in Border and Rim Space. Do not place Alert Tokens on players' starting locations. Alliance Ship movement does not generate new Alert Tokens. Reaver Ship movement generates new Alert Tokens, as per Blue Sun's Alert Token rules. Place Alliance & Reaver Ships normally." },
+        { "order": 4, "title": "Goal of the Game", "mode": "standard" },
+        { "order": 5, "title": "Starting Supplies", "mode": "standard" },
+        { "order": 6, "title": "Starting Jobs", "mode": "special", "text": "Each Player receives a Job Card from Harken, Amnon Duul and Patience. Players may discard any of their starting Jobs." },
+        { "order": 7, "title": "Priming the Pump", "mode": "standard" }
+      ]
+    },
+    {
+      "id": "setup_clearer-skies-better-days",
+      "name": "Clearer Skies, Better Days",
+      "audience": "For All Players",
+      "timeModifier": "Game Time Decreased",
+      "experience": "all",
+      "navReshuffle": { "mode": "shuffleIntoDecksRegardlessOfPlayerCount" },
+      "fullBurnFreeSectorsFromDie": true,
+      "useAlertTokens": false,
+      "steps": [
+        { "order": 1, "title": "Nav Decks & Navigation", "mode": "special", "text": "Shuffle the RESHUFFLE Nav Cards into the Nav Decks before the game begins. When initiating a Full Burn, roll a die to see how far you can go before the journey gets rough. The result of the die roll is how many Sectors you may move through before you start drawing Nav Cards. You may not move farther than your Drive Core's range, regardless of the die result." },
+        { "order": 2, "title": "Alliance & Reaver Ships", "mode": "special", "text": "Do not use Reaver or Alliance Alert Tokens." },
+        { "order": 3, "title": "Choose Ships & Leaders", "mode": "standard" },
+        { "order": 4, "title": "Goal of the Game", "mode": "standard" },
+        { "order": 5, "title": "Starting Supplies", "mode": "standard" },
+        { "order": 6, "title": "Starting Jobs", "mode": "standard" },
+        { "order": 7, "title": "Priming the Pump", "mode": "standard" }
+      ]
+    },
+    {
+      "id": "setup_the-blitz",
+      "name": "The Blitz",
+      "audience": "For Experienced Players",
+      "timeModifier": "Game Time Decreased",
+      "experience": "experienced",
+      "navReshuffle": { "mode": "shuffleCruiserAndCutterRegardlessOfPlayerCount" },
+      "stripMineOneSupplyDeck": true,
+      "primeSupplyReveal": 6,
+      "steps": [
+        { "order": 1, "title": "Goal of the Game", "mode": "special", "text": "First, choose a Story Card." },
+        { "order": 2, "title": "Nav Setup", "mode": "special", "text": "Shuffle the Alliance Cruiser and Reaver Cutter Cards into the Nav Decks, regardless of player count." },
+        { "order": 3, "title": "Alliance & Reaver Ships", "mode": "standard" },
+        { "order": 3, "title": "Choose Ships & Leaders", "mode": "standard" },
+        { "order": 4, "title": "Strip Mining: Starting Cards", "mode": "special", "text": "Choose 1 Supply Deck to be Strip Mined. The player who won the roll for Choosing Ships & Leaders claims the Dinosaur. Reveal a number of cards from the top of the chosen Supply Deck equal to the number of players. Starting at the Dinosaur and proceeding to the left, players take turns claiming one revealed Supply Card, at no cost. After all cards have been claimed, pass the Dinosaur to the left. Reveal another batch of cards and take turns claiming a card, again starting with the player who now has the Dinosaur. Repeat until all players have had the Dinosaur and the opportunity to pick a card first." },
+        { "order": 5, "title": "Starting Supplies", "mode": "standard" },
+        { "order": 6, "title": "Starting Jobs", "mode": "standard" },
+        { "order": 7, "title": "Priming the Pump: Double Dip", "mode": "special", "text": "Reveal the top 6 cards of each Supply deck. Place the revealed cards in their discard piles." }
+      ]
+    },
+    {
+      "id": "setup_the-browncoat-way",
+      "name": "The Browncoat Way",
+      "audience": "For Experienced Players",
+      "timeModifier": "Game Time Increased",
+      "experience": "experienced",
+      "navReshuffle": { "mode": "shuffleCruiserAndCutterRegardlessOfPlayerCount" },
+      "startingSupplies": { "cash": 12000, "fuel": 0, "parts": 0, "buyFuelCost": 100, "buyPartsCost": 300 },
+      "startingJobs": { "mode": "none" },
+      "purchaseShipsFromBank": true,
+      "steps": [
+        { "order": 1, "title": "Goal of the Game", "mode": "special", "text": "First, choose a Story Card." },
+        { "order": 2, "title": "Nav Decks", "mode": "special", "text": "Shuffle the Alliance Cruiser and Reaver Cutter Cards into the Nav Decks, regardless of player count." },
+        { "order": 3, "title": "Alliance & Reaver Ships", "mode": "standard" },
+        { "order": 4, "title": "Starting Capitol", "mode": "special", "text": "Each player receives $12,000." },
+        { "order": 5, "title": "Choose Ships and Leaders", "mode": "special", "text": "All players roll a dice. The player with the highest result either selects a Leader OR purchases a Ship, paying the Bank the list price on the Ship's card. After purchasing a Ship, place the Ship's model as normal. Play passes to the left, with each player choosing a Leader or Ship. The last player selects a Leader and purchases a Ship. Play then reverses, passing back to the right, and each player makes their remaining choice. Players do not receive free starting Fuel or Parts. Once all players have purchased a Ship and chosen a Leader, everyone may buy Fuel ($100) and Parts ($300)." },
+        { "order": 6, "title": "Starting Jobs", "mode": "special", "text": "Do not take starting Jobs." },
+        { "order": 8, "title": "Priming the Pump", "mode": "standard" }
+      ]
+    },
+    {
+      "id": "setup_the-rims-the-thing",
+      "name": "The Rim's the Thing",
+      "audience": "For All Experience Levels",
+      "timeModifier": "Standard",
+      "experience": "all",
+      "jobSources": ["BlueSun", "Kalidasa"],
+      "excludeCoreJobs": true,
+      "navReshuffle": { "mode": "shuffleIntoDecksRegardlessOfPlayerCount" },
+      "startingJobs": { "mode": "oneFromEachContact", "contacts": ["Fanty and Mingo", "Lord Harrow", "Mr. Universe", "Magistrate Higgins"], "mayDiscardAny": true },
+      "steps": [
+        { "order": 1, "title": "Rim Space Jobs", "mode": "special", "text": "Separate the Job Cards from the Blue Sun and Kalidasa expansions. Use only these cards as your Contact Decks. The Job Cards from the core game will not be used." },
+        { "order": 2, "title": "Nav Decks", "mode": "special", "text": "Place the RESHUFFLE cards in the Nav Decks at the start of the game, regardless of the number of players." },
+        { "order": 3, "title": "Choose Ships & Leaders", "mode": "standard" },
+        { "order": 4, "title": "Alliance & Reaver Ships", "mode": "standard" },
+        { "order": 5, "title": "Goal of the Game", "mode": "standard" },
+        { "order": 6, "title": "Starting Supplies", "mode": "standard" },
+        { "order": 7, "title": "Starting Jobs", "mode": "special", "text": "Deal each player a Job Card from all the Blue Sun and Kalidasa Expansion Contacts you're using: Fanty and Mingo, Lord Harrow, Mr. Universe and Magistrate Higgins. Do not deal Starting Jobs from the Core Game Contacts." },
+        { "order": 8, "title": "Priming the Pump", "mode": "standard" }
+      ]
+    },
+    {
+      "id": "setup_times-not-on-our-side",
+      "name": "Time's Not on Our Side",
+      "audience": "For All Experience Levels",
+      "timeModifier": "Standard",
+      "experience": "all",
+      "gameLengthTokens": { "count": 20, "token": "Disgruntled", "heldBy": "firstPlayer", "discardOnThatPlayersTurn": true, "finalRoundAfterLastToken": true, "fallbackWin": "mostCreditsIfStoryIncomplete" },
+      "navReshuffle": { "mode": "shuffleIntoDecksRegardlessOfPlayerCount" },
+      "startingJobs": { "mode": "drawFromOneChosenContact", "drawCount": 3, "sameContactAllowed": true },
+      "steps": [
+        { "order": 1, "title": "Only So Much Time", "mode": "special", "text": "Give a pile of 20 Disgruntled Tokens to the player taking the first turn. These tokens will be used as Game Length Tokens. Each time that player takes a turn, discard one of the Disgruntled Tokens. When the final token is discarded, everyone gets one final turn, then the game is over. If time runs out before the Story Card is completed, the player with the most credits wins." },
+        { "order": 2, "title": "Nav Decks", "mode": "special", "text": "Place the RESHUFFLE cards in the Nav Decks at the start of the game, regardless of the number of players." },
+        { "order": 3, "title": "Choose Ships & Leaders", "mode": "standard" },
+        { "order": 4, "title": "Alliance & Reaver Ships", "mode": "standard" },
+        { "order": 5, "title": "Goal of the Game", "mode": "standard" },
+        { "order": 6, "title": "Starting Supplies", "mode": "standard" },
+        { "order": 7, "title": "Starting Jobs", "mode": "special", "text": "Each player draws 3 Jobs from one Contact Deck of their choice. Players may draw from the same Contact." },
+        { "order": 8, "title": "Priming the Pump", "mode": "standard" }
+      ]
+    }
+  ]
+}
