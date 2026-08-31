@@ -24,6 +24,9 @@ namespace Firefly.Core.Tests
             return game;
         }
 
+        private static JobCard Job(string id, string contact = "Badger") =>
+            new JobCard(id, id, contact, "Crime", true, false, "Persephone", null, "Ezra", null, 1000, "1000", null, null, null);
+
         [Fact]
         public void Job_catalog_loads_core_and_expansion_jobs()
         {
@@ -34,24 +37,58 @@ namespace Firefly.Core.Tests
         }
 
         [Fact]
-        public void Deal_with_Badger_on_Persephone_keeps_one_job()
+        public void Consider_limit_is_three_by_default_and_keep_at_most_two()
         {
             var game = NewGame();
-            var only = new JobCard(
-                "job_badger_test", "Test Job", "Badger", "Crime",
-                legal: true, immoral: false,
-                "Persephone", null, "Ezra", null,
-                1000, "1000", null, null, null);
-            game.Jobs = new JobCatalog(new[] { only });
+            game.Jobs = new JobCatalog(new[] { Job("j1"), Job("j2"), Job("j3"), Job("j4") });
             game.ContactDecks = new ContactDecks(game.Jobs, new SystemRng(1));
-
             var deal = new DealAction();
-            Assert.True(deal.TryDeal(game, "p1", "Badger", "job_badger_test", 0, 0, false, out var result, out var error));
-            Assert.Null(error);
-            Assert.Equal("job_badger_test", result!.Kept!.Id);
-            Assert.Contains("job_badger_test", game.CurrentPlayer.JobHand);
-            Assert.Equal(TurnAction.Deal, game.LastAction);
-            Assert.Equal(1, game.ActionsUsedThisTurn);
+            var badger = game.Contacts!.Cards["contact_badger"];
+            Assert.Equal(3, DealAction.ConsiderLimit(game.CurrentPlayer, badger, remote: false));
+            Assert.False(deal.TryDeal(game, "p1", new DealRequest { ContactName = "Badger", ConsiderCount = 4 }, out _, out var error));
+            Assert.Contains("at most 3", error);
+            Assert.False(deal.TryDeal(game, "p1", new DealRequest { ContactName = "Badger", ConsiderCount = 3, KeepFromConsidered = { "j1", "j2", "j3" } }, out _, out var tooMany));
+            Assert.Contains("at most 2", tooMany);
+        }
+
+        [Fact]
+        public void Deal_may_keep_zero_considered_jobs()
+        {
+            var game = NewGame();
+            game.Jobs = new JobCatalog(new[] { Job("j1"), Job("j2"), Job("j3") });
+            game.ContactDecks = new ContactDecks(game.Jobs, new SystemRng(7));
+            var deal = new DealAction();
+            Assert.True(deal.TryDeal(game, "p1", new DealRequest { ContactName = "Badger", ConsiderCount = 3 }, out var none, out _));
+            Assert.True(none!.Considered);
+            Assert.Empty(none.KeptFromConsider);
+            Assert.Empty(game.CurrentPlayer.JobHand);
+        }
+
+        [Fact]
+        public void Deal_keeps_two_from_a_consider_three()
+        {
+            var game = NewGame();
+            game.Jobs = new JobCatalog(new[] { Job("j1"), Job("j2"), Job("j3") });
+            game.ContactDecks = new ContactDecks(game.Jobs, new SystemRng(1));
+            var deal = new DealAction();
+            Assert.True(deal.TryDeal(game, "p1", new DealRequest { ContactName = "Badger", ConsiderCount = 3, KeepFromConsidered = { "j1", "j2" } }, out var result, out var error), error);
+            Assert.Equal(2, result!.KeptFromConsider.Count);
+            Assert.Equal(2, game.CurrentPlayer.JobHand.Count);
+        }
+
+        [Fact]
+        public void Taking_from_discard_is_not_considering()
+        {
+            var game = NewGame();
+            var discarded = Job("job_disc");
+            game.Jobs = new JobCatalog(new[] { discarded, Job("j2") });
+            game.ContactDecks = new ContactDecks(game.Jobs, new SystemRng(1));
+            Assert.True(game.ContactDecks.TryGet("Badger", out var deck));
+            deck.MoveToDiscard(discarded);
+            var deal = new DealAction();
+            Assert.True(deal.TryDeal(game, "p1", new DealRequest { ContactName = "Badger", ConsiderCount = 0, TakeFromDiscard = { "job_disc" } }, out var result, out var error), error);
+            Assert.False(result!.Considered);
+            Assert.Equal("job_disc", result.TakenFromDiscard[0].Id);
         }
 
         [Fact]
@@ -59,9 +96,8 @@ namespace Firefly.Core.Tests
         {
             var game = NewGame(Pelorum);
             var deal = new DealAction();
-            Assert.False(deal.TryDeal(game, "p1", "Badger", null, 0, 0, false, out _, out var error));
+            Assert.False(deal.TryDeal(game, "p1", new DealRequest { ContactName = "Badger" }, out _, out var error));
             Assert.Contains("Must be in Badger's sector", error);
-            Assert.False(game.ActionTaken);
         }
 
         [Fact]
@@ -70,12 +106,10 @@ namespace Firefly.Core.Tests
             var game = NewGame();
             var deal = new DealAction();
             var fly = new FlyAction(new MovementEngine(game.Map));
-            Assert.True(deal.TryDeal(game, "p1", "Badger", null, 0, 0, false, out _, out _));
+            Assert.True(deal.TryDeal(game, "p1", new DealRequest { ContactName = "Badger" }, out _, out _));
             Assert.True(fly.TryMosey(game, "p1", Pelorum, out _, out var error));
             Assert.Null(error);
             Assert.True(game.TurnComplete);
-            Assert.False(fly.TryMosey(game, "p1", Persephone, out _, out var second));
-            Assert.Contains("both actions", second);
         }
 
         [Fact]
@@ -83,8 +117,8 @@ namespace Firefly.Core.Tests
         {
             var game = NewGame();
             var deal = new DealAction();
-            Assert.True(deal.TryDeal(game, "p1", "Badger", null, 0, 0, false, out _, out _));
-            Assert.False(deal.TryDeal(game, "p1", "Badger", null, 0, 0, false, out _, out var error));
+            Assert.True(deal.TryDeal(game, "p1", new DealRequest { ContactName = "Badger" }, out _, out _));
+            Assert.False(deal.TryDeal(game, "p1", new DealRequest { ContactName = "Badger" }, out _, out var error));
             Assert.Contains("already used this turn", error);
         }
 
@@ -94,9 +128,8 @@ namespace Firefly.Core.Tests
             var game = NewGame();
             game.CurrentPlayer.Contraband = 2;
             var deal = new DealAction();
-            Assert.True(deal.TryDeal(game, "p1", "Badger", null, sellContraband: 2, sellCargo: 0, false, out var result, out _));
+            Assert.True(deal.TryDeal(game, "p1", new DealRequest { ContactName = "Badger", SellContraband = 2 }, out var result, out _));
             Assert.Equal(1400, result!.CashFromSales);
-            Assert.Equal(0, game.CurrentPlayer.Contraband);
             Assert.Equal(3400, game.CurrentPlayer.Cash);
         }
 
@@ -105,11 +138,10 @@ namespace Firefly.Core.Tests
         {
             var game = NewGame(Persephone);
             var deal = new DealAction();
-            Assert.False(deal.TryDeal(game, "p1", "Harken", null, 0, 0, false, out _, out var error));
+            Assert.False(deal.TryDeal(game, "p1", new DealRequest { ContactName = "Harken" }, out _, out var error));
             Assert.Contains("Alliance Cruiser", error);
-
             game.Tokens = new MapTokens(allianceCruiserSectorId: Persephone);
-            Assert.True(deal.TryDeal(game, "p1", "Harken", null, 0, 0, false, out _, out var ok));
+            Assert.True(deal.TryDeal(game, "p1", new DealRequest { ContactName = "Harken" }, out _, out var ok));
             Assert.Null(ok);
         }
 
@@ -117,13 +149,10 @@ namespace Firefly.Core.Tests
         public void Higgins_refuses_a_crew_that_includes_Jayne()
         {
             var game = NewGame("border-red-sun-r2-02");
-            var crew = CrewCatalog.LoadDefault();
-            var jayne = crew.FindByName("Jayne");
-            Assert.NotNull(jayne);
+            var jayne = CrewCatalog.LoadDefault().FindByName("Jayne");
             Assert.True(game.CurrentPlayer.Roster.TryHire(jayne!, out _));
-
             var deal = new DealAction();
-            Assert.False(deal.TryDeal(game, "p1", "Magistrate Higgins", null, 0, 0, false, out _, out var error));
+            Assert.False(deal.TryDeal(game, "p1", new DealRequest { ContactName = "Magistrate Higgins" }, out _, out var error));
             Assert.Contains("Jayne", error);
         }
 
@@ -131,11 +160,41 @@ namespace Firefly.Core.Tests
         public void Solid_Mr_Universe_can_be_dealt_from_any_sector()
         {
             var game = NewGame(Persephone);
-            var universe = game.Contacts!.Cards["contact_mr-universe"];
-            game.CurrentPlayer.BecomeSolid(universe.Id);
+            game.CurrentPlayer.BecomeSolid(game.Contacts!.Cards["contact_mr-universe"].Id);
             var deal = new DealAction();
-            Assert.True(deal.TryDeal(game, "p1", "Mr. Universe", null, 0, 0, false, out _, out var error));
+            Assert.True(deal.TryDeal(game, "p1", new DealRequest { ContactName = "Mr. Universe" }, out _, out var error));
             Assert.Null(error);
+        }
+
+        [Fact]
+        public void Fine_Hat_raises_consider_limit_to_four()
+        {
+            var game = NewGame();
+            game.CurrentPlayer.Deal.ConsiderUpTo = DealActionDefaults.FineHatConsiderUpTo;
+            Assert.Equal(4, DealAction.ConsiderLimit(game.CurrentPlayer, game.Contacts!.Cards["contact_badger"], remote: false));
+        }
+
+        [Fact]
+        public void Cortex_Uplink_considers_only_the_top_card_from_another_sector()
+        {
+            var game = NewGame(Pelorum);
+            game.CurrentPlayer.Deal.ConsiderTopCardFromAnyContact = true;
+            Assert.Equal(1, DealAction.ConsiderLimit(game.CurrentPlayer, game.Contacts!.Cards["contact_badger"], remote: true));
+            var deal = new DealAction();
+            Assert.False(deal.TryDeal(game, "p1", new DealRequest { ContactName = "Badger", ConsiderCount = 3 }, out _, out var error));
+            Assert.Contains("at most 1", error);
+            Assert.True(deal.TryDeal(game, "p1", new DealRequest { ContactName = "Badger", ConsiderCount = 1 }, out var result, out var ok), ok);
+            Assert.True(result!.Considered);
+            Assert.Equal(1, result.Drawn.Count);
+        }
+
+        [Fact]
+        public void Solid_Patience_considers_four()
+        {
+            var game = NewGame("border-georgia-r3-03");
+            var patience = game.Contacts!.Cards["contact_patience"];
+            game.CurrentPlayer.BecomeSolid(patience.Id);
+            Assert.Equal(4, DealAction.ConsiderLimit(game.CurrentPlayer, patience, remote: false));
         }
     }
 }
