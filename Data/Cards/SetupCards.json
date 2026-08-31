@@ -36,6 +36,7 @@
       "name": "Alliance High Alert",
       "audience": "For Experienced Players",
       "timeModifier": "Standard",
+      "badge": "Standard",
       "experience": "experienced",
       "startingAlertCard": true,
       "bannedContacts": ["Harken"],
@@ -105,11 +106,11 @@
         { "order": 1, "title": "Goal of the Game", "mode": "special", "text": "First, choose a Story Card." },
         { "order": 2, "title": "Nav Setup", "mode": "special", "text": "Shuffle the Alliance Cruiser and Reaver Cutter Cards into the Nav Decks, regardless of player count." },
         { "order": 3, "title": "Alliance & Reaver Ships", "mode": "standard" },
-        { "order": 3, "title": "Choose Ships & Leaders", "mode": "standard" },
-        { "order": 4, "title": "Strip Mining: Starting Cards", "mode": "special", "text": "Choose 1 Supply Deck to be Strip Mined. The player who won the roll for Choosing Ships & Leaders claims the Dinosaur. Reveal a number of cards from the top of the chosen Supply Deck equal to the number of players. Starting at the Dinosaur and proceeding to the left, players take turns claiming one revealed Supply Card, at no cost. After all cards have been claimed, pass the Dinosaur to the left. Reveal another batch of cards and take turns claiming a card, again starting with the player who now has the Dinosaur. Repeat until all players have had the Dinosaur and the opportunity to pick a card first." },
-        { "order": 5, "title": "Starting Supplies", "mode": "standard" },
-        { "order": 6, "title": "Starting Jobs", "mode": "standard" },
-        { "order": 7, "title": "Priming the Pump: Double Dip", "mode": "special", "text": "Reveal the top 6 cards of each Supply deck. Place the revealed cards in their discard piles." }
+        { "order": 4, "title": "Choose Ships & Leaders", "mode": "standard" },
+        { "order": 5, "title": "Strip Mining: Starting Cards", "mode": "special", "text": "Choose 1 Supply Deck to be Strip Mined. The player who won the roll for Choosing Ships & Leaders claims the Dinosaur. Reveal a number of cards from the top of the chosen Supply Deck equal to the number of players. Starting at the Dinosaur and proceeding to the left, players take turns claiming one revealed Supply Card, at no cost. After all cards have been claimed, pass the Dinosaur to the left. Reveal another batch of cards and take turns claiming a card, again starting with the player who now has the Dinosaur. Repeat until all players have had the Dinosaur and the opportunity to pick a card first." },
+        { "order": 6, "title": "Starting Supplies", "mode": "standard" },
+        { "order": 7, "title": "Starting Jobs", "mode": "standard" },
+        { "order": 8, "title": "Priming the Pump: Double Dip", "mode": "special", "text": "Reveal the top 6 cards of each Supply deck. Place the revealed cards in their discard piles." }
       ]
     },
     {
