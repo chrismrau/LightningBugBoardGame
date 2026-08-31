@@ -17,7 +17,7 @@ namespace Firefly.Core.Actions
     }
 
     /// <summary>
-    /// Official Fly action: Mosey or Full Burn. Consumes the player's one action for the turn.
+    /// Official Fly action: Mosey or Full Burn. Consumes one of the two actions for the turn.
     /// Full Burn spends 1 fuel (unless the drive does not require it) and queues a Nav draw
     /// for each sector actually entered. Movement stops on the first Cruiser or Cutter entered.
     /// </summary>
@@ -103,12 +103,7 @@ namespace Firefly.Core.Actions
                 error = $"It is not {player.Name}'s turn.";
                 return false;
             }
-            if (game.ActionTaken)
-            {
-                error = "This player has already taken an action this turn.";
-                return false;
-            }
-            return true;
+            return game.CanTakeAction(TurnAction.Fly, out error);
         }
 
         private static void Apply(
@@ -156,8 +151,7 @@ namespace Firefly.Core.Actions
             }
 
             player.SectorId = applied.ToSectorId;
-            game.ActionTaken = true;
-            game.LastAction = TurnAction.Fly;
+            game.TryConsumeAction(TurnAction.Fly, out _);
             result = new FlyResult(applied, stopped);
         }
     }

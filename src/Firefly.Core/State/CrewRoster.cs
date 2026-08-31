@@ -42,11 +42,17 @@ namespace Firefly.Core.State
     public sealed class CrewRoster
     {
         private readonly List<CrewMember> _members = new List<CrewMember>();
+
         public int MaxCrew { get; set; }
-        public CrewRoster(int maxCrew = 6) { MaxCrew = maxCrew; }
+
+        public CrewRoster(int maxCrew = 6)
+        {
+            MaxCrew = maxCrew;
+        }
 
         public IReadOnlyList<CrewMember> Members => _members;
         public int Count => _members.Count;
+
         public int Fight => Sum(m => m.Card.Fight);
         public int Tech => Sum(m => m.Card.Tech);
         public int Talk => Sum(m => m.Card.Talk);
@@ -57,8 +63,16 @@ namespace Firefly.Core.State
         public bool TryHire(CrewCard card, out string? error)
         {
             error = null;
-            if (card == null) { error = "Crew card is required."; return false; }
-            if (_members.Count >= MaxCrew) { error = $"Roster is full ({MaxCrew})."; return false; }
+            if (card == null)
+            {
+                error = "Crew card is required.";
+                return false;
+            }
+            if (_members.Count >= MaxCrew)
+            {
+                error = $"Roster is full ({MaxCrew}).";
+                return false;
+            }
             _members.Add(new CrewMember(card));
             return true;
         }
@@ -67,7 +81,11 @@ namespace Firefly.Core.State
         {
             for (var i = 0; i < _members.Count; i++)
             {
-                if (_members[i].Id == crewId) { _members.RemoveAt(i); return true; }
+                if (_members[i].Id == crewId)
+                {
+                    _members.RemoveAt(i);
+                    return true;
+                }
             }
             return false;
         }
@@ -91,7 +109,8 @@ namespace Firefly.Core.State
             var list = new List<CrewMember>();
             foreach (var member in _members)
             {
-                if (member.Wanted) list.Add(member);
+                if (member.Wanted)
+                    list.Add(member);
             }
             return list;
         }
@@ -100,28 +119,44 @@ namespace Firefly.Core.State
         {
             foreach (var member in _members)
             {
-                if (member.Id == crewId) return member;
+                if (member.Id == crewId)
+                    return member;
             }
             return null;
+        }
+
+        public bool HasName(string name)
+        {
+            foreach (var member in _members)
+            {
+                if (string.Equals(member.Name, name, StringComparison.OrdinalIgnoreCase))
+                    return true;
+            }
+            return false;
         }
 
         public bool MarkWanted(string crewId)
         {
             var member = Find(crewId);
-            return member != null && member.MarkWanted();
+            if (member == null)
+                return false;
+            return member.MarkWanted();
         }
 
         public bool TryClearWanted(string crewId)
         {
             var member = Find(crewId);
-            return member != null && member.TryClearWanted();
+            if (member == null)
+                return false;
+            return member.TryClearWanted();
         }
 
         public bool HasProfession(string profession)
         {
             foreach (var member in _members)
             {
-                if (member.Card.HasProfession(profession)) return true;
+                if (member.Card.HasProfession(profession))
+                    return true;
             }
             return false;
         }
@@ -129,7 +164,8 @@ namespace Firefly.Core.State
         private int Sum(Func<CrewMember, int> selector)
         {
             var total = 0;
-            foreach (var member in _members) total += selector(member);
+            foreach (var member in _members)
+                total += selector(member);
             return total;
         }
 
@@ -138,7 +174,8 @@ namespace Firefly.Core.State
             var total = 0;
             foreach (var member in _members)
             {
-                if (predicate(member)) total++;
+                if (predicate(member))
+                    total++;
             }
             return total;
         }
