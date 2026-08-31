@@ -6,9 +6,12 @@ namespace Firefly.Core.Cards
     public sealed class ContactDeck
     {
         private readonly List<JobCard> _draw = new List<JobCard>();
+        private readonly List<JobCard> _discard = new List<JobCard>();
 
         public string ContactName { get; }
-        public int Count => _draw.Count;
+        public int DrawCount => _draw.Count;
+        public int DiscardCount => _discard.Count;
+        public IReadOnlyList<JobCard> DiscardPile => _discard;
 
         public ContactDeck(string contactName, IEnumerable<JobCard> jobs, IRng rng)
         {
@@ -20,7 +23,7 @@ namespace Firefly.Core.Cards
         public IReadOnlyList<JobCard> DrawConsider(int count)
         {
             var taken = new List<JobCard>();
-            var n = Math.Min(count, _draw.Count);
+            var n = Math.Min(Math.Max(count, 0), _draw.Count);
             for (var i = 0; i < n; i++)
             {
                 taken.Add(_draw[0]);
@@ -35,6 +38,23 @@ namespace Firefly.Core.Cards
         {
             foreach (var job in jobs)
                 PutOnBottom(job);
+        }
+
+        public void MoveToDiscard(JobCard job) => _discard.Add(job);
+
+        public bool TryTakeFromDiscard(string jobId, out JobCard job)
+        {
+            job = null!;
+            for (var i = 0; i < _discard.Count; i++)
+            {
+                if (_discard[i].Id == jobId)
+                {
+                    job = _discard[i];
+                    _discard.RemoveAt(i);
+                    return true;
+                }
+            }
+            return false;
         }
     }
 
