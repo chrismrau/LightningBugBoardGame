@@ -82,9 +82,9 @@
       "audience": "For All Experience Levels",
       "setup": {
         "startingJobs": { "mode": "none" },
-        "gameLengthTokens": { "token": "AllianceAlert", "countPerPlayer": 3, "note": "Setup uses Alliance Alert Tokens as a timer. Special-rules text says Disgruntled Token; treated as the same stack." }
+        "gameLengthTokens": { "token": "AllianceAlert", "countPerPlayer": 3, "note": "Printed Disgruntled Token wording is a typo. Timer tokens are Alliance Alert Tokens." }
       },
-      "specialRules": [{ "name": "Job Timer", "text": "Each completed Job discards one timer token. Last token ends the game immediately." }],
+      "specialRules": [{ "name": "Job Timer", "text": "Each completed Job discards one Alliance Alert Token from the timer stack. Last token ends the game immediately." }],
       "win": { "type": "mostSolidThenHighestCrewValue" }
     },
     {
@@ -163,7 +163,7 @@
       "duration": "2 Hours",
       "setup": { "chooseBountyAsPrisoner": true },
       "goals": [
-        { "number": 1, "name": "Belly of the Beast", "location": "Alliance Cruiser", "system": "White Sun", "requiresSolidWith": ["Harken"], "boardingTestSkill": "Talk", "boardingTestTarget": null, "note": "Printed text is Talk Boarding Test with no difficulty number.", "skill": "Fight", "target": 10, "fail": "Kill 2 Crew. Evade. Warrant Issued.", "success": "Kill 1 Crew. Rescue Bound Fugitive. Evade and Warrant Issued. Goal Complete." },
+        { "number": 1, "name": "Belly of the Beast", "location": "Alliance Cruiser", "system": "White Sun", "requiresSolidWith": ["Harken"], "boardingTestSkill": "Talk", "boardingTest": { "die": 1, "botched": "1-5", "success": "6+" }, "note": "Pirates & Bounty Hunters boarding test: 1-5 Botched, 6+ Boarding Successful, then Fight 10.", "skill": "Fight", "target": 10, "fail": "Kill 2 Crew. Evade. Warrant Issued.", "success": "Kill 1 Crew. Rescue Bound Fugitive. Evade and Warrant Issued. Goal Complete." },
         { "number": 2, "name": "Badger will make it all better...", "location": "Persephone", "system": "Lux", "requiresSolidWith": ["Badger"], "type": "dealAndPay", "pay": 5000, "clearsWarrants": true },
         { "number": 3, "name": "Head for the Hills!", "location": "Three Hills", "system": "Georgia", "type": "arriveWithGoalTokens", "goalTokens": 2 }
       ],
@@ -216,20 +216,12 @@
       "name": "The Scavenger's 'Verse",
       "duration": "2 Hours",
       "audience": "For Experienced, Friendly Folk",
+      "implemented": false,
+      "deferred": true,
+      "note": "Deferred: checklist items are resolved by table consensus, not by engine rules.",
       "flavorPoem": ["Something that's purt'y", "a job most dirty", "a thing that be loud", "a Warrant worn proud", "a temptress", "a saint", "a shipmate full of complaint", "a Friend in High Places", "and a Hold with no spaces"],
-      "checklist": [
-        { "id": "pretty", "text": "Something that's purt'y", "suggested": "Companion or other pretty crew/gear; confirm" },
-        { "id": "dirty-job", "text": "a job most dirty", "suggested": "Complete an Illegal Job" },
-        { "id": "loud", "text": "a thing that be loud", "suggested": "Firearm or explosive gear" },
-        { "id": "warrant", "text": "a Warrant worn proud", "suggested": "Have a Warrant" },
-        { "id": "temptress", "text": "a temptress", "suggested": "Companion crew" },
-        { "id": "saint", "text": "a saint", "suggested": "Moral crew / Shepherd" },
-        { "id": "complaint", "text": "a shipmate full of complaint", "suggested": "Disgruntled crew" },
-        { "id": "high-places", "text": "a Friend in High Places", "suggested": "Solid with Harken" },
-        { "id": "full-hold", "text": "a Hold with no spaces", "suggested": "No empty cargo hold spaces" }
-      ],
       "specialRules": [{ "name": "Rival Vote", "text": "Rivals vote as each item is acquired. Majority declares Master of the Hunt." }],
-      "win": { "type": "majorityVoteChecklistComplete" }
+      "win": { "type": "deferredConsensus" }
     },
     {
       "id": "scenario_the-wells-run-dry",
