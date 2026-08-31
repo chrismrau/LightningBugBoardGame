@@ -44,7 +44,7 @@ namespace Firefly.Core.Tests
             var (game, fly, _) = NewGame();
             Assert.True(fly.TryMosey(game, "p1", Pelorum, out _, out _));
             Assert.False(fly.TryMosey(game, "p1", Persephone, out _, out var error));
-            Assert.Contains("already taken an action", error);
+            Assert.Contains("already used this turn", error);
         }
 
         [Fact]
