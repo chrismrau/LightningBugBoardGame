@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+
 namespace Firefly.Core.State
 {
     public sealed class PlayerState
@@ -17,7 +20,13 @@ namespace Firefly.Core.State
         public int TalkBonus { get; set; }
         public int Warrants { get; set; }
         public int Contraband { get; set; }
+        public int Cargo { get; set; }
         public int Fugitives { get; set; }
+        public int JobHandLimit { get; set; }
+        public int ActiveJobLimit { get; set; }
+        public IList<string> JobHand { get; }
+        public IList<string> ActiveJobs { get; }
+        public ISet<string> SolidWith { get; }
 
         public int Fight => Roster.Fight + FightBonus;
         public int Tech => Roster.Tech + TechBonus;
@@ -46,6 +55,19 @@ namespace Firefly.Core.State
             FullBurnRequiresFuel = fullBurnRequiresFuel;
             ShipId = shipId;
             Roster = new CrewRoster(maxCrew);
+            JobHandLimit = 3;
+            ActiveJobLimit = 1;
+            JobHand = new List<string>();
+            ActiveJobs = new List<string>();
+            SolidWith = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        }
+
+        public bool IsSolidWith(string contactIdOrName) => SolidWith.Contains(contactIdOrName);
+
+        public void BecomeSolid(string contactId)
+        {
+            if (!string.IsNullOrWhiteSpace(contactId))
+                SolidWith.Add(contactId);
         }
     }
 }
