@@ -1,4 +1,5 @@
 using Firefly.Core.Cards;
+using Firefly.Core.Data;
 using Xunit;
 
 namespace Firefly.Core.Tests
@@ -31,6 +32,26 @@ namespace Firefly.Core.Tests
             Assert.Equal(19, catalog.Cards.Count);
             Assert.Equal("First Time in the Captain's Chair", catalog.Get("scenario_first-time-in-the-captains-chair").Name);
             Assert.Equal("firstToCompleteGoal", catalog.Get("scenario_first-time-in-the-captains-chair").WinType);
+        }
+
+        [Fact]
+        public void Blitz_steps_are_numbered_one_through_eight()
+        {
+            using var doc = System.Text.Json.JsonDocument.Parse(File.ReadAllText(GameData.SetupCardsPath));
+            var blitz = doc.RootElement.GetProperty("setupCards").EnumerateArray()
+                .First(c => c.GetProperty("id").GetString() == "setup_the-blitz");
+            var orders = blitz.GetProperty("steps").EnumerateArray()
+                .Select(s => s.GetProperty("order").GetInt32()).ToList();
+            Assert.Equal(new[] { 1, 2, 3, 4, 5, 6, 7, 8 }, orders);
+        }
+
+        [Fact]
+        public void Scavengers_verse_is_deferred()
+        {
+            using var doc = System.Text.Json.JsonDocument.Parse(File.ReadAllText(GameData.ScenarioCardsPath));
+            var card = doc.RootElement.GetProperty("scenarioCards").EnumerateArray()
+                .First(c => c.GetProperty("id").GetString() == "scenario_the-scavengers-verse");
+            Assert.True(card.GetProperty("deferred").GetBoolean());
         }
     }
 }
