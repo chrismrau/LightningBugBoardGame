@@ -2,6 +2,18 @@ using System.Collections.Generic;
 
 namespace Firefly.Core.Map
 {
+    public static class SectorIds
+    {
+        public const string Santo = "alliance-qin-shi-huang-r1-01";
+
+        public static string Canonical(string? id)
+        {
+            if (string.IsNullOrEmpty(id))
+                return id ?? "";
+            return id.Replace("quin-shi-huang", "qin-shi-huang");
+        }
+    }
+
     public sealed class Sector
     {
         public string Id { get; }
@@ -33,7 +45,7 @@ namespace Firefly.Core.Map
             IReadOnlyList<string>? aliases = null,
             IReadOnlyList<string>? destinationRegions = null)
         {
-            Id = id;
+            Id = SectorIds.Canonical(id);
             Region = region;
             Zone = zone;
             Ring = ring;
