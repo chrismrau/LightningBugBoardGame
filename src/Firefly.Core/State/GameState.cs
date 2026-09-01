@@ -43,11 +43,12 @@ namespace Firefly.Core.State
         public JobCatalog? Jobs { get; set; }
         public ContactCatalog? Contacts { get; set; }
         public ContactDecks? ContactDecks { get; set; }
+        public PendingMisbehave? PendingMisbehave { get; set; }
 
         public bool ActionTaken => ActionsUsedThisTurn > 0;
         public bool TurnComplete => ActionsUsedThisTurn >= ActionsPerTurn;
         public bool HasPendingEvents =>
-            PendingNavDraws.Count > 0 || PendingEncounter.HasValue;
+            PendingNavDraws.Count > 0 || PendingEncounter.HasValue || PendingMisbehave != null;
 
         public GameState(SectorMap map, IReadOnlyList<PlayerState> players, MapTokens? tokens = null, NavDecks? decks = null)
         {
@@ -77,6 +78,7 @@ namespace Firefly.Core.State
             PendingNavDraws.Clear();
             PendingEncounter = null;
             PendingEncounterSectorId = null;
+            PendingMisbehave = null;
         }
 
         public bool CanTakeAction(TurnAction action, out string? error)
@@ -89,7 +91,7 @@ namespace Firefly.Core.State
             }
             if (HasPendingEvents)
             {
-                error = "Resolve pending Nav cards or encounters before taking another action.";
+                error = "Resolve pending Nav cards, encounters, or Misbehave before taking another action.";
                 return false;
             }
             if (TurnComplete)
