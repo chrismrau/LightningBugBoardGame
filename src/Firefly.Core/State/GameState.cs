@@ -43,6 +43,9 @@ namespace Firefly.Core.State
         public JobCatalog? Jobs { get; set; }
         public ContactCatalog? Contacts { get; set; }
         public ContactDecks? ContactDecks { get; set; }
+        public CrewCatalog? Crew { get; set; }
+        public SupplyCatalog? Supply { get; set; }
+        public SupplyDecks? SupplyDecks { get; set; }
         public PendingMisbehave? PendingMisbehave { get; set; }
 
         public bool ActionTaken => ActionsUsedThisTurn > 0;
