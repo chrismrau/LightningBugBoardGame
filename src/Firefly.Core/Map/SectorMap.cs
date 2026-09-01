@@ -26,8 +26,10 @@ namespace Firefly.Core.Map
             _neighbors = _byId.Keys.ToDictionary(id => id, _ => new HashSet<string>(StringComparer.Ordinal));
 
             var edgeCount = 0;
-            foreach (var (a, b) in edges)
+            foreach (var pair in edges)
             {
+                var a = SectorIds.Canonical(pair.A);
+                var b = SectorIds.Canonical(pair.B);
                 if (!_byId.ContainsKey(a) || !_byId.ContainsKey(b) || a == b)
                     continue;
                 if (_neighbors[a].Add(b))
@@ -40,7 +42,7 @@ namespace Firefly.Core.Map
             if (destinationIndex != null)
             {
                 foreach (var kv in destinationIndex)
-                    _destinationToSectors[kv.Key] = new HashSet<string>(kv.Value, StringComparer.Ordinal);
+                    _destinationToSectors[kv.Key] = new HashSet<string>(kv.Value.Select(SectorIds.Canonical), StringComparer.Ordinal);
             }
 
             foreach (var sector in _byId.Values)
@@ -65,10 +67,11 @@ namespace Firefly.Core.Map
                     if (!_nameToId.ContainsKey(name))
                         _nameToId[name] = sector.Id;
                 }
-
                 MapName(sector.Planet);
                 MapName(sector.DisplayName);
                 MapName(sector.Id);
+                if (sector.Id.IndexOf("qin-shi-huang", StringComparison.Ordinal) >= 0)
+                    MapName(sector.Id.Replace("qin-shi-huang", "quin-shi-huang"));
                 foreach (var alias in sector.Aliases)
                     MapName(alias);
             }
@@ -76,56 +79,52 @@ namespace Firefly.Core.Map
 
         public static SectorMap LoadFromDirectory(string mapDirectory)
         {
-            var sectorsPath = Path.Combine(mapDirectory, "Sectors.json");
-            var adjacencyPath = Path.Combine(mapDirectory, "Adjacency.json");
-            return LoadFromFiles(sectorsPath, adjacencyPath);
+            return LoadFromFiles(Path.Combine(mapDirectory, "Sectors.json"), Path.Combine(mapDirectory, "Adjacency.json"));
         }
 
         public static SectorMap LoadFromFiles(string sectorsPath, string adjacencyPath)
         {
             var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-
             var sectorsDoc = JsonSerializer.Deserialize<SectorsFile>(File.ReadAllText(sectorsPath), options)
                 ?? throw new InvalidDataException("Sectors.json did not deserialize.");
             var adjDoc = JsonSerializer.Deserialize<AdjacencyFile>(File.ReadAllText(adjacencyPath), options)
                 ?? throw new InvalidDataException("Adjacency.json did not deserialize.");
-
             var sectors = (sectorsDoc.Sectors ?? new List<SectorDto>()).Select(dto => dto.ToSector()).ToList();
-            var edges = (adjDoc.Edges ?? new List<EdgeDto>()).Select(e => (e.A, e.B));
-
+            var edges = (adjDoc.Edges ?? new List<EdgeDto>()).Select(e => (SectorIds.Canonical(e.A), SectorIds.Canonical(e.B)));
             Dictionary<string, IReadOnlyList<string>>? dest = null;
             if (sectorsDoc.Meta?.DestinationRegions != null)
             {
                 dest = sectorsDoc.Meta.DestinationRegions.ToDictionary(
                     kv => kv.Key,
-                    kv => (IReadOnlyList<string>)(kv.Value.SectorIds ?? new List<string>()),
+                    kv => (IReadOnlyList<string>)(kv.Value.SectorIds ?? new List<string>()).Select(SectorIds.Canonical).ToList(),
                     StringComparer.OrdinalIgnoreCase);
             }
-
             return new SectorMap(sectors, edges, dest);
         }
 
         public Sector Get(string sectorId)
         {
+            sectorId = SectorIds.Canonical(sectorId);
             if (!_byId.TryGetValue(sectorId, out var sector))
                 throw new KeyNotFoundException($"Unknown sector '{sectorId}'.");
             return sector;
         }
 
-        public bool TryGet(string sectorId, out Sector sector) => _byId.TryGetValue(sectorId, out sector!);
+        public bool TryGet(string sectorId, out Sector sector) =>
+            _byId.TryGetValue(SectorIds.Canonical(sectorId), out sector!);
 
         public bool TryResolveName(string nameOrId, out Sector sector)
         {
             sector = null!;
-            if (_byId.TryGetValue(nameOrId, out sector!))
-                return true;
-            if (_nameToId.TryGetValue(nameOrId, out var id) && _byId.TryGetValue(id, out sector!))
-                return true;
+            nameOrId = SectorIds.Canonical(nameOrId);
+            if (_byId.TryGetValue(nameOrId, out sector!)) return true;
+            if (_nameToId.TryGetValue(nameOrId, out var id) && _byId.TryGetValue(id, out sector!)) return true;
             return false;
         }
 
         public IReadOnlyCollection<string> Neighbors(string sectorId)
         {
+            sectorId = SectorIds.Canonical(sectorId);
             if (!_neighbors.TryGetValue(sectorId, out var set))
                 throw new KeyNotFoundException($"Unknown sector '{sectorId}'.");
             return set;
@@ -135,32 +134,21 @@ namespace Firefly.Core.Map
 
         public bool SatisfiesDestination(string sectorId, string destination)
         {
-            if (!_byId.ContainsKey(sectorId))
-                return false;
-
-            if (_destinationToSectors.TryGetValue(destination, out var ids) && ids.Contains(sectorId))
-                return true;
-
-            if (TryResolveName(destination, out var named) && named.Id == sectorId)
-                return true;
-
+            sectorId = SectorIds.Canonical(sectorId);
+            if (!_byId.ContainsKey(sectorId)) return false;
+            if (_destinationToSectors.TryGetValue(destination, out var ids) && ids.Contains(sectorId)) return true;
+            if (TryResolveName(destination, out var named) && named.Id == sectorId) return true;
             var sector = _byId[sectorId];
-            if (string.Equals(sector.Planet, destination, StringComparison.OrdinalIgnoreCase))
-                return true;
-            if (string.Equals(sector.DisplayName, destination, StringComparison.OrdinalIgnoreCase))
-                return true;
-            if (sector.Aliases.Any(a => a.Equals(destination, StringComparison.OrdinalIgnoreCase)))
-                return true;
-
+            if (string.Equals(sector.Planet, destination, StringComparison.OrdinalIgnoreCase)) return true;
+            if (string.Equals(sector.DisplayName, destination, StringComparison.OrdinalIgnoreCase)) return true;
+            if (sector.Aliases.Any(a => a.Equals(destination, StringComparison.OrdinalIgnoreCase))) return true;
             return false;
         }
 
         public IReadOnlyCollection<string> SectorsForDestination(string destination)
         {
-            if (_destinationToSectors.TryGetValue(destination, out var ids))
-                return ids;
-            if (TryResolveName(destination, out var named))
-                return new[] { named.Id };
+            if (_destinationToSectors.TryGetValue(destination, out var ids)) return ids;
+            if (TryResolveName(destination, out var named)) return new[] { named.Id };
             return Array.Empty<string>();
         }
 
@@ -195,21 +183,10 @@ namespace Firefly.Core.Map
             public bool IsRelay { get; set; }
             public List<string>? Aliases { get; set; }
             public List<string>? DestinationRegions { get; set; }
-
-            public Sector ToSector() => new Sector(
-                Id, Region, Zone, Ring, Index, Planet, Contact, DisplayName,
-                HasSupplyDeck, IsPlanetary, IsRelay, Aliases, DestinationRegions);
+            public Sector ToSector() => new Sector(Id, Region, Zone, Ring, Index, Planet, Contact, DisplayName, HasSupplyDeck, IsPlanetary, IsRelay, Aliases, DestinationRegions);
         }
 
-        private sealed class AdjacencyFile
-        {
-            public List<EdgeDto>? Edges { get; set; }
-        }
-
-        private sealed class EdgeDto
-        {
-            public string A { get; set; } = "";
-            public string B { get; set; } = "";
-        }
+        private sealed class AdjacencyFile { public List<EdgeDto>? Edges { get; set; } }
+        private sealed class EdgeDto { public string A { get; set; } = ""; public string B { get; set; } = ""; }
     }
 }
