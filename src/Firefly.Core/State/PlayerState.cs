@@ -22,10 +22,11 @@ namespace Firefly.Core.State
         public int Contraband { get; set; }
         public int Cargo { get; set; }
         public int Fugitives { get; set; }
+        public int Passengers { get; set; }
         public int JobHandLimit { get; set; }
         public int ActiveJobLimit { get; set; }
         public IList<string> JobHand { get; }
-        public IList<string> ActiveJobs { get; }
+        public IList<ActiveJob> ActiveJobs { get; }
         public ISet<string> SolidWith { get; }
         public DealModifiers Deal { get; }
 
@@ -59,7 +60,7 @@ namespace Firefly.Core.State
             JobHandLimit = 3;
             ActiveJobLimit = 1;
             JobHand = new List<string>();
-            ActiveJobs = new List<string>();
+            ActiveJobs = new List<ActiveJob>();
             SolidWith = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             Deal = new DealModifiers();
         }
@@ -70,6 +71,29 @@ namespace Firefly.Core.State
         {
             if (!string.IsNullOrWhiteSpace(contactId))
                 SolidWith.Add(contactId);
+        }
+
+        public ActiveJob? FindActive(string jobId)
+        {
+            foreach (var job in ActiveJobs)
+            {
+                if (job.JobId == jobId)
+                    return job;
+            }
+            return null;
+        }
+
+        public bool RemoveActive(string jobId)
+        {
+            for (var i = 0; i < ActiveJobs.Count; i++)
+            {
+                if (ActiveJobs[i].JobId == jobId)
+                {
+                    ActiveJobs.RemoveAt(i);
+                    return true;
+                }
+            }
+            return false;
         }
     }
 }
