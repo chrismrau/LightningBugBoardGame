@@ -4,9 +4,6 @@ using System.Reflection;
 
 namespace Firefly.Core.Data
 {
-    /// <summary>
-    /// Locates the solution game-data JSON next to this assembly or by walking up to the repo Data folder.
-    /// </summary>
     public static class GameData
     {
         public static string Root => _root.Value;
@@ -18,6 +15,9 @@ namespace Firefly.Core.Data
         public static string ScenarioCardsPath => Path.Combine(CardsDirectory, "ScenarioCards.json");
         public static string JobsPath => Path.Combine(CardsDirectory, "Jobs.json");
         public static string ContactsPath => Path.Combine(CardsDirectory, "Contacts.json");
+        public static string GearPath => Path.Combine(CardsDirectory, "Gear.json");
+        public static string ShipUpgradesPath => Path.Combine(CardsDirectory, "ShipUpgrades.json");
+        public static string DriveCoresPath => Path.Combine(CardsDirectory, "DriveCores.json");
 
         private static readonly Lazy<string> _root = new Lazy<string>(FindRoot);
 
@@ -34,7 +34,6 @@ namespace Firefly.Core.Data
                     dir = Directory.GetParent(dir)?.FullName;
                 }
             }
-
             throw new DirectoryNotFoundException(
                 "Could not find game Data folder (expected Data/Map and Data/Cards JSON).");
         }
