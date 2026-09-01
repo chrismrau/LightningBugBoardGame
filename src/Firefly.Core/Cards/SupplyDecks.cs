@@ -1,0 +1,96 @@
+using System;
+using System.Collections.Generic;
+
+namespace Firefly.Core.Cards
+{
+    public sealed class SupplyMarket
+    {
+        public const int FaceUpCount = 3;
+
+        public string Planet { get; }
+        public IList<SupplyCard> Deck { get; }
+        public IList<SupplyCard> FaceUp { get; }
+        public IList<SupplyCard> Discard { get; }
+
+        public SupplyMarket(string planet, IEnumerable<SupplyCard>? deck = null)
+        {
+            Planet = planet;
+            Deck = new List<SupplyCard>(deck ?? Array.Empty<SupplyCard>());
+            FaceUp = new List<SupplyCard>();
+            Discard = new List<SupplyCard>();
+        }
+
+        public void ShuffleAndDeal(IRng rng)
+        {
+            SystemRng.Shuffle(Deck, rng);
+            Refill();
+        }
+
+        public bool TryTake(string cardId, out SupplyCard card)
+        {
+            card = null!;
+            for (var i = 0; i < FaceUp.Count; i++)
+            {
+                if (FaceUp[i].Id == cardId)
+                {
+                    card = FaceUp[i];
+                    FaceUp.RemoveAt(i);
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        public void Refill()
+        {
+            while (FaceUp.Count < FaceUpCount && Deck.Count > 0)
+            {
+                var next = Deck[0];
+                Deck.RemoveAt(0);
+                FaceUp.Add(next);
+            }
+        }
+    }
+
+    public sealed class SupplyDecks
+    {
+        private readonly Dictionary<string, SupplyMarket> _byPlanet;
+
+        public SupplyDecks(IEnumerable<SupplyMarket> markets)
+        {
+            _byPlanet = new Dictionary<string, SupplyMarket>(StringComparer.OrdinalIgnoreCase);
+            foreach (var market in markets)
+                _byPlanet[market.Planet] = market;
+        }
+
+        public bool TryGet(string planet, out SupplyMarket market) =>
+            _byPlanet.TryGetValue(planet, out market!);
+
+        public static SupplyDecks FromCatalog(SupplyCatalog catalog, IRng rng)
+        {
+            var grouped = new Dictionary<string, List<SupplyCard>>(StringComparer.OrdinalIgnoreCase);
+            foreach (var card in catalog.Cards.Values)
+            {
+                foreach (var kv in card.CopiesByPlanet)
+                {
+                    if (!grouped.TryGetValue(kv.Key, out var list))
+                    {
+                        list = new List<SupplyCard>();
+                        grouped[kv.Key] = list;
+                    }
+                    for (var i = 0; i < kv.Value; i++)
+                        list.Add(card);
+                }
+            }
+
+            var markets = new List<SupplyMarket>();
+            foreach (var kv in grouped)
+            {
+                var market = new SupplyMarket(kv.Key, kv.Value);
+                market.ShuffleAndDeal(rng);
+                markets.Add(market);
+            }
+            return new SupplyDecks(markets);
+        }
+    }
+}
