@@ -24,12 +24,9 @@ namespace Firefly.Core.Map
         {
             _byId = sectors.ToDictionary(s => s.Id, StringComparer.Ordinal);
             _neighbors = _byId.Keys.ToDictionary(id => id, _ => new HashSet<string>(StringComparer.Ordinal));
-
             var edgeCount = 0;
-            foreach (var pair in edges)
+            foreach (var (a, b) in edges)
             {
-                var a = SectorIds.Canonical(pair.A);
-                var b = SectorIds.Canonical(pair.B);
                 if (!_byId.ContainsKey(a) || !_byId.ContainsKey(b) || a == b)
                     continue;
                 if (_neighbors[a].Add(b))
@@ -37,14 +34,12 @@ namespace Firefly.Core.Map
                 edgeCount++;
             }
             EdgeCount = edgeCount;
-
             _destinationToSectors = new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase);
             if (destinationIndex != null)
             {
                 foreach (var kv in destinationIndex)
-                    _destinationToSectors[kv.Key] = new HashSet<string>(kv.Value.Select(SectorIds.Canonical), StringComparer.Ordinal);
+                    _destinationToSectors[kv.Key] = new HashSet<string>(kv.Value, StringComparer.Ordinal);
             }
-
             foreach (var sector in _byId.Values)
             {
                 foreach (var region in sector.DestinationRegions)
@@ -57,7 +52,6 @@ namespace Firefly.Core.Map
                     set.Add(sector.Id);
                 }
             }
-
             _nameToId = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             foreach (var sector in _byId.Values)
             {
@@ -70,17 +64,13 @@ namespace Firefly.Core.Map
                 MapName(sector.Planet);
                 MapName(sector.DisplayName);
                 MapName(sector.Id);
-                if (sector.Id.IndexOf("qin-shi-huang", StringComparison.Ordinal) >= 0)
-                    MapName(sector.Id.Replace("qin-shi-huang", "quin-shi-huang"));
                 foreach (var alias in sector.Aliases)
                     MapName(alias);
             }
         }
 
-        public static SectorMap LoadFromDirectory(string mapDirectory)
-        {
-            return LoadFromFiles(Path.Combine(mapDirectory, "Sectors.json"), Path.Combine(mapDirectory, "Adjacency.json"));
-        }
+        public static SectorMap LoadFromDirectory(string mapDirectory) =>
+            LoadFromFiles(Path.Combine(mapDirectory, "Sectors.json"), Path.Combine(mapDirectory, "Adjacency.json"));
 
         public static SectorMap LoadFromFiles(string sectorsPath, string adjacencyPath)
         {
@@ -90,13 +80,13 @@ namespace Firefly.Core.Map
             var adjDoc = JsonSerializer.Deserialize<AdjacencyFile>(File.ReadAllText(adjacencyPath), options)
                 ?? throw new InvalidDataException("Adjacency.json did not deserialize.");
             var sectors = (sectorsDoc.Sectors ?? new List<SectorDto>()).Select(dto => dto.ToSector()).ToList();
-            var edges = (adjDoc.Edges ?? new List<EdgeDto>()).Select(e => (SectorIds.Canonical(e.A), SectorIds.Canonical(e.B)));
+            var edges = (adjDoc.Edges ?? new List<EdgeDto>()).Select(e => (e.A, e.B));
             Dictionary<string, IReadOnlyList<string>>? dest = null;
             if (sectorsDoc.Meta?.DestinationRegions != null)
             {
                 dest = sectorsDoc.Meta.DestinationRegions.ToDictionary(
                     kv => kv.Key,
-                    kv => (IReadOnlyList<string>)(kv.Value.SectorIds ?? new List<string>()).Select(SectorIds.Canonical).ToList(),
+                    kv => (IReadOnlyList<string>)(kv.Value.SectorIds ?? new List<string>()),
                     StringComparer.OrdinalIgnoreCase);
             }
             return new SectorMap(sectors, edges, dest);
@@ -104,19 +94,16 @@ namespace Firefly.Core.Map
 
         public Sector Get(string sectorId)
         {
-            sectorId = SectorIds.Canonical(sectorId);
             if (!_byId.TryGetValue(sectorId, out var sector))
                 throw new KeyNotFoundException($"Unknown sector '{sectorId}'.");
             return sector;
         }
 
-        public bool TryGet(string sectorId, out Sector sector) =>
-            _byId.TryGetValue(SectorIds.Canonical(sectorId), out sector!);
+        public bool TryGet(string sectorId, out Sector sector) => _byId.TryGetValue(sectorId, out sector!);
 
         public bool TryResolveName(string nameOrId, out Sector sector)
         {
             sector = null!;
-            nameOrId = SectorIds.Canonical(nameOrId);
             if (_byId.TryGetValue(nameOrId, out sector!)) return true;
             if (_nameToId.TryGetValue(nameOrId, out var id) && _byId.TryGetValue(id, out sector!)) return true;
             return false;
@@ -124,7 +111,6 @@ namespace Firefly.Core.Map
 
         public IReadOnlyCollection<string> Neighbors(string sectorId)
         {
-            sectorId = SectorIds.Canonical(sectorId);
             if (!_neighbors.TryGetValue(sectorId, out var set))
                 throw new KeyNotFoundException($"Unknown sector '{sectorId}'.");
             return set;
@@ -134,7 +120,6 @@ namespace Firefly.Core.Map
 
         public bool SatisfiesDestination(string sectorId, string destination)
         {
-            sectorId = SectorIds.Canonical(sectorId);
             if (!_byId.ContainsKey(sectorId)) return false;
             if (_destinationToSectors.TryGetValue(destination, out var ids) && ids.Contains(sectorId)) return true;
             if (TryResolveName(destination, out var named) && named.Id == sectorId) return true;
@@ -152,22 +137,9 @@ namespace Firefly.Core.Map
             return Array.Empty<string>();
         }
 
-        private sealed class SectorsFile
-        {
-            public SectorsMeta? Meta { get; set; }
-            public List<SectorDto>? Sectors { get; set; }
-        }
-
-        private sealed class SectorsMeta
-        {
-            public Dictionary<string, DestinationRegionDto>? DestinationRegions { get; set; }
-        }
-
-        private sealed class DestinationRegionDto
-        {
-            public List<string>? SectorIds { get; set; }
-        }
-
+        private sealed class SectorsFile { public SectorsMeta? Meta { get; set; } public List<SectorDto>? Sectors { get; set; } }
+        private sealed class SectorsMeta { public Dictionary<string, DestinationRegionDto>? DestinationRegions { get; set; } }
+        private sealed class DestinationRegionDto { public List<string>? SectorIds { get; set; } }
         private sealed class SectorDto
         {
             public string Id { get; set; } = "";
@@ -185,7 +157,6 @@ namespace Firefly.Core.Map
             public List<string>? DestinationRegions { get; set; }
             public Sector ToSector() => new Sector(Id, Region, Zone, Ring, Index, Planet, Contact, DisplayName, HasSupplyDeck, IsPlanetary, IsRelay, Aliases, DestinationRegions);
         }
-
         private sealed class AdjacencyFile { public List<EdgeDto>? Edges { get; set; } }
         private sealed class EdgeDto { public string A { get; set; } = ""; public string B { get; set; } = ""; }
     }
