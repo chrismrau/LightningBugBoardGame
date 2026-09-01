@@ -10,7 +10,7 @@
       "1. Boundary COLOR is irrelevant for adjacency. Only the existence of a shared geometric boundary line matters.",
       "2. Suns (White Sun, etc.) are not sectors, but they DO represent boundaries. Sectors on opposite sides of a sun do not touch; the sun body acts as a barrier.",
       "3. Lux and Georgia systems have been corrected sector-by-sector by the user and are locked as ground truth.",
-      "4. Santo (alliance-quin-shi-huang-r1-01) locked to r3-06, r4-09, r4-10 only.",
+      "4. Santo (alliance-qin-shi-huang-r1-01) locked to r3-06, r4-09, r4-10 only.",
       "5. Other systems and open Border/Rim arcs still use best-effort geometry from the board images; continue correcting them using the Lux/Georgia pattern.",
       "Schema 4.0 marks the shift to these rules. Previous color-biased assumptions are no longer applied.",
       "Murphy r1-01: removed georgia-r3-04 and border-space-r2-23 (user correction). Back-propagated.",
@@ -195,15 +195,15 @@
       "b": "alliance-white-sun-r4-03"
     },
     {
-      "a": "alliance-quin-shi-huang-r1-01",
+      "a": "alliance-qin-shi-huang-r1-01",
       "b": "alliance-white-sun-r3-06"
     },
     {
-      "a": "alliance-quin-shi-huang-r1-01",
+      "a": "alliance-qin-shi-huang-r1-01",
       "b": "alliance-white-sun-r4-09"
     },
     {
-      "a": "alliance-quin-shi-huang-r1-01",
+      "a": "alliance-qin-shi-huang-r1-01",
       "b": "alliance-white-sun-r4-10"
     },
     {
