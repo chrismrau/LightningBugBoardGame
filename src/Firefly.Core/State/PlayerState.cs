@@ -78,6 +78,20 @@ namespace Firefly.Core.State
                 SolidWith.Add(contactId);
         }
 
+        public int SolidCount => SolidWith.Count;
+
+        public bool TryLoseSolid(string? contactIdOrName = null)
+        {
+            if (!string.IsNullOrWhiteSpace(contactIdOrName) && SolidWith.Remove(contactIdOrName))
+                return true;
+            foreach (var id in SolidWith)
+            {
+                SolidWith.Remove(id);
+                return true;
+            }
+            return false;
+        }
+
         public ActiveJob? FindActive(string jobId)
         {
             foreach (var job in ActiveJobs)
