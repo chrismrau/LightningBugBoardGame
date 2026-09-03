@@ -6,12 +6,20 @@ using Firefly.Core.Movement;
 
 namespace Firefly.Core.State
 {
-    public enum TurnAction { None, Fly, Deal, Work, Buy }
+    public enum TurnAction
+    {
+        None,
+        Fly,
+        Deal,
+        Work,
+        Buy
+    }
 
     public sealed class PendingNavDraw
     {
         public string SectorId { get; }
         public NavRegion Region { get; }
+
         public PendingNavDraw(string sectorId, NavRegion region)
         {
             SectorId = sectorId;
@@ -39,7 +47,10 @@ namespace Firefly.Core.State
         public SupplyCatalog? Supply { get; set; }
         public SupplyDecks? SupplyDecks { get; set; }
         public MisbehaveDeck? Misbehave { get; set; }
+        public MisbehaveCatalog? MisbehaveCatalog { get; set; }
         public GearIndex? Gear { get; set; }
+        public SetupCard? Setup { get; set; }
+        public ScenarioCard? Scenario { get; set; }
         public PendingMisbehave? PendingMisbehave { get; set; }
 
         public bool ActionTaken => ActionsUsedThisTurn > 0;
@@ -64,7 +75,8 @@ namespace Firefly.Core.State
         {
             foreach (var player in Players)
             {
-                if (player.Id == playerId) return player;
+                if (player.Id == playerId)
+                    return player;
             }
             throw new KeyNotFoundException($"Unknown player '{playerId}'.");
         }
@@ -80,16 +92,33 @@ namespace Firefly.Core.State
         public bool CanTakeAction(TurnAction action, out string? error)
         {
             error = null;
-            if (action == TurnAction.None) { error = "A real action is required."; return false; }
-            if (HasPendingEvents) { error = "Resolve pending Nav cards, encounters, or Misbehave before taking another action."; return false; }
-            if (TurnComplete) { error = "This player has already taken both actions this turn."; return false; }
-            if (ActionWasUsed(action)) { error = $"{action} was already used this turn."; return false; }
+            if (action == TurnAction.None)
+            {
+                error = "A real action is required.";
+                return false;
+            }
+            if (HasPendingEvents)
+            {
+                error = "Resolve pending Nav cards, encounters, or Misbehave before taking another action.";
+                return false;
+            }
+            if (TurnComplete)
+            {
+                error = "This player has already taken both actions this turn.";
+                return false;
+            }
+            if (ActionWasUsed(action))
+            {
+                error = $"{action} was already used this turn.";
+                return false;
+            }
             return true;
         }
 
         public bool TryConsumeAction(TurnAction action, out string? error)
         {
-            if (!CanTakeAction(action, out error)) return false;
+            if (!CanTakeAction(action, out error))
+                return false;
             _used.Add(action);
             ActionsUsedThisTurn++;
             LastAction = action;
@@ -97,6 +126,7 @@ namespace Firefly.Core.State
         }
 
         public bool ActionWasUsed(TurnAction action) => _used.Contains(action);
+
         private readonly HashSet<TurnAction> _used = new HashSet<TurnAction>();
 
         public void EndTurn()
