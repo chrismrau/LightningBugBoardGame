@@ -1,5 +1,7 @@
+using Firefly.Core.Actions;
 using Firefly.Core.Cards;
 using Firefly.Core.Data;
+using Firefly.Core.State;
 using Xunit;
 
 namespace Firefly.Core.Tests
@@ -52,6 +54,105 @@ namespace Firefly.Core.Tests
             var card = doc.RootElement.GetProperty("scenarioCards").EnumerateArray()
                 .First(c => c.GetProperty("id").GetString() == "scenario_the-scavengers-verse");
             Assert.True(card.GetProperty("deferred").GetBoolean());
+        }
+
+        private const string Persephone = "alliance-lux-r1-01";
+        private const string Santo = "alliance-qin-shi-huang-r1-01";
+
+        [Fact]
+        public void Standard_setup_wires_misbehave_and_supply_decks()
+        {
+            var game = GameSetup.Standard(
+                new PlayerSeat("p1", "Mal", Persephone),
+                new PlayerSeat("p2", "Zoe", Santo));
+
+            Assert.Equal("setup_standard", game.Setup!.Id);
+            Assert.NotNull(game.Misbehave);
+            Assert.NotNull(game.MisbehaveCatalog);
+            Assert.True(game.Misbehave!.DrawCount >= 70);
+            Assert.Equal(0, game.Misbehave.DiscardCount);
+
+            Assert.NotNull(game.Supply);
+            Assert.NotNull(game.SupplyDecks);
+            foreach (var planet in GameSetup.CoreSupplyPlanets)
+            {
+                Assert.True(game.SupplyDecks!.TryGet(planet, out var market), planet);
+                Assert.Equal(3, market.FaceUp.Count);
+                Assert.True(market.Deck.Count > 0, planet);
+            }
+
+            Assert.NotNull(game.Decks);
+            Assert.NotNull(game.Jobs);
+            Assert.NotNull(game.ContactDecks);
+            Assert.NotNull(game.Crew);
+            Assert.NotNull(game.Gear);
+        }
+
+        [Fact]
+        public void Standard_setup_gives_printed_starting_supplies_and_a_job_hand()
+        {
+            var game = GameSetup.Create(
+                new[] { new PlayerSeat("p1", "Mal", Persephone) },
+                new GameSetupOptions { Rng = new SystemRng(4) });
+
+            var player = game.CurrentPlayer;
+            Assert.Equal(3000, player.Cash);
+            Assert.Equal(6, player.Fuel);
+            Assert.Equal(2, player.Parts);
+            Assert.True(player.JobHand.Count > 0);
+            Assert.True(player.JobHand.Count <= player.JobHandLimit);
+        }
+
+        [Fact]
+        public void Browncoat_setup_starts_rich_and_dry()
+        {
+            var game = GameSetup.Create(
+                new[] { new PlayerSeat("p1", "Mal", Persephone) },
+                new GameSetupOptions
+                {
+                    SetupCardId = "setup_the-browncoat-way",
+                    DealStartingJobs = false,
+                    Rng = new SystemRng(5)
+                });
+
+            Assert.Equal(12000, game.CurrentPlayer.Cash);
+            Assert.Equal(0, game.CurrentPlayer.Fuel);
+            Assert.Equal(0, game.CurrentPlayer.Parts);
+            Assert.Empty(game.CurrentPlayer.JobHand);
+        }
+
+        [Fact]
+        public void Setup_game_can_buy_at_persephone()
+        {
+            var game = GameSetup.Create(
+                new[] { new PlayerSeat("p1", "Mal", Persephone) },
+                new GameSetupOptions { DealStartingJobs = false, Rng = new SystemRng(6) });
+
+            Assert.True(game.SupplyDecks!.TryGet("Persephone", out var market));
+            var cardId = market.FaceUp[0].Id;
+            var buy = new BuyAction();
+            Assert.True(buy.TryBuy(game, "p1", new BuyRequest { Fuel = 1, SupplyCardIds = { cardId } }, out var result, out var error), error);
+            Assert.Equal(1, result!.FuelBought);
+            Assert.Single(result.CardsBought);
+            Assert.Equal(3, market.FaceUp.Count);
+        }
+
+        [Fact]
+        public void Setup_game_can_draw_a_misbehave_card()
+        {
+            var game = GameSetup.Create(
+                new[] { new PlayerSeat("p1", "Mal", Santo) },
+                new GameSetupOptions { DealStartingJobs = false, Rng = new SystemRng(7) });
+
+            game.CurrentPlayer.JobHand.Add("job_badger_badgers-11-casino-caper");
+            var work = new WorkAction();
+            Assert.True(work.TryWork(game, "p1", "job_badger_badgers-11-casino-caper", out var start, out var error), error);
+            Assert.True(start!.AwaitingMisbehave);
+
+            var resolver = new MisbehaveResolver();
+            var card = resolver.DrawNext(game);
+            Assert.False(string.IsNullOrWhiteSpace(card.Id));
+            Assert.NotNull(game.PendingMisbehave!.FaceUp);
         }
     }
 }
