@@ -28,6 +28,7 @@ namespace Firefly.Core.State
         public string JobId { get; }
         public WorkSite Site { get; }
         public int Remaining { get; set; }
+        public Cards.MisbehaveCard? FaceUp { get; set; }
 
         public PendingMisbehave(string playerId, string jobId, WorkSite site, int remaining)
         {
