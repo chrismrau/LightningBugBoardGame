@@ -14,6 +14,7 @@ namespace Firefly.Core.State
         public int DriveRange { get; set; }
         public bool FullBurnRequiresFuel { get; set; }
         public string? ShipId { get; set; }
+        public string? LeaderId { get; set; }
         public CrewRoster Roster { get; }
         public int FightBonus { get; set; }
         public int TechBonus { get; set; }
