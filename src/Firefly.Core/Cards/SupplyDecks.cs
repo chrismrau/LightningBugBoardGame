@@ -63,6 +63,10 @@ namespace Firefly.Core.Cards
                 _byPlanet[market.Planet] = market;
         }
 
+        public IReadOnlyCollection<string> Planets => _byPlanet.Keys;
+
+        public IReadOnlyCollection<SupplyMarket> Markets => _byPlanet.Values;
+
         public bool TryGet(string planet, out SupplyMarket market) =>
             _byPlanet.TryGetValue(planet, out market!);
 

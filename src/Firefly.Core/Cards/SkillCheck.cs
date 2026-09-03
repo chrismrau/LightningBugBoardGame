@@ -4,12 +4,21 @@ using Firefly.Core.State;
 
 namespace Firefly.Core.Cards
 {
-    public enum Skill { Fight, Tech, Talk }
+    public enum Skill
+    {
+        Fight,
+        Tech,
+        Talk
+    }
 
     public sealed class SkillCheck
     {
         private static readonly Regex Pattern = new Regex(
             @"\b(Fight|Tech|Talk|Negotiate)\s+(\d+)\b",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        private static readonly Regex InvertedPattern = new Regex(
+            @"\b(\d+)\+\s*(Fight|Tech|Talk|Negotiate)\b",
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         public Skill Skill { get; }
@@ -24,16 +33,31 @@ namespace Firefly.Core.Cards
         public static bool TryParse(string? text, out SkillCheck check)
         {
             check = null!;
-            if (string.IsNullOrWhiteSpace(text)) return false;
+            if (string.IsNullOrWhiteSpace(text))
+                return false;
             var match = Pattern.Match(text);
-            if (!match.Success) return false;
-            var label = match.Groups[1].Value;
+            string label;
+            int target;
+            if (match.Success)
+            {
+                label = match.Groups[1].Value;
+                target = int.Parse(match.Groups[2].Value);
+            }
+            else
+            {
+                match = InvertedPattern.Match(text);
+                if (!match.Success)
+                    return false;
+                target = int.Parse(match.Groups[1].Value);
+                label = match.Groups[2].Value;
+            }
+
             Skill skill;
             if (label.Equals("Negotiate", StringComparison.OrdinalIgnoreCase))
                 skill = Skill.Talk;
             else if (!Enum.TryParse(label, true, out skill))
                 return false;
-            check = new SkillCheck(skill, int.Parse(match.Groups[2].Value));
+            check = new SkillCheck(skill, target);
             return true;
         }
 
@@ -45,7 +69,8 @@ namespace Firefly.Core.Cards
         public SkillCheckResult Resolve(PlayerState player, IRng rng)
         {
             var roll = Dice.RollD6(DiceCount(player), rng);
-            return new SkillCheckResult(this, roll, roll.Sum >= Target);
+            var success = roll.Sum >= Target;
+            return new SkillCheckResult(this, roll, success);
         }
 
         public static FlightOutcome OutcomeFor(string? details, bool success)
@@ -53,12 +78,17 @@ namespace Firefly.Core.Cards
             var text = details ?? "";
             if (success)
             {
-                if (Contains(text, "Keep Flying")) return FlightOutcome.KeepFlying;
-                if (Contains(text, "Evade")) return FlightOutcome.Evade;
+                if (Contains(text, "Keep Flying"))
+                    return FlightOutcome.KeepFlying;
+                if (Contains(text, "Evade"))
+                    return FlightOutcome.Evade;
                 return FlightOutcome.FullStop;
             }
-            if (Contains(text, "Full Stop")) return FlightOutcome.FullStop;
-            if (Contains(text, "Evade")) return FlightOutcome.Evade;
+
+            if (Contains(text, "Full Stop"))
+                return FlightOutcome.FullStop;
+            if (Contains(text, "Evade"))
+                return FlightOutcome.Evade;
             return FlightOutcome.FullStop;
         }
 
@@ -71,9 +101,12 @@ namespace Firefly.Core.Cards
         public SkillCheck Check { get; }
         public DiceRoll Roll { get; }
         public bool Success { get; }
+
         public SkillCheckResult(SkillCheck check, DiceRoll roll, bool success)
         {
-            Check = check; Roll = roll; Success = success;
+            Check = check;
+            Roll = roll;
+            Success = success;
         }
     }
 }
