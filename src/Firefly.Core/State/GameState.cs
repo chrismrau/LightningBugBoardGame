@@ -44,6 +44,7 @@ namespace Firefly.Core.State
         public ContactCatalog? Contacts { get; set; }
         public ContactDecks? ContactDecks { get; set; }
         public CrewCatalog? Crew { get; set; }
+        public LeaderCatalog? Leaders { get; set; }
         public SupplyCatalog? Supply { get; set; }
         public SupplyDecks? SupplyDecks { get; set; }
         public MisbehaveDeck? Misbehave { get; set; }

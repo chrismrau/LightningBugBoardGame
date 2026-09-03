@@ -12,13 +12,15 @@ namespace Firefly.Core.State
         public string Name { get; }
         public string SectorId { get; }
         public string? ShipId { get; }
+        public string? LeaderId { get; }
 
-        public PlayerSeat(string id, string name, string sectorId, string? shipId = null)
+        public PlayerSeat(string id, string name, string sectorId, string? shipId = null, string? leaderId = null)
         {
             Id = id;
             Name = name;
             SectorId = sectorId;
             ShipId = shipId;
+            LeaderId = leaderId;
         }
     }
 
@@ -103,6 +105,7 @@ namespace Firefly.Core.State
                 Jobs = JobCatalog.LoadDefault(),
                 Contacts = ContactCatalog.LoadDefault(),
                 Crew = CrewCatalog.LoadDefault(),
+                Leaders = LeaderCatalog.LoadDefault(),
                 Gear = GearIndex.LoadDefault(),
                 Supply = SupplyCatalog.LoadDefault()
             };
@@ -113,6 +116,8 @@ namespace Firefly.Core.State
             var misbehave = MisbehaveCatalog.LoadDefault();
             game.MisbehaveCatalog = misbehave;
             game.Misbehave = MisbehaveDeck.FromCatalog(misbehave, rng);
+
+            HireStartingLeaders(game, seats);
 
             if (options.DealStartingJobs)
                 DealStartingJobs(game);
@@ -142,6 +147,28 @@ namespace Firefly.Core.State
                 }
             }
             return decks;
+        }
+
+        private static void HireStartingLeaders(GameState game, IReadOnlyList<PlayerSeat> seats)
+        {
+            if (game.Leaders == null)
+                return;
+
+            var taken = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var seat in seats)
+            {
+                if (string.IsNullOrWhiteSpace(seat.LeaderId))
+                    continue;
+                if (!game.Leaders.TryResolve(seat.LeaderId, out var leader))
+                    throw new ArgumentException($"Unknown leader '{seat.LeaderId}'.");
+                if (!taken.Add(leader.Id))
+                    throw new ArgumentException($"Leader '{leader.Name}' is already seated.");
+
+                var player = game.GetPlayer(seat.Id);
+                if (!player.Roster.TryHire(leader, out var error))
+                    throw new InvalidOperationException(error);
+                player.LeaderId = leader.Id;
+            }
         }
 
         private static void DealStartingJobs(GameState game)
