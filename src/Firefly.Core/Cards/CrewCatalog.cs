@@ -10,7 +10,6 @@ namespace Firefly.Core.Cards
     {
         private readonly Dictionary<string, CrewCard> _byId;
         private readonly Dictionary<string, List<CrewCard>> _byName;
-
         public IReadOnlyDictionary<string, CrewCard> Cards => _byId;
 
         public CrewCatalog(IEnumerable<CrewCard> cards)
@@ -34,8 +33,7 @@ namespace Firefly.Core.Cards
 
         public CrewCard? FindByName(string name, string? preferredSourceSuffix = null)
         {
-            if (!_byName.TryGetValue(name, out var list) || list.Count == 0)
-                return null;
+            if (!_byName.TryGetValue(name, out var list) || list.Count == 0) return null;
             if (preferredSourceSuffix != null)
             {
                 foreach (var card in list)
@@ -46,8 +44,7 @@ namespace Firefly.Core.Cards
             }
             foreach (var card in list)
             {
-                if (!card.Id.EndsWith("_promo", StringComparison.OrdinalIgnoreCase))
-                    return card;
+                if (!card.Id.EndsWith("_promo", StringComparison.OrdinalIgnoreCase)) return card;
             }
             return list[0];
         }
@@ -57,22 +54,15 @@ namespace Firefly.Core.Cards
             var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
             var file = JsonSerializer.Deserialize<CrewFile>(File.ReadAllText(path), options)
                 ?? throw new InvalidDataException("Crew.json did not deserialize.");
-
             var cards = new List<CrewCard>();
             foreach (var dto in file.Crew ?? new List<CrewDto>())
             {
                 var skills = dto.Skills ?? new SkillDto();
                 cards.Add(new CrewCard(
-                    dto.Id,
-                    dto.Name,
-                    skills.Fight ?? 0,
-                    skills.Tech ?? 0,
-                    skills.Talk ?? 0,
-                    dto.Moral,
-                    dto.Wanted,
-                    dto.Cost,
-                    dto.Professions ?? new List<string>(),
-                    dto.Description));
+                    dto.Id, dto.Name, skills.Fight ?? 0, skills.Tech ?? 0, skills.Talk ?? 0,
+                    dto.Moral, dto.Wanted, dto.Cost,
+                    dto.Professions ?? new List<string>(), dto.Description,
+                    dto.Keywords ?? new List<string>()));
             }
             return new CrewCatalog(cards);
         }
@@ -89,13 +79,9 @@ namespace Firefly.Core.Cards
             public int Cost { get; set; }
             public string? Description { get; set; }
             public List<string>? Professions { get; set; }
+            public List<string>? Keywords { get; set; }
             public SkillDto? Skills { get; set; }
         }
-        private sealed class SkillDto
-        {
-            public int? Fight { get; set; }
-            public int? Tech { get; set; }
-            public int? Talk { get; set; }
-        }
+        private sealed class SkillDto { public int? Fight { get; set; } public int? Tech { get; set; } public int? Talk { get; set; } }
     }
 }
