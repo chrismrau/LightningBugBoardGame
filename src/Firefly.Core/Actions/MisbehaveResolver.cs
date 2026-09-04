@@ -62,12 +62,6 @@ namespace Firefly.Core.Actions
         }
     }
 
-    /// <summary>
-    /// Draws and resolves Misbehave cards against a pending Work site.
-    /// TryProceedMisbehave remains the force/skip path used by Work tests.
-    /// Ace auto-succeeds. Replace-card options discard without spending a step.
-    /// Skill bands pick the printed effect; Attempt Botched ends the Work site.
-    /// </summary>
     public sealed class MisbehaveResolver
     {
         private static readonly Regex RequiresPattern = new Regex(
@@ -430,20 +424,16 @@ namespace Firefly.Core.Actions
         {
             for (var i = player.Roster.Count - 1; i >= 0; i--)
             {
-                if (player.Roster.Members[i].Disgruntled)
-                    player.Roster.Remove(player.Roster.Members[i].Id);
+                var member = player.Roster.Members[i];
+                if (member.Disgruntled && !member.IsLeader)
+                    player.Roster.Remove(member.Id);
             }
         }
 
         private static int KillCrew(PlayerState player, string text)
         {
             if (Contains(text, "Kill all Crew"))
-            {
-                var n = player.Roster.Count;
-                for (var i = player.Roster.Count - 1; i >= 0; i--)
-                    player.Roster.Remove(player.Roster.Members[i].Id);
-                return n;
-            }
+                return player.Roster.KillAll();
 
             var numbered = Regex.Match(text, @"Kill\s+(\d+)\s+Crew", RegexOptions.IgnoreCase);
             var count = 0;
@@ -452,13 +442,9 @@ namespace Firefly.Core.Actions
             else if (Regex.IsMatch(text, @"Kill\s+(a|1)\s+Crew", RegexOptions.IgnoreCase))
                 count = 1;
 
-            var killed = 0;
-            for (var i = player.Roster.Count - 1; i >= 0 && killed < count; i--)
-            {
-                player.Roster.Remove(player.Roster.Members[i].Id);
-                killed++;
-            }
-            return killed;
+            if (count <= 0)
+                return 0;
+            return player.Roster.KillUpTo(count);
         }
 
         private static int LoadGoods(PlayerState player, string details)
@@ -497,25 +483,13 @@ namespace Firefly.Core.Actions
         private static void ApplyDisgruntle(PlayerState player, string text)
         {
             if (Contains(text, "Disgruntle all Crew with Tech"))
-            {
-                foreach (var member in player.Roster.Members)
-                {
-                    if (member.Card.Tech > 0)
-                        member.Disgruntled = true;
-                }
-            }
+                player.Roster.DisgruntleWhere(m => m.Card.Tech > 0);
 
             if (Contains(text, "Disgruntle Moral") || Contains(text, "Disgruntle all Moral"))
                 player.Roster.DisgruntleMoral();
 
             if (Contains(text, "Disgruntle all Mercs"))
-            {
-                foreach (var member in player.Roster.Members)
-                {
-                    if (member.Card.HasProfession("Merc") || member.Card.HasProfession("Soldier"))
-                        member.Disgruntled = true;
-                }
-            }
+                player.Roster.DisgruntleWhere(m => m.Card.HasProfession("Merc") || m.Card.HasProfession("Soldier"));
         }
 
         private static void ApplyClearDisgruntled(PlayerState player, string text)
