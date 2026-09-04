@@ -86,7 +86,10 @@ namespace Firefly.Core.Tests
             Assert.NotNull(game.ContactDecks);
             Assert.NotNull(game.Crew);
             Assert.NotNull(game.Leaders);
+            Assert.NotNull(game.Ships);
             Assert.NotNull(game.Gear);
+            Assert.Equal("ship_bonanza", game.GetPlayer("p1").ShipId);
+            Assert.Equal("ship_bonnie-mae", game.GetPlayer("p2").ShipId);
         }
 
         [Fact]
@@ -192,6 +195,55 @@ namespace Firefly.Core.Tests
             var card = resolver.DrawNext(game);
             Assert.False(string.IsNullOrWhiteSpace(card.Id));
             Assert.NotNull(game.PendingMisbehave!.FaceUp);
+        }
+
+        [Fact]
+        public void Starting_ship_is_assigned_by_id()
+        {
+            var game = GameSetup.Create(
+                new[] { new PlayerSeat("p1", "Mal", Persephone, shipId: "ship_serenity") },
+                new GameSetupOptions { DealStartingJobs = false, Rng = new SystemRng(11) });
+
+            var player = game.CurrentPlayer;
+            Assert.Equal("ship_serenity", player.ShipId);
+            Assert.Equal(6, player.Roster.MaxCrew);
+            Assert.Equal(8, player.CargoHold);
+            Assert.Equal(4, player.StashHold);
+            Assert.Equal(3, player.UpgradeSlots);
+        }
+
+        [Fact]
+        public void Starting_ship_can_be_chosen_by_printed_name()
+        {
+            var game = GameSetup.Create(
+                new[] { new PlayerSeat("p1", "Mal", Persephone, shipId: "Artful Dodger") },
+                new GameSetupOptions { DealStartingJobs = false, Rng = new SystemRng(12) });
+
+            Assert.Equal("ship_artful-dodger", game.CurrentPlayer.ShipId);
+            Assert.Equal(7, game.CurrentPlayer.Roster.MaxCrew);
+            Assert.Equal(6, game.CurrentPlayer.CargoHold);
+        }
+
+        [Fact]
+        public void Two_players_cannot_share_a_ship()
+        {
+            Assert.Throws<ArgumentException>(() =>
+                GameSetup.Standard(
+                    new PlayerSeat("p1", "Mal", Persephone, shipId: "Serenity"),
+                    new PlayerSeat("p2", "Zoe", Santo, shipId: "ship_serenity")));
+        }
+
+        [Fact]
+        public void Interceptor_starts_with_a_four_crew_limit()
+        {
+            var game = GameSetup.Create(
+                new[] { new PlayerSeat("p1", "Mal", Persephone, shipId: "Interceptor") },
+                new GameSetupOptions { DealStartingJobs = false, Rng = new SystemRng(13) });
+
+            Assert.Equal("ship_interceptor", game.CurrentPlayer.ShipId);
+            Assert.Equal(4, game.CurrentPlayer.Roster.MaxCrew);
+            Assert.Equal(4, game.CurrentPlayer.CargoHold);
+            Assert.Equal(2, game.CurrentPlayer.UpgradeSlots);
         }
     }
 }
