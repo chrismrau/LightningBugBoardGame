@@ -110,6 +110,28 @@ namespace Firefly.Core.State
             return Drop(crewId);
         }
 
+        public bool TryAccept(CrewMember member, out string? error)
+        {
+            error = null;
+            if (member == null)
+            {
+                error = "Crew is required.";
+                return false;
+            }
+            if (Find(member.Id) != null)
+            {
+                error = $"{member.Name} is already on this ship.";
+                return false;
+            }
+            if (_members.Count >= MaxCrew)
+            {
+                error = $"Roster is full ({MaxCrew}).";
+                return false;
+            }
+            _members.Add(member);
+            return true;
+        }
+
         public bool TryDismiss(string crewId, out string? error)
         {
             var member = Find(crewId);
