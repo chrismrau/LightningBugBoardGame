@@ -54,6 +54,9 @@ namespace Firefly.Core.State
         public SetupCard? Setup { get; set; }
         public ScenarioCard? Scenario { get; set; }
         public PendingMisbehave? PendingMisbehave { get; set; }
+        public string? WinnerId { get; set; }
+        public string? WinReason { get; set; }
+        public bool GameOver => !string.IsNullOrEmpty(WinnerId);
 
         public bool ActionTaken => ActionsUsedThisTurn > 0;
         public bool TurnComplete => ActionsUsedThisTurn >= ActionsPerTurn;
@@ -133,11 +136,14 @@ namespace Firefly.Core.State
 
         public void EndTurn()
         {
+            WinCheck.Refresh(this, WinPhase.EndOfTurn);
             ClearPendingEvents();
             ActionsUsedThisTurn = 0;
             LastAction = TurnAction.None;
             _used.Clear();
             CurrentPlayerIndex = (CurrentPlayerIndex + 1) % Players.Count;
+            if (!GameOver)
+                WinCheck.Refresh(this, WinPhase.StartOfTurn);
         }
     }
 }
