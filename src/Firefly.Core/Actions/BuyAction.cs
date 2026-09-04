@@ -30,6 +30,12 @@ namespace Firefly.Core.Actions
         }
     }
 
+    /// <summary>
+    /// Buy at a Supply planet. One action may purchase any mix of:
+    /// Fuel ($100), Parts ($300), and any of the 3 face-up Supply cards
+    /// (Gear, Crew, Ship Upgrades, Drive Cores). Bought cards are replaced
+    /// from that planet's Supply deck.
+    /// </summary>
     public sealed class BuyAction
     {
         public const int FuelPrice = 100;
@@ -129,6 +135,8 @@ namespace Firefly.Core.Actions
             {
                 if (card.Kind == SupplyKind.Crew && !CanHire(game, player, card, out error))
                     return false;
+                if (card.Kind == SupplyKind.DriveCore && !CanInstallDrive(game, player, card, out error))
+                    return false;
             }
 
             player.Cash -= cost;
@@ -179,6 +187,47 @@ namespace Firefly.Core.Actions
             return true;
         }
 
+        private static bool CanInstallDrive(GameState game, PlayerState player, SupplyCard card, out string? error)
+        {
+            var cores = game.DriveCores ?? DriveCoreCatalog.LoadDefault();
+            if (!cores.TryResolve(card.Id, out _) && cores.FindByName(card.Name) == null)
+            {
+                error = $"Drive Core '{card.Id}' is not in the catalog.";
+                return false;
+            }
+            if (!string.IsNullOrWhiteSpace(player.DriveCoreId)
+                && cores.TryResolve(player.DriveCoreId, out var current)
+                && current.Locked)
+            {
+                error = $"{current.Name} cannot be replaced.";
+                return false;
+            }
+            error = null;
+            return true;
+        }
+
+        private static bool InstallDrive(GameState game, PlayerState player, SupplyCard card, out string? error)
+        {
+            var cores = game.DriveCores ?? DriveCoreCatalog.LoadDefault();
+            if (!cores.TryResolve(card.Id, out var core))
+                core = cores.FindByName(card.Name)!;
+            if (core == null)
+            {
+                error = $"Drive Core '{card.Id}' is not in the catalog.";
+                return false;
+            }
+            if (!string.IsNullOrWhiteSpace(player.DriveCoreId)
+                && cores.TryResolve(player.DriveCoreId, out var current)
+                && current.Locked)
+            {
+                error = $"{current.Name} cannot be replaced.";
+                return false;
+            }
+            player.ApplyDriveCore(core);
+            error = null;
+            return true;
+        }
+
         private static bool GiveCard(GameState game, PlayerState player, SupplyCard card, out string? error)
         {
             error = null;
@@ -198,8 +247,7 @@ namespace Firefly.Core.Actions
                     player.ShipUpgrades.Add(card.Id);
                     return true;
                 case SupplyKind.DriveCore:
-                    player.DriveCoreId = card.Id;
-                    return true;
+                    return InstallDrive(game, player, card, out error);
                 default:
                     error = $"Unknown supply kind '{card.Kind}'.";
                     return false;
