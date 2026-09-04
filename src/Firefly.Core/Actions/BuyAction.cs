@@ -30,12 +30,6 @@ namespace Firefly.Core.Actions
         }
     }
 
-    /// <summary>
-    /// Buy at a Supply planet. One action may purchase any mix of:
-    /// Fuel ($100), Parts ($300), and any of the 3 face-up Supply cards
-    /// (Gear, Crew, Ship Upgrades, Drive Cores). Bought cards are replaced
-    /// from that planet's Supply deck.
-    /// </summary>
     public sealed class BuyAction
     {
         public const int FuelPrice = 100;
@@ -128,6 +122,8 @@ namespace Firefly.Core.Actions
                 error = $"Need ${cost}, have ${player.Cash}.";
                 return false;
             }
+            if (!HoldSpace.TryExplain(player, out error, addFuel: request.Fuel, addParts: request.Parts))
+                return false;
 
             foreach (var card in wanted)
             {
