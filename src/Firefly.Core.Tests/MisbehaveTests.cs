@@ -61,6 +61,7 @@ namespace Firefly.Core.Tests
             game.Misbehave!.PlaceOnTop(game.Misbehave.Catalog.Get("misbehave_a-formal-affair"));
             var resolver = new MisbehaveResolver();
             resolver.DrawNext(game);
+
             Assert.False(resolver.TryResolve(game, "p1", new MisbehaveChoice { OptionIndex = 0 }, out _, out var error));
             Assert.Contains("FANCY DUDS", error, StringComparison.OrdinalIgnoreCase);
             Assert.NotNull(game.PendingMisbehave);
@@ -74,7 +75,12 @@ namespace Firefly.Core.Tests
             game.Misbehave!.PlaceOnTop(game.Misbehave.Catalog.Get("misbehave_a-formal-affair"));
             var resolver = new MisbehaveResolver();
             resolver.DrawNext(game);
-            Assert.True(resolver.TryResolve(game, "p1", new MisbehaveChoice { OptionIndex = 1 }, out var resolution, out var error, ScriptedRng.FromDieFaces(1)), error);
+
+            Assert.True(resolver.TryResolve(
+                game, "p1",
+                new MisbehaveChoice { OptionIndex = 1 },
+                out var resolution, out var error,
+                ScriptedRng.FromDieFaces(1)), error);
             Assert.Equal(MisbehaveOutcome.Botched, resolution!.Outcome);
             Assert.Contains(Crime, game.CurrentPlayer.JobHand);
             Assert.Null(game.CurrentPlayer.FindActive(Crime));
@@ -91,7 +97,12 @@ namespace Firefly.Core.Tests
             game.Misbehave!.PlaceOnTop(game.Misbehave.Catalog.Get("misbehave_a-formal-affair"));
             var resolver = new MisbehaveResolver();
             resolver.DrawNext(game);
-            Assert.True(resolver.TryResolve(game, "p1", new MisbehaveChoice { OptionIndex = 1 }, out var resolution, out var error, ScriptedRng.FromDieFaces(3, 3)), error);
+
+            Assert.True(resolver.TryResolve(
+                game, "p1",
+                new MisbehaveChoice { OptionIndex = 1 },
+                out var resolution, out var error,
+                ScriptedRng.FromDieFaces(3, 3)), error);
             Assert.Equal(MisbehaveOutcome.Proceed, resolution!.Outcome);
             Assert.True(resolution.SkillCheck!.Success);
             Assert.NotNull(game.PendingMisbehave);
@@ -108,6 +119,7 @@ namespace Firefly.Core.Tests
             game.Misbehave!.PlaceOnTop(game.Misbehave.Catalog.Get("misbehave_a-formal-affair"));
             var resolver = new MisbehaveResolver();
             resolver.DrawNext(game);
+
             Assert.True(resolver.TryResolve(game, "p1", new MisbehaveChoice { UseAce = true }, out var resolution, out var error), error);
             Assert.True(resolution!.UsedAce);
             Assert.Equal(MisbehaveOutcome.Proceed, resolution.Outcome);
@@ -123,6 +135,7 @@ namespace Firefly.Core.Tests
             game.Misbehave!.PlaceOnTop(game.Misbehave.Catalog.Get("misbehave_a-formal-affair"));
             var resolver = new MisbehaveResolver();
             resolver.DrawNext(game);
+
             Assert.True(resolver.TryResolve(game, "p1", new MisbehaveChoice { OptionIndex = 0 }, out var resolution, out var error), error);
             Assert.Equal(MisbehaveOutcome.Proceed, resolution!.Outcome);
             Assert.Equal("Look'n the Part", resolution.Option!.Name);
@@ -133,7 +146,8 @@ namespace Firefly.Core.Tests
         {
             var game = NewCrimeGame();
             StartCrime(game);
-            game.Misbehave!.PlaceOnTop(game.Misbehave.Catalog.Get("misbehave_port-control-land-lock"));
+            var detour = game.Misbehave!.Catalog.Get("misbehave_port-control-land-lock");
+            game.Misbehave.PlaceOnTop(detour);
             var remaining = game.PendingMisbehave!.Remaining;
             var resolver = new MisbehaveResolver();
             resolver.DrawNext(game);
@@ -141,6 +155,101 @@ namespace Firefly.Core.Tests
             Assert.Equal(MisbehaveOutcome.Replaced, resolution!.Outcome);
             Assert.Equal(remaining, game.PendingMisbehave!.Remaining);
             Assert.Null(game.PendingMisbehave.FaceUp);
+        }
+
+        [Fact]
+        public void Inverted_fight_line_is_a_fight_test()
+        {
+            Assert.True(SkillCheck.TryParse("8+ Fight; 1-7 Kill a Crew, Warrant Issued. 8+ Attempt Botched.", out var check));
+            Assert.Equal(Skill.Fight, check.Skill);
+            Assert.Equal(8, check.Target);
+        }
+
+        [Fact]
+        public void Failed_ambush_kills_a_crew_and_issues_a_warrant()
+        {
+            var game = NewCrimeGame();
+            Assert.True(game.CurrentPlayer.Roster.TryHire(game.Crew!.FindByName("Kaylee")!, out _));
+            game.CurrentPlayer.FightBonus = 1;
+            StartCrime(game);
+            game.Misbehave!.PlaceOnTop(game.Misbehave.Catalog.Get("misbehave_ambush"));
+            var resolver = new MisbehaveResolver();
+            resolver.DrawNext(game);
+
+            Assert.True(resolver.TryResolve(
+                game, "p1",
+                new MisbehaveChoice { OptionIndex = 0 },
+                out var resolution, out var error,
+                ScriptedRng.FromDieFaces(1)), error);
+            Assert.Equal(MisbehaveOutcome.Proceed, resolution!.Outcome);
+            Assert.Equal(1, resolution.WarrantsIssued);
+            Assert.Equal(1, resolution.CrewKilled);
+            Assert.Equal(1, game.CurrentPlayer.Warrants);
+            Assert.Equal(0, game.CurrentPlayer.Roster.Count);
+            Assert.NotNull(game.PendingMisbehave);
+            Assert.Equal(2, game.PendingMisbehave!.Remaining);
+        }
+
+        [Fact]
+        public void No_disgruntled_option_loads_cargo_and_proceeds()
+        {
+            var game = NewCrimeGame();
+            StartCrime(game);
+            game.Misbehave!.PlaceOnTop(game.Misbehave.Catalog.Get("misbehave_a-vote-of-no-confidence"));
+            var resolver = new MisbehaveResolver();
+            resolver.DrawNext(game);
+
+            Assert.True(resolver.TryResolve(game, "p1", new MisbehaveChoice { OptionIndex = 0 }, out var resolution, out var error), error);
+            Assert.Equal(MisbehaveOutcome.Proceed, resolution!.Outcome);
+            Assert.Equal(1, resolution.GoodsLoaded);
+            Assert.Equal(1, game.CurrentPlayer.Cargo);
+        }
+
+        [Fact]
+        public void Solid_option_is_rejected_without_a_contact()
+        {
+            var game = NewCrimeGame();
+            StartCrime(game);
+            game.Misbehave!.PlaceOnTop(game.Misbehave.Catalog.Get("misbehave_double-dealing"));
+            var resolver = new MisbehaveResolver();
+            resolver.DrawNext(game);
+
+            Assert.False(resolver.TryResolve(game, "p1", new MisbehaveChoice { OptionIndex = 0 }, out _, out var error));
+            Assert.Contains("Solid", error, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public void Declining_an_or_botch_pay_option_botches()
+        {
+            var game = NewCrimeGame();
+            game.CurrentPlayer.Cash = 5000;
+            StartCrime(game);
+            game.Misbehave!.PlaceOnTop(game.Misbehave.Catalog.Get("misbehave_invitation-only-gala"));
+            var resolver = new MisbehaveResolver();
+            resolver.DrawNext(game);
+
+            Assert.True(resolver.TryResolve(
+                game, "p1",
+                new MisbehaveChoice { OptionIndex = 1, AcceptPay = false },
+                out var resolution, out var error), error);
+            Assert.Equal(MisbehaveOutcome.Botched, resolution!.Outcome);
+            Assert.Equal(5000, game.CurrentPlayer.Cash);
+            Assert.Null(game.PendingMisbehave);
+        }
+
+        [Fact]
+        public void Transport_keyword_on_gear_unlocks_the_require_option()
+        {
+            var game = NewCrimeGame();
+            game.CurrentPlayer.Gear.Add("gear_4wd-mule");
+            StartCrime(game);
+            game.Misbehave!.PlaceOnTop(game.Misbehave.Catalog.Get("misbehave_everything-thats-not-nailed-down"));
+            var resolver = new MisbehaveResolver();
+            resolver.DrawNext(game);
+
+            Assert.True(resolver.TryResolve(game, "p1", new MisbehaveChoice { OptionIndex = 0 }, out var resolution, out var error), error);
+            Assert.Equal(MisbehaveOutcome.Proceed, resolution!.Outcome);
+            Assert.Equal(3, game.CurrentPlayer.Contraband);
         }
     }
 }

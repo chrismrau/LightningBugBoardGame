@@ -44,10 +44,17 @@ namespace Firefly.Core.Tests
             game.ContactDecks = new ContactDecks(game.Jobs, new SystemRng(1));
             var deal = new DealAction();
             var badger = game.Contacts!.Cards["contact_badger"];
+
             Assert.Equal(3, DealAction.ConsiderLimit(game.CurrentPlayer, badger, remote: false));
             Assert.False(deal.TryDeal(game, "p1", new DealRequest { ContactName = "Badger", ConsiderCount = 4 }, out _, out var error));
             Assert.Contains("at most 3", error);
-            Assert.False(deal.TryDeal(game, "p1", new DealRequest { ContactName = "Badger", ConsiderCount = 3, KeepFromConsidered = { "j1", "j2", "j3" } }, out _, out var tooMany));
+
+            Assert.False(deal.TryDeal(game, "p1", new DealRequest
+            {
+                ContactName = "Badger",
+                ConsiderCount = 3,
+                KeepFromConsidered = { "j1", "j2", "j3" }
+            }, out _, out var tooMany));
             Assert.Contains("at most 2", tooMany);
         }
 
@@ -58,7 +65,12 @@ namespace Firefly.Core.Tests
             game.Jobs = new JobCatalog(new[] { Job("j1"), Job("j2"), Job("j3") });
             game.ContactDecks = new ContactDecks(game.Jobs, new SystemRng(7));
             var deal = new DealAction();
-            Assert.True(deal.TryDeal(game, "p1", new DealRequest { ContactName = "Badger", ConsiderCount = 3 }, out var none, out _));
+
+            Assert.True(deal.TryDeal(game, "p1", new DealRequest
+            {
+                ContactName = "Badger",
+                ConsiderCount = 3
+            }, out var none, out _));
             Assert.True(none!.Considered);
             Assert.Empty(none.KeptFromConsider);
             Assert.Empty(game.CurrentPlayer.JobHand);
@@ -70,8 +82,14 @@ namespace Firefly.Core.Tests
             var game = NewGame();
             game.Jobs = new JobCatalog(new[] { Job("j1"), Job("j2"), Job("j3") });
             game.ContactDecks = new ContactDecks(game.Jobs, new SystemRng(1));
+
             var deal = new DealAction();
-            Assert.True(deal.TryDeal(game, "p1", new DealRequest { ContactName = "Badger", ConsiderCount = 3, KeepFromConsidered = { "j1", "j2" } }, out var result, out var error), error);
+            Assert.True(deal.TryDeal(game, "p1", new DealRequest
+            {
+                ContactName = "Badger",
+                ConsiderCount = 3,
+                KeepFromConsidered = { "j1", "j2" }
+            }, out var result, out var error), error);
             Assert.Equal(2, result!.KeptFromConsider.Count);
             Assert.Equal(2, game.CurrentPlayer.JobHand.Count);
         }
@@ -85,10 +103,17 @@ namespace Firefly.Core.Tests
             game.ContactDecks = new ContactDecks(game.Jobs, new SystemRng(1));
             Assert.True(game.ContactDecks.TryGet("Badger", out var deck));
             deck.MoveToDiscard(discarded);
+
             var deal = new DealAction();
-            Assert.True(deal.TryDeal(game, "p1", new DealRequest { ContactName = "Badger", ConsiderCount = 0, TakeFromDiscard = { "job_disc" } }, out var result, out var error), error);
+            Assert.True(deal.TryDeal(game, "p1", new DealRequest
+            {
+                ContactName = "Badger",
+                ConsiderCount = 0,
+                TakeFromDiscard = { "job_disc" }
+            }, out var result, out var error), error);
             Assert.False(result!.Considered);
             Assert.Equal("job_disc", result.TakenFromDiscard[0].Id);
+            Assert.Contains("job_disc", game.CurrentPlayer.JobHand);
         }
 
         [Fact]
@@ -98,6 +123,7 @@ namespace Firefly.Core.Tests
             var deal = new DealAction();
             Assert.False(deal.TryDeal(game, "p1", new DealRequest { ContactName = "Badger" }, out _, out var error));
             Assert.Contains("Must be in Badger's sector", error);
+            Assert.False(game.ActionTaken);
         }
 
         [Fact]
@@ -128,8 +154,13 @@ namespace Firefly.Core.Tests
             var game = NewGame();
             game.CurrentPlayer.Contraband = 2;
             var deal = new DealAction();
-            Assert.True(deal.TryDeal(game, "p1", new DealRequest { ContactName = "Badger", SellContraband = 2 }, out var result, out _));
+            Assert.True(deal.TryDeal(game, "p1", new DealRequest
+            {
+                ContactName = "Badger",
+                SellContraband = 2
+            }, out var result, out _));
             Assert.Equal(1400, result!.CashFromSales);
+            Assert.Equal(0, game.CurrentPlayer.Contraband);
             Assert.Equal(3400, game.CurrentPlayer.Cash);
         }
 
@@ -140,6 +171,7 @@ namespace Firefly.Core.Tests
             var deal = new DealAction();
             Assert.False(deal.TryDeal(game, "p1", new DealRequest { ContactName = "Harken" }, out _, out var error));
             Assert.Contains("Alliance Cruiser", error);
+
             game.Tokens = new MapTokens(allianceCruiserSectorId: Persephone);
             Assert.True(deal.TryDeal(game, "p1", new DealRequest { ContactName = "Harken" }, out _, out var ok));
             Assert.Null(ok);
@@ -149,8 +181,11 @@ namespace Firefly.Core.Tests
         public void Higgins_refuses_a_crew_that_includes_Jayne()
         {
             var game = NewGame("border-red-sun-r2-02");
-            var jayne = CrewCatalog.LoadDefault().FindByName("Jayne");
+            var crew = CrewCatalog.LoadDefault();
+            var jayne = crew.FindByName("Jayne");
+            Assert.NotNull(jayne);
             Assert.True(game.CurrentPlayer.Roster.TryHire(jayne!, out _));
+
             var deal = new DealAction();
             Assert.False(deal.TryDeal(game, "p1", new DealRequest { ContactName = "Magistrate Higgins" }, out _, out var error));
             Assert.Contains("Jayne", error);
@@ -160,7 +195,8 @@ namespace Firefly.Core.Tests
         public void Solid_Mr_Universe_can_be_dealt_from_any_sector()
         {
             var game = NewGame(Persephone);
-            game.CurrentPlayer.BecomeSolid(game.Contacts!.Cards["contact_mr-universe"].Id);
+            var universe = game.Contacts!.Cards["contact_mr-universe"];
+            game.CurrentPlayer.BecomeSolid(universe.Id);
             var deal = new DealAction();
             Assert.True(deal.TryDeal(game, "p1", new DealRequest { ContactName = "Mr. Universe" }, out _, out var error));
             Assert.Null(error);
@@ -171,7 +207,8 @@ namespace Firefly.Core.Tests
         {
             var game = NewGame();
             game.CurrentPlayer.Deal.ConsiderUpTo = DealActionDefaults.FineHatConsiderUpTo;
-            Assert.Equal(4, DealAction.ConsiderLimit(game.CurrentPlayer, game.Contacts!.Cards["contact_badger"], remote: false));
+            var badger = game.Contacts!.Cards["contact_badger"];
+            Assert.Equal(4, DealAction.ConsiderLimit(game.CurrentPlayer, badger, remote: false));
         }
 
         [Fact]
@@ -179,11 +216,22 @@ namespace Firefly.Core.Tests
         {
             var game = NewGame(Pelorum);
             game.CurrentPlayer.Deal.ConsiderTopCardFromAnyContact = true;
-            Assert.Equal(1, DealAction.ConsiderLimit(game.CurrentPlayer, game.Contacts!.Cards["contact_badger"], remote: true));
+            var badger = game.Contacts!.Cards["contact_badger"];
+            Assert.Equal(1, DealAction.ConsiderLimit(game.CurrentPlayer, badger, remote: true));
+
             var deal = new DealAction();
-            Assert.False(deal.TryDeal(game, "p1", new DealRequest { ContactName = "Badger", ConsiderCount = 3 }, out _, out var error));
+            Assert.False(deal.TryDeal(game, "p1", new DealRequest
+            {
+                ContactName = "Badger",
+                ConsiderCount = 3
+            }, out _, out var error));
             Assert.Contains("at most 1", error);
-            Assert.True(deal.TryDeal(game, "p1", new DealRequest { ContactName = "Badger", ConsiderCount = 1 }, out var result, out var ok), ok);
+
+            Assert.True(deal.TryDeal(game, "p1", new DealRequest
+            {
+                ContactName = "Badger",
+                ConsiderCount = 1
+            }, out var result, out var ok), ok);
             Assert.True(result!.Considered);
             Assert.Equal(1, result.Drawn.Count);
         }
