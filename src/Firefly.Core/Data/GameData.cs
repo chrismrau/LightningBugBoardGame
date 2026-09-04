@@ -4,9 +4,6 @@ using System.Reflection;
 
 namespace Firefly.Core.Data
 {
-    /// <summary>
-    /// Locates the solution game-data JSON next to this assembly or by walking up to the repo Data folder.
-    /// </summary>
     public static class GameData
     {
         public static string Root => _root.Value;
@@ -23,6 +20,7 @@ namespace Firefly.Core.Data
         public static string DriveCoresPath => Path.Combine(CardsDirectory, "DriveCores.json");
         public static string MisbehavePath => Path.Combine(CardsDirectory, "Misbehave.json");
         public static string LeadersPath => Path.Combine(CardsDirectory, "Leaders.json");
+        public static string ShipsPath => Path.Combine(CardsDirectory, "Ships.json");
 
         private static readonly Lazy<string> _root = new Lazy<string>(FindRoot);
 
