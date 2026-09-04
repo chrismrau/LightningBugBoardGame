@@ -85,7 +85,46 @@ namespace Firefly.Core.Tests
             Assert.NotNull(game.Jobs);
             Assert.NotNull(game.ContactDecks);
             Assert.NotNull(game.Crew);
+            Assert.NotNull(game.Leaders);
             Assert.NotNull(game.Gear);
+        }
+
+        [Fact]
+        public void Starting_leader_is_hired_for_free()
+        {
+            var game = GameSetup.Create(
+                new[] { new PlayerSeat("p1", "Mal", Persephone, leaderId: "leader_malcolm") },
+                new GameSetupOptions { DealStartingJobs = false, Rng = new SystemRng(8) });
+
+            var player = game.CurrentPlayer;
+            Assert.Equal("leader_malcolm", player.LeaderId);
+            Assert.Equal(1, player.Roster.Count);
+            Assert.True(player.Roster.Members[0].IsLeader);
+            Assert.Equal("Malcolm", player.Roster.Members[0].Name);
+            Assert.Equal(2, player.Fight);
+            Assert.Equal(1, player.Talk);
+            Assert.True(player.Roster.HasProfession("Pilot"));
+            Assert.Equal(3000, player.Cash);
+        }
+
+        [Fact]
+        public void Leader_can_be_chosen_by_printed_name()
+        {
+            var game = GameSetup.Create(
+                new[] { new PlayerSeat("p1", "Nandi", Persephone, leaderId: "Nandi") },
+                new GameSetupOptions { DealStartingJobs = false, Rng = new SystemRng(9) });
+
+            Assert.Equal("leader_nandi", game.CurrentPlayer.LeaderId);
+            Assert.True(game.CurrentPlayer.Roster.HasProfession("Companion"));
+        }
+
+        [Fact]
+        public void Two_players_cannot_share_a_leader()
+        {
+            Assert.Throws<ArgumentException>(() =>
+                GameSetup.Standard(
+                    new PlayerSeat("p1", "Mal", Persephone, leaderId: "leader_malcolm"),
+                    new PlayerSeat("p2", "Also Mal", Santo, leaderId: "Malcolm")));
         }
 
         [Fact]

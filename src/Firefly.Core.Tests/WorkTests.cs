@@ -15,6 +15,7 @@ namespace Firefly.Core.Tests
         private const string Santo = "alliance-qin-shi-huang-r1-01";
         private const string Bazaar = "border-red-sun-r3-08";
         private const string Aphrodite = "border-murphy-r1-01";
+
         private const string Shipping = "job_amnon-duul_feeding-alliance-fat-cats";
         private const string Crime = "job_badger_badgers-11-casino-caper";
         private const string Smuggling = "job_amnon-duul_courting-aphrodite";
@@ -38,52 +39,26 @@ namespace Firefly.Core.Tests
             game.CurrentPlayer.JobHand.Add(Shipping);
             var work = new WorkAction();
             Assert.True(work.TryWork(game, "p1", Shipping, out var result, out var error), error);
-            Assert.True(result!.BecameActive);
+            Assert.Equal(WorkKind.Pickup, result!.Kind);
+            Assert.True(result.BecameActive);
+            Assert.Empty(game.CurrentPlayer.JobHand);
             Assert.NotNull(game.CurrentPlayer.FindActive(Shipping));
+            Assert.Equal(2, game.CurrentPlayer.Cargo);
         }
 
         [Fact]
-        public void Botched_start_leaves_the_job_in_hand()
+        public void Second_job_cannot_start_while_one_is_active()
         {
-            var game = NewGame(Santo);
+            var game = NewGame(Harvest);
+            game.CurrentPlayer.JobHand.Add(Shipping);
             game.CurrentPlayer.JobHand.Add(Crime);
             var work = new WorkAction();
-            Assert.True(work.TryWork(game, "p1", Crime, out _, out _));
-            Assert.True(work.TryProceedMisbehave(game, "p1", false, out _, out _));
-            Assert.Contains(Crime, game.CurrentPlayer.JobHand);
-            Assert.Null(game.CurrentPlayer.FindActive(Crime));
-        }
-
-        [Fact]
-        public void Botched_dropoff_leaves_the_job_active()
-        {
-            var game = NewGame(Bazaar);
-            game.CurrentPlayer.JobHand.Add(Smuggling);
-            var work = new WorkAction();
-            Assert.True(work.TryWork(game, "p1", Smuggling, out _, out _));
-            Assert.NotNull(game.CurrentPlayer.FindActive(Smuggling));
+            Assert.True(work.TryWork(game, "p1", Shipping, out _, out _));
             game.EndTurn();
-            game.CurrentPlayer.SectorId = Aphrodite;
-            Assert.True(work.TryWork(game, "p1", Smuggling, out var start, out var error), error);
-            Assert.True(start!.AwaitingMisbehave);
-            Assert.True(work.TryProceedMisbehave(game, "p1", false, out _, out _));
-            Assert.NotNull(game.CurrentPlayer.FindActive(Smuggling));
-            Assert.Equal(2, game.CurrentPlayer.Contraband);
-            Assert.Equal(0, game.CurrentPlayer.Cash);
-        }
-
-        [Fact]
-        public void Crime_job_completes_from_hand_after_misbehave()
-        {
-            var game = NewGame(Santo);
-            game.CurrentPlayer.JobHand.Add(Crime);
-            var work = new WorkAction();
-            Assert.True(work.TryWork(game, "p1", Crime, out _, out _));
-            Assert.True(work.TryProceedMisbehave(game, "p1", true, out _, out _));
-            Assert.True(work.TryProceedMisbehave(game, "p1", true, out _, out _));
-            Assert.True(work.TryProceedMisbehave(game, "p1", true, out var done, out var last), last);
-            Assert.Equal(3500, done!.Pay);
-            Assert.Null(game.CurrentPlayer.FindActive(Crime));
+            game.CurrentPlayer.SectorId = Santo;
+            Assert.False(work.TryWork(game, "p1", Crime, out _, out var error));
+            Assert.Contains("active job", error);
+            Assert.Contains(Crime, game.CurrentPlayer.JobHand);
         }
 
         [Fact]
@@ -96,8 +71,122 @@ namespace Firefly.Core.Tests
             game.EndTurn();
             game.CurrentPlayer.SectorId = Albion;
             Assert.True(work.TryWork(game, "p1", Shipping, out var done, out var error), error);
-            Assert.Equal(1500, done!.Pay);
+            Assert.Equal(WorkKind.Complete, done!.Kind);
+            Assert.Equal(1500, done.Pay);
+            Assert.Equal(0, game.CurrentPlayer.Cargo);
             Assert.Null(game.CurrentPlayer.FindActive(Shipping));
+            Assert.True(game.CurrentPlayer.IsSolidWith("contact_amnon-duul"));
+        }
+
+        [Fact]
+        public void Work_at_the_wrong_planet_is_rejected()
+        {
+            var game = NewGame(Persephone);
+            game.CurrentPlayer.JobHand.Add(Shipping);
+            var work = new WorkAction();
+            Assert.False(work.TryWork(game, "p1", Shipping, out _, out var error));
+            Assert.Contains("Harvest", error);
+            Assert.Contains(Shipping, game.CurrentPlayer.JobHand);
+            Assert.Null(game.CurrentPlayer.FindActive(Shipping));
+        }
+
+        [Fact]
+        public void Crime_job_completes_from_hand_after_misbehave()
+        {
+            var game = NewGame(Santo);
+            game.CurrentPlayer.JobHand.Add(Crime);
+            var work = new WorkAction();
+            Assert.True(work.TryWork(game, "p1", Crime, out var start, out var error), error);
+            Assert.True(start!.AwaitingMisbehave);
+            Assert.Contains(Crime, game.CurrentPlayer.JobHand);
+            Assert.Null(game.CurrentPlayer.FindActive(Crime));
+
+            Assert.True(work.TryProceedMisbehave(game, "p1", true, out _, out _));
+            Assert.True(work.TryProceedMisbehave(game, "p1", true, out _, out _));
+            Assert.True(work.TryProceedMisbehave(game, "p1", true, out var done, out var last), last);
+            Assert.Equal(WorkKind.Complete, done!.Kind);
+            Assert.Equal(3500, done.Pay);
+            Assert.DoesNotContain(Crime, game.CurrentPlayer.JobHand);
+            Assert.Null(game.CurrentPlayer.FindActive(Crime));
+            Assert.True(game.CurrentPlayer.IsSolidWith("contact_badger"));
+        }
+
+        [Fact]
+        public void Botched_start_leaves_the_job_in_hand()
+        {
+            var game = NewGame(Santo);
+            game.CurrentPlayer.JobHand.Add(Crime);
+            var work = new WorkAction();
+            Assert.True(work.TryWork(game, "p1", Crime, out _, out _));
+            Assert.True(work.TryProceedMisbehave(game, "p1", proceed: false, out _, out _));
+            Assert.Contains(Crime, game.CurrentPlayer.JobHand);
+            Assert.Null(game.CurrentPlayer.FindActive(Crime));
+            Assert.Equal(0, game.CurrentPlayer.Cash);
+            Assert.Equal(TurnAction.Work, game.LastAction);
+        }
+
+        [Fact]
+        public void Botched_dropoff_leaves_the_job_active()
+        {
+            var game = NewGame(Bazaar);
+            game.CurrentPlayer.JobHand.Add(Smuggling);
+            var work = new WorkAction();
+            Assert.True(work.TryWork(game, "p1", Smuggling, out _, out _));
+            Assert.NotNull(game.CurrentPlayer.FindActive(Smuggling));
+            game.EndTurn();
+
+            game.CurrentPlayer.SectorId = Aphrodite;
+            Assert.True(work.TryWork(game, "p1", Smuggling, out var start, out var error), error);
+            Assert.True(start!.AwaitingMisbehave);
+            Assert.True(work.TryProceedMisbehave(game, "p1", proceed: false, out _, out _));
+
+            Assert.NotNull(game.CurrentPlayer.FindActive(Smuggling));
+            Assert.Equal(2, game.CurrentPlayer.Contraband);
+            Assert.Equal(0, game.CurrentPlayer.Cash);
+            Assert.False(game.CurrentPlayer.IsSolidWith("contact_amnon-duul"));
+        }
+
+        [Fact]
+        public void Smuggling_dropoff_requires_the_loaded_contraband()
+        {
+            var game = NewGame(Bazaar);
+            game.CurrentPlayer.JobHand.Add(Smuggling);
+            var work = new WorkAction();
+            Assert.True(work.TryWork(game, "p1", Smuggling, out var pickup, out var error), error);
+            Assert.True(pickup!.BecameActive);
+            Assert.Equal(2, game.CurrentPlayer.Contraband);
+            game.EndTurn();
+            game.CurrentPlayer.SectorId = Aphrodite;
+            game.CurrentPlayer.Contraband = 0;
+            Assert.False(work.TryWork(game, "p1", Smuggling, out _, out var missing));
+            Assert.Contains("goods", missing);
+        }
+
+        [Fact]
+        public void Immoral_job_disgruntles_moral_crew_when_it_becomes_active()
+        {
+            var game = NewGame(Persephone);
+            Assert.True(game.CurrentPlayer.Roster.TryHire(CrewCatalog.LoadDefault().FindByName("Kaylee")!, out _));
+            game.CurrentPlayer.JobHand.Add(Immoral);
+            var work = new WorkAction();
+            Assert.True(work.TryWork(game, "p1", Immoral, out var start, out _));
+            Assert.True(start!.AwaitingMisbehave);
+            Assert.Equal(0, game.CurrentPlayer.Roster.DisgruntledCount);
+            Assert.True(work.TryProceedMisbehave(game, "p1", true, out var picked, out var error), error);
+            Assert.True(picked!.BecameActive);
+            Assert.Equal(1, picked.MoralDisgruntled);
+            Assert.Equal(1, game.CurrentPlayer.Roster.DisgruntledCount);
+        }
+
+        [Fact]
+        public void Second_Work_on_the_same_turn_is_rejected()
+        {
+            var game = NewGame(Harvest);
+            game.CurrentPlayer.JobHand.Add(Shipping);
+            var work = new WorkAction();
+            Assert.True(work.TryWork(game, "p1", Shipping, out _, out _));
+            Assert.False(work.TryWork(game, "p1", Shipping, out _, out var error));
+            Assert.Contains("already used this turn", error);
         }
     }
 }
