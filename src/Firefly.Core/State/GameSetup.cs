@@ -33,11 +33,6 @@ namespace Firefly.Core.State
         public int PrimeSupplyReveal { get; set; } = 3;
     }
 
-    /// <summary>
-    /// Builds a playable GameState: catalogs, Nav / Contact / Misbehave decks,
-    /// and one Supply market per planet with the top cards face up.
-    /// Starting cash, fuel, parts, and optional starting jobs come from the Setup card.
-    /// </summary>
     public static class GameSetup
     {
         public static readonly string[] StandardStartingContacts =
@@ -106,6 +101,7 @@ namespace Firefly.Core.State
                 Contacts = ContactCatalog.LoadDefault(),
                 Crew = CrewCatalog.LoadDefault(),
                 Leaders = LeaderCatalog.LoadDefault(),
+                Ships = ShipCatalog.LoadDefault(),
                 Gear = GearIndex.LoadDefault(),
                 Supply = SupplyCatalog.LoadDefault()
             };
@@ -117,6 +113,7 @@ namespace Firefly.Core.State
             game.MisbehaveCatalog = misbehave;
             game.Misbehave = MisbehaveDeck.FromCatalog(misbehave, rng);
 
+            AssignStartingShips(game, seats);
             HireStartingLeaders(game, seats);
 
             if (options.DealStartingJobs)
@@ -147,6 +144,49 @@ namespace Firefly.Core.State
                 }
             }
             return decks;
+        }
+
+        private static void AssignStartingShips(GameState game, IReadOnlyList<PlayerSeat> seats)
+        {
+            if (game.Ships == null)
+                return;
+
+            var taken = new HashSet<string>(StringComparer.Ordinal);
+            var pool = new Queue<ShipCard>();
+            foreach (var ship in game.Ships.CoreStartingShips())
+                pool.Enqueue(ship);
+
+            foreach (var seat in seats)
+            {
+                var player = game.GetPlayer(seat.Id);
+                ShipCard ship;
+                if (!string.IsNullOrWhiteSpace(seat.ShipId))
+                {
+                    if (!game.Ships.TryResolve(seat.ShipId, out ship))
+                        throw new ArgumentException($"Unknown ship '{seat.ShipId}'.");
+                }
+                else
+                {
+                    ship = NextUnusedCoreShip(pool, taken)
+                        ?? throw new InvalidOperationException("No core Firefly ships remain to assign.");
+                }
+
+                if (!taken.Add(ship.Id))
+                    throw new ArgumentException($"Ship '{ship.Name}' is already seated.");
+
+                player.ApplyShip(ship);
+            }
+        }
+
+        private static ShipCard? NextUnusedCoreShip(Queue<ShipCard> pool, HashSet<string> taken)
+        {
+            while (pool.Count > 0)
+            {
+                var ship = pool.Dequeue();
+                if (!taken.Contains(ship.Id))
+                    return ship;
+            }
+            return null;
         }
 
         private static void HireStartingLeaders(GameState game, IReadOnlyList<PlayerSeat> seats)
