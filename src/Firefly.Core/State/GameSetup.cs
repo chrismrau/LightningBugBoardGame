@@ -33,6 +33,13 @@ namespace Firefly.Core.State
         public int PrimeSupplyReveal { get; set; } = 3;
     }
 
+    /// <summary>
+    /// Builds a playable GameState: catalogs, Nav / Contact / Misbehave decks,
+    /// and one Supply market per planet with the top cards face up.
+    /// Starting cash, fuel, parts, and optional starting jobs come from the Setup card.
+    /// Each seat picks a unique starting ship (by id or printed name); omitted
+    /// seats receive the next unused core Firefly III.
+    /// </summary>
     public static class GameSetup
     {
         public static readonly string[] StandardStartingContacts =
@@ -102,6 +109,7 @@ namespace Firefly.Core.State
                 Crew = CrewCatalog.LoadDefault(),
                 Leaders = LeaderCatalog.LoadDefault(),
                 Ships = ShipCatalog.LoadDefault(),
+                DriveCores = DriveCoreCatalog.LoadDefault(),
                 Gear = GearIndex.LoadDefault(),
                 Supply = SupplyCatalog.LoadDefault()
             };
@@ -175,6 +183,8 @@ namespace Firefly.Core.State
                     throw new ArgumentException($"Ship '{ship.Name}' is already seated.");
 
                 player.ApplyShip(ship);
+                if (game.DriveCores != null && game.DriveCores.TryResolve(ship.MainDrive, out var core))
+                    player.ApplyDriveCore(core);
             }
         }
 
