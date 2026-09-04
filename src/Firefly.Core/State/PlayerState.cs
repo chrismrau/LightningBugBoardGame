@@ -38,6 +38,9 @@ namespace Firefly.Core.State
         public int StashHold { get; set; } = 4;
         public int FuelStash { get; set; }
         public int UpgradeSlots { get; set; } = 3;
+        public int GeneralHolds => HoldSpace.GeneralSlots(this);
+        public int UsedHolds => HoldSpace.UsedGeneral(this);
+        public int FreeHolds => HoldSpace.FreeGeneral(this);
 
         public void ApplyShip(ShipCard ship)
         {
