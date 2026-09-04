@@ -12,8 +12,7 @@ namespace Firefly.Core.State
         Fly,
         Deal,
         Work,
-        Buy,
-        ShoreLeave
+        Buy
     }
 
     public sealed class PendingNavDraw
