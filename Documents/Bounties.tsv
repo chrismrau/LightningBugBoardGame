@@ -1,0 +1,21 @@
+Source			Name	Type	Immoral	Pickup Planet	Pickup Sun	Botch Kill	Dropoff Planet	Dropoff Sun	Pay	Description	Crimes	Associates
+PBH			The Fixer	Wanted	No	Persephone	Lux	1	Ariel	White Sun	3000	REAL NAME: Unknown\nFOR THE CRIMES OF:\nCounterfeiting\nForgery\nFalsifying Ident Cards		
+PBH			Grange Brothers	Wanted	No	Regina	Georgia	2	Athens	Georgia	3000	WANTED BY:\nPatience, for Cattle Rustlin' and Horse Snatchin'		
+PBH			Simon Tam	Wanted	Yes	Persephone	Lux	0	Command Cruiser	White Sun	2600	FOR THE CRIMES OF:\nResisting Arrest\nImpersonating an Officer\nCriminal Trespass\nFelony Aiding & Abetting\nPublic Indecency		
+PBH			River Tam	Wanted	Yes	Persephone	Lux	2	Command Cruiser	White Sun	4000	RECORD CLASSIFIED\nParliament-level security clearance required.\nTarget Wanted Alive\nARMED & DANGEROUS		
+PBH			The Specialist	Wanted	No	Regina	Georgia	2	Command Cruiser	White Sun	3200	REAL NAME: Classified\nDo not interrogate.\nDeliver bound/sedated.\nARMED & DANGEROUS		
+PBH			Dalin	Wanted	No	Space Bazaar	Red Sun	1	Command Cruiser	White Sun	2600	FOR THE CRIMES OF:\nCortex Protocol Breach\nUAP Encryption Violations\nClassified Data Transfer\nIdentity Theft		
+PBH			Stitch	Wanted	No	Silverhold	Heinlein	2	Harvest	Red Sun	3200	FOR THE CRIMES OF:\nGrand Larceny\nMurder\nDisorderly Conduct\n\nARMED & DANGEROUS		
+PBH			Jayne	Wanted	No	Silverhold	Heinlein	2	Harvest	Red Sun	3600	AKA: Hero of Canton\nFOR THE CRIMES OF:\nGrand Larceny\nInciting a Riot\nARMED & DANGEROUS		
+PBH			Interrogator	Wanted	No	Osiris	White Sun	1	Londinium	White Sun	2600	REAL NAME: Unknown\nFOR THE CRIMES OF:\nCounterfeiting\nForgery\nFalsifying Ident Cards		
+PBH			Bree	Wanted	No	Persephone	Lux	1	Londinium	White Sun	2600	FOR THE CRIMES OF:\nIllegal Salvage Activity\nTrafficking Stolen Goods\nKNOWN ASSOCIATES:\nCorbin, Saffron		
+PBH			Crow	Wanted	No	Regina	Georgia	2	Londinium	White Sun	3500	FOR THE CRIMES OF:\nFelony Murder\nPremeditated Murder\nInvoluntary Murder\nAggravated Murder\nARMED & DANGEROUS		
+PBH			Zoe	Wanted	Yes	Silverhold	Heinlein	2	Londinium	White Sun	3600	*KNOWN DUST DEVIL*\nFOR THE CRIMES OF:\nTerrorism\nSedition\nARMED & DANGEROUS	Terrorism, Sedition	
+PBH			Jesse	Wanted	No	Space Bazaar	Red Sun	1	Londinium	White Sun	2600	FOR THE CRIMES OF:\nUnauthorized Salvage\nAssault & Battery\nPiracy\nSmuggling		
+PBH			Helen	Wanted	Yes	Space Bazaar	Red Sun	1	Newhope	Georgia	2600	FOR THE CRIMES OF:\nAggravated Assault\nManslaughter\n\nKNOWN ASSOCIATES:\nNandi, Jayne Cobb		
+PBH			Billy	Wanted	No	Persephone	Lux	1	Osiris	White Sun	2500	FOR THE CRIMES OF:\nUnauthorized Salvage\nTheft of Property\nJaywalking\nDisturbing the Peace\nLittering		
+PBH			Two-Fry	Wanted	No	Regina	Georgia	1	Persephone	Lux	2600	FOR THE CRIMES OF:\nDuplicitous Dealings\nFelony Weapons Possession\nEquine Larceny\nUnlicensed Haberdashery		
+PBH			Tracey	Wanted	Yes	Space Bazaar	Red Sun	1	Sihnon	White Sun	2600	FOR THE CRIMES OF:\nShoplifting\nPetty Theft\nForgery\nOrgan Smuggling\nViolation of Postal Code		
+PBH			Enforcers	Cortex Alert	No			1	Londinium	White Sun	2000	Operating as a security contractor without proper licence and authorization is against Alliance reg-74F-88. Apprehend and deliver for career retraining.		
+PBH			Scrappers	Cortex Alert	No			1	Osiris	White Sun	2000	Conducting unauthorized salvage operations is a violation of UAP reg-18.4b and may be in violation of Blue Sun Patents. Deliver to Trade Ministry re-purposing center.		
+PBH			Bandits	Cortex Alert	No			1	Triumph	Heinlein	2000	UAP Ordinance 871.P23 prohibits redistribution of any properties bearing Alliance marks. Any persons in violation are to be bound by law for processing.		

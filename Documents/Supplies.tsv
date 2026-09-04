@@ -1,0 +1,196 @@
+Class	Source	Name	Type	Cost	Description	Fight	Tech	Talk	MORAL	WANTED	Merc	Lawman	Hill Folk	Mudder	Pilot	Grifter	Mechanic	Soldier	Medic	Companion	Fake ID	Fancy Duds	Hacking Rig	Transport	Firearm	Sniper Rifle	Explosives	Space Bazaar	Persephone	Silverhold	Regina	Osiris	Meridian	Beaumonde	YCTtS	Count	Meta	Special Ability Type
+Promo	Promo Pack	Jayne	Crew	300	Public Relations: May Carry 3 Gear. * Big Damn Heroes: When you Proceed while Misbehaving, take $100.	2				X	X																			1						1		
+Promo	Promo Pack	Kaylee	Crew	300	Natural Know How: May re-roll [Tech] Tests. * Big Damn Heroes: When you Proceed while Misbehaving, take $100.		3		X								X														1					1		
+Promo	Promo Pack	Wash	Crew	200	Hard Burn: +1 to Full Burn Range. * Big Damn Heroes: When you Proceed while Misbehaving, take $100.		1	1	X						X													1								1		
+Promo	Promo Pack	Zoe	Crew	300	Dust Devil: May re-roll Fighting Tests. * Big Damn Heroes: When you Proceed while Misbehaving, take $100.	2			X	X								X												1						1		
+Promo	Loot Crate	Loot Crate: Silverhold	Gear	300	Remove from Play to Use: Draw a card from the Silverhold Supply Deck. If it is a Gear Card, keep it. If not, discard it and draw another card. Repeat until a Gear Card is drawn.																								1									
+Promo	Promo Pack	Mal's Pretty Floral Bonnet	Gear	0	Crew carrying Bonnet ignores Wanted Crew Rolls. Does not count towards Gear Limit.																									1						1		
+Promo	Promo Pack	Wash's Lucky Dinosaurs	Gear	0	When Flying, re-roll any Test result of 1. Does not count towards Gear Limit.																							1								1		
+Promo	Promo Pack	Malcolm	Leader	500	Brown Coat: When you complete a Crime Job, take $500. * Big Damn Heroes: When you Proceed while Misbehaving, take $100.	2		1	X						X			X																	1	1		
+Standard	BA	Accountant	Crew	300	Cooking the Books: Whenever you receive a Goal token, take $500.		1	1								X													1							1		Resources (Goal)
+Standard	PBH	Agent McGinnis	Crew	0	Fed: Whenever you lose a SHOWDOWN - Warrant Issued to Rival. Bounty Bonus +$500. Will not Work Illegal Jobs.		1	1				X																				1				1		Unique
+Standard	PBH	Bandit	Crew	200	Bird-Doggin': When you complete a Piracy Job, steal $200 from the targeted Rival.	2				X	X																			2	2					4		Resources (Job Type)
+Standard	Kal	Barkeep	Crew	200	Good Times: Giving your Crew Shore Leave at Supply Planets is free.	1		1		X				X																1						1		Resources (Shore Leave)
+Standard	Kal	Barkeep	Crew	200	Good Times: Giving your Crew Shore Leave at Supply Planets is free.	1		1		X						X																		1		1		Resources (Shore Leave)
+Standard	F:tG	Bester	Crew	100	Genius Mechanic: On [Tech] Tests, "Thrillin' Heroics" bonus dice do not apply.		1										X														1					1		Downside
+Standard	F:tG	Billy	Crew	200	Salvage Pro: +1 Cargo from Salvage Ops.		2			X							X												1							1		Resources (Salvage Op)
+Standard	F:tG	Bree	Crew	200	Black Market Ties: May sell Parts to any Solid Contact for $300.		2			X							X												1							1		Resources (Sell)
+Standard	F:tG	Bridgit	Crew	300	Deceptive: If Yolonda or Saffron are hired by anyone, Remove Bridgit from Play.		1	2								X				X											1					1		Downside
+Standard	Kal	Busker	Crew	200	Work the Crowd: When you Make-Work, take an extra $100.			1		X				X		X																		1		1		Resources (Make-Work)
+Standard	PBH	Chari	Crew	200	Turncoat: In a SHOWDOWN, you may force a Rival to re-roll.			2								X														1						1		Circumstance bonus
+Standard	BS	Cortland	Crew	300	Laws Are For the Poor: May pay Bribes before any Negotiate Test. Bribes may not be used on SHOWDOWNS.	1	1										X	X															1			1		Boost (tests), spend for bonus
+Standard	F:tG	Crow	Crew	200	Knife Fighter: +[Fight] When Carrying a Knife. May not Carry a Firearm.	2				X	X																				1					1		Conditional bonus (Gear)
+Standard	PBH	Dalin	Crew	200	Intel Broker: Once per Work Action, you may pay $200 to discard and re-draw a Misbehave Card.		1	1		X																		1								1		Misbehave option
+Standard	PBH	Deputy	Crew	0	Posse: +1 Fight in SHOWDOWN. Bounty Bonus: +$300. Will not work Illegal Jobs.			1	X			X																			1					1		Conditional bonus (Showdown)
+Standard	PBH	Dobson	Crew	0	Mole: In Alliance Space, you may move Alliance Cruiser to your Sector as a Fly Action. Bounty Bonus +$500. Will not work Illegal Jobs.	1	1					X																	1							1		Constant bonus
+Standard	F:tG	Doralee	Crew	100	Angry Mob: +[Fighting] when you have at least 3 Hill Folk in your crew. Hill Folk.				X				X						X											1						1		Conditional bonus (Crew)
+Standard	BA	Elder Gommen	Crew	0	Devout: If Working Immoral Job, Elder Gommen must stay Onboard Ship.			2	X				X																	1						1		Downside
+Standard	F:tG	Emma	Crew	200	Morale Booster: You may use an Action on your turn to remove Disgruntled from a Crew other than Emma.			2	X							X													1							1		Morale Booster
+Standard	F:tG	Enforcer	Crew	200	Intimidating: +[Negotiate] When Carrying a Firearm.	1					X																	2	2							4		Conditional bonus (Gear)
+Standard	Kal	Fan Dancer	Crew	300	Mesmerize: Discard to ignore a Warrant issued.			2								X																		1		1		Discard for bonus
+Standard	PBH	Fed Marshal	Crew	0	Posse: +1 Fight in SHOWDOWN. Bounty Bonus: +$300. Will not work Illegal Jobs.	1						X																		1						1		Conditional bonus (Showdown)
+Standard	F:tG	Fendris	Crew	100	Henchman #2: If your Leader becomes Disgruntled, Disgruntle Fendris instead.	1												X												1						1		Downside
+Standard	Kal	Fess	Crew	300	Phone Home: From any location, you may use a Deal Action to Deal with Higgins. Accept or discard the jobs normally.		2																X											1		1		Constant bonus
+Standard	Kal	Foreman	Crew	200	Mudder Manager:+2 [FIGHT] when you have at least 3 Mudders in your Crew.	1	1							X			X																	1		1		Conditional bonus (Crew)
+Standard	F:tG	Grange Brothers	Crew	200	Two of a Kind: May Carry 2 Gear. Must pass 2 Alliance Wanted Crew rolls to dodge capture.	2				X	X																				1					1		Extra Gear, Downside
+Standard	Kal	Grimey	Crew	0	Errand Boy: When you discard a Gear Card, roll a dice. If you roll a 6, keep the Gear Card. Otherwise, Discard it normally.			1						X																				1		1		Unique
+Standard	F:tG	Gun Hand	Crew	100	Expendable: When Killed, discard instead of Removing from Play.	1					X																	4	2		2		2			10	2 @ Meridian are from Blue Sun	N/A
+Standard	BA	Head Goon	Crew	300	Goon Squad: +2 Negotiate when you have at least 3 Mercs in Crew.	2					X																			1			1			2	1 @ Meridian is from Blue Sun	Conditional bonus (Crew)
+Standard	F:tG	Helen	Crew	200	Morale Booster: You may use an Action on your turn to remove Disgruntled from a Crew other than Helen.	1		1	X	X						X												1								1		Morale Booster
+Standard	BA	Helmsman	Crew	200	Alliance Training: Counts as Solid with Harken.		1		X						X																	2				2		Constant bonus
+Standard	F:tG	Hill Folk	Crew	0	Angry Mob: +[Fighting] when you have at least 3 Hill Folk in your crew. Hill Folk.				X				X																	2						2		Conditional bonus (Crew)
+Standard	Kal	Holder	Crew	200	Shanghai: When you Make-Work, you may also take a Fugitive Token.	1	1			X					X																			1		1		Resources (Make-Work)
+Standard	F:tG	Inara	Crew	300	Ambassador: May re-roll Negotiate Tests.			3	X											X		X										1				1		Boost (tests), reroll
+Standard	F:tG	Interrogator	Crew	100				1		X									X													1				1		N/A
+Standard	F:tG	Jayne	Crew	300	Public Relations: May Carry 3 Gear.	2				X	X																			1						1		Extra Gear
+Standard	F:tG	Jesse	Crew	200	Opportunist: +1 Contraband from Salvage Ops.	1	1			X					X													1								1		Resources (Salvage Op)
+Standard	F:tG	Kaylee	Crew	300	Natural Know How: May re-roll [Tech] Tests.		3		X								X														1					1		Boost (tests), reroll
+Standard	F:tG	Lucy	Crew	200	Morale Booster: You may use an Action on your turn to remove Disgruntled from a Crew other than Lucy.			2	X							X															1					1		Morale Booster
+Standard	F:tG	Lund	Crew	200	Cheap Shot: May use Gear in "Kosherized" Fight Tests.	2												X													1					1		Circumstance bonus
+Standard	PBH	Meadows	Crew	0	Hero Worship: Any time a Crew is Killed, Apprehended, or Seized by the Alliance, you may Kill Meadows instead.				X																					1						1		Constant bonus
+Standard	F:tG	Med Staff	Crew	200			1		X										X													4				4		N/A
+Standard	BA	Merchant	Crew	200	Shrewd Trader: Whenever you sell Cargo to a Contact, take an extra $100 per Cargo.		1	1																				2								2		Resources (Sell)
+Standard	Kal	Mudder	Crew	100	Indentured: Remove from Play at Harvest, Red Sun to take $500. This counts as Immoral.		1			X				X															2	2	2					6		Discard for bonus
+Standard	F:tG	River Tam	Crew	0	Gifted: See card.				X	X																			1							1		Constant bonus
+Standard	Kal	Roberta	Crew	300	Make Nice: You May Discard Roberta instead of losing Solid Rep with a Contact.	1		2												X	X													1		1		Discard for bonus
+Standard	F:tG	Saffron	Crew	300	Deceptive: If Bridgit or Yolonda are hired by anyone, Remove Saffron from Play.		1	2								X				X										1						1		Downside
+Standard	F:tG	Scrapper	Crew	200	Dirty Leech: +2 Fuel from Salvage Ops.		1								X													3								3		Resources (Salvage Op)
+Standard	F:tG	Scrapper	Crew	200	Low Life Vulture: +1 Part from Salvage Ops.		1										X												3							3		Resources (Salvage Op)
+Standard	F:tG	Shepherd Book	Crew	0	Secret Past: If Working Immoral Job, Shepherd Book must stay Onboard Ship.	1		1	X									X			X								1							1		Downside
+Standard	PBH	Sheriff Bourne	Crew	0	Jurisdiction: +2 Fight while in Border Space. Bounty Bonus: +$500. Will not work Illegal Jobs.			2	X			X																			1					1		Conditional bonus (Location)
+Standard	BS	Sheydra	Crew	300	Composure: Once per job, may treat a Fight as a Negotiate Test.		1	2	X											X		X											1			1		Boost (tests), switch
+Standard	F:tG	Simon Tam	Crew	200	I am very smart: +2 to Medic Checks. +2 to River Tam's "Gifted" rolls.		2		X	X									X			X							1							1		Circumstance bonus, +1
+Standard	F:tG	Skunk	Crew	200	Firebug: +[Negotiate] when Carrying Explosives.	1												X												1						1		Conditional bonus (Gear)
+Standard	F:tG	Stark	Crew	100	Angry Mob: +[Fighting] when you have at least 3 Hill Folk in your crew. Hill Folk.	1			X				X																	1						1		Conditional bonus (Crew)
+Standard	F:tG	Stitch	Crew	300	Cantankerous: Once per job, may treat a Negotiate as a Fighting Test.	2				X	X																			1						1		Boost (tests), switch
+Standard	BA	The Fixer	Crew	300	Shady Connections		1	1		X						X					X								1							1		N/A
+Standard	PBH	The Guardian	Crew	300	Security Pro: May re-roll SHOWDOWN Tests.	1	1											X	X													1				1		Circumstance bonus
+Standard	BS	The Middleman	Crew	200	Facilitator: Whenever you sell Contraband to a Contact, take an extra $100 per Contraband.	1		1		X						X																	1			1		Resources (Sell)
+Standard	F:tG	The Patron	Crew	200	Angry Mob: +[Fighting] when you have at least 3 Hill Folk in your crew. Hill Folk.	1		1	X				X																	1						1		Conditional bonus (Crew)
+Standard	BS	The Salesman	Crew	200	Wholesaler: As a Buy Action, discard to purchase a Ship Upgrade or Drive Core from any discard pile, at half price. This may be done from any location.			1								X																	1			1		Discard for bonus
+Standard	BA	The Specialist	Crew	300	Wet Work: May not Carry Gear.	1	1			X								X							X	X					1					1		Downside
+Standard	F:tG	Tracey	Crew	100	Unlucky: Whenever a Crew is Killed, Tracey must be Killed first.	1		1		X						X												1								1		Downside
+Standard	F:tG	Two-Fry	Crew	200	Dead-Eye: When Carrying a Sniper Rifle on Jobs, draw 1 fewer Misbehave Card, down to a minimum of 1.	1				X	X																				1					1		Misbehave option
+Standard	F:tG	Wash	Crew	200	Hard Burn: +1 to Full Burn Range.		1	1	X						X													1								1		Constant bonus
+Standard	F:tG	Yolonda	Crew	300	Deceptive: If Saffron or Bridgit are hired by anyone, Remove Yolanda from Play.		1	2								X				X												1				1		Downside
+Standard	F:tG	Zoe	Crew	300	Dust Devil: May re-roll Fighting Tests.	2			X	X								X												1						1		Boost (tests), reroll
+Standard	F:tG	Bona Fide Credentials	Gear	1000				1													X							1	1			1				3		
+Standard	PBH	Friendly Game of Cards	Gear	0	GAMBLING. Discard to Use: Pay Bank $300. Name a Suit. Flip over 3 Misbehave Cards. Take $500 and remove 1 Disgruntled token for each card that matches the named suit.																									1						1		
+Standard	BA	The Best in the House	Gear	400	Discard to remove Disgruntled from all Crew.																									1						1		
+Standard	F:tG	Vera	Gear	1600		2		1																	X	X				1						1		
+Standard	F:tG	4WD Mule	Gear	1000	After completing a Crime Job, Load 1 Cargo.																			X				1	2							3		
+Standard	F:tG	A Very Fine Hat	Gear	1000	When Dealing with Contacts, you may Consider up to 4 Jobs.			1														X							1							1		
+Standard	BA	Alliance Body Armor	Gear	400	If Crew carrying Armor is Killed, roll: 1-3: Crew is Killed. 4-6: Crew is not Killed.	1																										2				2		
+Standard	F:tG	Alliance Ident Card	Gear	1600	Counts as Solid with Harken. Crew carrying ignores Wanted Crew Roll.			2													X											1				1		
+Standard	PBH	Alliance Sonic Rifle	Gear	800	Rivals using Fight Skill in SHOWDOWNS must follow Kosherized Rules.																											2				2		
+Standard	Kal	Billiards Betting	Gear	500	GAMBLING. When you buy this card, roll two dice. Take $100 times the total of the dice and discard this card.																													1		1		
+Standard	BA	Breaching Tool	Gear	1200	+1 Contraband from Salvage Ops.		1																				X	2								2		
+Standard	F:tG	Burgess's Hovering Bad-Ass Space Jeep	Gear	1600		2																		X	X					1						1		
+Standard	F:tG	Burgess's Laser	Gear	1800	Requires [Tech] to Carry.	3																			X		X			1						1		
+Standard	BA	Cortex Uplink	Gear	1200	From any location, you may use a Deal Action to Consider the top, face down card from any Contact. Accept or discard the Job as normal.		1	1																					2							2		
+Standard	F:tG	Crow's Knife	Gear	200		2D																									1					1		
+Standard	PBH	Dobson's Vector Pistol	Gear	600	May be used in Kosherized Fights. Does not count towards Gear Limit.	1																			X				1							1		
+Standard	PBH	Early's Combat Armor	Gear	1000	If Crew carrying Armor is Killed, roll: 1-3: Crew is Killed. 4-6: Crew is not Killed.	1	1																					1								1		
+Standard	PBH	Early's Datascope	Gear	1000	As a Work Action, you may reveal the top 3 cards for your current location's Supply Deck and place them all in the discard pile.																		X					1								1		
+Standard	PBH	Early's Pistol	Gear	600	+2 Fight in SHOWDOWN	1																			X			1								1		
+Standard	F:tG	Explosive Charge	Gear	400		1D																					D	1	1	2						4		
+Standard	Kal	Extra Ammo Clips	Gear	200	Discard to re-roll a [FIGHTING] Test.																									2				1		3		
+Standard	F:tG	Fast Horses	Gear	200																				D						2	2					4		
+Standard	BS	Fruity Oaty Bar	Gear	100	Discard before rolling to add +1 to any test result. OR Discard to remove Disgruntled from the owner.																								1				2			3		
+Standard	BA	Gentleman's Dueling Sword	Gear	1000	Counts as Knife: Discard to add +Fight to a Fight Test after rolling.	1																X							1							1		
+Standard	F:tG	GJ Flashkill Pod Grenades	Gear	1000		2																					X			2						2		
+Standard	F:tG	Glucklich Jia 642X	Gear	800		1																			X	X				2	1					3		
+Standard	F:tG	Hastily Forged Documents	Gear	400				1D													D							1	1							2		
+Standard	BS	Heist Intel	Gear	500	On your turn, discard to look at the top 3 cards of the Misbehave deck. Return them to the deck, in any order, or discard all of them.																												1			1		
+Standard	F:tG	Improvised Hacking Rig	Gear	400			1D																D					1	1							2		
+Standard	Kal	Inara's Bow	Gear	500	When carried by a Companion, re-roll 1s in all [FIGHTING] Tests.	2																												1		1		
+Standard	Kal	Inara's Guild Papers	Gear	1000	Counts as COMPANION.			2												X														1		1		
+Standard	F:tG	Jayne's Cunning Hat	Gear	0	When Misbehaving, re-roll any Test result of 1. Does not count towards Gear Limit.																							1								1		
+Standard	Kal	Jayne's Holdout Pistol	Gear	500	May be used in Kosherized Fights. Does not count towards Gear Limit.	1																			X									1		1		
+Standard	F:tG	Kaylee's Fluffy Pink Dress	Gear	1000	When Buying from Suppliers, you may Buy up to 3 cards.			1														X							1							1		
+Standard	BS	Kaylee's Parasol	Gear	0	Does not count toward Gear Limit.			1																									1			1		
+Standard	F:tG	Kaylee's Reprogrammer	Gear	1000			2																X								1					1		
+Standard	F:tG	Knife	Gear	200		1D																						1	1	1						3		
+Standard	Kal	Labor Contract: Persephone	Gear	500	From any location, you may use a Buy Action to Hire 1 Crew from the Persephone Discard Pile for free.																													1		1		
+Standard	Kal	Labor Contract: Regina	Gear	500	From any location, you may use a Buy Action to Hire 1 Crew from the Regina Discard Pile for free.																													1		1		
+Standard	Kal	Labor Contract: Silverhold	Gear	500	From any location, you may use a Buy Action to Hire 1 Crew from the Silverhold Discard Pile for free.																													1		1		
+Standard	Kal	Labor Contract: Space Bazaar	Gear	500	From any location, you may use a Buy Action to Hire 1 Crew from the Space Bazaar Discard Pile for free.																													1		1		
+Standard	BS	Love Bot	Gear	1200	You may use an Action on your turn to Remove Disgruntled from a Crew.			1												X													1			1		
+Standard	BS	Mal's Brown Coat	Gear	800	Disgruntle Owner to add their Fight to a Negotiate Test. Does not count towards Gear Limit.																												1			1		
+Standard	BS	Mal's Frontier Model B	Gear	800	Before each Fight Test, remove Disgruntled from the Owner.	2																			X								1			1		
+Standard	Kal	Mal's Sniper Rifle	Gear	800	Before each [FIGHTING] Test, remove Disgruntled from the Owner.	1																			X	X								1		1		
+Standard	BS	Maque Tiles	Gear	200	GAMBLING. Discard to Use: Choose red or black. Draw 2 Misbehave Cards. If both suits match choice, take $1200.																												1			1		
+Standard	Kal	Med Foam	Gear	300	Discard to count as having made a successful Medic Check.																											2		1		3		
+Standard	BS	MF-813 Flying Mule	Gear	1400	After completing a Crime Job, Load 6 Goods, minus 1 per Crew Working the Job.																			X									1			1		
+Standard	BA	Mud Dog ATV	Gear	1000	After completing a Smuggling Job, Load 1 Contraband.																			X							2					2		
+Standard	BA	Nandi's Gun Collection	Gear	1200	Reroll any Negotiate Test results of 1.	1																X			X						1					1		
+Standard	Kal	Nav Charts: Alliance Space	Gear	300	Discard to look at the top 5 Cards of the Alliance Space Nav  Deck. Return the cards to the top of the Deck in any order.		1																					1				2				3		
+Standard	Kal	Nav Charts: Border Space	Gear	300	Discard to look at the top 5 Cards of the Border Space Nav Deck. Return the cards to the top of the Deck in any order.		1																					1			2					3		
+Standard	Kal	Nav Charts: Rim Space	Gear	300	Discard to look at the top 5 Cards of the Rim Space Nav Deck. Return the cards to the top of the Deck in any order.		1																					1	2							3		
+Standard	F:tG	Official Lookin' Vehicle	Gear	1400				2																X								1				1		
+Standard	F:tG	Pistol	Gear	400		1																			X			1		2	2					5		
+Standard	PBH	Sash's Hand Cannon	Gear	800	Before rolling SHOWDOWN Test, Disgruntle Rival's Leader.	1		1																	X						1					1		
+Standard	PBH	Scan Proof Shades	Gear	1000	Crew carrying Scan-Proof Shades may ignore Alliance Wanted Crew Rolls.			1														X							1							1		
+Standard	F:tG	Security Interface Pad	Gear	1000			1																X					1	1			1				3		
+Standard	F:tG	Shiny Neck Tie	Gear	800				1														X						1								1		
+Standard	BS	Simon's Sonic Stun Baton	Gear	1000	Discard, after a Fight Test, to count the roll as a 6 and add Thrillin' Heroics bonus roll.																X												1			1		
+Standard	F:tG	Simon's Surgical Kit	Gear	800	+1 to Medic Checks.		1																									1				1		
+Standard	BA	Tall Playing Cards	Gear	0	GAMBLING: Discard to Use: Pay the Bank $500. Draw 5 Misbehave Cards. If at least 3 of the 5 cards have matching suits, take $1500.																							1								1		
+Standard	BS	The Operative's Sword	Gear	1000	Counts as a Knife. Discard to count as an "Ace" for any Misbehave Card: Proceed.	2																											1			1		
+Standard	BA	Two-Fry's Carbine	Gear	1200	Reroll any Fight Test results of 1.	1																			X	X					1					1		
+Standard	BA	Universal Encyclopedia	Gear	1200	From any location, you may use a Deal Action to look at the top 3 cards of the Misbehave Deck. Replace them in any order.		1																									1				1		
+Standard	BA	Vehicle Mounted BFG	Gear	600	Requires Transport	2																			X					2						2		
+Standard	Kal	Wash's Hawaiian Shirt	Gear	300	Discard to reshuffle any 1 Nav Deck.			1																				1								1		
+Standard	Kal	Wash's Nav Charts	Gear	300	Discard to look at the top of cards of ANY Nav Deck. Return the cards to the top of the Deck in any order.		1																											1		1		
+Standard	Kal	Yolonda's Pistol	Gear	400	Discard to re-roll a [FIGHTING] Test.	1																			X							1				1		
+Standard	Kal	Zoe's Flak Jacket	Gear	200	If the Crew carrying this is Killed, discard this card instead.																													1		1		
+Standard	Kal	Zoe's Mare's Leg Rifle	Gear	800	When making a [FIGHTING] Test, roll two dice and use the highest.	1																			X									1		1		
+Standard	BS	Atherton	Leader		Black Mark: May not hire Crew with the Companion Profession.	1		2													X	X													1	1		
+Standard	F:tG	Burgess	Leader		Taker: When you complete a Shipping Job, Load 1 Cargo.	1	1	1														X													1	1		
+Standard	F:tG	Corbin	Leader		Chop Shop: You may Buy Drive Cores and Ship Upgrades at half price.		2	1									X																		1	1		
+Standard	PBH	Jubal Early	Leader		Bounty Hunter: +2 Fight when Attacking in SHOWDOWN. May Carry 2 Gear.	1	1	1							X																				1	1		
+Standard	F:tG	Malcolm	Leader		Brown Coat: When you complete a Crime Job, take $500.	2		1	X						X			X																	1	1		
+Standard	F:tG	Marco	Leader		Gun Runner: You may Buy Gear with the "Explosives" or "Firearm" Keywords at half price.	2	1																	X											1	1		
+Standard	F:tG	Monty	Leader		Smuggler Extraordinaire: When you complete a Smuggling Job, take $500.	2	1		X								X	X																	1	1		
+Standard	BS	Murphy	Leader		Trade Baron: Whenever you sell Cargo or Contraband to a Contact, take an extra $100 each.	1	2		X								X		X																1	1		
+Standard	F:tG	Nandi	Leader		Heart of Gold: May Hire Crew at no cost.	1		2	X											X															1	1		
+Standard	PBH	Sash	Leader		Pirate: When you complete a Piracy Job, steal $500 from the targeted Rival.		1	2															X												1	1		
+Standard	F:tG	Womack	Leader		Cold and Heartless: When you complete an Immoral Job take $500.	2		1										X																	1	1		
+Standard	Kal	Wright	Leader		Dirty Slaver: Whenever you deliver Fugitives, you may take an extra $100 per Fugitive. This counts as Immoral.	1	1	1								X																			1	1		
+Standard	Jet	Zoe	Leader		Loyalty: Soldiers in your Crew do not become Disgruntled if they are not paid their Cut of successful Jobs. May Carry 2 Gear.	3			X									X																	1	1		
+Standard	Kal	Board Game Collection	Ship Upgrade	200	You may use a Buy Action to give your Crew Shore Leave in any Sector.																													1		1		
+Standard	PBH	Booby Trap	Ship Upgrade	600	-2 to Rival's Tech Boarding Tests. If Rival rolls a 1 when Boarding your ship, 1 of their Crew is Killed. Discard to count as EXPLOSIVES.																						D		2							2		
+Standard	Esm	Caravan Pods	Ship Upgrade	400	Cargo 2. May only hold Passengers/Fugitives. +1 to Ship's Max Crew.																								2						1	3		
+Standard	F:tG	Cargo Hold	Ship Upgrade	600	Exterior Cargo Pods: 2 Additional Cargo Hold areas.																											2				2		
+Standard	F:tG	Cry Baby	Ship Upgrade	400	When in a Sector with Alliance Cruiser, discard to ignore Alliance Cruiser's effects and move the Cruiser 1 Sector within Alliance Space.																							2	2		1					5		
+Standard	PBH	Cryo Stasis Chamber	Ship Upgrade	600	Rivals may not Jump your Bounties. 1 Crew aboard ship may ignore Alliance Wanted Crew Rolls.																								1							1		
+Standard	Jet	Decoy Nav Sat Cluster	Ship Upgrade	400	Discard at the beginning of a Move Action to treat all Nav Cards that would normally move a Reaver or Alliance Ship as a "Big Black" card instead.																							1							1	2		
+Standard	PBH	Electronic Defense Suite	Ship Upgrade	800	Rivals boarding your ship may not use Tech Skill for Boarding Tests. Spend 1 Fuel to Evade Reaver Cutter. Ignore the effects of either the Reaver Cutter Nav Card or Contact Event.																											2				2		
+Standard	Kal	Emissions Recycler	Ship Upgrade	800	+1 to Full Burn Range. If you draw two "Big Black" Nav Cards in a row while Full Burning, you may take 1 Fuel. Limit once per Fly Action.																							1			1			1		3		
+Standard	PBH	EVA Suit	Ship Upgrade	600	+1 Tech for Boarding Tests. +1 Cargo from Salvage Ops. 1 Crew aboard ship may ignore Alliance Wanted Crew rolls.																							2								2		
+Standard	F:tG	Expanded Crew Quarters	Ship Upgrade	600	+3 to Ship's Max Crew.																											2				2		
+Standard	Esm	Full Mess Deck	Ship Upgrade	400	During a Fly Action, you may discard a Cargo or Contraband to remove Disgruntled from all your Crew.																								1						1	2		
+Standard	F:tG	Full Tune-Up & Retro-Fit	Ship Upgrade	800	Ignore all Breakdowns.																											1				1		
+Standard	F:tG	Fully Equipped Med Bay	Ship Upgrade	600	May re-roll Medic Checks.																											2				2		
+Standard	BS	Hull-Mounted Flak Gun	Ship Upgrade	400	When in a Sector with a Reaver Cutter, discard to ignore Reaver Cutter's effects and move that Reaver Cutter 1 Sector within Rim or Border Space.																												2			2		
+Standard	Kal	Hydraulic Docking Clamps	Ship Upgrade	600	Crime Jobs also count as Salvage Ops.																								1					1		2		
+Standard	BS	Long-Range Scanner Array	Ship Upgrade	800	During a Fly Action you may resolve Reaver or Alliance Alert Tokens in adjacent Sectors.																												1			1		
+Standard	PBH	Mag-Grappler Launchers	Ship Upgrade	800	+3 Tech for Boarding Tests. After Salvage Ops, Roll: Tech 8 - 1-7: Nothing Shiny. 8+ Take 1 Ship Upgrade from any discard pile.																										1					1		
+Standard	BS	Modded Fuel Catalyzer	Ship Upgrade	600	When initiating a Full Burn, Spend 1 additional Fuel to add +2 to your Drive Core's Max Range this turn.																												1			1		
+Standard	F:tG	Onboard Chop Shop	Ship Upgrade	1600	After any Salvage Op, take $500 and Load 1 Contraband.																										2					2		
+Standard	F:tG	Overcharged Grav Thrusters	Ship Upgrade	1000	+1 to Full Burn Range.																										1					1		
+Standard	BS	Reaver-Flage	Ship Upgrade	600	Ship may move into a Sector occupied by a Reaver Ship. Discard after losing any Crew to the Reavers.																												2			2		
+Standard	F:tG	Shiny New State-of-the-Art Compression Coils	Ship Upgrade	1600	May Mosey up to 2 Sectors. Ignore all Breakdowns.																											1				1		
+Standard	F:tG	Sky Hook	Ship Upgrade	600	Requires Pilot to use. After completing a Crime Job, Load 1 Contraband.																			X							2					2		
+Standard	F:tG	Stash	Ship Upgrade	1000	Concealed Smuggling Compartments: 2 Additional Stash areas. Up to 2 Crew Onboard Ship may ignore Alliance Wanted Crew rolls.																										2					2		
+Standard	Jet	Xunsu Emergency Ram Jets	Ship Upgrade	600	Discard and use an Action to Initiate a Full Burn. May be used in addition to a standard Move Action.																							1							1	2		
+Standard	PBH	Echelon LR-8	Drive Core		Range: 8. No Fuel required to initiate Full Burn. Cannot be replaced.																														1	1	Range=8,Fuel=0,CanReplace=false	
+Standard	F:tG	Enhanced Graviton Accelerator	Drive Core	2400	Range: 6. 1 Fuel to Initiate Full Burn. May Mosey up to 2 Sectors. Ignore all Breakdowns.																											1				1	Range=6,Mosey=2	
+Standard	Esm	Graviton Accelerator V1	Drive Core		Range: 5. 1 Fuel to initiate Full Burn. When initiating a Full Burn, Spend 1 additional Fuel to increase your Max Range by 2 this turn.																														1	1	ExtraRange=2	
+Standard	Jet	Graviton Accelerator V1	Drive Core		Range: 5. 1 Fuel to initiate Full Burn. When initiating a Full Burn, Spend 1 additional Fuel to increase your Max Range by 2 this turn.																														1	1	ExtraRange=2	
+Standard	F:tG	Hyper-Efficient Radion Accelerator Mark III	Drive Core	800	Range: 4. No fuel required to Initiate Full Burn.																											2				2	Range=4,Fuel=0	
+Standard	F:tG	Modified Radion Accelerator Mark II	Drive Core	1200	Range: 6. 1 Fuel to Initiate Full Burn.																											2				2	Range=6	
+Standard	AD	Modified Radion Accelerator Mark II	Drive Core		Range: 6. 1 Fuel to Initiate Full Burn.																														1	1	Range=6	
+Standard	F:tG	Radion Accelerator Mark I	Drive Core		1 Fuel to initiate Full Burn.																														4	4		
+Standard	PBH	Tri-Capissen 28HD	Drive Core		Unique Core: May not be replaced. May only be used on S.S. Walden. Range: 4. Immune to Heavy Load penalty.																														1	1	CanReplace=false,Range=4,HeavyLoadPenalty=false	
+Standard	BS	Xunsu Whisper X1	Drive Core	1600	Range 6. 1 Fuel to initiate Full Burn. Whenever a Reaver or Alliance Ship enters your current Sector, you may immediately roll a Dice: 1-2: No effect. 3-6: Evade.																												1			1	Range=6	
