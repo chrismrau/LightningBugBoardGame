@@ -45,6 +45,17 @@ namespace Firefly.Core.State
         public int UsedHolds => HoldSpace.UsedGeneral(this);
         public int FreeHolds => HoldSpace.FreeGeneral(this);
 
+        public int EffectiveDriveRange
+        {
+            get
+            {
+                var range = DriveRange;
+                if (string.Equals(ShipId, "ship_interceptor", StringComparison.OrdinalIgnoreCase))
+                    range -= ShipUpgrades.Count;
+                return range < 1 ? 1 : range;
+            }
+        }
+
         public void ApplyShip(ShipCard ship)
         {
             if (ship == null)
@@ -55,6 +66,15 @@ namespace Firefly.Core.State
             StashHold = ship.Stash;
             FuelStash = ship.FuelStash;
             UpgradeSlots = ship.UpgradeSlots;
+        }
+
+        public void ApplyDriveCore(DriveCoreCard core)
+        {
+            if (core == null)
+                throw new ArgumentNullException(nameof(core));
+            DriveCoreId = core.Id;
+            DriveRange = core.Range;
+            FullBurnRequiresFuel = core.RequiresFuel;
         }
 
         public int Fight => Roster.Fight + FightBonus;
