@@ -16,10 +16,15 @@ namespace Firefly.Core.Tests
         public void Tech_8_keep_flying_on_success()
         {
             Assert.True(SkillCheck.TryParse("Tech 8 Breakdown; 1-7 Full Stop. 8+ Keep Flying.", out var check));
+            Assert.Equal(Skill.Tech, check.Skill);
+            Assert.Equal(8, check.Target);
+
             var player = new PlayerState("p1", "Mal", Pelorum) { TechBonus = 2 };
             var result = check.Resolve(player, ScriptedRng.FromDieFaces(5, 3));
             Assert.Equal(8, result.Roll.Sum);
             Assert.True(result.Success);
+            Assert.Equal(FlightOutcome.KeepFlying, SkillCheck.OutcomeFor("Tech 8 Breakdown; 1-7 Full Stop. 8+ Keep Flying.", true));
+            Assert.Equal(FlightOutcome.FullStop, SkillCheck.OutcomeFor("Tech 8 Breakdown; 1-7 Full Stop. 8+ Keep Flying.", false));
         }
 
         [Fact]
@@ -39,9 +44,12 @@ namespace Firefly.Core.Tests
             player.TechBonus = 2;
             game.Decks!.Alliance.PlaceOnTop(game.Decks.Catalog.Get("nav_ifn-the-coil-busts-were-driftin"));
             resolver.DrawNext(game);
+
             Assert.True(resolver.TryResolve(game, 0, out var resolution, out _, ScriptedRng.FromDieFaces(6, 6)));
-            Assert.True(resolution!.SkillCheck!.Success);
+            Assert.NotNull(resolution!.SkillCheck);
+            Assert.True(resolution.SkillCheck!.Success);
             Assert.Equal(FlightOutcome.KeepFlying, resolution.Outcome);
+            Assert.False(resolution.Stopped);
         }
 
         [Fact]
@@ -52,8 +60,11 @@ namespace Firefly.Core.Tests
             player.SectorId = "rim-blue-sun-r3-01";
             game.Decks!.Alliance.PlaceOnTop(game.Decks.Catalog.Get("nav_ifn-the-coil-busts-were-driftin"));
             resolver.DrawNext(game);
+
             Assert.True(resolver.TryResolve(game, 0, out var resolution, out _, ScriptedRng.FromDieFaces(1)));
-            Assert.Equal(FlightOutcome.FullStop, resolution!.Outcome);
+            Assert.False(resolution!.SkillCheck!.Success);
+            Assert.Equal(FlightOutcome.FullStop, resolution.Outcome);
+            Assert.True(resolution.Stopped);
             Assert.Equal(Pelorum, player.SectorId);
         }
 
@@ -73,10 +84,17 @@ namespace Firefly.Core.Tests
             var game = new GameState(map, new[] { player }, new MapTokens());
             game.PendingEncounter = TokenKind.AllianceCruiser;
             game.PendingEncounterSectorId = Pelorum;
+
             Assert.True(CruiserBoarding.TryResolve(game, ScriptedRng.FromDieFaces(1, 4), out var result, out _));
-            Assert.Equal(2000, result!.FinePaid);
+            Assert.Equal(2000, result!.FineAssessed);
+            Assert.Equal(2000, result.FinePaid);
+            Assert.Equal(500, player.Cash);
+            Assert.Equal(0, player.Warrants);
+            Assert.Equal(0, player.Contraband);
+            Assert.Equal(0, player.Fugitives);
             Assert.Equal(1, result.WantedRemoved);
             Assert.Equal(1, player.WantedCrew);
+            Assert.Null(game.PendingEncounter);
             Assert.Equal(Pelorum, game.Tokens.AllianceCruiserSectorId);
         }
 
@@ -88,9 +106,12 @@ namespace Firefly.Core.Tests
             var game = new GameState(map, new[] { player });
             game.PendingEncounter = TokenKind.AllianceCruiser;
             game.PendingEncounterSectorId = Pelorum;
+
             Assert.True(CruiserBoarding.TryResolve(game, ScriptedRng.FromDieFaces(), out var result, out _));
-            Assert.Equal(400, result!.FinePaid);
+            Assert.Equal(1000, result!.FineAssessed);
+            Assert.Equal(400, result.FinePaid);
             Assert.Equal(0, player.Cash);
+            Assert.Equal(0, player.Warrants);
         }
 
         private static (GameState Game, NavResolver Resolver, PlayerState Player) GameWithQueuedDraws()

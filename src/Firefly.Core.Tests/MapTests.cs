@@ -40,6 +40,15 @@ namespace Firefly.Core.Tests
         }
 
         [Fact]
+        public void Santo_is_qin_shi_huang()
+        {
+            var map = LoadMap();
+            Assert.True(map.TryGet("alliance-qin-shi-huang-r1-01", out var santo));
+            Assert.Equal("Santo", santo.Planet);
+            Assert.True(map.SatisfiesDestination("alliance-qin-shi-huang-r1-01", "Santo"));
+        }
+
+        [Fact]
         public void Planet_name_resolves_to_sector()
         {
             var map = LoadMap();
