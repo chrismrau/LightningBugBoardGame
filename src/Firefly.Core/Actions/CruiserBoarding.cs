@@ -8,6 +8,7 @@ namespace Firefly.Core.Actions
     {
         public int Die { get; }
         public bool RemovedFromGame { get; }
+
         public WantedCrewFate(int die, bool removedFromGame)
         {
             Die = die;
@@ -24,7 +25,12 @@ namespace Firefly.Core.Actions
         public WantedCrewFate[] WantedRolls { get; }
         public int WantedRemoved { get; }
 
-        public CruiserBoardingResult(int fineAssessed, int finePaid, int contrabandSeized, int fugitivesSeized, WantedCrewFate[] wantedRolls)
+        public CruiserBoardingResult(
+            int fineAssessed,
+            int finePaid,
+            int contrabandSeized,
+            int fugitivesSeized,
+            WantedCrewFate[] wantedRolls)
         {
             FineAssessed = fineAssessed;
             FinePaid = finePaid;
@@ -34,12 +40,17 @@ namespace Firefly.Core.Actions
             var removed = 0;
             foreach (var fate in wantedRolls)
             {
-                if (fate.RemovedFromGame) removed++;
+                if (fate.RemovedFromGame)
+                    removed++;
             }
             WantedRemoved = removed;
         }
     }
 
+    /// <summary>
+    /// Alliance Cruiser contact: fines, warrants cleared, contraband/fugitives seized,
+    /// wanted crew roll 1 = removed from game, 2-6 dodge. Always Full Stop.
+    /// </summary>
     public static class CruiserBoarding
     {
         public const int FinePerWarrant = 1000;
@@ -82,6 +93,7 @@ namespace Firefly.Core.Actions
             game.PendingEncounter = null;
             game.PendingEncounterSectorId = null;
             game.PendingNavDraws.Clear();
+
             result = new CruiserBoardingResult(fine, paid, contraband, fugitives, rolls);
             return true;
         }

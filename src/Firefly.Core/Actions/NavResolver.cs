@@ -27,6 +27,11 @@ namespace Firefly.Core.Actions
         }
     }
 
+    /// <summary>
+    /// Resolves queued Full Burn Nav draws in order.
+    /// Conditional options run a Fight/Tech/Talk test to pick Keep Flying vs Full Stop.
+    /// Alliance Cruiser cards move the Cruiser onto the ship.
+    /// </summary>
     public sealed class NavResolver
     {
         public DrawnNav? FaceUp { get; private set; }
