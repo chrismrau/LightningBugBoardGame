@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Firefly.Core.Cards;
 
 namespace Firefly.Core.State
 {
@@ -33,6 +34,22 @@ namespace Firefly.Core.State
         public IList<string> Gear { get; }
         public IList<string> ShipUpgrades { get; }
         public string? DriveCoreId { get; set; }
+        public int CargoHold { get; set; } = 8;
+        public int StashHold { get; set; } = 4;
+        public int FuelStash { get; set; }
+        public int UpgradeSlots { get; set; } = 3;
+
+        public void ApplyShip(ShipCard ship)
+        {
+            if (ship == null)
+                throw new ArgumentNullException(nameof(ship));
+            ShipId = ship.Id;
+            Roster.MaxCrew = ship.MaxCrew;
+            CargoHold = ship.CargoHolds;
+            StashHold = ship.Stash;
+            FuelStash = ship.FuelStash;
+            UpgradeSlots = ship.UpgradeSlots;
+        }
 
         public int Fight => Roster.Fight + FightBonus;
         public int Tech => Roster.Tech + TechBonus;
