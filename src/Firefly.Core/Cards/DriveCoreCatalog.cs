@@ -17,7 +17,14 @@ namespace Firefly.Core.Cards
         public int MoseyRange { get; }
         public string? Description { get; }
 
-        public DriveCoreCard(string id, string name, int range, bool requiresFuel, bool locked, int moseyRange, string? description)
+        public DriveCoreCard(
+            string id,
+            string name,
+            int range,
+            bool requiresFuel,
+            bool locked,
+            int moseyRange,
+            string? description)
         {
             Id = id;
             Name = name;
@@ -33,8 +40,10 @@ namespace Firefly.Core.Cards
     {
         private static readonly Regex RangeRx = new Regex(@"Range\s*:?\s*(\d+)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
         private static readonly Regex MoseyRx = new Regex(@"Mosey up to (\d+)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
         private readonly Dictionary<string, DriveCoreCard> _byId;
         private readonly Dictionary<string, DriveCoreCard> _byName;
+
         public IReadOnlyDictionary<string, DriveCoreCard> Cards => _byId;
 
         public DriveCoreCatalog(IEnumerable<DriveCoreCard> cores)
@@ -49,11 +58,18 @@ namespace Firefly.Core.Cards
         }
 
         public bool TryGet(string id, out DriveCoreCard core) => _byId.TryGetValue(id, out core!);
-        public DriveCoreCard? FindByName(string name) =>
-            string.IsNullOrWhiteSpace(name) ? null : (_byName.TryGetValue(name.Trim(), out var core) ? core : null);
+
+        public DriveCoreCard? FindByName(string name)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+                return null;
+            return _byName.TryGetValue(name.Trim(), out var core) ? core : null;
+        }
+
         public bool TryResolve(string idOrName, out DriveCoreCard core)
         {
-            if (TryGet(idOrName, out core)) return true;
+            if (TryGet(idOrName, out core))
+                return true;
             core = FindByName(idOrName)!;
             return core != null;
         }
@@ -70,14 +86,23 @@ namespace Firefly.Core.Cards
                 var text = el.TryGetProperty("description", out var d) ? d.GetString() ?? "" : "";
                 var range = 5;
                 var rm = RangeRx.Match(text);
-                if (rm.Success) range = int.Parse(rm.Groups[1].Value);
+                if (rm.Success)
+                    range = int.Parse(rm.Groups[1].Value);
                 var mosey = 1;
                 var mm = MoseyRx.Match(text);
-                if (mm.Success) mosey = int.Parse(mm.Groups[1].Value);
+                if (mm.Success)
+                    mosey = int.Parse(mm.Groups[1].Value);
                 var requiresFuel = text.IndexOf("no fuel", StringComparison.OrdinalIgnoreCase) < 0;
                 var locked = text.IndexOf("cannot be replaced", StringComparison.OrdinalIgnoreCase) >= 0
                     || text.IndexOf("may not be replaced", StringComparison.OrdinalIgnoreCase) >= 0;
-                list.Add(new DriveCoreCard(el.GetProperty("id").GetString() ?? "", name, range, requiresFuel, locked, mosey, text));
+                list.Add(new DriveCoreCard(
+                    el.GetProperty("id").GetString() ?? "",
+                    name,
+                    range,
+                    requiresFuel,
+                    locked,
+                    mosey,
+                    text));
             }
             return new DriveCoreCatalog(list);
         }
