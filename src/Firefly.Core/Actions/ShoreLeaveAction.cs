@@ -19,6 +19,10 @@ namespace Firefly.Core.Actions
         }
     }
 
+    /// <summary>
+    /// Shore Leave counts as a Buy action. At a Planet, spend that action
+    /// and $100 to remove every Disgruntled token from the crew (Leaders included).
+    /// </summary>
     public sealed class ShoreLeaveAction
     {
         public const int Cost = 100;
@@ -36,7 +40,7 @@ namespace Firefly.Core.Actions
                 error = $"It is not {player.Name}'s turn.";
                 return false;
             }
-            if (!game.CanTakeAction(TurnAction.ShoreLeave, out error))
+            if (!game.CanTakeAction(TurnAction.Buy, out error))
                 return false;
 
             if (!game.Map.TryGet(player.SectorId, out var sector))
@@ -55,7 +59,7 @@ namespace Firefly.Core.Actions
                 return false;
             }
 
-            if (!game.TryConsumeAction(TurnAction.ShoreLeave, out error))
+            if (!game.TryConsumeAction(TurnAction.Buy, out error))
                 return false;
 
             player.Cash -= Cost;
