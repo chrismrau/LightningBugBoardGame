@@ -37,7 +37,8 @@ namespace Firefly.Core.Tests
             Assert.Equal(2900, player.Cash);
             Assert.Equal(0, player.Roster.DisgruntledCount);
             Assert.False(player.Roster.Leader!.Disgruntled);
-            Assert.Equal(TurnAction.ShoreLeave, game.LastAction);
+            Assert.Equal(TurnAction.Buy, game.LastAction);
+            Assert.True(game.ActionWasUsed(TurnAction.Buy));
         }
 
         [Fact]
@@ -70,6 +71,22 @@ namespace Firefly.Core.Tests
             Assert.False(action.TryShoreLeave(game, "p1", out _, out var error));
             Assert.Contains("already used this turn", error);
             Assert.Equal(2900, game.CurrentPlayer.Cash);
+        }
+
+        [Fact]
+        public void Shore_leave_blocks_a_later_Buy_on_the_same_turn()
+        {
+            var map = SectorMap.LoadFromDirectory(GameData.MapDirectory);
+            var player = new PlayerState("p1", "Mal", Persephone, cash: 3000, fuel: 0, parts: 0);
+            var game = new GameState(map, new[] { player });
+            var market = new SupplyMarket("Persephone", Array.Empty<SupplyCard>());
+            game.SupplyDecks = new SupplyDecks(new[] { market });
+
+            Assert.True(new ShoreLeaveAction().TryShoreLeave(game, "p1", out _, out _));
+            Assert.False(new BuyAction().TryBuy(game, "p1", new BuyRequest { Fuel = 1 }, out _, out var error));
+            Assert.Contains("already used this turn", error);
+            Assert.Equal(2900, player.Cash);
+            Assert.Equal(0, player.Fuel);
         }
 
         [Fact]
