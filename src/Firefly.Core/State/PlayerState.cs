@@ -38,6 +38,9 @@ namespace Firefly.Core.State
         public int StashHold { get; set; } = 4;
         public int FuelStash { get; set; }
         public int UpgradeSlots { get; set; } = 3;
+        public string HavenSectorId { get; set; }
+        public int GoalTokens { get; set; }
+        public ISet<int> CompletedGoals { get; }
         public int GeneralHolds => HoldSpace.GeneralSlots(this);
         public int UsedHolds => HoldSpace.UsedGeneral(this);
         public int FreeHolds => HoldSpace.FreeGeneral(this);
@@ -80,6 +83,8 @@ namespace Firefly.Core.State
             DriveRange = driveRange;
             FullBurnRequiresFuel = fullBurnRequiresFuel;
             ShipId = shipId;
+            HavenSectorId = sectorId;
+            CompletedGoals = new HashSet<int>();
             Roster = new CrewRoster(maxCrew);
             JobHandLimit = 3;
             ActiveJobLimit = 1;
