@@ -4,7 +4,11 @@ using Firefly.Core.State;
 
 namespace Firefly.Core.Actions
 {
-    public enum WorkKind { Pickup, Complete }
+    public enum WorkKind
+    {
+        Pickup,
+        Complete
+    }
 
     public sealed class WorkResult
     {
@@ -17,8 +21,12 @@ namespace Firefly.Core.Actions
 
         public WorkResult(WorkKind kind, JobCard job, bool awaitingMisbehave, bool becameActive, int pay, int moralDisgruntled)
         {
-            Kind = kind; Job = job; AwaitingMisbehave = awaitingMisbehave;
-            BecameActive = becameActive; Pay = pay; MoralDisgruntled = moralDisgruntled;
+            Kind = kind;
+            Job = job;
+            AwaitingMisbehave = awaitingMisbehave;
+            BecameActive = becameActive;
+            Pay = pay;
+            MoralDisgruntled = moralDisgruntled;
         }
     }
 
@@ -27,14 +35,28 @@ namespace Firefly.Core.Actions
         public bool TryWork(GameState game, string playerId, string jobId, out WorkResult? result, out string? error)
         {
             result = null;
-            if (!CanStart(game, playerId, out var player, out error)) return false;
-            if (game.PendingMisbehave != null) { error = "Finish the pending Misbehave before working again."; return false; }
-            if (game.Jobs == null || !game.Jobs.TryGet(jobId, out var job)) { error = $"Unknown job '{jobId}'."; return false; }
-            if (!CanWorkContact(game, player, job, out error)) return false;
+            if (!CanStart(game, playerId, out var player, out error))
+                return false;
+            if (game.PendingMisbehave != null)
+            {
+                error = "Finish the pending Misbehave before working again.";
+                return false;
+            }
+            if (game.Jobs == null || !game.Jobs.TryGet(jobId, out var job))
+            {
+                error = $"Unknown job '{jobId}'.";
+                return false;
+            }
+            if (!CanWorkContact(game, player, job, out error))
+                return false;
 
             var active = player.FindActive(jobId);
             var inHand = player.JobHand.Contains(jobId);
-            if (active == null && !inHand) { error = "That job is not in hand or active."; return false; }
+            if (active == null && !inHand)
+            {
+                error = "That job is not in hand or active.";
+                return false;
+            }
 
             var pickup = JobTerms.Pickup(job);
             var dropoff = JobTerms.Dropoff(job);
@@ -43,26 +65,48 @@ namespace Firefly.Core.Actions
             if (active == null)
             {
                 if (player.ActiveJobs.Count >= player.ActiveJobLimit)
-                { error = $"Already have {player.ActiveJobLimit} active job(s)."; return false; }
+                {
+                    error = $"Already have {player.ActiveJobLimit} active job(s).";
+                    return false;
+                }
                 if (JobTerms.LocationIsSpecialCase(pickup.Location))
-                { error = $"Pickup location '{pickup.Location}' is not handled by the Work kernel yet."; return false; }
+                {
+                    error = $"Pickup location '{pickup.Location}' is not handled by the Work kernel yet.";
+                    return false;
+                }
                 if (!AtSite(game.Map, player.SectorId, pickup.Location))
-                { error = $"Must be at {JobTerms.PlaceName(pickup.Location)} to start this job."; return false; }
+                {
+                    error = $"Must be at {JobTerms.PlaceName(pickup.Location)} to start this job.";
+                    return false;
+                }
                 return FinishOrMisbehave(game, player, job, null, pickup, WorkSite.Pickup, WorkKind.Pickup, !hasDropoff, out result, out error);
             }
 
             if (!active.PickedUp)
             {
                 if (!AtSite(game.Map, player.SectorId, pickup.Location))
-                { error = $"Must be at {JobTerms.PlaceName(pickup.Location)} to pick up this job."; return false; }
+                {
+                    error = $"Must be at {JobTerms.PlaceName(pickup.Location)} to pick up this job.";
+                    return false;
+                }
                 return FinishOrMisbehave(game, player, job, active, pickup, WorkSite.Pickup, WorkKind.Pickup, !hasDropoff, out result, out error);
             }
 
-            if (!hasDropoff) { error = "This job has already been picked up and has no drop-off."; return false; }
+            if (!hasDropoff)
+            {
+                error = "This job has already been picked up and has no drop-off.";
+                return false;
+            }
             if (JobTerms.LocationIsSpecialCase(dropoff.Location))
-            { error = $"Drop-off '{dropoff.Location}' is not handled by the Work kernel yet."; return false; }
+            {
+                error = $"Drop-off '{dropoff.Location}' is not handled by the Work kernel yet.";
+                return false;
+            }
             if (!AtSite(game.Map, player.SectorId, dropoff.Location))
-            { error = $"Must be at {JobTerms.PlaceName(dropoff.Location)} to complete this job."; return false; }
+            {
+                error = $"Must be at {JobTerms.PlaceName(dropoff.Location)} to complete this job.";
+                return false;
+            }
             return FinishOrMisbehave(game, player, job, active, dropoff, WorkSite.Dropoff, WorkKind.Complete, true, out result, out error);
         }
 
@@ -70,36 +114,79 @@ namespace Firefly.Core.Actions
         {
             result = null;
             var pending = game.PendingMisbehave;
-            if (pending == null) { error = "No Misbehave is pending."; return false; }
-            if (pending.PlayerId != playerId) { error = "This Misbehave belongs to another player."; return false; }
+            if (pending == null)
+            {
+                error = "No Misbehave is pending.";
+                return false;
+            }
+            if (pending.PlayerId != playerId)
+            {
+                error = "This Misbehave belongs to another player.";
+                return false;
+            }
             var player = game.GetPlayer(playerId);
-            if (game.Jobs == null || !game.Jobs.TryGet(pending.JobId, out var job)) { error = $"Unknown job '{pending.JobId}'."; return false; }
+            if (game.Jobs == null || !game.Jobs.TryGet(pending.JobId, out var job))
+            {
+                error = $"Unknown job '{pending.JobId}'.";
+                return false;
+            }
+
             if (!proceed)
             {
                 game.PendingMisbehave = null;
                 game.TryConsumeAction(TurnAction.Work, out _);
-                result = new WorkResult(pending.Site == WorkSite.Pickup ? WorkKind.Pickup : WorkKind.Complete, job, false, false, 0, 0);
+                result = new WorkResult(
+                    pending.Site == WorkSite.Pickup ? WorkKind.Pickup : WorkKind.Complete,
+                    job, false, false, 0, 0);
                 error = null;
                 return true;
             }
+
             pending.Remaining--;
             if (pending.Remaining > 0)
             {
-                result = new WorkResult(pending.Site == WorkSite.Pickup ? WorkKind.Pickup : WorkKind.Complete, job, true, false, 0, 0);
+                result = new WorkResult(
+                    pending.Site == WorkSite.Pickup ? WorkKind.Pickup : WorkKind.Complete,
+                    job, true, false, 0, 0);
                 error = null;
                 return true;
             }
+
             game.PendingMisbehave = null;
             var active = player.FindActive(pending.JobId);
             var terms = pending.Site == WorkSite.Pickup ? JobTerms.Pickup(job) : JobTerms.Dropoff(job);
             var completeAfter = pending.Site == WorkSite.Dropoff || !JobTerms.HasDropoff(job);
-            return ApplySite(game, player, job, active, terms, pending.Site == WorkSite.Pickup ? WorkKind.Pickup : WorkKind.Complete, completeAfter, out result, out error);
+            return ApplySite(
+                game, player, job, active, terms,
+                pending.Site == WorkSite.Pickup ? WorkKind.Pickup : WorkKind.Complete,
+                completeAfter, out result, out error);
         }
 
-        private static bool FinishOrMisbehave(GameState game, PlayerState player, JobCard job, ActiveJob? active, JobSiteTerms terms, WorkSite site, WorkKind kind, bool completeAfter, out WorkResult? result, out string? error)
+        private static bool FinishOrMisbehave(
+            GameState game,
+            PlayerState player,
+            JobCard job,
+            ActiveJob? active,
+            JobSiteTerms terms,
+            WorkSite site,
+            WorkKind kind,
+            bool completeAfter,
+            out WorkResult? result,
+            out string? error)
         {
+            if (!completeAfter && !CanLoad(player, terms, out var loadError))
+            {
+                result = null;
+                error = loadError;
+                return false;
+            }
             if (completeAfter && !CanUnload(player, active, JobTerms.HasDropoff(job) ? JobTerms.Dropoff(job) : terms, out var goodsError))
-            { result = null; error = goodsError; return false; }
+            {
+                result = null;
+                error = goodsError;
+                return false;
+            }
+
             if (terms.Misbehave > 0)
             {
                 game.PendingMisbehave = new PendingMisbehave(player.Id, job.Id, site, terms.Misbehave);
@@ -107,33 +194,51 @@ namespace Firefly.Core.Actions
                 error = null;
                 return true;
             }
+
             return ApplySite(game, player, job, active, terms, kind, completeAfter, out result, out error);
         }
 
-        private static bool ApplySite(GameState game, PlayerState player, JobCard job, ActiveJob? active, JobSiteTerms terms, WorkKind kind, bool completeAfter, out WorkResult? result, out string? error)
+        private static bool ApplySite(
+            GameState game,
+            PlayerState player,
+            JobCard job,
+            ActiveJob? active,
+            JobSiteTerms terms,
+            WorkKind kind,
+            bool completeAfter,
+            out WorkResult? result,
+            out string? error)
         {
             result = null;
             var becameActive = false;
             var disgruntled = 0;
+
             if (kind == WorkKind.Pickup || (kind == WorkKind.Complete && (active == null || !active.PickedUp)))
             {
+                if (!CanLoad(player, terms, out error))
+                    return false;
                 if (active == null)
                 {
                     if (!completeAfter)
                     {
                         if (player.ActiveJobs.Count >= player.ActiveJobLimit)
-                        { error = $"Already have {player.ActiveJobLimit} active job(s)."; return false; }
+                        {
+                            error = $"Already have {player.ActiveJobLimit} active job(s).";
+                            return false;
+                        }
                         player.JobHand.Remove(job.Id);
                         active = new ActiveJob(job.Id);
                         player.ActiveJobs.Add(active);
                         becameActive = true;
-                        if (job.Immoral) disgruntled = player.Roster.DisgruntleMoral();
+                        if (job.Immoral)
+                            disgruntled = player.Roster.DisgruntleMoral();
                     }
                     else if (job.Immoral)
                     {
                         disgruntled = player.Roster.DisgruntleMoral();
                     }
                 }
+
                 if (active != null)
                 {
                     LoadGoods(player, active, terms);
@@ -141,10 +246,12 @@ namespace Firefly.Core.Actions
                 }
                 else
                 {
-                    active = new ActiveJob(job.Id);
-                    LoadGoods(player, active, terms);
+                    var scratch = new ActiveJob(job.Id);
+                    LoadGoods(player, scratch, terms);
+                    active = scratch;
                 }
             }
+
             if (!completeAfter)
             {
                 game.TryConsumeAction(TurnAction.Work, out _);
@@ -152,8 +259,10 @@ namespace Firefly.Core.Actions
                 error = null;
                 return true;
             }
+
             if (!UnloadGoods(player, active ?? new ActiveJob(job.Id), JobTerms.HasDropoff(job) ? JobTerms.Dropoff(job) : terms, out error))
                 return false;
+
             var pay = PayOut(player, job, active ?? new ActiveJob(job.Id));
             player.Cash += pay;
             if (game.Contacts != null && game.Contacts.TryFindByName(job.ContactName, out var contact))
@@ -162,6 +271,7 @@ namespace Firefly.Core.Actions
                 if (game.ContactDecks != null && game.ContactDecks.TryGet(contact.Name, out var deck))
                     deck.MoveToDiscard(job);
             }
+
             player.JobHand.Remove(job.Id);
             player.RemoveActive(job.Id);
             game.TryConsumeAction(TurnAction.Work, out _);
@@ -169,6 +279,16 @@ namespace Firefly.Core.Actions
             error = null;
             return true;
         }
+
+        private static bool CanLoad(PlayerState player, JobSiteTerms terms, out string? error) =>
+            HoldSpace.TryExplain(
+                player,
+                out error,
+                addParts: terms.Parts,
+                addCargo: terms.Cargo,
+                addContraband: terms.Contraband,
+                addPassengers: terms.PassengersUnlimited ? 1 : terms.Passengers,
+                addFugitives: terms.FugitivesUnlimited ? 1 : terms.Fugitives);
 
         private static void LoadGoods(PlayerState player, ActiveJob active, JobSiteTerms terms)
         {
@@ -198,18 +318,29 @@ namespace Firefly.Core.Actions
             var parts = terms.HasGoods ? terms.Parts : active.Parts;
             var fugi = terms.FugitivesUnlimited ? active.Fugitives : (terms.Fugitives > 0 ? terms.Fugitives : active.Fugitives);
             var pass = terms.PassengersUnlimited ? active.Passengers : (terms.Passengers > 0 ? terms.Passengers : active.Passengers);
-            if (player.Cargo < cargo || player.Contraband < contra || player.Parts < parts || player.Fugitives < fugi || player.Passengers < pass)
-            { error = "Ship is not carrying the goods this job requires."; return false; }
-            if (!apply) return true;
-            player.Cargo -= cargo; player.Contraband -= contra; player.Parts -= parts; player.Fugitives -= fugi; player.Passengers -= pass;
+            if (player.Cargo < cargo || player.Contraband < contra || player.Parts < parts
+                || player.Fugitives < fugi || player.Passengers < pass)
+            {
+                error = "Ship is not carrying the goods this job requires.";
+                return false;
+            }
+            if (!apply)
+                return true;
+            player.Cargo -= cargo;
+            player.Contraband -= contra;
+            player.Parts -= parts;
+            player.Fugitives -= fugi;
+            player.Passengers -= pass;
             return true;
         }
 
         private static int PayOut(PlayerState player, JobCard job, ActiveJob active)
         {
             var pay = job.PayBase ?? 0;
-            if (JobTerms.PayPerPassenger(job)) pay *= System.Math.Max(1, active.Passengers);
-            return pay + JobTerms.ProfessionBonus(job, player.Roster.HasProfession);
+            if (JobTerms.PayPerPassenger(job))
+                pay *= System.Math.Max(1, active.Passengers);
+            pay += JobTerms.ProfessionBonus(job, player.Roster.HasProfession);
+            return pay;
         }
 
         private static bool AtSite(SectorMap map, string sectorId, string? location)
@@ -221,8 +352,14 @@ namespace Firefly.Core.Actions
         private static bool CanWorkContact(GameState game, PlayerState player, JobCard job, out string? error)
         {
             error = null;
-            if (game.Contacts != null && game.Contacts.TryFindByName(job.ContactName, out var contact) && contact.IsHiggins && player.Roster.HasName("Jayne"))
-            { error = "Higgins will not Work while Jayne is in the crew."; return false; }
+            if (game.Contacts != null
+                && game.Contacts.TryFindByName(job.ContactName, out var contact)
+                && contact.IsHiggins
+                && player.Roster.HasName("Jayne"))
+            {
+                error = "Higgins will not Work while Jayne is in the crew.";
+                return false;
+            }
             return true;
         }
 
@@ -230,7 +367,11 @@ namespace Firefly.Core.Actions
         {
             player = game.GetPlayer(playerId);
             error = null;
-            if (!ReferenceEquals(player, game.CurrentPlayer)) { error = $"It is not {player.Name}'s turn."; return false; }
+            if (!ReferenceEquals(player, game.CurrentPlayer))
+            {
+                error = $"It is not {player.Name}'s turn.";
+                return false;
+            }
             return game.CanTakeAction(TurnAction.Work, out error);
         }
     }
