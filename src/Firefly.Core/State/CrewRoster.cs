@@ -150,6 +150,11 @@ namespace Firefly.Core.State
             return true;
         }
 
+        /// <summary>
+        /// Leaders are Really Lucky: a kill Disgruntles them instead.
+        /// A second Disgruntle fires the rest of the crew ("You're all Ruttin' Fired!").
+        /// Regular crew Jump Ship on a second Disgruntle.
+        /// </summary>
         public CrewOutcome Kill(CrewMember member)
         {
             if (member == null || Find(member.Id) == null)
@@ -269,6 +274,21 @@ namespace Firefly.Core.State
                     return member;
             }
             return null;
+        }
+
+        public int RemoveNamedIf(Func<CrewMember, bool> match)
+        {
+            var n = 0;
+            for (var i = _members.Count - 1; i >= 0; i--)
+            {
+                if (_members[i].IsLeader)
+                    continue;
+                if (!match(_members[i]))
+                    continue;
+                _members.RemoveAt(i);
+                n++;
+            }
+            return n;
         }
 
         public bool HasName(string name)
