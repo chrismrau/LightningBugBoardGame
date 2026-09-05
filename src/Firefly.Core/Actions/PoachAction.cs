@@ -19,7 +19,7 @@ namespace Firefly.Core.Actions
     }
 
     /// <summary>
-    /// A Better Offer (GF9 p.15-17, FAQ 4.1 p.1): on your turn, while sharing a
+    /// A Better Offer (GF9 p.15–17, FAQ 4.1 p.1): on your turn, while sharing a
     /// sector with a rival, pay that Disgruntled crew's hiring cost to the bank.
     /// They jump ship, the Disgruntled token comes off. Does not use an Action.
     /// Leaders cannot be hired away.
@@ -101,6 +101,7 @@ namespace Firefly.Core.Actions
             }
 
             player.Cash -= cost;
+            DeceptiveCrew.AfterHired(game, member.Name);
             result = new PoachResult(member.Id, member.Name, rival.Id, cost);
             return true;
         }
