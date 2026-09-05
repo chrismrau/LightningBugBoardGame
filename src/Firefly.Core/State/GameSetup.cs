@@ -218,6 +218,7 @@ namespace Firefly.Core.State
                 if (!player.Roster.TryHire(leader, out var error))
                     throw new InvalidOperationException(error);
                 player.LeaderId = leader.Id;
+                game.SupplyDecks?.RemoveCrewNamed(leader.Name);
             }
         }
 
