@@ -70,6 +70,41 @@ namespace Firefly.Core.Cards
         public bool TryGet(string planet, out SupplyMarket market) =>
             _byPlanet.TryGetValue(planet, out market!);
 
+        /// <summary>
+        /// Pulls every crew copy of this name out of every market (deck, face-up, discard)
+        /// and refills the row. Used when that person is seated as a Leader.
+        /// </summary>
+        public int RemoveCrewNamed(string name)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+                return 0;
+            var removed = 0;
+            foreach (var market in _byPlanet.Values)
+            {
+                removed += Strip(market.Deck, name);
+                removed += Strip(market.FaceUp, name);
+                removed += Strip(market.Discard, name);
+                market.Refill();
+            }
+            return removed;
+        }
+
+        private static int Strip(IList<SupplyCard> pile, string name)
+        {
+            var n = 0;
+            for (var i = pile.Count - 1; i >= 0; i--)
+            {
+                var card = pile[i];
+                if (card.Kind == SupplyKind.Crew &&
+                    string.Equals(card.Name, name, StringComparison.OrdinalIgnoreCase))
+                {
+                    pile.RemoveAt(i);
+                    n++;
+                }
+            }
+            return n;
+        }
+
         public static SupplyDecks FromCatalog(SupplyCatalog catalog, IRng rng)
         {
             var grouped = new Dictionary<string, List<SupplyCard>>(StringComparer.OrdinalIgnoreCase);
