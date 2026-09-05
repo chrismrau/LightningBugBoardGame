@@ -41,6 +41,7 @@ namespace Firefly.Core.State
         public string HavenSectorId { get; set; }
         public int GoalTokens { get; set; }
         public ISet<int> CompletedGoals { get; }
+        public IList<BoundBounty> BoundBounties { get; }
         public int GeneralHolds => HoldSpace.GeneralSlots(this);
         public int UsedHolds => HoldSpace.UsedGeneral(this);
         public int FreeHolds => HoldSpace.FreeGeneral(this);
@@ -105,6 +106,7 @@ namespace Firefly.Core.State
             ShipId = shipId;
             HavenSectorId = sectorId;
             CompletedGoals = new HashSet<int>();
+            BoundBounties = new List<BoundBounty>();
             Roster = new CrewRoster(maxCrew);
             JobHandLimit = 3;
             ActiveJobLimit = 1;
