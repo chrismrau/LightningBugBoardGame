@@ -239,7 +239,10 @@ namespace Firefly.Core.Actions
                         error = $"Crew card '{card.Id}' is not in the catalog.";
                         return false;
                     }
-                    return player.Roster.TryHire(crew, out error);
+                    if (!player.Roster.TryHire(crew, out error))
+                        return false;
+                    DeceptiveCrew.AfterHired(game, crew.Name);
+                    return true;
                 case SupplyKind.Gear:
                     player.Gear.Add(card.Id);
                     return true;
