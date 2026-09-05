@@ -120,6 +120,8 @@ namespace Firefly.Core.State
             var misbehave = MisbehaveCatalog.LoadDefault();
             game.MisbehaveCatalog = misbehave;
             game.Misbehave = MisbehaveDeck.FromCatalog(misbehave, rng);
+            game.Bounties = BountyCatalog.LoadDefault();
+            game.BountyDeck = BountyDeck.FromCatalog(game.Bounties, rng);
 
             AssignStartingShips(game, seats);
             HireStartingLeaders(game, seats);
