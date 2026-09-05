@@ -125,6 +125,7 @@ namespace Firefly.Core.Actions
                 game.Tokens = new MapTokens(drawn.SectorId, game.Tokens.ReaverCutterSectorIds);
                 game.PendingEncounter = TokenKind.AllianceCruiser;
                 game.PendingEncounterSectorId = drawn.SectorId;
+                game.BountyDeck?.CycleWantedList(game.RemovedFromPlay);
             }
         }
     }

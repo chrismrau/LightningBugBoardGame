@@ -40,6 +40,22 @@ namespace Firefly.Core.Tests
         }
 
         [Fact]
+        public void Heinlein_r1_is_Triumph_then_Silverhold()
+        {
+            var map = LoadMap();
+            Assert.True(map.TryGet("border-heinlein-r1-01", out var triumph));
+            Assert.Equal("Triumph", triumph.Planet);
+            Assert.False(triumph.HasSupplyDeck);
+            Assert.True(map.TryGet("border-heinlein-r1-02", out var silverhold));
+            Assert.Equal("Silverhold", silverhold.Planet);
+            Assert.True(silverhold.HasSupplyDeck);
+            Assert.True(map.TryResolveName("Triumph", out var byName));
+            Assert.Equal("border-heinlein-r1-01", byName.Id);
+            Assert.True(map.TryResolveName("Silverhold", out var silverByName));
+            Assert.Equal("border-heinlein-r1-02", silverByName.Id);
+        }
+
+        [Fact]
         public void Santo_is_qin_shi_huang()
         {
             var map = LoadMap();
