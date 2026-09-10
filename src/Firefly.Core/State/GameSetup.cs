@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Firefly.Core.Cards;
 using Firefly.Core.Data;
 using Firefly.Core.Map;
+using Firefly.Core.Movement;
 
 namespace Firefly.Core.State
 {
@@ -52,6 +53,11 @@ namespace Firefly.Core.State
             "Persephone", "Osiris", "Regina", "Silverhold", "Space Bazaar"
         };
 
+        /// <summary>
+        /// GF9 Firefly Rulebook p.3: Alliance Cruiser starts at Londinium.
+        /// </summary>
+        public const string AllianceCruiserStartSectorId = "alliance-white-sun-r1-02";
+
         public static GameState Standard(params PlayerSeat[] seats) =>
             Create(seats, new GameSetupOptions { SetupCardId = "setup_standard" });
 
@@ -100,7 +106,7 @@ namespace Firefly.Core.State
                     shipId: seat.ShipId));
             }
 
-            var game = new GameState(map, players)
+            var game = new GameState(map, players, new MapTokens(AllianceCruiserStartSectorId))
             {
                 Setup = setup,
                 Scenario = scenario,
