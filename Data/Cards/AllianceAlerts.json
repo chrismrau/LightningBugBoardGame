@@ -42,10 +42,10 @@
       "systemWideText": null
     },
     {
-      "id": "alert_privledge-suspension",
+      "id": "alert_privilege-suspension",
       "source": "CrimeAndPunishment",
       "sourceLabel": "C&P",
-      "name": "Privledge Suspension",
+      "name": "Privilege Suspension",
       "detail": "Players do not count as Solid with Harken while this card is in play.",
       "systemWide": true,
       "systemWideText": ":::SYSTEM WIDE:::\\nDispersion of work contracts to independent contractors is suspended until further notice, pending investigation into new regulatoy framework."
@@ -55,7 +55,7 @@
       "source": "CrimeAndPunishment",
       "sourceLabel": "C&P",
       "name": "Incarceration Order",
-      "detail": "When resolving Alliance Contact, you may remove on of your Wanted Crew from Play instead of paying one Warrant's fine.",
+      "detail": "When resolving Alliance Contact, you may remove one of your Wanted Crew from Play instead of paying one Warrant's fine.",
       "systemWide": true,
       "systemWideText": ":::SYSTEM WIDE:::\\nSee Order 24.4b: Increased Detention Quotas"
     },
