@@ -56,6 +56,7 @@ namespace Firefly.Core.Cards
         public int WinCount { get; }
         public int WinGoalTokens { get; }
         public IReadOnlyList<ScenarioGoal> Goals { get; }
+        public bool StartingAlertCard { get; }
 
         public ScenarioCard(
             string id,
@@ -67,7 +68,8 @@ namespace Firefly.Core.Cards
             int winCash = 0,
             int winCount = 0,
             int winGoalTokens = 0,
-            IReadOnlyList<ScenarioGoal>? goals = null)
+            IReadOnlyList<ScenarioGoal>? goals = null,
+            bool startingAlertCard = false)
         {
             Id = id;
             Name = name;
@@ -79,6 +81,7 @@ namespace Firefly.Core.Cards
             WinCount = winCount;
             WinGoalTokens = winGoalTokens;
             Goals = goals ?? Array.Empty<ScenarioGoal>();
+            StartingAlertCard = startingAlertCard;
         }
 
         public ScenarioGoal? Goal(int number)
@@ -95,6 +98,7 @@ namespace Firefly.Core.Cards
     public sealed class ScenarioCatalog
     {
         private readonly Dictionary<string, ScenarioCard> _byId;
+
         public IReadOnlyDictionary<string, ScenarioCard> Cards => _byId;
 
         public ScenarioCatalog(IEnumerable<ScenarioCard> cards)
@@ -105,6 +109,7 @@ namespace Firefly.Core.Cards
         }
 
         public ScenarioCard Get(string id) => _byId[id];
+
         public static ScenarioCatalog LoadDefault() => LoadFromFile(GameData.ScenarioCardsPath);
 
         public static ScenarioCatalog LoadFromFile(string path)
@@ -114,7 +119,10 @@ namespace Firefly.Core.Cards
             foreach (var card in doc.RootElement.GetProperty("scenarioCards").EnumerateArray())
             {
                 string? winType = null;
-                var winGoal = 0; var winCash = 0; var winCount = 0; var winTokens = 0;
+                var winGoal = 0;
+                var winCash = 0;
+                var winCount = 0;
+                var winTokens = 0;
                 if (card.TryGetProperty("win", out var win))
                 {
                     if (win.TryGetProperty("type", out var type))
@@ -124,6 +132,7 @@ namespace Firefly.Core.Cards
                     winCount = IntProp(win, "count");
                     winTokens = IntProp(win, "goalTokens");
                 }
+
                 var goals = new List<ScenarioGoal>();
                 if (card.TryGetProperty("goals", out var goalArr) && goalArr.ValueKind == JsonValueKind.Array)
                 {
@@ -143,25 +152,44 @@ namespace Firefly.Core.Cards
                             IntProp(g, "number"),
                             g.TryGetProperty("name", out var gn) ? gn.GetString() ?? "" : "",
                             g.TryGetProperty("type", out var gt) ? gt.GetString() : null,
-                            IntProp(g, "count"), IntProp(g, "cash"), IntProp(g, "goalTokens"), IntProp(g, "pay"),
+                            IntProp(g, "count"),
+                            IntProp(g, "cash"),
+                            IntProp(g, "goalTokens"),
+                            IntProp(g, "pay"),
                             g.TryGetProperty("grantsGoalToken", out var grant) && grant.ValueKind == JsonValueKind.True,
                             g.TryGetProperty("location", out var loc) ? loc.GetString() : null,
                             contacts));
                     }
                 }
+
+                var startingAlert = false;
+                if (card.TryGetProperty("setup", out var setupEl)
+                    && setupEl.TryGetProperty("startingAlertCard", out var alertEl)
+                    && alertEl.ValueKind == JsonValueKind.True)
+                {
+                    startingAlert = true;
+                }
+
                 list.Add(new ScenarioCard(
                     card.GetProperty("id").GetString() ?? "",
                     card.GetProperty("name").GetString() ?? "",
                     card.TryGetProperty("duration", out var d) ? d.GetString() : null,
                     card.TryGetProperty("audience", out var a) ? a.GetString() : null,
-                    winType, winGoal, winCash, winCount, winTokens, goals));
+                    winType,
+                    winGoal,
+                    winCash,
+                    winCount,
+                    winTokens,
+                    goals,
+                    startingAlert));
             }
             return new ScenarioCatalog(list);
         }
 
         private static int IntProp(JsonElement el, string name)
         {
-            if (!el.TryGetProperty(name, out var p)) return 0;
+            if (!el.TryGetProperty(name, out var p))
+                return 0;
             return p.ValueKind == JsonValueKind.Number ? p.GetInt32() : 0;
         }
     }
