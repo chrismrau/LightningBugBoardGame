@@ -143,6 +143,10 @@ namespace Firefly.Core.Tests
             Assert.Equal(2, player.Parts);
             Assert.True(player.JobHand.Count > 0);
             Assert.True(player.JobHand.Count <= player.JobHandLimit);
+            Assert.Equal(GameSetup.AllianceCruiserStartSectorId, game.Tokens.AllianceCruiserSectorId);
+            Assert.Equal("alliance-white-sun-r1-02", game.Tokens.AllianceCruiserSectorId);
+            Assert.True(game.Map.TryGet(game.Tokens.AllianceCruiserSectorId!, out var londinium));
+            Assert.Equal("Londinium", londinium.Planet);
         }
 
         [Fact]
@@ -244,6 +248,39 @@ namespace Firefly.Core.Tests
             Assert.Equal(4, game.CurrentPlayer.Roster.MaxCrew);
             Assert.Equal(4, game.CurrentPlayer.CargoHold);
             Assert.Equal(2, game.CurrentPlayer.UpgradeSlots);
+        }
+
+        [Fact]
+        public void Seating_leader_zoe_removes_her_crew_cards_from_supply()
+        {
+            var without = GameSetup.Create(
+                new[] { new PlayerSeat("p1", "Mal", Persephone, leaderId: "Malcolm") },
+                new GameSetupOptions { DealStartingJobs = false, Rng = new SystemRng(1) });
+            var withZoe = GameSetup.Create(
+                new[] { new PlayerSeat("p1", "Zoe", Persephone, shipId: "Jetwash", leaderId: "Zoe") },
+                new GameSetupOptions { DealStartingJobs = false, Rng = new SystemRng(1) });
+
+            Assert.True(CountCrewNamed(without.SupplyDecks!, "Zoe") >= 1);
+            Assert.Equal(0, CountCrewNamed(withZoe.SupplyDecks!, "Zoe"));
+            Assert.Equal("leader_zoe_jetwash", withZoe.CurrentPlayer.LeaderId);
+        }
+
+        private static int CountCrewNamed(SupplyDecks decks, string name)
+        {
+            var n = 0;
+            foreach (var market in decks.Markets)
+            {
+                foreach (var pile in new[] { market.Deck, market.FaceUp, market.Discard })
+                {
+                    foreach (var card in pile)
+                    {
+                        if (card.Kind == SupplyKind.Crew &&
+                            string.Equals(card.Name, name, System.StringComparison.OrdinalIgnoreCase))
+                            n++;
+                    }
+                }
+            }
+            return n;
         }
     }
 }
