@@ -25,6 +25,7 @@ namespace Firefly.Core.Data
         public static string LeadersPath => Path.Combine(CardsDirectory, "Leaders.json");
         public static string ShipsPath => Path.Combine(CardsDirectory, "Ships.json");
         public static string BountiesPath => Path.Combine(CardsDirectory, "Bounties.json");
+        public static string AllianceAlertsPath => Path.Combine(CardsDirectory, "AllianceAlerts.json");
 
         private static readonly Lazy<string> _root = new Lazy<string>(FindRoot);
 
