@@ -1,3 +1,4 @@
+using Firefly.Core.Cards;
 using Firefly.Core.Map;
 using Firefly.Core.State;
 
@@ -54,6 +55,13 @@ namespace Firefly.Core.Actions
             if (!HasPlanet(sector))
             {
                 error = "Shore Leave requires a Planet in this sector.";
+                return false;
+            }
+            var planet = sector.Planet ?? sector.DisplayName;
+            var buyBlock = ActiveAlertRules.BuyBlockReason(game, player, planet);
+            if (buyBlock != null)
+            {
+                error = buyBlock;
                 return false;
             }
             var cost = CostFor(player);

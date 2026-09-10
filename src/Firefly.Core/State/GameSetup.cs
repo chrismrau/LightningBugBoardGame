@@ -122,6 +122,10 @@ namespace Firefly.Core.State
             game.Misbehave = MisbehaveDeck.FromCatalog(misbehave, rng);
             game.Bounties = BountyCatalog.LoadDefault();
             game.BountyDeck = BountyDeck.FromCatalog(game.Bounties, rng);
+            game.AllianceAlerts = AllianceAlertCatalog.LoadDefault();
+            game.AllianceAlertDeck = AllianceAlertDeck.FromCatalog(game.AllianceAlerts, rng);
+            if (setup.StartingAlertCard || (scenario != null && scenario.StartingAlertCard))
+                game.AllianceAlertDeck.DrawAndActivate();
 
             AssignStartingShips(game, seats);
             HireStartingLeaders(game, seats);

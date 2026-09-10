@@ -15,25 +15,46 @@ namespace Firefly.Core.Cards
         public int? StartingCash { get; }
         public int? StartingFuel { get; }
         public int? StartingParts { get; }
+        public bool StartingAlertCard { get; }
 
-        public SetupCard(string id, string name, string? audience, string? timeModifier, int? cash, int? fuel, int? parts)
+        public SetupCard(
+            string id,
+            string name,
+            string? audience,
+            string? timeModifier,
+            int? cash,
+            int? fuel,
+            int? parts,
+            bool startingAlertCard = false)
         {
-            Id = id; Name = name; Audience = audience; TimeModifier = timeModifier;
-            StartingCash = cash; StartingFuel = fuel; StartingParts = parts;
+            Id = id;
+            Name = name;
+            Audience = audience;
+            TimeModifier = timeModifier;
+            StartingCash = cash;
+            StartingFuel = fuel;
+            StartingParts = parts;
+            StartingAlertCard = startingAlertCard;
         }
     }
 
     public sealed class SetupCatalog
     {
         private readonly Dictionary<string, SetupCard> _byId;
+
         public IReadOnlyDictionary<string, SetupCard> Cards => _byId;
+
         public SetupCatalog(IEnumerable<SetupCard> cards)
         {
             _byId = new Dictionary<string, SetupCard>(StringComparer.Ordinal);
-            foreach (var card in cards) _byId[card.Id] = card;
+            foreach (var card in cards)
+                _byId[card.Id] = card;
         }
+
         public SetupCard Get(string id) => _byId[id];
+
         public static SetupCatalog LoadDefault() => LoadFromFile(GameData.SetupCardsPath);
+
         public static SetupCatalog LoadFromFile(string path)
         {
             using var doc = JsonDocument.Parse(File.ReadAllText(path));
@@ -47,12 +68,15 @@ namespace Firefly.Core.Cards
                     if (supplies.TryGetProperty("fuel", out var f)) fuel = f.GetInt32();
                     if (supplies.TryGetProperty("parts", out var p)) parts = p.GetInt32();
                 }
+                var startingAlert = card.TryGetProperty("startingAlertCard", out var sa)
+                    && sa.ValueKind == JsonValueKind.True;
                 list.Add(new SetupCard(
                     card.GetProperty("id").GetString() ?? "",
                     card.GetProperty("name").GetString() ?? "",
                     card.TryGetProperty("audience", out var a) ? a.GetString() : null,
                     card.TryGetProperty("timeModifier", out var t) ? t.GetString() : null,
-                    cash, fuel, parts));
+                    cash, fuel, parts,
+                    startingAlert));
             }
             return new SetupCatalog(list);
         }

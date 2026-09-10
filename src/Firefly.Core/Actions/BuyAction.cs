@@ -80,6 +80,12 @@ namespace Firefly.Core.Actions
                 error = "Must be at a Supply planet to Buy.";
                 return false;
             }
+            var buyBlock = ActiveAlertRules.BuyBlockReason(game, player, planet);
+            if (buyBlock != null)
+            {
+                error = buyBlock;
+                return false;
+            }
 
             var cardIds = request.SupplyCardIds ?? new List<string>();
             if (request.Fuel == 0 && request.Parts == 0 && cardIds.Count == 0)
@@ -151,7 +157,7 @@ namespace Firefly.Core.Actions
                     error = $"'{card.Id}' is not for sale at {planet}.";
                     return false;
                 }
-                if (!GiveCard(game, player, taken, out error))
+                if (!GiveCard(game, player, taken, planet, out error))
                     return false;
                 bought.Add(taken);
             }
@@ -228,7 +234,7 @@ namespace Firefly.Core.Actions
             return true;
         }
 
-        private static bool GiveCard(GameState game, PlayerState player, SupplyCard card, out string? error)
+        private static bool GiveCard(GameState game, PlayerState player, SupplyCard card, string planet, out string? error)
         {
             error = null;
             switch (card.Kind)
@@ -242,6 +248,8 @@ namespace Firefly.Core.Actions
                     if (!player.Roster.TryHire(crew, out error))
                         return false;
                     DeceptiveCrew.AfterHired(game, crew.Name);
+                    if (crew.Wanted)
+                        ActiveAlertRules.OnWantedCrewHired(game, planet);
                     return true;
                 case SupplyKind.Gear:
                     player.Gear.Add(card.Id);

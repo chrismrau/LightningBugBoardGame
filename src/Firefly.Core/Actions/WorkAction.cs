@@ -30,6 +30,11 @@ namespace Firefly.Core.Actions
         }
     }
 
+    /// <summary>
+    /// Work a job from hand or the active slot. A job becomes Active only after
+    /// the first site action succeeds. A botched start stays in hand and does
+    /// not consume an active slot.
+    /// </summary>
     public sealed class WorkAction
     {
         public bool TryWork(GameState game, string playerId, string jobId, out WorkResult? result, out string? error)
@@ -133,11 +138,14 @@ namespace Firefly.Core.Actions
 
             if (!proceed)
             {
+                // Botch spends Work. A start-botch leaves the job in hand;
+                // a later-site botch leaves it Active until a successful complete.
+                var disgruntled = ActiveAlertRules.OnJobBotched(game, player);
                 game.PendingMisbehave = null;
                 game.TryConsumeAction(TurnAction.Work, out _);
                 result = new WorkResult(
                     pending.Site == WorkSite.Pickup ? WorkKind.Pickup : WorkKind.Complete,
-                    job, false, false, 0, 0);
+                    job, false, false, 0, disgruntled);
                 error = null;
                 return true;
             }
@@ -187,9 +195,10 @@ namespace Firefly.Core.Actions
                 return false;
             }
 
-            if (terms.Misbehave > 0)
+            var misbehave = terms.Misbehave + ActiveAlertRules.ExtraIllegalMisbehave(game, player, job);
+            if (misbehave > 0)
             {
-                game.PendingMisbehave = new PendingMisbehave(player.Id, job.Id, site, terms.Misbehave);
+                game.PendingMisbehave = new PendingMisbehave(player.Id, job.Id, site, misbehave);
                 result = new WorkResult(kind, job, true, false, 0, 0);
                 error = null;
                 return true;
@@ -274,6 +283,7 @@ namespace Firefly.Core.Actions
 
             player.JobHand.Remove(job.Id);
             player.RemoveActive(job.Id);
+            ActiveAlertRules.OnJobCompleted(game, job.ContactName);
             game.TryConsumeAction(TurnAction.Work, out _);
             result = new WorkResult(WorkKind.Complete, job, false, false, pay, disgruntled);
             error = null;

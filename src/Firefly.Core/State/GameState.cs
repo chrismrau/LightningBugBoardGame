@@ -57,6 +57,8 @@ namespace Firefly.Core.State
         public PendingMisbehave? PendingMisbehave { get; set; }
         public BountyCatalog? Bounties { get; set; }
         public BountyDeck? BountyDeck { get; set; }
+        public AllianceAlertCatalog? AllianceAlerts { get; set; }
+        public AllianceAlertDeck? AllianceAlertDeck { get; set; }
         public ISet<string> RemovedFromPlay { get; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         public string? WinnerId { get; set; }
         public string? WinReason { get; set; }
