@@ -126,6 +126,7 @@ namespace Firefly.Core.Actions
                 game.PendingEncounter = TokenKind.AllianceCruiser;
                 game.PendingEncounterSectorId = drawn.SectorId;
                 game.BountyDeck?.CycleWantedList(game.RemovedFromPlay);
+                game.AllianceAlertDeck?.DrawAndActivate();
             }
         }
     }
