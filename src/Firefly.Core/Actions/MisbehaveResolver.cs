@@ -62,6 +62,12 @@ namespace Firefly.Core.Actions
         }
     }
 
+    /// <summary>
+    /// Draws and resolves Misbehave cards against a pending Work site.
+    /// TryProceedMisbehave remains the force/skip path used by Work tests.
+    /// Ace auto-succeeds. Replace-card options discard without spending a step.
+    /// Skill bands pick the printed effect; Attempt Botched ends the Work site.
+    /// </summary>
     public sealed class MisbehaveResolver
     {
         private static readonly Regex RequiresPattern = new Regex(
@@ -123,6 +129,8 @@ namespace Firefly.Core.Actions
                     error = $"Cannot use the Ace ({card.Ace}).";
                     return false;
                 }
+                if (IsAllianceAlertUpdate(card, null))
+                    CycleAllianceAlert(game);
                 return Finish(game, playerId, card, null, MisbehaveOutcome.Proceed, null, 0, 0, 0, 0, true, out resolution, out error);
             }
 
@@ -137,6 +145,15 @@ namespace Firefly.Core.Actions
                 return false;
 
             var details = option.Details ?? "";
+            if (IsAllianceAlertUpdate(card, details))
+            {
+                CycleAllianceAlert(game);
+                var die = Dice.D6(rng);
+                var alertOutcome = die <= player.Warrants
+                    ? MisbehaveOutcome.Botched
+                    : MisbehaveOutcome.Proceed;
+                return Finish(game, playerId, card, option, alertOutcome, null, 0, 0, 0, 0, false, out resolution, out error);
+            }
             SkillCheckResult? check = null;
             var bandText = details;
             if (SkillCheck.TryParse(details, out var skillCheck))
@@ -244,10 +261,11 @@ namespace Firefly.Core.Actions
             if (tag.StartsWith("Solid with ", StringComparison.OrdinalIgnoreCase))
             {
                 var name = tag.Substring("Solid with ".Length).Trim();
-                if (player.IsSolidWith(name))
+                if (ActiveAlertRules.CountsAsSolidWith(game, player, name))
                     return true;
                 if (game.Contacts != null && game.Contacts.TryFindByName(name, out var contact))
-                    return player.IsSolidWith(contact.Id) || player.IsSolidWith(contact.Name);
+                    return ActiveAlertRules.CountsAsSolidWith(game, player, contact.Id)
+                        || ActiveAlertRules.CountsAsSolidWith(game, player, contact.Name);
                 return false;
             }
 
@@ -545,5 +563,17 @@ namespace Firefly.Core.Actions
 
         private static bool Contains(string text, string value) =>
             !string.IsNullOrEmpty(text) && text.IndexOf(value, StringComparison.OrdinalIgnoreCase) >= 0;
+
+        private static bool IsAllianceAlertUpdate(MisbehaveCard card, string? details)
+        {
+            if (Contains(details ?? "", "Draw a new Alliance Alert"))
+                return true;
+            if (card.Name != null && card.Name.Equals("Alliance Alert!", StringComparison.OrdinalIgnoreCase))
+                return true;
+            return false;
+        }
+
+        private static void CycleAllianceAlert(GameState game) =>
+            game.AllianceAlertDeck?.DrawAndActivate();
     }
 }
