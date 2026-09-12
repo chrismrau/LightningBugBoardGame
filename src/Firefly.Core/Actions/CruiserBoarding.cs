@@ -115,7 +115,7 @@ namespace Firefly.Core.Actions
                 waivedWarrants = 1;
             }
 
-            game.Tokens = new MapTokens(sector, game.Tokens.ReaverCutterSectorIds);
+            game.Tokens = game.Tokens.WithAllianceCruiser(sector);
 
             var fine = FinePerWarrant * System.Math.Max(0, warrantsAtEncounter - waivedWarrants);
             var paid = fine <= player.Cash ? fine : player.Cash;
