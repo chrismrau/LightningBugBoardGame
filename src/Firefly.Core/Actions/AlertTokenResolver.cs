@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Firefly.Core.Cards;
+using Firefly.Core.Map;
 using Firefly.Core.Movement;
 using Firefly.Core.State;
 
@@ -11,6 +12,18 @@ namespace Firefly.Core.Actions
         /// Which Reaver Cutter the player to the right moves when a Reaver Alert succeeds.
         /// </summary>
         public int ReaverCutterIndex { get; set; }
+
+        /// <summary>
+        /// Alliance Space: Cruiser or Corvette. Border/Rim: Corvette only when in play.
+        /// </summary>
+        public TokenKind? AllianceShip { get; set; }
+
+        /// <summary>
+        /// When Alliance Alert moves the Corvette onto a Cutter, drive-off destination.
+        /// </summary>
+        public string? DriveOffReaverToSectorId { get; set; }
+
+        public CorvetteContactChoice? CorvetteContact { get; set; }
     }
 
     public sealed class AlertKindResolution
@@ -185,15 +198,21 @@ namespace Firefly.Core.Actions
             {
                 if (kind == AlertTokenKind.Alliance)
                 {
-                    game.Tokens = game.Tokens.WithAllianceCruiser(sectorId);
-                    ship = TokenKind.AllianceCruiser;
-                    // Outlaw + Alliance Alert calls Cruiser: Fly Action over; no Nav if Full Burning.
+                    if (!TryMoveAllianceAlertShip(
+                        game,
+                        sectorId,
+                        choice,
+                        out ship,
+                        out error))
+                        return false;
+
+                    // Outlaw + Alliance Alert calls Cruiser/Corvette: Fly Action over; no Nav if Full Burning.
                     if (AlertTokenRules.IsOutlawShip(game.CurrentPlayer))
                     {
                         game.CurrentPlayer.SectorId = sectorId;
                         game.PendingNavDraws.Clear();
                         game.PendingAlertSectors.Clear();
-                        game.PendingEncounter = TokenKind.AllianceCruiser;
+                        game.PendingEncounter = ship;
                         game.PendingEncounterSectorId = sectorId;
                         endedFly = true;
                     }
@@ -222,6 +241,78 @@ namespace Firefly.Core.Actions
             }
 
             roll = new AlertKindResolution(kind, tokenCount, die, arrived, ship);
+            return true;
+        }
+
+        private static bool TryMoveAllianceAlertShip(
+            GameState game,
+            string sectorId,
+            AlertResolveChoice? choice,
+            out TokenKind? ship,
+            out string? error)
+        {
+            ship = null;
+            error = null;
+            if (!game.Map.TryGet(sectorId, out var sector))
+            {
+                error = $"Unknown sector '{sectorId}'.";
+                return false;
+            }
+
+            var preferred = choice?.AllianceShip;
+            TokenKind selected;
+            if (sector.NavRegion == NavRegion.Alliance)
+            {
+                // Alliance Space: Cruiser or Corvette (if in play).
+                if (preferred == TokenKind.OperativeCorvette)
+                {
+                    if (game.Tokens.OperativeCorvetteSectorId == null)
+                    {
+                        error = "Operative's Corvette is not on the board.";
+                        return false;
+                    }
+                    selected = TokenKind.OperativeCorvette;
+                }
+                else if (preferred == TokenKind.AllianceCruiser || preferred == null)
+                {
+                    selected = TokenKind.AllianceCruiser;
+                }
+                else
+                {
+                    error = "Alliance Alert in Alliance Space must choose the Cruiser or Corvette.";
+                    return false;
+                }
+            }
+            else
+            {
+                // Border or Rim: only the Corvette may be chosen (Kalidasa / Director's Cut).
+                if (preferred == TokenKind.AllianceCruiser
+                    && game.Tokens.OperativeCorvetteSectorId != null)
+                {
+                    error = "In Border or Rim Space, only the Operative's Corvette may be chosen.";
+                    return false;
+                }
+                if (game.Tokens.OperativeCorvetteSectorId != null)
+                    selected = TokenKind.OperativeCorvette;
+                else
+                    selected = TokenKind.AllianceCruiser; // Corvette not in play
+            }
+
+            if (selected == TokenKind.AllianceCruiser)
+            {
+                game.Tokens = game.Tokens.WithAllianceCruiser(sectorId);
+                ship = TokenKind.AllianceCruiser;
+                return true;
+            }
+
+            if (!game.Tokens.TryMoveOperativeCorvette(
+                sectorId,
+                out var moved,
+                out error,
+                choice?.DriveOffReaverToSectorId))
+                return false;
+            game.Tokens = moved;
+            ship = TokenKind.OperativeCorvette;
             return true;
         }
     }

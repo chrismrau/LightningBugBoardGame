@@ -143,6 +143,21 @@ namespace Firefly.Core.Movement
             return WithAlertTokens(next);
         }
 
+        /// <summary>
+        /// Remove only Removable Reaver Alert Tokens from a Sector (Alliance tokens stay).
+        /// </summary>
+        public MapTokens ClearRemovableReaverAlerts(string sectorId)
+        {
+            if (!AlertTokens.TryGetValue(sectorId, out var counts) || counts.Reaver == 0)
+                return this;
+            var next = CopyAlerts();
+            if (counts.Alliance == 0)
+                next.Remove(sectorId);
+            else
+                next[sectorId] = new SectorAlertCounts(0, counts.Alliance);
+            return WithAlertTokens(next);
+        }
+
         private Dictionary<string, SectorAlertCounts> CopyAlerts()
         {
             var next = new Dictionary<string, SectorAlertCounts>(AlertTokens.Count, System.StringComparer.OrdinalIgnoreCase);
@@ -203,6 +218,79 @@ namespace Firefly.Core.Movement
             {
                 updated = updated.PlaceAlertToken(fromSectorId, AlertTokenKind.Reaver);
             }
+            return true;
+        }
+
+        /// <summary>
+        /// Moves the Operative's Corvette. Does not leave Alert Tokens.
+        /// Rejects Reaver Starting Zones. Clears Removable Reaver Alert Tokens at the destination.
+        /// If a Reaver Cutter shares the destination, drives it off to <paramref name="driveOffReaverToSectorId"/>.
+        /// </summary>
+        public bool TryMoveOperativeCorvette(
+            string toSectorId,
+            out MapTokens updated,
+            out string? error,
+            string? driveOffReaverToSectorId = null)
+        {
+            updated = this;
+            error = null;
+            if (OperativeCorvetteSectorId == null)
+            {
+                error = "Operative's Corvette is not on the board.";
+                return false;
+            }
+            if (string.IsNullOrWhiteSpace(toSectorId))
+            {
+                error = "Operative's Corvette destination is required.";
+                return false;
+            }
+            if (AlertTokenRules.IsReaverStartingZone(toSectorId))
+            {
+                error = "The Operative's Corvette may not end its move in the Reaver Starting Zones.";
+                return false;
+            }
+
+            var cutterAtDest = -1;
+            for (var i = 0; i < ReaverCutterSectorIds.Count; i++)
+            {
+                if (string.Equals(ReaverCutterSectorIds[i], toSectorId, System.StringComparison.OrdinalIgnoreCase))
+                {
+                    cutterAtDest = i;
+                    break;
+                }
+            }
+
+            updated = WithOperativeCorvette(toSectorId);
+
+            // "Whenever the Operative's Corvette enters a Sector with any Reaver Alert Tokens,
+            // remove the tokens without resolving them."
+            if (updated.RemovableAlertCount(toSectorId, AlertTokenKind.Reaver) > 0)
+                updated = updated.ClearRemovableReaverAlerts(toSectorId);
+
+            if (cutterAtDest >= 0)
+            {
+                if (string.IsNullOrWhiteSpace(driveOffReaverToSectorId))
+                {
+                    error = "Corvette driving off a Reaver requires a Reaver Starting Sector destination.";
+                    return false;
+                }
+                if (!AlertTokenRules.IsReaverStartingZone(driveOffReaverToSectorId!))
+                {
+                    error = "Driven-off Reaver must move to a Reaver Starting Sector.";
+                    return false;
+                }
+                if (!updated.TryMoveReaverCutter(
+                    driveOffReaverToSectorId!,
+                    out var afterDriveOff,
+                    out error,
+                    cutterAtDest,
+                    leaveReaverAlertToken: false))
+                {
+                    return false;
+                }
+                updated = afterDriveOff;
+            }
+
             return true;
         }
 

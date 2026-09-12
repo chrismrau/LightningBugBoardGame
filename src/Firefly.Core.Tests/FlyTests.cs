@@ -84,11 +84,24 @@ namespace Firefly.Core.Tests
         {
             var tokens = new MapTokens(allianceCruiserSectorId: Pelorum);
             var (game, fly, player) = NewGame(tokens: tokens);
+            player.Warrants = 1; // Outlaw Ship — Director's Cut Alliance Contact
             Assert.True(fly.TryFullBurnTo(game, "p1", Pelorum, out var result, out _));
             Assert.Equal(Pelorum, player.SectorId);
             Assert.True(result!.StoppedForEncounter);
             Assert.Equal(TokenKind.AllianceCruiser, game.PendingEncounter);
             Assert.Equal(Pelorum, game.PendingEncounterSectorId);
+        }
+
+        [Fact]
+        public void Legal_ship_FullBurn_through_Cruiser_does_not_stop()
+        {
+            var tokens = new MapTokens(allianceCruiserSectorId: Pelorum);
+            var (game, fly, player) = NewGame(tokens: tokens);
+            Assert.True(fly.TryFullBurnTo(game, "p1", Pelorum, out var result, out _));
+            Assert.Equal(Pelorum, player.SectorId);
+            Assert.False(result!.StoppedForEncounter);
+            Assert.Null(game.PendingEncounter);
+            Assert.Single(game.PendingNavDraws);
         }
 
         [Fact]
