@@ -51,12 +51,18 @@ namespace Firefly.Core.Actions
         /// </summary>
         public string? DriveOffReaverToSectorId { get; set; }
         public CorvetteContactChoice? CorvetteContact { get; set; }
+        /// <summary>
+        /// Destination for Cruiser Patrol / Alliance Entanglements (not the named Alliance Cruiser snap).
+        /// Patrol: chosen by the player to the right. Entanglements: chosen by the drawer.
+        /// </summary>
+        public string? AllianceCruiserToSectorId { get; set; }
     }
 
     /// <summary>
     /// Resolves queued Full Burn Nav draws in order.
     /// Conditional options run a Fight/Tech/Talk test to pick Keep Flying vs Full Stop.
-    /// Alliance Cruiser cards move the Cruiser onto the ship.
+    /// Named "Alliance Cruiser" Nav snaps the Cruiser onto the ship and queues Contact.
+    /// Cruiser Patrol / Alliance Entanglements move the Cruiser per card text without that snap/Contact.
     /// Reaver Cutter cards move a Cutter; the named "Reaver Cutter" card applies Contact immediately.
     /// Operative's Corvette cards move the Corvette per card text; Contact if it ends on an Outlaw.
     /// Evade moves to an adjacent Sector and clears remaining Nav draws.
@@ -352,6 +358,15 @@ namespace Firefly.Core.Actions
                 }
             }
 
+            if (Contains(details, "Requires Solid Harken"))
+            {
+                if (!HasSolidWith(game, game.CurrentPlayer, "Harken"))
+                {
+                    error = "Requires Solid Harken.";
+                    return false;
+                }
+            }
+
             if (Contains(details, "Spend 1 Fuel"))
             {
                 if (game.CurrentPlayer.Fuel < 1)
@@ -362,7 +377,32 @@ namespace Firefly.Core.Actions
                 game.CurrentPlayer.Fuel -= 1;
             }
 
+            if (Contains(details, "Take $500"))
+                game.CurrentPlayer.Cash += 500;
+
             return true;
+        }
+
+        private static bool HasSolidWith(GameState game, PlayerState player, string contactName)
+        {
+            if (ActiveAlertRules.CountsAsSolidWith(game, player, contactName))
+                return true;
+            if (game.Contacts != null && game.Contacts.TryFindByName(contactName, out var contact))
+            {
+                if (ActiveAlertRules.CountsAsSolidWith(game, player, contact.Id)
+                    || ActiveAlertRules.CountsAsSolidWith(game, player, contact.Name))
+                    return true;
+            }
+
+            if (!ActiveAlertRules.IsHarken(contactName))
+                return false;
+            foreach (var id in player.SolidWith)
+            {
+                if (ActiveAlertRules.IsHarken(id)
+                    && ActiveAlertRules.CountsAsSolidWith(game, player, id))
+                    return true;
+            }
+            return false;
         }
 
         private static bool ApplyTokenMoves(
@@ -378,14 +418,10 @@ namespace Firefly.Core.Actions
             triggersCorvetteContact = false;
             error = null;
             var type = drawn.Card.Type ?? "";
-            if (type.Equals("Alliance Cruiser", System.StringComparison.OrdinalIgnoreCase))
+            if (type.Equals("Alliance Cruiser", System.StringComparison.OrdinalIgnoreCase)
+                || IsNamedAllianceCruiserCard(drawn.Card))
             {
-                game.Tokens = game.Tokens.WithAllianceCruiser(drawn.SectorId);
-                game.PendingEncounter = TokenKind.AllianceCruiser;
-                game.PendingEncounterSectorId = drawn.SectorId;
-                game.BountyDeck?.CycleWantedList(game.RemovedFromPlay);
-                game.AllianceAlertDeck?.DrawAndActivate();
-                return true;
+                return ApplyAllianceCruiserTypedCard(game, drawn, option, choice, out error);
             }
 
             if (type.Equals("Operative's Corvette", System.StringComparison.OrdinalIgnoreCase))
@@ -396,6 +432,173 @@ namespace Firefly.Core.Actions
                 return true;
 
             return ApplyReaverCutterCard(game, drawn, option, choice, out triggersReaverContact, out error);
+        }
+
+        /// <summary>
+        /// GF9 p.8 / Director's Cut p.17: named Alliance Cruiser snaps to the drawer;
+        /// Alliance Entanglements — drawer moves the Cruiser; Cruiser Patrol — player to the right
+        /// moves it 1 Sector within Alliance Space. Only the named card queues Contact / Full Stop.
+        /// </summary>
+        private static bool ApplyAllianceCruiserTypedCard(
+            GameState game,
+            DrawnNav drawn,
+            NavOption option,
+            NavResolveChoice? choice,
+            out string? error)
+        {
+            error = null;
+            if (IsNamedAllianceCruiserCard(drawn.Card))
+            {
+                game.Tokens = game.Tokens.WithAllianceCruiser(drawn.SectorId);
+                game.PendingEncounter = TokenKind.AllianceCruiser;
+                game.PendingEncounterSectorId = drawn.SectorId;
+                game.BountyDeck?.CycleWantedList(game.RemovedFromPlay);
+                game.AllianceAlertDeck?.DrawAndActivate();
+                return true;
+            }
+
+            var name = drawn.Card.Name ?? "";
+            var id = drawn.Card.Id ?? "";
+            if (IsCruiserPatrolCard(id, name))
+                return ApplyCruiserPatrol(game, choice, out error);
+            if (IsAllianceEntanglementsCard(id, name))
+                return ApplyAllianceEntanglements(game, option, choice, out error);
+
+            error = $"Unknown Alliance Cruiser-type Nav card '{id}'.";
+            return false;
+        }
+
+        private static bool IsNamedAllianceCruiserCard(NavCard card)
+        {
+            var id = card.Id ?? "";
+            var name = card.Name ?? "";
+            return id.Equals("nav_alliance-cruiser", System.StringComparison.OrdinalIgnoreCase)
+                || name.Equals("Alliance Cruiser", System.StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool IsCruiserPatrolCard(string id, string name) =>
+            id.Equals("nav_cruiser-patrol", System.StringComparison.OrdinalIgnoreCase)
+            || name.Equals("Cruiser Patrol", System.StringComparison.OrdinalIgnoreCase);
+
+        private static bool IsAllianceEntanglementsCard(string id, string name) =>
+            id.Equals("nav_alliance-entanglements", System.StringComparison.OrdinalIgnoreCase)
+            || name.Equals("Alliance Entanglements", System.StringComparison.OrdinalIgnoreCase);
+
+        private static bool ApplyCruiserPatrol(
+            GameState game,
+            NavResolveChoice? choice,
+            out string? error)
+        {
+            error = null;
+            var destination = choice?.AllianceCruiserToSectorId;
+            if (string.IsNullOrWhiteSpace(destination))
+            {
+                error = "Cruiser Patrol requires a destination sector (player to the right).";
+                return false;
+            }
+
+            var from = game.Tokens.AllianceCruiserSectorId;
+            if (string.IsNullOrEmpty(from))
+            {
+                error = "Alliance Cruiser is not on the board.";
+                return false;
+            }
+
+            if (!IsAllianceSpace(game, destination!))
+            {
+                error = "Cruiser Patrol destination must be within Alliance Space.";
+                return false;
+            }
+
+            if (!AreAdjacent(game, from!, destination!))
+            {
+                error = "Cruiser Patrol must move the Cruiser 1 Sector.";
+                return false;
+            }
+
+            game.Tokens = game.Tokens.WithAllianceCruiser(destination);
+            return true;
+        }
+
+        private static bool ApplyAllianceEntanglements(
+            GameState game,
+            NavOption option,
+            NavResolveChoice? choice,
+            out string? error)
+        {
+            error = null;
+            var destination = choice?.AllianceCruiserToSectorId;
+            if (string.IsNullOrWhiteSpace(destination))
+            {
+                error = "Alliance Entanglements requires a destination sector.";
+                return false;
+            }
+
+            if (!IsAllianceSpace(game, destination!))
+            {
+                error = "Alliance Entanglements destination must be an Alliance Sector.";
+                return false;
+            }
+
+            var details = option.Details ?? "";
+            if (RequiresUnoccupiedByFirefly(details) && HasFireflyInSector(game, destination!))
+            {
+                error = "Alliance Entanglements destination must not be occupied by a Firefly.";
+                return false;
+            }
+
+            if (RequiresOutlawShipInSector(details) && !HasOutlawShipInSector(game, destination!))
+            {
+                error = "Alliance Entanglements destination must have an Outlaw Ship.";
+                return false;
+            }
+
+            game.Tokens = game.Tokens.WithAllianceCruiser(destination);
+            return true;
+        }
+
+        private static bool IsAllianceSpace(GameState game, string sectorId)
+        {
+            if (!game.Map.TryGet(sectorId, out var sector))
+                return false;
+            return sector.NavRegion == NavRegion.Alliance;
+        }
+
+        private static bool AreAdjacent(GameState game, string fromSectorId, string toSectorId)
+        {
+            foreach (var n in game.Map.Neighbors(fromSectorId))
+            {
+                if (string.Equals(n, toSectorId, System.StringComparison.OrdinalIgnoreCase))
+                    return true;
+            }
+            return false;
+        }
+
+        private static bool RequiresUnoccupiedByFirefly(string details) =>
+            Contains(details, "not occupied by a Firefly");
+
+        private static bool RequiresOutlawShipInSector(string details) =>
+            Contains(details, "with an Outlaw Ship");
+
+        private static bool HasFireflyInSector(GameState game, string sectorId)
+        {
+            foreach (var player in game.Players)
+            {
+                if (string.Equals(player.SectorId, sectorId, System.StringComparison.OrdinalIgnoreCase))
+                    return true;
+            }
+            return false;
+        }
+
+        private static bool HasOutlawShipInSector(GameState game, string sectorId)
+        {
+            foreach (var player in game.Players)
+            {
+                if (string.Equals(player.SectorId, sectorId, System.StringComparison.OrdinalIgnoreCase)
+                    && AlertTokenRules.IsOutlawShip(player))
+                    return true;
+            }
+            return false;
         }
 
         private static bool ApplyOperativeCorvetteCard(

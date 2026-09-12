@@ -99,6 +99,154 @@ namespace Firefly.Core.Tests
             Assert.Equal("Replace the Whole Damn Mess", resolution.Option.Name);
         }
 
+        [Fact]
+        public void Cruiser_Patrol_moves_one_Alliance_Sector_Keep_Flying_no_Contact()
+        {
+            var (game, resolver, player) = GameWithQueuedDraws(2);
+            game.Tokens = game.Tokens.WithAllianceCruiser(Londinium);
+            game.Decks!.Alliance.PlaceOnTop(game.Decks.Catalog.Get("nav_cruiser-patrol"));
+
+            var choice = new NavResolveChoice { AllianceCruiserToSectorId = Bernadette };
+            Assert.True(resolver.TryAutoResolve(game, out var resolution, out var error, choice: choice), error);
+            Assert.Equal(FlightOutcome.KeepFlying, resolution!.Outcome);
+            Assert.False(resolution.Stopped);
+            Assert.Equal(Bernadette, game.Tokens.AllianceCruiserSectorId);
+            Assert.Null(game.PendingEncounter);
+            Assert.Equal(Pelorum, player.SectorId);
+            Assert.Single(game.PendingNavDraws);
+        }
+
+        [Fact]
+        public void Cruiser_Patrol_rejects_non_adjacent_or_non_Alliance_destination()
+        {
+            var (game, resolver, _) = GameWithQueuedDraws(1);
+            game.Tokens = game.Tokens.WithAllianceCruiser(Londinium);
+            game.Decks!.Alliance.PlaceOnTop(game.Decks.Catalog.Get("nav_cruiser-patrol"));
+
+            Assert.False(resolver.TryAutoResolve(
+                game,
+                out _,
+                out var farError,
+                choice: new NavResolveChoice { AllianceCruiserToSectorId = Pelorum }));
+            Assert.Contains("1 Sector", farError);
+
+            Assert.False(resolver.TryAutoResolve(
+                game,
+                out _,
+                out var borderError,
+                choice: new NavResolveChoice { AllianceCruiserToSectorId = BorderNearPersephone }));
+            Assert.Contains("Alliance Space", borderError);
+        }
+
+        [Fact]
+        public void Alliance_Entanglements_Wild_Gosling_moves_to_empty_Alliance_Sector_no_Contact()
+        {
+            var (game, resolver, player) = GameWithQueuedDraws(1);
+            game.Tokens = game.Tokens.WithAllianceCruiser(Londinium);
+            game.Decks!.Alliance.PlaceOnTop(game.Decks.Catalog.Get("nav_alliance-entanglements"));
+
+            var drawn = resolver.DrawNext(game);
+            Assert.Equal("nav_alliance-entanglements", drawn.Card.Id);
+            Assert.True(resolver.TryResolve(
+                game,
+                0,
+                out var resolution,
+                out var error,
+                choice: new NavResolveChoice { AllianceCruiserToSectorId = EmptyAllianceNearPelorum }), error);
+            Assert.Equal(FlightOutcome.KeepFlying, resolution!.Outcome);
+            Assert.False(resolution.Stopped);
+            Assert.Equal(EmptyAllianceNearPelorum, game.Tokens.AllianceCruiserSectorId);
+            Assert.Null(game.PendingEncounter);
+            Assert.Equal(Pelorum, player.SectorId);
+        }
+
+        [Fact]
+        public void Alliance_Entanglements_Wild_Gosling_rejects_Firefly_occupied_Sector()
+        {
+            var (game, resolver, _) = GameWithQueuedDraws(1);
+            game.Tokens = game.Tokens.WithAllianceCruiser(Londinium);
+            game.Decks!.Alliance.PlaceOnTop(game.Decks.Catalog.Get("nav_alliance-entanglements"));
+            resolver.DrawNext(game);
+
+            Assert.False(resolver.TryResolve(
+                game,
+                0,
+                out _,
+                out var error,
+                choice: new NavResolveChoice { AllianceCruiserToSectorId = Pelorum }));
+            Assert.Contains("Firefly", error);
+        }
+
+        [Fact]
+        public void Alliance_Entanglements_Legitimate_Tip_requires_Solid_Harken_pays_500()
+        {
+            var (game, resolver, player) = GameWithQueuedDraws(1);
+            game.Tokens = game.Tokens.WithAllianceCruiser(Londinium);
+            game.Contacts = ContactCatalog.LoadDefault();
+            player.Warrants = 1; // Outlaw in Pelorum (destination gate runs before Requires)
+            game.Decks!.Alliance.PlaceOnTop(game.Decks.Catalog.Get("nav_alliance-entanglements"));
+            resolver.DrawNext(game);
+
+            Assert.False(resolver.TryResolve(
+                game,
+                1,
+                out _,
+                out var needSolid,
+                choice: new NavResolveChoice { AllianceCruiserToSectorId = Pelorum }));
+            Assert.Contains("Solid Harken", needSolid);
+            Assert.Equal(Londinium, game.Tokens.AllianceCruiserSectorId);
+
+            player.BecomeSolid("contact_harken");
+            Assert.True(resolver.TryResolve(
+                game,
+                1,
+                out var resolution,
+                out var error,
+                choice: new NavResolveChoice { AllianceCruiserToSectorId = Pelorum }), error);
+            Assert.Equal(FlightOutcome.KeepFlying, resolution!.Outcome);
+            Assert.Equal(Pelorum, game.Tokens.AllianceCruiserSectorId);
+            Assert.Equal(500, player.Cash);
+            Assert.Null(game.PendingEncounter);
+        }
+
+        [Fact]
+        public void Alliance_Entanglements_Legitimate_Tip_rejects_Sector_without_Outlaw()
+        {
+            var (game, resolver, player) = GameWithQueuedDraws(1);
+            game.Tokens = game.Tokens.WithAllianceCruiser(Londinium);
+            player.BecomeSolid("contact_harken");
+            game.Decks!.Alliance.PlaceOnTop(game.Decks.Catalog.Get("nav_alliance-entanglements"));
+            resolver.DrawNext(game);
+
+            Assert.False(resolver.TryResolve(
+                game,
+                1,
+                out _,
+                out var error,
+                choice: new NavResolveChoice { AllianceCruiserToSectorId = EmptyAllianceNearPelorum }));
+            Assert.Contains("Outlaw", error);
+        }
+
+        [Fact]
+        public void Named_Alliance_Cruiser_still_snaps_and_queues_Contact()
+        {
+            var (game, resolver, player) = GameWithQueuedDraws(1);
+            game.Tokens = game.Tokens.WithAllianceCruiser(Londinium);
+            player.SectorId = "rim-blue-sun-r3-01";
+            game.Decks!.Alliance.PlaceOnTop(game.Decks.Catalog.Get("nav_alliance-cruiser"));
+
+            Assert.True(resolver.TryAutoResolve(game, out var resolution, out var error), error);
+            Assert.True(resolution!.Stopped);
+            Assert.Equal(Pelorum, player.SectorId);
+            Assert.Equal(TokenKind.AllianceCruiser, game.PendingEncounter);
+            Assert.Equal(Pelorum, game.Tokens.AllianceCruiserSectorId);
+        }
+
+        private const string Londinium = "alliance-white-sun-r1-02";
+        private const string Bernadette = "alliance-white-sun-r1-01";
+        private const string EmptyAllianceNearPelorum = "alliance-white-sun-r3-02";
+        private const string BorderNearPersephone = "border-space-r1-04";
+
         private static (GameState Game, NavResolver Resolver, PlayerState Player) GameWithQueuedDraws(int draws)
         {
             var map = SectorMap.LoadFromDirectory(MapDir);
