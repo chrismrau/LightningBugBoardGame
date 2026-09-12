@@ -122,7 +122,7 @@ namespace Firefly.Core.Actions
             var type = drawn.Card.Type ?? "";
             if (type.Equals("Alliance Cruiser", System.StringComparison.OrdinalIgnoreCase))
             {
-                game.Tokens = new MapTokens(drawn.SectorId, game.Tokens.ReaverCutterSectorIds);
+                game.Tokens = game.Tokens.WithAllianceCruiser(drawn.SectorId);
                 game.PendingEncounter = TokenKind.AllianceCruiser;
                 game.PendingEncounterSectorId = drawn.SectorId;
                 game.BountyDeck?.CycleWantedList(game.RemovedFromPlay);
