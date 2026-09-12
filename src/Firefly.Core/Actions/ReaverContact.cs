@@ -163,6 +163,20 @@ namespace Firefly.Core.Actions
             if (!CanMove(game, player, toSectorId, out error))
                 return false;
             player.SectorId = toSectorId;
+            if (AlertTokenRules.SectorHasAlerts(game.Tokens, toSectorId, game.UseAlertTokens))
+            {
+                var already = false;
+                foreach (var pending in game.PendingAlertSectors)
+                {
+                    if (string.Equals(pending, toSectorId, System.StringComparison.OrdinalIgnoreCase))
+                    {
+                        already = true;
+                        break;
+                    }
+                }
+                if (!already)
+                    game.PendingAlertSectors.Add(toSectorId);
+            }
             return true;
         }
     }

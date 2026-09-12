@@ -123,6 +123,8 @@ namespace Firefly.Core.Actions
             {
                 steps.Add(step);
                 path.Add(step.SectorId);
+                if (AlertTokenRules.SectorHasAlerts(game.Tokens, step.SectorId, game.UseAlertTokens))
+                    game.PendingAlertSectors.Add(step.SectorId);
                 if (step.DrawsNavCard)
                     game.PendingNavDraws.Add(new PendingNavDraw(step.SectorId, step.NavRegion));
 
