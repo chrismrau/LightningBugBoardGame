@@ -32,6 +32,15 @@ namespace Firefly.Core.State
         public IRng? Rng { get; set; }
         public bool DealStartingJobs { get; set; } = true;
         public int PrimeSupplyReveal { get; set; } = 3;
+        /// <summary>
+        /// Blue Sun / Kalidasa: place the Operative's Corvette. Off for core-only setup.
+        /// </summary>
+        public bool UseOperativesCorvette { get; set; }
+
+        /// <summary>
+        /// Blue Sun: three Reaver Cutters on Burnham r2. Core: one Cutter in Border Space.
+        /// </summary>
+        public bool UseBlueSun { get; set; }
     }
 
     /// <summary>
@@ -57,6 +66,27 @@ namespace Firefly.Core.State
         /// GF9 Firefly Rulebook p.3: Alliance Cruiser starts at Londinium.
         /// </summary>
         public const string AllianceCruiserStartSectorId = "alliance-white-sun-r1-02";
+
+        /// <summary>
+        /// Blue Sun / Kalidasa: Operative's Corvette starts at Cortex Relay 2
+        /// when that ship is in the game.
+        /// </summary>
+        public const string OperativeCorvetteStartSectorId = "rim-cortex-relay-2-r1-11";
+
+        /// <summary>
+        /// GF9 core: single Reaver Cutter starts in Border Space.
+        /// </summary>
+        public const string CoreReaverCutterStartSectorId = "border-space-r2-06";
+
+        /// <summary>
+        /// Blue Sun: one Reaver Cutter in each Burnham ring-2 sector.
+        /// </summary>
+        public static readonly string[] BlueSunReaverCutterStartSectorIds =
+        {
+            "rim-burnham-r2-01",
+            "rim-burnham-r2-02",
+            "rim-burnham-r2-03"
+        };
 
         public static GameState Standard(params PlayerSeat[] seats) =>
             Create(seats, new GameSetupOptions { SetupCardId = "setup_standard" });
@@ -106,7 +136,14 @@ namespace Firefly.Core.State
                     shipId: seat.ShipId));
             }
 
-            var game = new GameState(map, players, new MapTokens(AllianceCruiserStartSectorId))
+            var corvette = options.UseOperativesCorvette ? OperativeCorvetteStartSectorId : null;
+            var reavers = options.UseBlueSun
+                ? BlueSunReaverCutterStartSectorIds
+                : new[] { CoreReaverCutterStartSectorId };
+            var game = new GameState(
+                map,
+                players,
+                new MapTokens(AllianceCruiserStartSectorId, reavers, corvette))
             {
                 Setup = setup,
                 Scenario = scenario,
