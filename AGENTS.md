@@ -32,6 +32,7 @@ Quote the relevant sentence in the commit or PR description when a rule is non-o
 - Map JSON: `Data/Map/Sectors.json`, `Data/Map/Adjacency.json`
 - Official PDFs / TSVs: `Documents/`
 - Reference art: `reference/`
+- Compact of work already shipped: `project_history.md`
 
 On case-sensitive filesystems use the GitHub casing (`Data/`, `Documents/`, `src/`). Some working copies use `data/`. Do not “fix” path casing as a drive-by change.
 
