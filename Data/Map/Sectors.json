@@ -1,1 +1,8 @@
-LOAD_FROM_LOCAL_FAILED_USE_FULL
+{
+  "meta": {
+    "description": "Firefly: The Game \u2013 Complete sectors from user board markup",
+    "schemaVersion": "3.4",
+    "count": 155
+  },
+  "sectors": []
+}
