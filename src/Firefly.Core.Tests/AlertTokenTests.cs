@@ -16,7 +16,6 @@ namespace Firefly.Core.Tests
         private const string CutterAdjacent = "border-space-r2-05";
         private const string CutterAdjacentAlt = "border-space-r2-07";
         private const string ReaverSpace = "rim-burnham-r2-01";
-        private const string ReaverSpaceNeighbor = "rim-burnham-r2-02";
 
         [Fact]
         public void Moving_Reaver_Cutter_places_Reaver_Alert_Token_in_vacated_sector()
