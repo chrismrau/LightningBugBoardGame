@@ -149,7 +149,22 @@ namespace Firefly.Core.State
             _used.Clear();
             CurrentPlayerIndex = (CurrentPlayerIndex + 1) % Players.Count;
             if (!GameOver)
+            {
                 WinCheck.Refresh(this, WinPhase.StartOfTurn);
+                QueueStartOfTurnReaverContact();
+            }
+        }
+
+        /// <summary>
+        /// GF9 p.8: "If you start your turn in the same Sector as the Reaver Cutter,
+        /// resolve the Reaver Contact event."
+        /// </summary>
+        private void QueueStartOfTurnReaverContact()
+        {
+            if (Tokens.EncounterAt(CurrentPlayer.SectorId) != TokenKind.ReaverCutter)
+                return;
+            PendingEncounter = TokenKind.ReaverCutter;
+            PendingEncounterSectorId = CurrentPlayer.SectorId;
         }
     }
 }

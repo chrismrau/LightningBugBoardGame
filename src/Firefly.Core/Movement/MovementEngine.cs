@@ -49,7 +49,11 @@ namespace Firefly.Core.Movement
                 return false;
             }
 
-            plan = BuildPlan(MovementKind.Mosey, new[] { fromId, toId }, tokens ?? MapTokens.None, fuelCost: 0, drawNav: false);
+            var mapTokens = tokens ?? MapTokens.None;
+            if (!CanEnter(toId, mapTokens, out error))
+                return false;
+
+            plan = BuildPlan(MovementKind.Mosey, new[] { fromId, toId }, mapTokens, fuelCost: 0, drawNav: false);
             return true;
         }
 
@@ -90,6 +94,7 @@ namespace Firefly.Core.Movement
                 return false;
             }
 
+            var mapTokens = tokens ?? MapTokens.None;
             var seen = new HashSet<string>(StringComparer.Ordinal) { path[0] };
             for (var i = 1; i < path.Count; i++)
             {
@@ -108,9 +113,11 @@ namespace Firefly.Core.Movement
                     error = $"Path revisits '{path[i]}'.";
                     return false;
                 }
+                if (!CanEnter(path[i], mapTokens, out error))
+                    return false;
             }
 
-            plan = BuildPlan(MovementKind.FullBurn, path, tokens ?? MapTokens.None, fuelCost: 1, drawNav: true);
+            plan = BuildPlan(MovementKind.FullBurn, path, mapTokens, fuelCost: 1, drawNav: true);
             return true;
         }
 
@@ -198,6 +205,21 @@ namespace Firefly.Core.Movement
                     return true;
             }
             return false;
+        }
+
+        /// <summary>
+        /// GF9 / Director's Cut: when a Sector is occupied by the Reaver Cutter,
+        /// no ship may move into that Sector. (Blue Sun Mosey exception is expansion-scoped.)
+        /// </summary>
+        private static bool CanEnter(string sectorId, MapTokens tokens, out string? error)
+        {
+            error = null;
+            if (tokens.EncounterAt(sectorId) == TokenKind.ReaverCutter)
+            {
+                error = "No ship may move into a Sector occupied by the Reaver Cutter.";
+                return false;
+            }
+            return true;
         }
 
         private MovementPlan BuildPlan(

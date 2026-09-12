@@ -92,6 +92,50 @@ namespace Firefly.Core.Movement
         public MapTokens WithOperativeCorvette(string? sectorId) =>
             new MapTokens(AllianceCruiserSectorId, ReaverCutterSectorIds, sectorId);
 
+        public MapTokens WithReaverCutters(IReadOnlyList<string> sectorIds) =>
+            new MapTokens(AllianceCruiserSectorId, sectorIds, OperativeCorvetteSectorId);
+
+        /// <summary>
+        /// Moves one Reaver Cutter token to <paramref name="toSectorId"/>.
+        /// Only one Reaver ship may occupy a Sector (Blue Sun); rejects stacking Cutters.
+        /// </summary>
+        public bool TryMoveReaverCutter(string toSectorId, out MapTokens updated, out string? error, int cutterIndex = 0)
+        {
+            updated = this;
+            error = null;
+            if (ReaverCutterSectorIds.Count == 0)
+            {
+                error = "No Reaver Cutter is on the board.";
+                return false;
+            }
+            if (cutterIndex < 0 || cutterIndex >= ReaverCutterSectorIds.Count)
+            {
+                error = "Invalid Reaver Cutter index.";
+                return false;
+            }
+            if (string.IsNullOrWhiteSpace(toSectorId))
+            {
+                error = "Reaver Cutter destination is required.";
+                return false;
+            }
+            for (var i = 0; i < ReaverCutterSectorIds.Count; i++)
+            {
+                if (i == cutterIndex)
+                    continue;
+                if (ReaverCutterSectorIds[i] == toSectorId)
+                {
+                    error = "Only 1 Reaver ship may ever be in a Sector.";
+                    return false;
+                }
+            }
+
+            var next = new string[ReaverCutterSectorIds.Count];
+            for (var i = 0; i < ReaverCutterSectorIds.Count; i++)
+                next[i] = i == cutterIndex ? toSectorId : ReaverCutterSectorIds[i];
+            updated = WithReaverCutters(next);
+            return true;
+        }
+
         public TokenKind? EncounterAt(string sectorId)
         {
             if (AllianceCruiserSectorId != null && AllianceCruiserSectorId == sectorId)
