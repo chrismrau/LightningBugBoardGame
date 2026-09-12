@@ -130,10 +130,18 @@ namespace Firefly.Core.Actions
 
                 if (truncateOnEncounter && step.Encounter.HasValue)
                 {
-                    game.PendingEncounter = step.Encounter;
-                    game.PendingEncounterSectorId = step.SectorId;
-                    stopped = true;
-                    break;
+                    var encounter = step.Encounter.Value;
+                    // Director's Cut: Cruiser / Corvette Contact only for Outlaw Ships.
+                    // Reaver Cutter cannot be entered (MovementEngine rejects).
+                    var allianceToken = encounter == TokenKind.AllianceCruiser
+                        || encounter == TokenKind.OperativeCorvette;
+                    if (!allianceToken || AlertTokenRules.IsOutlawShip(player))
+                    {
+                        game.PendingEncounter = encounter;
+                        game.PendingEncounterSectorId = step.SectorId;
+                        stopped = true;
+                        break;
+                    }
                 }
             }
 

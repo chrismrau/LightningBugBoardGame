@@ -1,4 +1,5 @@
 using Firefly.Core.Cards;
+using Firefly.Core.Map;
 using Firefly.Core.Movement;
 using Firefly.Core.State;
 
@@ -12,6 +13,8 @@ namespace Firefly.Core.Actions
         public bool Stopped { get; }
         public SkillCheckResult? SkillCheck { get; }
         public ReaverContactResult? ReaverContact { get; }
+        public CorvetteContactResult? CorvetteContact { get; }
+        public bool ReaverCutterBlockedByCorvette { get; }
 
         public NavResolution(
             DrawnNav drawn,
@@ -19,7 +22,9 @@ namespace Firefly.Core.Actions
             FlightOutcome outcome,
             bool stopped,
             SkillCheckResult? skillCheck = null,
-            ReaverContactResult? reaverContact = null)
+            ReaverContactResult? reaverContact = null,
+            CorvetteContactResult? corvetteContact = null,
+            bool reaverCutterBlockedByCorvette = false)
         {
             Drawn = drawn;
             Option = option;
@@ -27,6 +32,8 @@ namespace Firefly.Core.Actions
             Stopped = stopped;
             SkillCheck = skillCheck;
             ReaverContact = reaverContact;
+            CorvetteContact = corvetteContact;
+            ReaverCutterBlockedByCorvette = reaverCutterBlockedByCorvette;
         }
     }
 
@@ -38,6 +45,12 @@ namespace Firefly.Core.Actions
         public string? EvadeToSectorId { get; set; }
         public string? ReaverCutterToSectorId { get; set; }
         public int ReaverCutterIndex { get; set; }
+        public string? OperativeCorvetteToSectorId { get; set; }
+        /// <summary>
+        /// When Corvette enters a Cutter's Sector, where that Cutter is driven off to (Reaver Starting Zone).
+        /// </summary>
+        public string? DriveOffReaverToSectorId { get; set; }
+        public CorvetteContactChoice? CorvetteContact { get; set; }
     }
 
     /// <summary>
@@ -45,6 +58,7 @@ namespace Firefly.Core.Actions
     /// Conditional options run a Fight/Tech/Talk test to pick Keep Flying vs Full Stop.
     /// Alliance Cruiser cards move the Cruiser onto the ship.
     /// Reaver Cutter cards move a Cutter; the named "Reaver Cutter" card applies Contact immediately.
+    /// Operative's Corvette cards move the Corvette per card text; Contact if it ends on an Outlaw.
     /// Evade moves to an adjacent Sector and clears remaining Nav draws.
     /// </summary>
     public sealed class NavResolver
@@ -102,6 +116,23 @@ namespace Firefly.Core.Actions
                 error = "No Nav card is face up. Draw next first.";
                 return false;
             }
+
+            var drawnEarly = FaceUp;
+            if (IsReaverCutterCardProtectedByCorvette(game, drawnEarly))
+            {
+                game.Decks!.For(drawnEarly.Region).ResolveIntoDiscard(drawnEarly.Card);
+                FaceUp = null;
+                resolution = new NavResolution(
+                    drawnEarly,
+                    drawnEarly.Card.Options.Count > 0
+                        ? drawnEarly.Card.Options[0]
+                        : new NavOption(null, "", FlightOutcome.KeepFlying),
+                    FlightOutcome.KeepFlying,
+                    stopped: false,
+                    reaverCutterBlockedByCorvette: true);
+                return true;
+            }
+
             if (optionIndex < 0 || optionIndex >= FaceUp.Card.Options.Count)
             {
                 error = "Invalid option index.";
@@ -123,7 +154,14 @@ namespace Firefly.Core.Actions
             var pendingBefore = game.PendingEncounter;
             var pendingSectorBefore = game.PendingEncounterSectorId;
 
-            if (!ApplyTokenMoves(game, drawn, option, choice, out var triggersReaverContact, out error))
+            if (!ApplyTokenMoves(
+                game,
+                drawn,
+                option,
+                choice,
+                out var triggersReaverContact,
+                out var triggersCorvetteContact,
+                out error))
                 return false;
 
             void RollbackTokens()
@@ -174,6 +212,7 @@ namespace Firefly.Core.Actions
             }
 
             ReaverContactResult? reaverContact = null;
+            CorvetteContactResult? corvetteContact = null;
             var stopped = outcome == FlightOutcome.FullStop || outcome == FlightOutcome.Evade;
 
             if (triggersReaverContact)
@@ -186,6 +225,24 @@ namespace Firefly.Core.Actions
                 }
                 game.PendingNavDraws.Clear();
                 outcome = FlightOutcome.Evade;
+                stopped = true;
+            }
+            else if (triggersCorvetteContact)
+            {
+                game.CurrentPlayer.SectorId = drawn.SectorId;
+                if (!CorvetteContact.TryApplyImmediate(
+                    game,
+                    out corvetteContact,
+                    out error,
+                    choice?.CorvetteContact))
+                {
+                    RollbackTokens();
+                    return false;
+                }
+                game.PendingEncounter = null;
+                game.PendingEncounterSectorId = null;
+                game.PendingNavDraws.Clear();
+                outcome = FlightOutcome.FullStop;
                 stopped = true;
             }
             else if (outcome == FlightOutcome.FullStop)
@@ -206,7 +263,8 @@ namespace Firefly.Core.Actions
 
             game.Decks!.For(drawn.Region).ResolveIntoDiscard(drawn.Card);
             FaceUp = null;
-            resolution = new NavResolution(drawn, option, outcome, stopped, check, reaverContact);
+            resolution = new NavResolution(
+                drawn, option, outcome, stopped, check, reaverContact, corvetteContact);
             return true;
         }
 
@@ -265,6 +323,9 @@ namespace Firefly.Core.Actions
         {
             resolution = null;
             var drawn = DrawNext(game);
+            // Corvette protects against Reaver Cutter Nav even when the card has multiple options.
+            if (IsReaverCutterCardProtectedByCorvette(game, drawn))
+                return TryResolve(game, 0, out resolution, out error, rng, choice);
             if (drawn.Card.Options.Count != 1)
             {
                 error = "Card requires an option choice.";
@@ -310,9 +371,11 @@ namespace Firefly.Core.Actions
             NavOption option,
             NavResolveChoice? choice,
             out bool triggersReaverContact,
+            out bool triggersCorvetteContact,
             out string? error)
         {
             triggersReaverContact = false;
+            triggersCorvetteContact = false;
             error = null;
             var type = drawn.Card.Type ?? "";
             if (type.Equals("Alliance Cruiser", System.StringComparison.OrdinalIgnoreCase))
@@ -325,10 +388,164 @@ namespace Firefly.Core.Actions
                 return true;
             }
 
+            if (type.Equals("Operative's Corvette", System.StringComparison.OrdinalIgnoreCase))
+                return ApplyOperativeCorvetteCard(
+                    game, drawn, option, choice, out triggersCorvetteContact, out error);
+
             if (!type.Equals("Reaver Cutter", System.StringComparison.OrdinalIgnoreCase))
                 return true;
 
             return ApplyReaverCutterCard(game, drawn, option, choice, out triggersReaverContact, out error);
+        }
+
+        private static bool ApplyOperativeCorvetteCard(
+            GameState game,
+            DrawnNav drawn,
+            NavOption option,
+            NavResolveChoice? choice,
+            out bool triggersCorvetteContact,
+            out string? error)
+        {
+            triggersCorvetteContact = false;
+            error = null;
+            var destination = choice?.OperativeCorvetteToSectorId;
+            if (string.IsNullOrWhiteSpace(destination))
+            {
+                error = "Operative's Corvette move requires a destination sector.";
+                return false;
+            }
+
+            if (!TryValidateCorvetteDestination(game, drawn, option.Details ?? "", destination!, out error))
+                return false;
+
+            if (!game.Tokens.TryMoveOperativeCorvette(
+                destination!,
+                out var moved,
+                out error,
+                choice?.DriveOffReaverToSectorId))
+                return false;
+
+            game.Tokens = moved;
+
+            // Contact when Corvette ends its move in an Outlaw Ship's Sector (current player).
+            if (string.Equals(game.CurrentPlayer.SectorId, destination, System.StringComparison.OrdinalIgnoreCase)
+                && AlertTokenRules.IsOutlawShip(game.CurrentPlayer))
+            {
+                game.PendingEncounter = TokenKind.OperativeCorvette;
+                game.PendingEncounterSectorId = destination;
+                triggersCorvetteContact = true;
+            }
+            return true;
+        }
+
+        private static bool TryValidateCorvetteDestination(
+            GameState game,
+            DrawnNav drawn,
+            string details,
+            string destination,
+            out string? error)
+        {
+            error = null;
+            if (!game.Map.TryGet(destination, out var sector))
+            {
+                error = $"Unknown sector '{destination}'.";
+                return false;
+            }
+
+            // Corvette may enter Alliance, Border, or Rim Space (any map sector) — already true for our map.
+            if (RequiresUnoccupied(details) && !IsUnoccupiedSector(game, destination))
+            {
+                error = "Operative's Corvette destination must be unoccupied.";
+                return false;
+            }
+
+            if (RequiresPlanetary(details) && !sector.IsPlanetary && string.IsNullOrWhiteSpace(sector.Planet))
+            {
+                error = "Operative's Corvette destination must be a Planetary Sector.";
+                return false;
+            }
+
+            if (RequiresAdjacentToDraw(details))
+            {
+                var adjacent = false;
+                foreach (var n in game.Map.Neighbors(drawn.SectorId))
+                {
+                    if (string.Equals(n, destination, System.StringComparison.OrdinalIgnoreCase))
+                    {
+                        adjacent = true;
+                        break;
+                    }
+                }
+                if (!adjacent)
+                {
+                    error = "Operative's Corvette destination must be adjacent to your current location.";
+                    return false;
+                }
+            }
+
+            if (RequiresOneOrTwoSectors(details))
+            {
+                var from = game.Tokens.OperativeCorvetteSectorId;
+                if (string.IsNullOrEmpty(from))
+                {
+                    error = "Operative's Corvette is not on the board.";
+                    return false;
+                }
+                var path = new Pathfinder(game.Map).ShortestPath(from!, destination);
+                if (path == null)
+                {
+                    error = "No path for Operative's Corvette move.";
+                    return false;
+                }
+                var distance = path.Count - 1;
+                if (distance < 1 || distance > 2)
+                {
+                    error = "Operative's Corvette must move 1 or 2 Sectors.";
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private static bool IsUnoccupiedSector(GameState game, string sectorId)
+        {
+            if (game.Tokens.EncounterAt(sectorId).HasValue)
+                return false;
+            foreach (var player in game.Players)
+            {
+                if (string.Equals(player.SectorId, sectorId, System.StringComparison.OrdinalIgnoreCase))
+                    return false;
+            }
+            return true;
+        }
+
+        private static bool RequiresUnoccupied(string details) =>
+            Contains(details, "unoccupied");
+
+        private static bool RequiresPlanetary(string details) =>
+            Contains(details, "Planetary Sector");
+
+        private static bool RequiresAdjacentToDraw(string details) =>
+            Contains(details, "adjacent to your current location");
+
+        private static bool RequiresOneOrTwoSectors(string details) =>
+            Contains(details, "1 or 2 Sectors") || Contains(details, "1 or 2 sectors");
+
+        /// <summary>
+        /// Kalidasa / Director's Cut: Reaver Cutter Nav while moving into the Corvette's Sector
+        /// is cancelled; reshuffle normally.
+        /// </summary>
+        private static bool IsReaverCutterCardProtectedByCorvette(GameState game, DrawnNav drawn)
+        {
+            var type = drawn.Card.Type ?? "";
+            var name = drawn.Card.Name ?? "";
+            if (!type.Equals("Reaver Cutter", System.StringComparison.OrdinalIgnoreCase)
+                && !name.Equals("Reaver Cutter", System.StringComparison.OrdinalIgnoreCase))
+                return false;
+            var corvette = game.Tokens.OperativeCorvetteSectorId;
+            return corvette != null
+                && string.Equals(corvette, drawn.SectorId, System.StringComparison.OrdinalIgnoreCase);
         }
 
         private static bool ApplyReaverCutterCard(

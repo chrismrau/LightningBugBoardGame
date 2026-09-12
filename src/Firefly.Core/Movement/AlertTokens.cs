@@ -69,6 +69,13 @@ namespace Firefly.Core.Movement
         }
 
         /// <summary>
+        /// Director's Cut / Kalidasa: Reaver Starting Zones = the three Burnham ring-2 sectors.
+        /// The Operative's Corvette may not end its move there.
+        /// </summary>
+        public static bool IsReaverStartingZone(string sectorId) =>
+            HasPermanentReaverAlert(sectorId);
+
+        /// <summary>
         /// FAQ 4.1: Legal Ship = no Contraband, no Fugitives, no Wanted crew, no Warrants.
         /// </summary>
         public static bool IsOutlawShip(State.PlayerState player) =>
