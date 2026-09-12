@@ -41,6 +41,12 @@ namespace Firefly.Core.State
         /// Blue Sun: three Reaver Cutters on Burnham r2. Core: one Cutter in Border Space.
         /// </summary>
         public bool UseBlueSun { get; set; }
+
+        /// <summary>
+        /// Blue Sun physical Alert Tokens. Defaults to on when <see cref="UseBlueSun"/> is set;
+        /// set to false for Setup cards that disable Alert Tokens (e.g. Clearer Skies).
+        /// </summary>
+        public bool? UseAlertTokens { get; set; }
     }
 
     /// <summary>
@@ -147,6 +153,7 @@ namespace Firefly.Core.State
             {
                 Setup = setup,
                 Scenario = scenario,
+                UseAlertTokens = options.UseBlueSun && options.UseAlertTokens != false,
                 Jobs = JobCatalog.LoadDefault(),
                 Contacts = ContactCatalog.LoadDefault(),
                 Crew = CrewCatalog.LoadDefault(),

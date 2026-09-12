@@ -37,8 +37,17 @@ namespace Firefly.Core.State
         public int ActionsUsedThisTurn { get; private set; }
         public TurnAction LastAction { get; private set; }
         public IList<PendingNavDraw> PendingNavDraws { get; }
+        /// <summary>
+        /// Sectors entered during Fly that still need Alert Token resolution before their Nav draw.
+        /// </summary>
+        public IList<string> PendingAlertSectors { get; }
         public TokenKind? PendingEncounter { get; set; }
         public string? PendingEncounterSectorId { get; set; }
+        /// <summary>
+        /// Blue Sun physical Alert Tokens (spawn / resolve / permanent Reaver Space).
+        /// Off for core-only; on when <see cref="GameSetupOptions.UseBlueSun"/> unless a Setup card disables them.
+        /// </summary>
+        public bool UseAlertTokens { get; set; }
         public NavDecks? Decks { get; set; }
         public JobCatalog? Jobs { get; set; }
         public ContactCatalog? Contacts { get; set; }
@@ -67,7 +76,10 @@ namespace Firefly.Core.State
         public bool ActionTaken => ActionsUsedThisTurn > 0;
         public bool TurnComplete => ActionsUsedThisTurn >= ActionsPerTurn;
         public bool HasPendingEvents =>
-            PendingNavDraws.Count > 0 || PendingEncounter.HasValue || PendingMisbehave != null;
+            PendingNavDraws.Count > 0
+            || PendingAlertSectors.Count > 0
+            || PendingEncounter.HasValue
+            || PendingMisbehave != null;
 
         public GameState(SectorMap map, IReadOnlyList<PlayerState> players, MapTokens? tokens = null, NavDecks? decks = null)
         {
@@ -77,6 +89,7 @@ namespace Firefly.Core.State
             Players = players;
             Tokens = tokens ?? MapTokens.None;
             PendingNavDraws = new List<PendingNavDraw>();
+            PendingAlertSectors = new List<string>();
             Decks = decks;
         }
 
@@ -95,6 +108,7 @@ namespace Firefly.Core.State
         public void ClearPendingEvents()
         {
             PendingNavDraws.Clear();
+            PendingAlertSectors.Clear();
             PendingEncounter = null;
             PendingEncounterSectorId = null;
             PendingMisbehave = null;
@@ -110,7 +124,7 @@ namespace Firefly.Core.State
             }
             if (HasPendingEvents)
             {
-                error = "Resolve pending Nav cards, encounters, or Misbehave before taking another action.";
+                error = "Resolve pending Alert Tokens, Nav cards, encounters, or Misbehave before taking another action.";
                 return false;
             }
             if (TurnComplete)

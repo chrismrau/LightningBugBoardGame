@@ -74,32 +74,95 @@ namespace Firefly.Core.Movement
         public string? OperativeCorvetteSectorId { get; }
         public IReadOnlyList<string> ReaverCutterSectorIds { get; }
 
+        /// <summary>
+        /// Removable Blue Sun Alert Tokens by sector. Permanent Reaver Space alerts are not stored here.
+        /// </summary>
+        public IReadOnlyDictionary<string, SectorAlertCounts> AlertTokens { get; }
+
         public MapTokens(
             string? allianceCruiserSectorId = null,
             IReadOnlyList<string>? reaverCutterSectorIds = null,
-            string? operativeCorvetteSectorId = null)
+            string? operativeCorvetteSectorId = null,
+            IReadOnlyDictionary<string, SectorAlertCounts>? alertTokens = null)
         {
             AllianceCruiserSectorId = allianceCruiserSectorId;
             ReaverCutterSectorIds = reaverCutterSectorIds ?? new List<string>();
             OperativeCorvetteSectorId = operativeCorvetteSectorId;
+            AlertTokens = alertTokens ?? EmptyAlerts;
         }
+
+        private static readonly IReadOnlyDictionary<string, SectorAlertCounts> EmptyAlerts =
+            new Dictionary<string, SectorAlertCounts>();
 
         public static MapTokens None { get; } = new MapTokens();
 
         public MapTokens WithAllianceCruiser(string? sectorId) =>
-            new MapTokens(sectorId, ReaverCutterSectorIds, OperativeCorvetteSectorId);
+            new MapTokens(sectorId, ReaverCutterSectorIds, OperativeCorvetteSectorId, AlertTokens);
 
         public MapTokens WithOperativeCorvette(string? sectorId) =>
-            new MapTokens(AllianceCruiserSectorId, ReaverCutterSectorIds, sectorId);
+            new MapTokens(AllianceCruiserSectorId, ReaverCutterSectorIds, sectorId, AlertTokens);
 
         public MapTokens WithReaverCutters(IReadOnlyList<string> sectorIds) =>
-            new MapTokens(AllianceCruiserSectorId, sectorIds, OperativeCorvetteSectorId);
+            new MapTokens(AllianceCruiserSectorId, sectorIds, OperativeCorvetteSectorId, AlertTokens);
+
+        public MapTokens WithAlertTokens(IReadOnlyDictionary<string, SectorAlertCounts> alertTokens) =>
+            new MapTokens(AllianceCruiserSectorId, ReaverCutterSectorIds, OperativeCorvetteSectorId, alertTokens);
+
+        public int RemovableAlertCount(string sectorId, AlertTokenKind kind)
+        {
+            if (AlertTokens.TryGetValue(sectorId, out var counts))
+                return counts.Of(kind);
+            return 0;
+        }
+
+        public SectorAlertCounts AlertsAt(string sectorId) =>
+            AlertTokens.TryGetValue(sectorId, out var counts) ? counts : default;
+
+        /// <summary>
+        /// Place one or more removable Alert Tokens in a Sector (stacks allowed).
+        /// </summary>
+        public MapTokens PlaceAlertToken(string sectorId, AlertTokenKind kind, int count = 1)
+        {
+            if (string.IsNullOrWhiteSpace(sectorId) || count <= 0)
+                return this;
+            var next = CopyAlerts();
+            next.TryGetValue(sectorId, out var existing);
+            next[sectorId] = existing.Add(kind, count);
+            return WithAlertTokens(next);
+        }
+
+        /// <summary>
+        /// Remove all removable Alert Tokens from a Sector. Permanent Reaver Space alerts remain.
+        /// </summary>
+        public MapTokens ClearRemovableAlerts(string sectorId)
+        {
+            if (!AlertTokens.ContainsKey(sectorId))
+                return this;
+            var next = CopyAlerts();
+            next.Remove(sectorId);
+            return WithAlertTokens(next);
+        }
+
+        private Dictionary<string, SectorAlertCounts> CopyAlerts()
+        {
+            var next = new Dictionary<string, SectorAlertCounts>(AlertTokens.Count, System.StringComparer.OrdinalIgnoreCase);
+            foreach (var pair in AlertTokens)
+                next[pair.Key] = pair.Value;
+            return next;
+        }
 
         /// <summary>
         /// Moves one Reaver Cutter token to <paramref name="toSectorId"/>.
         /// Only one Reaver ship may occupy a Sector (Blue Sun); rejects stacking Cutters.
+        /// When <paramref name="leaveReaverAlertToken"/> is set and the Cutter changes Sector,
+        /// places a Reaver Alert Token in the vacated Sector (Blue Sun / Director's Cut).
         /// </summary>
-        public bool TryMoveReaverCutter(string toSectorId, out MapTokens updated, out string? error, int cutterIndex = 0)
+        public bool TryMoveReaverCutter(
+            string toSectorId,
+            out MapTokens updated,
+            out string? error,
+            int cutterIndex = 0,
+            bool leaveReaverAlertToken = false)
         {
             updated = this;
             error = null;
@@ -129,10 +192,17 @@ namespace Firefly.Core.Movement
                 }
             }
 
+            var fromSectorId = ReaverCutterSectorIds[cutterIndex];
             var next = new string[ReaverCutterSectorIds.Count];
             for (var i = 0; i < ReaverCutterSectorIds.Count; i++)
                 next[i] = i == cutterIndex ? toSectorId : ReaverCutterSectorIds[i];
             updated = WithReaverCutters(next);
+            if (leaveReaverAlertToken
+                && !string.IsNullOrEmpty(fromSectorId)
+                && !string.Equals(fromSectorId, toSectorId, System.StringComparison.OrdinalIgnoreCase))
+            {
+                updated = updated.PlaceAlertToken(fromSectorId, AlertTokenKind.Reaver);
+            }
             return true;
         }
 

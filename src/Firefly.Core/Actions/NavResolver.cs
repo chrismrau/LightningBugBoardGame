@@ -61,12 +61,30 @@ namespace Firefly.Core.Actions
                 throw new System.InvalidOperationException("Nav decks have not been loaded.");
             if (game.PendingNavDraws.Count == 0)
                 throw new System.InvalidOperationException("No pending Nav draws.");
+            if (MustResolveAlertsBeforeNav(game))
+            {
+                throw new System.InvalidOperationException(
+                    "Resolve Alert Tokens before drawing a Nav Card.");
+            }
 
             var pending = game.PendingNavDraws[0];
             game.PendingNavDraws.RemoveAt(0);
             var card = game.Decks.For(pending.Region).Draw();
             FaceUp = new DrawnNav(card, pending.Region, pending.SectorId);
             return FaceUp;
+        }
+
+        /// <summary>
+        /// Director's Cut / Blue Sun: resolve Alert Tokens before drawing a Nav Card for that Sector.
+        /// </summary>
+        public static bool MustResolveAlertsBeforeNav(GameState game)
+        {
+            if (game.PendingAlertSectors.Count == 0 || game.PendingNavDraws.Count == 0)
+                return false;
+            return string.Equals(
+                game.PendingAlertSectors[0],
+                game.PendingNavDraws[0].SectorId,
+                System.StringComparison.OrdinalIgnoreCase);
         }
 
         public bool TryResolve(
@@ -149,6 +167,12 @@ namespace Firefly.Core.Actions
                 return false;
             }
 
+            if (!TryApplyAlertTokenEffects(game, drawn, option.Details, out error))
+            {
+                RollbackTokens();
+                return false;
+            }
+
             ReaverContactResult? reaverContact = null;
             var stopped = outcome == FlightOutcome.FullStop || outcome == FlightOutcome.Evade;
 
@@ -185,6 +209,52 @@ namespace Firefly.Core.Actions
             resolution = new NavResolution(drawn, option, outcome, stopped, check, reaverContact);
             return true;
         }
+
+        private static bool TryApplyAlertTokenEffects(
+            GameState game,
+            DrawnNav drawn,
+            string details,
+            out string? error)
+        {
+            error = null;
+            if (!ContainsPlaceAlert(details))
+                return true;
+
+            if (Contains(details, "Place Reaver Token"))
+            {
+                game.Tokens = game.Tokens.PlaceAlertToken(drawn.SectorId, AlertTokenKind.Reaver);
+            }
+
+            if (Contains(details, "Place Alliance Alert Token in this Sector")
+                || Contains(details, "Place an Alliance Alert Token in this Sector"))
+            {
+                game.Tokens = game.Tokens.PlaceAlertToken(drawn.SectorId, AlertTokenKind.Alliance);
+            }
+
+            if (Contains(details, "Place an Alliance Alert Token in all Sectors adjacent")
+                || Contains(details, "Place an Alliance Alert Token in all adjacent")
+                || Contains(details, "Place Alliance Alert Token in all adjacent"))
+            {
+                foreach (var neighbor in game.Map.Neighbors(drawn.SectorId))
+                    game.Tokens = game.Tokens.PlaceAlertToken(neighbor, AlertTokenKind.Alliance);
+            }
+
+            if (Contains(details, "Place an Alliance Alert Token in every Sector occupied by an Outlaw Ship"))
+            {
+                foreach (var player in game.Players)
+                {
+                    if (AlertTokenRules.IsOutlawShip(player))
+                        game.Tokens = game.Tokens.PlaceAlertToken(player.SectorId, AlertTokenKind.Alliance);
+                }
+            }
+
+            return true;
+        }
+
+        private static bool ContainsPlaceAlert(string details) =>
+            Contains(details, "Place Reaver Token")
+            || Contains(details, "Place Alliance Alert Token")
+            || Contains(details, "Place an Alliance Alert Token");
 
         public bool TryAutoResolve(
             GameState game,
@@ -277,7 +347,12 @@ namespace Firefly.Core.Actions
             // Named "Reaver Cutter" Nav Card: Cutter moves to the draw sector; Contact if that option applies.
             if (cardName.Equals("Reaver Cutter", System.StringComparison.OrdinalIgnoreCase))
             {
-                if (!game.Tokens.TryMoveReaverCutter(drawn.SectorId, out var moved, out error, choice?.ReaverCutterIndex ?? 0))
+                if (!game.Tokens.TryMoveReaverCutter(
+                    drawn.SectorId,
+                    out var moved,
+                    out error,
+                    choice?.ReaverCutterIndex ?? 0,
+                    leaveReaverAlertToken: game.UseAlertTokens))
                 {
                     // Already occupied by a Reaver: do not move another; still resolve Contact if applicable.
                     // Blue Sun Alert Token note — also matches "already occupied by a Reaver ship".
@@ -306,7 +381,12 @@ namespace Firefly.Core.Actions
                 return false;
             }
 
-            if (!game.Tokens.TryMoveReaverCutter(destination!, out var updated, out error, choice?.ReaverCutterIndex ?? 0))
+            if (!game.Tokens.TryMoveReaverCutter(
+                destination!,
+                out var updated,
+                out error,
+                choice?.ReaverCutterIndex ?? 0,
+                leaveReaverAlertToken: game.UseAlertTokens))
                 return false;
             game.Tokens = updated;
             return true;
