@@ -147,6 +147,50 @@ namespace Firefly.Core.Tests
             Assert.Equal("alliance-white-sun-r1-02", game.Tokens.AllianceCruiserSectorId);
             Assert.True(game.Map.TryGet(game.Tokens.AllianceCruiserSectorId!, out var londinium));
             Assert.Equal("Londinium", londinium.Planet);
+            Assert.Null(game.Tokens.OperativeCorvetteSectorId);
+            Assert.Equal(new[] { GameSetup.CoreReaverCutterStartSectorId }, game.Tokens.ReaverCutterSectorIds);
+            Assert.Equal("border-space-r2-06", game.Tokens.ReaverCutterSectorIds[0]);
+        }
+
+        [Fact]
+        public void Operative_corvette_starts_at_cortex_relay_2_when_in_play()
+        {
+            var game = GameSetup.Create(
+                new[] { new PlayerSeat("p1", "Mal", Persephone) },
+                new GameSetupOptions
+                {
+                    DealStartingJobs = false,
+                    UseOperativesCorvette = true,
+                    Rng = new SystemRng(4)
+                });
+
+            Assert.Equal(GameSetup.OperativeCorvetteStartSectorId, game.Tokens.OperativeCorvetteSectorId);
+            Assert.Equal("rim-cortex-relay-2-r1-11", game.Tokens.OperativeCorvetteSectorId);
+            Assert.True(game.Map.TryGet(game.Tokens.OperativeCorvetteSectorId!, out var relay));
+            Assert.Equal("Cortex Relay 2", relay.Planet);
+            Assert.Equal(GameSetup.AllianceCruiserStartSectorId, game.Tokens.AllianceCruiserSectorId);
+        }
+
+        [Fact]
+        public void Blue_sun_places_three_reaver_cutters_on_burnham()
+        {
+            var game = GameSetup.Create(
+                new[] { new PlayerSeat("p1", "Mal", Persephone) },
+                new GameSetupOptions
+                {
+                    DealStartingJobs = false,
+                    UseBlueSun = true,
+                    Rng = new SystemRng(4)
+                });
+
+            Assert.Equal(GameSetup.BlueSunReaverCutterStartSectorIds, game.Tokens.ReaverCutterSectorIds);
+            Assert.Equal(
+                new[] { "rim-burnham-r2-01", "rim-burnham-r2-02", "rim-burnham-r2-03" },
+                game.Tokens.ReaverCutterSectorIds);
+            foreach (var id in game.Tokens.ReaverCutterSectorIds)
+                Assert.True(game.Map.TryGet(id, out _));
+            Assert.Null(game.Tokens.OperativeCorvetteSectorId);
+            Assert.Equal(GameSetup.AllianceCruiserStartSectorId, game.Tokens.AllianceCruiserSectorId);
         }
 
         [Fact]
