@@ -12,7 +12,8 @@ namespace Firefly.Core.Movement
     public enum TokenKind
     {
         AllianceCruiser,
-        ReaverCutter
+        ReaverCutter,
+        OperativeCorvette
     }
 
     public sealed class MovementStep
@@ -70,20 +71,33 @@ namespace Firefly.Core.Movement
     public sealed class MapTokens
     {
         public string? AllianceCruiserSectorId { get; }
+        public string? OperativeCorvetteSectorId { get; }
         public IReadOnlyList<string> ReaverCutterSectorIds { get; }
 
-        public MapTokens(string? allianceCruiserSectorId = null, IReadOnlyList<string>? reaverCutterSectorIds = null)
+        public MapTokens(
+            string? allianceCruiserSectorId = null,
+            IReadOnlyList<string>? reaverCutterSectorIds = null,
+            string? operativeCorvetteSectorId = null)
         {
             AllianceCruiserSectorId = allianceCruiserSectorId;
             ReaverCutterSectorIds = reaverCutterSectorIds ?? new List<string>();
+            OperativeCorvetteSectorId = operativeCorvetteSectorId;
         }
 
         public static MapTokens None { get; } = new MapTokens();
+
+        public MapTokens WithAllianceCruiser(string? sectorId) =>
+            new MapTokens(sectorId, ReaverCutterSectorIds, OperativeCorvetteSectorId);
+
+        public MapTokens WithOperativeCorvette(string? sectorId) =>
+            new MapTokens(AllianceCruiserSectorId, ReaverCutterSectorIds, sectorId);
 
         public TokenKind? EncounterAt(string sectorId)
         {
             if (AllianceCruiserSectorId != null && AllianceCruiserSectorId == sectorId)
                 return TokenKind.AllianceCruiser;
+            if (OperativeCorvetteSectorId != null && OperativeCorvetteSectorId == sectorId)
+                return TokenKind.OperativeCorvette;
             foreach (var cutter in ReaverCutterSectorIds)
             {
                 if (cutter == sectorId)
