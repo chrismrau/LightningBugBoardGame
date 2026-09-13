@@ -28,6 +28,18 @@ namespace Firefly.Core.Tests
         }
 
         [Fact]
+        public void BandText_selects_printed_skill_result_by_total()
+        {
+            const string ghost = "Fight 7 Salvage Op; 1-6 Kill 2 Crew. Full Stop. 7+ Take $1000. Full Stop.";
+            Assert.Equal("Kill 2 Crew. Full Stop", SkillCheck.BandText(ghost, 6));
+            Assert.Equal("Take $1000. Full Stop", SkillCheck.BandText(ghost, 7));
+            Assert.Equal("Lose 2 Fuel. Full Stop", SkillCheck.BandText(
+                "Tech 5 Breakdown; 1-4 Lose 2 Fuel. Full Stop. 5+ Keep Flying.", 3));
+            Assert.Equal("Keep Flying", SkillCheck.BandText(
+                "Tech 5 Breakdown; 1-4 Lose 2 Fuel. Full Stop. 5+ Keep Flying.", 5));
+        }
+
+        [Fact]
         public void Zero_skill_dice_cannot_meet_a_target()
         {
             var check = new SkillCheck(Skill.Talk, 6);

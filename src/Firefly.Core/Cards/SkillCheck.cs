@@ -92,6 +92,29 @@ namespace Firefly.Core.Cards
             return FlightOutcome.FullStop;
         }
 
+        /// <summary>
+        /// Director's Cut p.14 / GF9: Skill Tests list results under the target; the rolled
+        /// total selects the matching printed band (e.g. 1-4 … / 5+ …).
+        /// </summary>
+        public static string? BandText(string? details, int sum)
+        {
+            if (string.IsNullOrWhiteSpace(details))
+                return null;
+            string? picked = null;
+            foreach (Match match in BandPattern.Matches(details))
+            {
+                var min = int.Parse(match.Groups[1].Value);
+                var max = match.Groups[2].Success ? int.Parse(match.Groups[2].Value) : int.MaxValue;
+                if (sum >= min && sum <= max)
+                    picked = match.Groups[3].Value.Trim().TrimEnd('.');
+            }
+            return string.IsNullOrWhiteSpace(picked) ? null : picked;
+        }
+
+        private static readonly Regex BandPattern = new Regex(
+            @"(\d+)\s*(?:-\s*(\d+)|\+)\s*[:;,]?\s*(.*?)(?=(?:\s+\d+\s*(?:-\s*\d+|\+))|$)",
+            RegexOptions.IgnoreCase | RegexOptions.Singleline | RegexOptions.Compiled);
+
         private static bool Contains(string text, string value) =>
             text.IndexOf(value, StringComparison.OrdinalIgnoreCase) >= 0;
     }
