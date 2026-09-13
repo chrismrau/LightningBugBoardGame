@@ -93,13 +93,18 @@ namespace Firefly.Core.Actions
         /// </summary>
         public string? DiscardCrewId { get; set; }
         /// <summary>
-        /// When a skill-check band Loads N Goods (Fuel/Parts/Cargo/Contraband), the chosen mix.
+        /// When a skill-check band or option Loads N Goods (Fuel/Parts/Cargo/Contraband), the chosen mix.
         /// Counts must sum to the printed Load N. Thin hook until the shared PendingChoice layer.
         /// </summary>
         public int LoadGoodsFuel { get; set; }
         public int LoadGoodsParts { get; set; }
         public int LoadGoodsCargo { get; set; }
         public int LoadGoodsContraband { get; set; }
+        /// <summary>
+        /// For "Load up to N …" / "Load Fuel, no limit": how many to take.
+        /// Negative = fill to max that Fits (capped by printed up-to). Thin hook until PendingChoice.
+        /// </summary>
+        public int LoadAmount { get; set; } = -1;
         /// <summary>
         /// Customs-style: how many Contraband / Fugitives remain in Stash after seizure.
         /// When both types are present and exceed StashHold, counts must sum to min(total, StashHold).
@@ -124,6 +129,8 @@ namespace Firefly.Core.Actions
     /// Warrant Issued, Load Goods, Take $ / Parts) for the rolled total.
     /// Option-level Moral / Warrant / Seize micro-effects (Disgruntle Moral Crew, free-text
     /// Warrant Issued, stash-aware Customs seizure) apply when printed outside skill bands.
+    /// Option-level Salvage Loads (Cargo / Contraband / Parts / Goods / Fuel) pack via HoldSpace
+    /// when printed outside skill bands; skill-band Loads stay band-only.
     /// Option Requires / Spend costs (Parts, Fuel, Cargo, crew keywords, Solid, Moral Crew, …)
     /// are enforced before applying flight outcomes; unmet gates fail closed.
     /// Named "Alliance Cruiser" Nav snaps the Cruiser onto the ship and queues Contact.
@@ -400,7 +407,10 @@ namespace Firefly.Core.Actions
                 out moralDisgruntled,
                 out disgruntledCleared,
                 out contrabandSeized,
-                out fugitivesSeized);
+                out fugitivesSeized,
+                out var optionGoodsLoaded);
+            if (check == null)
+                goodsLoaded = optionGoodsLoaded;
 
             game.Decks!.For(drawn.Region).ResolveIntoDiscard(drawn.Card);
             FaceUp = null;
@@ -1212,7 +1222,15 @@ namespace Firefly.Core.Actions
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         private static readonly Regex LoadTypedGoods = new Regex(
-            @"Load\s+(\d+)\s+(Cargo|Contraband|Parts|Fuel)",
+            @"Load\s+(\d+)\s+(Cargo|Contraband|Parts?|Fuel)",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        private static readonly Regex LoadUpToTyped = new Regex(
+            @"Load\s+up\s+to\s+(\d+)\s+(Cargo|Contraband|Parts?|Fuel)",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        private static readonly Regex LoadFuelNoLimit = new Regex(
+            @"Load\s+Fuel\s*,?\s*no\s+limit",
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         private static readonly Regex SeizeGoodsNotInStash = new Regex(
@@ -1265,7 +1283,11 @@ namespace Firefly.Core.Actions
                 && !TryPlanCustomsStashKeep(player, choice, out _, out _, out error))
                 return false;
 
-            _ = skillCheckPresent;
+            // Skill-band Loads are validated in CanApplySkillBandEffects; avoid double-parse.
+            if (!skillCheckPresent
+                && !TryPlanGoodsLoad(player, text, choice, out _, out _, out _, out _, out _, out error))
+                return false;
+
             return true;
         }
 
@@ -1361,8 +1383,9 @@ namespace Firefly.Core.Actions
         }
 
         /// <summary>
-        /// Option-level Moral / free-text Warrant / Customs stash seize (not skill-band text).
-        /// When a skill check is present, Warrant Issued is band-only to avoid double-issue.
+        /// Option-level Moral / free-text Warrant / Customs stash seize / Salvage Load
+        /// (not skill-band text). When a skill check is present, Warrant Issued and Load are
+        /// band-only to avoid double-issue / double-load.
         /// </summary>
         private static void ApplyOptionMicroEffects(
             PlayerState player,
@@ -1373,12 +1396,14 @@ namespace Firefly.Core.Actions
             out int moralDisgruntled,
             out int disgruntledCleared,
             out int contrabandSeized,
-            out int fugitivesSeized)
+            out int fugitivesSeized,
+            out int goodsLoaded)
         {
             moralDisgruntled = 0;
             disgruntledCleared = 0;
             contrabandSeized = 0;
             fugitivesSeized = 0;
+            goodsLoaded = 0;
             var text = details ?? "";
 
             if (IsDisgruntleMoral(text))
@@ -1402,6 +1427,25 @@ namespace Firefly.Core.Actions
                 fugitivesSeized = player.Fugitives - keepFug;
                 player.Contraband = keepContra;
                 player.Fugitives = keepFug;
+            }
+
+            if (!skillCheckPresent
+                && TryPlanGoodsLoad(
+                    player,
+                    text,
+                    choice,
+                    out var addFuel,
+                    out var addParts,
+                    out var addCargo,
+                    out var addContra,
+                    out var loaded,
+                    out _))
+            {
+                player.Fuel += addFuel;
+                player.Parts += addParts;
+                player.Cargo += addCargo;
+                player.Contraband += addContra;
+                goodsLoaded = loaded;
             }
         }
 
@@ -1665,6 +1709,10 @@ namespace Firefly.Core.Actions
             loaded = 0;
             error = null;
 
+            // Regulated Salvage FAKE ID vs Otherwise Load branch is deferred.
+            if (Contains(text, "If you have FAKE ID") && Contains(text, "Otherwise"))
+                return true;
+
             if (Contains(text, "Load no Goods"))
                 return true;
 
@@ -1696,20 +1744,58 @@ namespace Firefly.Core.Actions
                 return true;
             }
 
+            var upTo = LoadUpToTyped.Match(text);
+            if (upTo.Success)
+            {
+                var max = int.Parse(upTo.Groups[1].Value);
+                var kind = NormalizeLoadKind(upTo.Groups[2].Value);
+                var requested = choice?.LoadAmount ?? -1;
+                var count = requested < 0
+                    ? MaxTypedLoad(player, kind, max)
+                    : requested;
+                if (count < 0 || count > max)
+                {
+                    error = $"Load up to {max} {kind} requires LoadAmount between 0 and {max}.";
+                    return false;
+                }
+                AssignTypedLoad(kind, count, ref addFuel, ref addParts, ref addCargo, ref addContra);
+                if (!HoldSpace.TryExplain(
+                    player,
+                    out error,
+                    addFuel: addFuel,
+                    addParts: addParts,
+                    addCargo: addCargo,
+                    addContraband: addContra))
+                    return false;
+                loaded = count;
+                return true;
+            }
+
+            if (LoadFuelNoLimit.IsMatch(text))
+            {
+                var requested = choice?.LoadAmount ?? -1;
+                var count = requested < 0
+                    ? MaxTypedLoad(player, "Fuel", int.MaxValue)
+                    : requested;
+                if (count < 0)
+                {
+                    error = "Load Fuel, no limit requires a non-negative LoadAmount.";
+                    return false;
+                }
+                addFuel = count;
+                if (!HoldSpace.TryExplain(player, out error, addFuel: addFuel))
+                    return false;
+                loaded = count;
+                return true;
+            }
+
             var typed = LoadTypedGoods.Match(text);
             if (!typed.Success)
                 return true;
 
-            var count = int.Parse(typed.Groups[1].Value);
-            var kind = typed.Groups[2].Value;
-            if (kind.Equals("Fuel", System.StringComparison.OrdinalIgnoreCase))
-                addFuel = count;
-            else if (kind.Equals("Parts", System.StringComparison.OrdinalIgnoreCase))
-                addParts = count;
-            else if (kind.Equals("Cargo", System.StringComparison.OrdinalIgnoreCase))
-                addCargo = count;
-            else
-                addContra = count;
+            var exact = int.Parse(typed.Groups[1].Value);
+            var exactKind = NormalizeLoadKind(typed.Groups[2].Value);
+            AssignTypedLoad(exactKind, exact, ref addFuel, ref addParts, ref addCargo, ref addContra);
 
             if (!HoldSpace.TryExplain(
                 player,
@@ -1719,8 +1805,91 @@ namespace Firefly.Core.Actions
                 addCargo: addCargo,
                 addContraband: addContra))
                 return false;
-            loaded = count;
+            loaded = exact;
             return true;
+        }
+
+        private static string NormalizeLoadKind(string kind)
+        {
+            if (kind.Equals("Part", StringComparison.OrdinalIgnoreCase)
+                || kind.Equals("Parts", StringComparison.OrdinalIgnoreCase))
+                return "Parts";
+            if (kind.Equals("Fuel", StringComparison.OrdinalIgnoreCase))
+                return "Fuel";
+            if (kind.Equals("Cargo", StringComparison.OrdinalIgnoreCase))
+                return "Cargo";
+            return "Contraband";
+        }
+
+        private static void AssignTypedLoad(
+            string kind,
+            int count,
+            ref int addFuel,
+            ref int addParts,
+            ref int addCargo,
+            ref int addContra)
+        {
+            if (kind.Equals("Fuel", StringComparison.OrdinalIgnoreCase))
+                addFuel = count;
+            else if (kind.Equals("Parts", StringComparison.OrdinalIgnoreCase))
+                addParts = count;
+            else if (kind.Equals("Cargo", StringComparison.OrdinalIgnoreCase))
+                addCargo = count;
+            else
+                addContra = count;
+        }
+
+        /// <summary>
+        /// Max additional tokens of one Goods type that still Fit, capped by <paramref name="max"/>.
+        /// Fuel/Parts share half-slots (2 per hold); Cargo/Contraband use full slots.
+        /// </summary>
+        private static int MaxTypedLoad(PlayerState player, string kind, int max)
+        {
+            if (max <= 0)
+                return 0;
+            var lo = 0;
+            var hi = max == int.MaxValue ? 64 : max;
+            // Grow upper bound for no-limit Fuel until it no longer Fits.
+            if (max == int.MaxValue)
+            {
+                while (TypedLoadFits(player, kind, hi) && hi < 10_000)
+                    hi *= 2;
+                if (TypedLoadFits(player, kind, hi))
+                    return hi;
+            }
+
+            var best = 0;
+            while (lo <= hi)
+            {
+                var mid = lo + (hi - lo) / 2;
+                if (TypedLoadFits(player, kind, mid))
+                {
+                    best = mid;
+                    lo = mid + 1;
+                }
+                else
+                {
+                    hi = mid - 1;
+                }
+            }
+            return System.Math.Min(best, max == int.MaxValue ? best : max);
+        }
+
+        private static bool TypedLoadFits(PlayerState player, string kind, int count)
+        {
+            if (count <= 0)
+                return true;
+            var addFuel = 0;
+            var addParts = 0;
+            var addCargo = 0;
+            var addContra = 0;
+            AssignTypedLoad(kind, count, ref addFuel, ref addParts, ref addCargo, ref addContra);
+            return HoldSpace.Fits(
+                player,
+                addFuel: addFuel,
+                addParts: addParts,
+                addCargo: addCargo,
+                addContraband: addContra);
         }
 
         private static bool Contains(string text, string value) =>
