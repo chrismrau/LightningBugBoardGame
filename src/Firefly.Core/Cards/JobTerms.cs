@@ -80,15 +80,39 @@ namespace Firefly.Core.Cards
         public static bool PayPerPassenger(JobCard job) =>
             job.PayRaw != null && job.PayRaw.IndexOf("/P", StringComparison.OrdinalIgnoreCase) >= 0;
 
+        /// <summary>
+        /// Profession columns from Documents/Supplies.tsv (not keywords such as Transport).
+        /// </summary>
+        private static readonly string[] KnownProfessions =
+        {
+            "Merc", "Lawman", "Hill Folk", "Mudder", "Pilot",
+            "Grifter", "Mechanic", "Soldier", "Medic", "Companion"
+        };
+
+        /// <summary>
+        /// Keyword columns from Documents/Supplies.tsv (gear / some Leaders).
+        /// </summary>
+        private static readonly string[] KnownKeywords =
+        {
+            "Fake ID", "Fancy Duds", "Hacking Rig", "Transport",
+            "Firearm", "Sniper Rifle", "Explosives"
+        };
+
+        /// <summary>
+        /// GF9 p.15 / Director's Cut: Bonus Tab cash ("Soldier +300") once per Job.
+        /// Does not match Parts ("Mechanic +1 Part") or keyword bonuses (e.g. TRANSPORT +200).
+        /// </summary>
         public static int ProfessionBonus(JobCard job, Func<string, bool> hasProfession)
         {
             if (string.IsNullOrWhiteSpace(job.Bonus))
                 return 0;
-            // Cash bonuses are "Soldier +300" / "Medic +400". Exclude "Mechanic +1 Part".
             var match = Regex.Match(job.Bonus, @"^([A-Za-z][A-Za-z ]+)\s*\+(\d+)\s*$");
             if (!match.Success)
                 return 0;
-            return hasProfession(match.Groups[1].Value.Trim()) ? int.Parse(match.Groups[2].Value) : 0;
+            var profession = match.Groups[1].Value.Trim();
+            if (!IsKnownProfession(profession))
+                return 0;
+            return hasProfession(profession) ? int.Parse(match.Groups[2].Value) : 0;
         }
 
         /// <summary>
@@ -104,7 +128,48 @@ namespace Firefly.Core.Cards
                 RegexOptions.IgnoreCase);
             if (!match.Success)
                 return 0;
-            return hasProfession(match.Groups[1].Value.Trim()) ? int.Parse(match.Groups[2].Value) : 0;
+            var profession = match.Groups[1].Value.Trim();
+            if (!IsKnownProfession(profession))
+                return 0;
+            return hasProfession(profession) ? int.Parse(match.Groups[2].Value) : 0;
+        }
+
+        /// <summary>
+        /// Keyword Bonus Tab cash (e.g. Higgins Mud Runs "TRANSPORT +200").
+        /// User ruling: pay once if any entity on the Job has the listed keyword
+        /// (crew, carried gear, Leader); Disgruntled still qualifies.
+        /// </summary>
+        public static int KeywordBonus(JobCard job, Func<string, bool> hasKeyword)
+        {
+            if (string.IsNullOrWhiteSpace(job.Bonus))
+                return 0;
+            var match = Regex.Match(job.Bonus, @"^([A-Za-z][A-Za-z ]+)\s*\+(\d+)\s*$");
+            if (!match.Success)
+                return 0;
+            var keyword = match.Groups[1].Value.Trim();
+            if (IsKnownProfession(keyword) || !IsKnownKeyword(keyword))
+                return 0;
+            return hasKeyword(keyword) ? int.Parse(match.Groups[2].Value) : 0;
+        }
+
+        private static bool IsKnownProfession(string profession)
+        {
+            foreach (var known in KnownProfessions)
+            {
+                if (string.Equals(known, profession, StringComparison.OrdinalIgnoreCase))
+                    return true;
+            }
+            return false;
+        }
+
+        private static bool IsKnownKeyword(string keyword)
+        {
+            foreach (var known in KnownKeywords)
+            {
+                if (string.Equals(known, keyword, StringComparison.OrdinalIgnoreCase))
+                    return true;
+            }
+            return false;
         }
 
         public static bool LocationIsSpecialCase(string? location)
