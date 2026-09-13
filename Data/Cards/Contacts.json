@@ -8,8 +8,8 @@
       "solidAbility = benefit that requires being Solid with the contact.",
       "specialRules = standing rules that apply regardless of Solid status (as printed).",
       "sellPrices = prices the contact pays when you sell goods to them.",
-      "buyPrices = prices for purchasing resources from the contact (e.g. Harken fuel).",
-      "activeJobsBonus / handSizeBonus = permanent modifiers printed on the card."
+      "buyPrices = prices for purchasing resources from the contact when Solid (e.g. Harken Fuel $100 — FAQ 4.1).",
+      "activeJobsBonus / handSizeBonus = Solid-gated modifiers printed on the card (Higgins / Mr. Universe)."
     ]
   },
   "contacts": [
@@ -62,18 +62,18 @@
         "planet": "Beaumonde",
         "system": "Kalidasa"
       },
-      "solidAbility": null,
+      "solidAbility": {
+        "name": "Coyotes",
+        "text": "When Solid, when you complete a Transport Job, Take $500."
+      },
       "buyPrices": null,
       "sellPrices": {
         "contraband": 400
       },
-      "specialRules": {
-        "name": "Coyotes",
-        "text": "When you complete a Transport Job, Take $500."
-      },
+      "specialRules": null,
       "handSizeBonus": null,
       "activeJobsBonus": null,
-      "notes": "Kalidasa expansion contact. Ability appears always-on (not gated by Solid)."
+      "notes": "Kalidasa expansion contact. Coyotes Transport +$500 and buying Contraband for $400 require Solid (Kalidasa rulebook)."
     },
     {
       "id": "contact_harken",
@@ -93,7 +93,7 @@
       "specialRules": null,
       "handSizeBonus": null,
       "activeJobsBonus": null,
-      "notes": "Core / Alliance contact. Fuel buy price shown as $100. Location is the Alliance Command Cruiser."
+      "notes": "Core / Alliance contact. FAQ 4.1: when Solid, Alliance Cruiser is a refueling station — buy Fuel for $100 each on Deal. Location is the Alliance Command Cruiser."
     },
     {
       "id": "contact_lord-harrow",
@@ -102,18 +102,18 @@
         "planet": "Highgate",
         "system": "Blue Sun"
       },
-      "solidAbility": null,
+      "solidAbility": {
+        "name": "Protect My Property",
+        "text": "When Solid, when you complete a Smuggling or Shipping Job, take $500."
+      },
       "buyPrices": null,
       "sellPrices": {
         "cargo": 300
       },
-      "specialRules": {
-        "name": "Protect My Property",
-        "text": "When you complete a Smuggling or Shipping Job, take $500."
-      },
+      "specialRules": null,
       "handSizeBonus": null,
       "activeJobsBonus": null,
-      "notes": "Blue Sun expansion contact. Ability appears always-on (not gated by Solid)."
+      "notes": "Blue Sun expansion contact. Protect My Property Smuggling/Shipping +$500 and buying Cargo for $300 require Solid (Blue Sun rulebook)."
     },
     {
       "id": "contact_magistrate-higgins",
@@ -131,7 +131,7 @@
       },
       "handSizeBonus": null,
       "activeJobsBonus": 1,
-      "notes": "Kalidasa / expansion contact. Grants +1 Active Jobs. Restriction involving Jayne is always-on."
+      "notes": "Kalidasa / expansion contact. +1 Active Jobs when Solid. Jayne Deal/Work restriction is always-on."
     },
     {
       "id": "contact_mr-universe",

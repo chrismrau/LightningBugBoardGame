@@ -236,6 +236,71 @@ namespace Firefly.Core.Tests
         }
 
         [Fact]
+        public void Solid_Harken_may_buy_Fuel_on_Deal_at_100_each()
+        {
+            // FAQ 4.1: "When you're Solid with Harken, the Alliance Cruiser becomes a
+            // refueling station. You may purchase as much Fuel as you'd like from Harken
+            // for $100 each, when Dealing with Harken."
+            var game = NewGame(Persephone, cash: 500);
+            game.Tokens = new MapTokens(allianceCruiserSectorId: Persephone);
+            game.CurrentPlayer.CargoHold = 8;
+            game.CurrentPlayer.Fuel = 0;
+            var deal = new DealAction();
+
+            Assert.False(deal.TryDeal(game, "p1", new DealRequest
+            {
+                ContactName = "Harken",
+                BuyFuel = 2
+            }, out _, out var needSolid));
+            Assert.Contains("Harken", needSolid);
+
+            ContactSolidBenefits.BecomeSolid(game, game.CurrentPlayer, "contact_harken");
+            Assert.Equal(100, game.Contacts!.Cards["contact_harken"].BuyPrices!.Fuel);
+
+            Assert.True(deal.TryDeal(game, "p1", new DealRequest
+            {
+                ContactName = "Harken",
+                BuyFuel = 2
+            }, out var result, out var error), error);
+            Assert.Equal(2, result!.FuelBought);
+            Assert.Equal(200, result.CashSpentBuying);
+            Assert.Equal(2, game.CurrentPlayer.Fuel);
+            Assert.Equal(300, game.CurrentPlayer.Cash);
+        }
+
+        [Fact]
+        public void Privilege_Suspension_blocks_Harken_Fuel_buy()
+        {
+            var game = NewGame(Persephone, cash: 500);
+            game.Tokens = new MapTokens(allianceCruiserSectorId: Persephone);
+            ContactSolidBenefits.BecomeSolid(game, game.CurrentPlayer, "contact_harken");
+            ForcePrivilegeSuspension(game);
+            Assert.False(ContactSolidBenefits.IsSolidHarken(game, game.CurrentPlayer));
+
+            var deal = new DealAction();
+            Assert.False(deal.TryDeal(game, "p1", new DealRequest
+            {
+                ContactName = "Harken",
+                BuyFuel = 1
+            }, out _, out var error));
+            Assert.Contains("Harken", error);
+        }
+
+        [Fact]
+        public void Contacts_json_places_Coyotes_and_Protect_My_Property_under_solidAbility()
+        {
+            var contacts = ContactCatalog.LoadDefault();
+            var fanty = contacts.Cards["contact_fanty-and-mingo"];
+            Assert.Equal("Coyotes", fanty.SolidAbilityName);
+            Assert.Contains("Solid", fanty.SolidAbilityText, System.StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("Transport", fanty.SolidAbilityText, System.StringComparison.OrdinalIgnoreCase);
+
+            var harrow = contacts.Cards["contact_lord-harrow"];
+            Assert.Equal("Protect My Property", harrow.SolidAbilityName);
+            Assert.Contains("Solid", harrow.SolidAbilityText, System.StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
         public void Solid_Harrow_may_buy_Cargo_on_Deal()
         {
             var game = NewGame(Highgate, cash: 1000);

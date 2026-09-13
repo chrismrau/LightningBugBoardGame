@@ -19,6 +19,10 @@ namespace Firefly.Core.Actions
         /// <summary>Kalidasa: buy Contraband from Fanty when Solid. Blue Sun: buy Cargo from Harrow when Solid.</summary>
         public int BuyContraband { get; set; }
         public int BuyCargo { get; set; }
+        /// <summary>
+        /// FAQ 4.1: when Solid with Harken, buy Fuel for $100 each while Dealing with Harken.
+        /// </summary>
+        public int BuyFuel { get; set; }
     }
 
     public sealed class DealResult
@@ -36,6 +40,7 @@ namespace Firefly.Core.Actions
         public int FugitivesLoaded { get; }
         public int ContrabandBought { get; }
         public int CargoBought { get; }
+        public int FuelBought { get; }
         public int CashSpentBuying { get; }
 
         public DealResult(
@@ -52,7 +57,8 @@ namespace Firefly.Core.Actions
             int fugitivesLoaded = 0,
             int contrabandBought = 0,
             int cargoBought = 0,
-            int cashSpentBuying = 0)
+            int cashSpentBuying = 0,
+            int fuelBought = 0)
         {
             Contact = contact;
             Considered = considered;
@@ -68,6 +74,7 @@ namespace Firefly.Core.Actions
             ContrabandBought = contrabandBought;
             CargoBought = cargoBought;
             CashSpentBuying = cashSpentBuying;
+            FuelBought = fuelBought;
         }
     }
 
@@ -132,7 +139,7 @@ namespace Firefly.Core.Actions
             var remote = !atLocation;
             if (remote && (request.SellContraband > 0 || request.SellCargo > 0 || request.ClearWarrants
                 || request.LoadPassengers > 0 || request.LoadFugitives > 0
-                || request.BuyContraband > 0 || request.BuyCargo > 0))
+                || request.BuyContraband > 0 || request.BuyCargo > 0 || request.BuyFuel > 0))
             {
                 error = "Selling, buying goods, Amnon loading, and Badger's warrant wipe require being in the Contact's sector.";
                 return false;
@@ -283,7 +290,7 @@ namespace Firefly.Core.Actions
             }
 
             if (request.LoadPassengers < 0 || request.LoadFugitives < 0
-                || request.BuyContraband < 0 || request.BuyCargo < 0)
+                || request.BuyContraband < 0 || request.BuyCargo < 0 || request.BuyFuel < 0)
             {
                 foreach (var taken in fromDiscard)
                     deck.MoveToDiscard(taken);
@@ -301,18 +308,6 @@ namespace Firefly.Core.Actions
                         deck.MoveToDiscard(taken);
                     deck.PutOnBottom(drawn);
                     error = "Only a Solid Deal with Amnon Duul can load Passengers and Fugitives.";
-                    return false;
-                }
-                if (!HoldSpace.TryExplain(
-                    player,
-                    out var holdError,
-                    addPassengers: request.LoadPassengers,
-                    addFugitives: request.LoadFugitives))
-                {
-                    foreach (var taken in fromDiscard)
-                        deck.MoveToDiscard(taken);
-                    deck.PutOnBottom(drawn);
-                    error = holdError;
                     return false;
                 }
             }
@@ -342,10 +337,35 @@ namespace Firefly.Core.Actions
                 }
                 buyCost += request.BuyCargo * ContactSolidBenefits.HarrowBuyCargoPrice;
             }
-            if ((request.BuyContraband > 0 || request.BuyCargo > 0)
+            // FAQ 4.1: "When you're Solid with Harken, the Alliance Cruiser becomes a
+            // refueling station. You may purchase as much Fuel as you'd like from Harken
+            // for $100 each, when Dealing with Harken." Price from Contacts.json buyPrices.
+            if (request.BuyFuel > 0)
+            {
+                if (!contact.IsHarken || !ContactSolidBenefits.CountsAsSolidWith(game, player, contact))
+                {
+                    foreach (var taken in fromDiscard)
+                        deck.MoveToDiscard(taken);
+                    deck.PutOnBottom(drawn);
+                    error = "Only a Solid Deal with Harken can buy Fuel.";
+                    return false;
+                }
+                if (contact.BuyPrices?.Fuel == null)
+                {
+                    foreach (var taken in fromDiscard)
+                        deck.MoveToDiscard(taken);
+                    deck.PutOnBottom(drawn);
+                    error = "Harken has no printed Fuel buy price.";
+                    return false;
+                }
+                buyCost += request.BuyFuel * contact.BuyPrices.Fuel.Value;
+            }
+            if ((request.LoadPassengers > 0 || request.LoadFugitives > 0
+                    || request.BuyContraband > 0 || request.BuyCargo > 0 || request.BuyFuel > 0)
                 && !HoldSpace.TryExplain(
                     player,
                     out var buyHoldError,
+                    addFuel: request.BuyFuel,
                     addCargo: request.BuyCargo,
                     addContraband: request.BuyContraband,
                     addPassengers: request.LoadPassengers,
@@ -393,6 +413,7 @@ namespace Firefly.Core.Actions
             player.Fugitives += request.LoadFugitives;
             player.Contraband += request.BuyContraband;
             player.Cargo += request.BuyCargo;
+            player.Fuel += request.BuyFuel;
             player.Cash -= buyCost;
 
             game.TryConsumeAction(TurnAction.Deal, out _);
@@ -410,7 +431,8 @@ namespace Firefly.Core.Actions
                 request.LoadFugitives,
                 request.BuyContraband,
                 request.BuyCargo,
-                buyCost);
+                buyCost,
+                request.BuyFuel);
             error = null;
             return true;
         }
