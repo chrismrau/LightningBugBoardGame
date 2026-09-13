@@ -24,6 +24,8 @@ namespace Firefly.Core.Actions
         public int DiscardWarrants { get; set; }
         /// <summary>Thin kill / Medic hooks until PendingChoice.</summary>
         public KillChoice? Kill { get; set; }
+        /// <summary>Thin skill-test Bribes hook until PendingChoice.</summary>
+        public SkillCheckChoice? SkillCheck { get; set; }
     }
 
     public sealed class MisbehaveResolution
@@ -158,12 +160,15 @@ namespace Firefly.Core.Actions
             }
             SkillCheckResult? check = null;
             var bandText = details;
+            var bribeCash = 0;
             if (SkillCheck.TryParse(details, out var skillCheck))
             {
-                check = skillCheck.Resolve(player, rng);
-                var sum = check.Roll.Sum + BonusFromGear(game, player, details);
+                if (!skillCheck.TryResolve(player, rng, out check, out error, choice.SkillCheck))
+                    return false;
+                bribeCash = check.BribeDollarsPaid;
+                var sum = check.Total + BonusFromGear(game, player, details);
                 bandText = BandText(details, sum) ?? details;
-                check = new SkillCheckResult(skillCheck, check.Roll, sum >= skillCheck.Target);
+                check = check.WithTotal(sum);
             }
 
             if (IsReplaceCard(details))
@@ -182,7 +187,7 @@ namespace Firefly.Core.Actions
                 return false;
             }
 
-            var cashDelta = 0;
+            var cashDelta = -bribeCash;
             if (paying)
             {
                 player.Cash -= pay;
