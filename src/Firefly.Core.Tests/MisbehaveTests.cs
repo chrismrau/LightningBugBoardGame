@@ -131,7 +131,11 @@ namespace Firefly.Core.Tests
         public void Fancy_duds_gear_unlocks_the_require_option()
         {
             var game = NewCrimeGame();
+            Assert.True(game.CurrentPlayer.Roster.TryHire(
+                CrewCatalog.LoadDefault().Get("crew_kaylee"), out _));
             game.CurrentPlayer.Gear.Add("gear_a-very-fine-hat");
+            Assert.True(Firefly.Core.Abilities.GearCarriage.TryAssign(
+                game, game.CurrentPlayer, "gear_a-very-fine-hat", "crew_kaylee", out var assignError), assignError);
             StartCrime(game);
             game.Misbehave!.PlaceOnTop(game.Misbehave.Catalog.Get("misbehave_a-formal-affair"));
             var resolver = new MisbehaveResolver();
@@ -244,7 +248,11 @@ namespace Firefly.Core.Tests
         public void Transport_keyword_on_gear_unlocks_the_require_option()
         {
             var game = NewCrimeGame();
+            Assert.True(game.CurrentPlayer.Roster.TryHire(
+                CrewCatalog.LoadDefault().Get("crew_kaylee"), out _));
             game.CurrentPlayer.Gear.Add("gear_4wd-mule");
+            Assert.True(Firefly.Core.Abilities.GearCarriage.TryAssign(
+                game, game.CurrentPlayer, "gear_4wd-mule", "crew_kaylee", out var assignError), assignError);
             StartCrime(game);
             game.Misbehave!.PlaceOnTop(game.Misbehave.Catalog.Get("misbehave_everything-thats-not-nailed-down"));
             var resolver = new MisbehaveResolver();

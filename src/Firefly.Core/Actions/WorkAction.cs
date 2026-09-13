@@ -157,6 +157,7 @@ namespace Firefly.Core.Actions
                 // FAQ 4.1 p.5: botched attempt leaves the Job Active until complete / Warrant-discard.
                 var disgruntled = ActiveAlertRules.OnJobBotched(game, player);
                 game.PendingMisbehave = null;
+                game.WorkGearLocked = false;
                 game.TryConsumeAction(TurnAction.Work, out _);
                 result = new WorkResult(
                     pending.Site == WorkSite.Pickup ? WorkKind.Pickup : WorkKind.Complete,
@@ -176,6 +177,7 @@ namespace Firefly.Core.Actions
             }
 
             game.PendingMisbehave = null;
+            game.WorkGearLocked = false;
             var active = player.FindActive(pending.JobId);
             var terms = pending.Site == WorkSite.Pickup ? JobTerms.Pickup(job) : JobTerms.Dropoff(job);
             var completeAfter = pending.Site == WorkSite.Dropoff || !JobTerms.HasDropoff(job);
@@ -228,6 +230,8 @@ namespace Firefly.Core.Actions
             var misbehave = terms.Misbehave + ActiveAlertRules.ExtraIllegalMisbehave(game, player, job);
             if (misbehave > 0)
             {
+                // FAQ 4.1 p.2: cannot switch Gear during a Work Action.
+                game.WorkGearLocked = true;
                 game.PendingMisbehave = new PendingMisbehave(player.Id, job.Id, site, misbehave);
                 result = new WorkResult(kind, job, true, becameActive, 0, moral);
                 error = null;
@@ -285,6 +289,7 @@ namespace Firefly.Core.Actions
 
             if (!completeAfter)
             {
+                game.WorkGearLocked = false;
                 game.TryConsumeAction(TurnAction.Work, out _);
                 result = new WorkResult(WorkKind.Pickup, job, false, becameActive, 0, disgruntled);
                 error = null;
@@ -306,6 +311,7 @@ namespace Firefly.Core.Actions
             player.JobHand.Remove(job.Id);
             player.RemoveActive(job.Id);
             ActiveAlertRules.OnJobCompleted(game, job.ContactName);
+            game.WorkGearLocked = false;
             game.TryConsumeAction(TurnAction.Work, out _);
             result = new WorkResult(WorkKind.Complete, job, false, false, pay, disgruntled);
             error = null;
@@ -397,8 +403,7 @@ namespace Firefly.Core.Actions
                 pay *= System.Math.Max(1, active.Passengers);
             pay += JobTerms.ProfessionBonus(job, player.Roster.HasProfession);
             // Keyword Bonus Tab (TRANSPORT +200): same availability as Misbehave HasTag —
-            // roster (incl. Disgruntled) + owned gear. Gear carriage vs Onboard Ship waits
-            // on the gear-assign model (GF9 p.14: onboard may not be used while Working).
+            // roster (incl. Disgruntled) + carried Gear. Onboard Ship Gear is unused (FAQ 4.1 p.2).
             pay += JobTerms.KeywordBonus(job, kw => MisbehaveResolver.HasTag(game, player, kw));
             pay += ContactSolidBenefits.CompletionBonus(game, player, job);
             var partsBonus = JobTerms.ProfessionPartsBonus(job, player.Roster.HasProfession);

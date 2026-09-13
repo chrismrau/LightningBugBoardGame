@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Firefly.Core.Abilities;
 using Firefly.Core.Cards;
 using Firefly.Core.State;
 
@@ -69,15 +70,10 @@ namespace Firefly.Core.Actions
             player.Roster.HasProfession("Medic");
 
         /// <summary>
-        /// Simon Tam: "+2 to Medic Checks" (Supplies.tsv / Crew.json). Mandatory.
+        /// Medic Check bonuses from typed abilities (Simon medicCheckBonus +2). Mandatory.
         /// </summary>
-        public static int MedicBonus(PlayerState player)
-        {
-            var bonus = 0;
-            if (player.Roster.Find("crew_simon-tam") != null || player.Roster.HasName("Simon Tam"))
-                bonus += 2;
-            return bonus;
-        }
+        public static int MedicBonus(PlayerState player) =>
+            AbilityDispatcher.MedicCheckBonus(player);
 
         public static KillResult Apply(
             GameState game,

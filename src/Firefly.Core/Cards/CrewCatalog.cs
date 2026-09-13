@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
+using Firefly.Core.Abilities;
 using Firefly.Core.Data;
 
 namespace Firefly.Core.Cards
@@ -51,37 +52,60 @@ namespace Firefly.Core.Cards
 
         public static CrewCatalog LoadFromFile(string path)
         {
-            var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-            var file = JsonSerializer.Deserialize<CrewFile>(File.ReadAllText(path), options)
-                ?? throw new InvalidDataException("Crew.json did not deserialize.");
+            using var doc = JsonDocument.Parse(File.ReadAllText(path));
+            if (!doc.RootElement.TryGetProperty("crew", out var array))
+                throw new InvalidDataException("Crew.json did not deserialize.");
             var cards = new List<CrewCard>();
-            foreach (var dto in file.Crew ?? new List<CrewDto>())
+            foreach (var node in array.EnumerateArray())
             {
-                var skills = dto.Skills ?? new SkillDto();
+                var id = Str(node, "id");
+                var name = Str(node, "name");
+                if (string.IsNullOrWhiteSpace(id))
+                    continue;
+                var skills = node.TryGetProperty("skills", out var sk) ? sk : default;
                 cards.Add(new CrewCard(
-                    dto.Id, dto.Name, skills.Fight ?? 0, skills.Tech ?? 0, skills.Talk ?? 0,
-                    dto.Moral, dto.Wanted, dto.Cost,
-                    dto.Professions ?? new List<string>(), dto.Description,
-                    dto.Keywords ?? new List<string>()));
+                    id,
+                    name,
+                    AbilityJson.ReadSkill(skills, "fight"),
+                    AbilityJson.ReadSkill(skills, "tech"),
+                    AbilityJson.ReadSkill(skills, "talk"),
+                    Bool(node, "moral"),
+                    Bool(node, "wanted"),
+                    Int(node, "cost"),
+                    StringList(node, "professions"),
+                    StrOrNull(node, "description"),
+                    StringList(node, "keywords"),
+                    abilities: AbilityJson.Read(node)));
             }
             return new CrewCatalog(cards);
         }
 
         public static CrewCatalog LoadDefault() => LoadFromFile(GameData.CrewPath);
 
-        private sealed class CrewFile { public List<CrewDto>? Crew { get; set; } }
-        private sealed class CrewDto
+        private static string Str(JsonElement node, string name) =>
+            node.TryGetProperty(name, out var v) ? v.GetString() ?? "" : "";
+
+        private static string? StrOrNull(JsonElement node, string name) =>
+            node.TryGetProperty(name, out var v) ? v.GetString() : null;
+
+        private static bool Bool(JsonElement node, string name) =>
+            node.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.True;
+
+        private static int Int(JsonElement node, string name) =>
+            node.TryGetProperty(name, out var v) && v.TryGetInt32(out var n) ? n : 0;
+
+        private static List<string> StringList(JsonElement node, string name)
         {
-            public string Id { get; set; } = "";
-            public string Name { get; set; } = "";
-            public bool Moral { get; set; }
-            public bool Wanted { get; set; }
-            public int Cost { get; set; }
-            public string? Description { get; set; }
-            public List<string>? Professions { get; set; }
-            public List<string>? Keywords { get; set; }
-            public SkillDto? Skills { get; set; }
+            var list = new List<string>();
+            if (!node.TryGetProperty(name, out var arr) || arr.ValueKind != JsonValueKind.Array)
+                return list;
+            foreach (var item in arr.EnumerateArray())
+            {
+                var text = item.GetString();
+                if (!string.IsNullOrWhiteSpace(text))
+                    list.Add(text);
+            }
+            return list;
         }
-        private sealed class SkillDto { public int? Fight { get; set; } public int? Tech { get; set; } public int? Talk { get; set; } }
     }
 }

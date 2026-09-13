@@ -92,6 +92,11 @@ namespace Firefly.Core.State
         public SetupCard? Setup { get; set; }
         public ScenarioCard? Scenario { get; set; }
         public PendingMisbehave? PendingMisbehave { get; set; }
+        /// <summary>
+        /// FAQ 4.1 p.2: Gear may not be switched during a Work Action.
+        /// Set while Work/Misbehave for the current attempt is in flight.
+        /// </summary>
+        public bool WorkGearLocked { get; set; }
         public BountyCatalog? Bounties { get; set; }
         public BountyDeck? BountyDeck { get; set; }
         public AllianceAlertCatalog? AllianceAlerts { get; set; }
@@ -198,6 +203,7 @@ namespace Firefly.Core.State
         {
             WinCheck.Refresh(this, WinPhase.EndOfTurn);
             ClearPendingEvents();
+            WorkGearLocked = false;
             ActionsUsedThisTurn = 0;
             LastAction = TurnAction.None;
             _used.Clear();

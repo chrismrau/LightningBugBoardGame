@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Firefly.Core.Abilities;
 
 namespace Firefly.Core.Cards
 {
@@ -17,6 +18,8 @@ namespace Firefly.Core.Cards
         public IReadOnlyList<string> Keywords { get; }
         public string? Description { get; }
         public bool IsLeader { get; }
+        /// <summary>Typed ability DSL (JSON <c>abilities</c>). Description is display-only.</summary>
+        public IReadOnlyList<AbilityDefinition> Abilities { get; }
 
         public CrewCard(
             string id,
@@ -30,7 +33,8 @@ namespace Firefly.Core.Cards
             IReadOnlyList<string> professions,
             string? description,
             IReadOnlyList<string>? keywords = null,
-            bool isLeader = false)
+            bool isLeader = false,
+            IReadOnlyList<AbilityDefinition>? abilities = null)
         {
             Id = id;
             Name = name;
@@ -44,6 +48,7 @@ namespace Firefly.Core.Cards
             Keywords = keywords ?? Array.Empty<string>();
             Description = description;
             IsLeader = isLeader;
+            Abilities = abilities ?? AbilityDefinition.Empty;
         }
 
         public bool HasProfession(string profession)

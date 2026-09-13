@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
+using Firefly.Core.Abilities;
 using Firefly.Core.Data;
 
 namespace Firefly.Core.Cards
@@ -11,9 +12,30 @@ namespace Firefly.Core.Cards
         public string Id { get; }
         public string Name { get; }
         public IReadOnlyList<string> Keywords { get; }
-        public GearEntry(string id, string name, IReadOnlyList<string> keywords)
+        public int Fight { get; }
+        public int Tech { get; }
+        public int Talk { get; }
+        public string? Description { get; }
+        public IReadOnlyList<AbilityDefinition> Abilities { get; }
+
+        public GearEntry(
+            string id,
+            string name,
+            IReadOnlyList<string> keywords,
+            int fight = 0,
+            int tech = 0,
+            int talk = 0,
+            string? description = null,
+            IReadOnlyList<AbilityDefinition>? abilities = null)
         {
-            Id = id; Name = name; Keywords = keywords;
+            Id = id;
+            Name = name;
+            Keywords = keywords;
+            Fight = fight;
+            Tech = tech;
+            Talk = talk;
+            Description = description;
+            Abilities = abilities ?? AbilityDefinition.Empty;
         }
     }
 
@@ -51,7 +73,17 @@ namespace Firefly.Core.Cards
                         keywords.Add(cut > 0 ? text.Substring(0, cut) : text);
                     }
                 }
-                items.Add(new GearEntry(id, name, keywords));
+                var skills = node.TryGetProperty("skills", out var sk) ? sk : default;
+                var description = node.TryGetProperty("description", out var desc) ? desc.GetString() : null;
+                items.Add(new GearEntry(
+                    id,
+                    name,
+                    keywords,
+                    AbilityJson.ReadSkill(skills, "fight"),
+                    AbilityJson.ReadSkill(skills, "tech"),
+                    AbilityJson.ReadSkill(skills, "talk"),
+                    description,
+                    AbilityJson.Read(node)));
             }
             return new GearIndex(items);
         }

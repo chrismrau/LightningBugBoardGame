@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
+using Firefly.Core.Abilities;
 using Firefly.Core.Data;
 
 namespace Firefly.Core.Cards
@@ -57,54 +58,53 @@ namespace Firefly.Core.Cards
 
         public static LeaderCatalog LoadFromFile(string path)
         {
-            var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-            var file = JsonSerializer.Deserialize<LeaderFile>(File.ReadAllText(path), options)
-                ?? throw new InvalidDataException("Leaders.json did not deserialize.");
+            using var doc = JsonDocument.Parse(File.ReadAllText(path));
+            if (!doc.RootElement.TryGetProperty("leaders", out var array))
+                throw new InvalidDataException("Leaders.json did not deserialize.");
 
             var cards = new List<CrewCard>();
-            foreach (var dto in file.Leaders ?? new List<LeaderDto>())
+            foreach (var node in array.EnumerateArray())
             {
-                var skills = dto.Skills ?? new SkillDto();
+                var id = node.TryGetProperty("id", out var idNode) ? idNode.GetString() ?? "" : "";
+                var name = node.TryGetProperty("name", out var nameNode) ? nameNode.GetString() ?? "" : "";
+                if (string.IsNullOrWhiteSpace(id))
+                    continue;
+                var skills = node.TryGetProperty("skills", out var sk) ? sk : default;
+                var cost = 0;
+                if (node.TryGetProperty("cost", out var costNode)
+                    && costNode.ValueKind == JsonValueKind.Number
+                    && costNode.TryGetInt32(out var c))
+                    cost = c;
                 cards.Add(new CrewCard(
-                    dto.Id,
-                    dto.Name,
-                    skills.Fight ?? 0,
-                    skills.Tech ?? 0,
-                    skills.Talk ?? 0,
-                    dto.Moral,
-                    dto.Wanted,
-                    dto.Cost ?? 0,
-                    dto.Professions ?? new List<string>(),
-                    dto.Description,
-                    dto.Keywords ?? new List<string>(),
-                    isLeader: true));
+                    id,
+                    name,
+                    AbilityJson.ReadSkill(skills, "fight"),
+                    AbilityJson.ReadSkill(skills, "tech"),
+                    AbilityJson.ReadSkill(skills, "talk"),
+                    node.TryGetProperty("moral", out var moral) && moral.ValueKind == JsonValueKind.True,
+                    node.TryGetProperty("wanted", out var wanted) && wanted.ValueKind == JsonValueKind.True,
+                    cost,
+                    ReadStrings(node, "professions"),
+                    node.TryGetProperty("description", out var desc) ? desc.GetString() : null,
+                    ReadStrings(node, "keywords"),
+                    isLeader: true,
+                    abilities: AbilityJson.Read(node)));
             }
             return new LeaderCatalog(cards);
         }
 
-        private sealed class LeaderFile
+        private static List<string> ReadStrings(JsonElement node, string name)
         {
-            public List<LeaderDto>? Leaders { get; set; }
-        }
-
-        private sealed class LeaderDto
-        {
-            public string Id { get; set; } = "";
-            public string Name { get; set; } = "";
-            public bool Moral { get; set; }
-            public bool Wanted { get; set; }
-            public int? Cost { get; set; }
-            public string? Description { get; set; }
-            public List<string>? Professions { get; set; }
-            public List<string>? Keywords { get; set; }
-            public SkillDto? Skills { get; set; }
-        }
-
-        private sealed class SkillDto
-        {
-            public int? Fight { get; set; }
-            public int? Tech { get; set; }
-            public int? Talk { get; set; }
+            var list = new List<string>();
+            if (!node.TryGetProperty(name, out var arr) || arr.ValueKind != JsonValueKind.Array)
+                return list;
+            foreach (var item in arr.EnumerateArray())
+            {
+                var text = item.GetString();
+                if (!string.IsNullOrWhiteSpace(text))
+                    list.Add(text);
+            }
+            return list;
         }
     }
 }

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Firefly.Core.Abilities;
 using Firefly.Core.Cards;
 
 namespace Firefly.Core.State
@@ -32,6 +33,10 @@ namespace Firefly.Core.State
         public ISet<string> SolidWith { get; }
         public DealModifiers Deal { get; }
         public IList<string> Gear { get; }
+        /// <summary>
+        /// Gear id → carrying crew id. Missing / empty = Onboard Ship (FAQ 4.1 p.2: unused).
+        /// </summary>
+        public IDictionary<string, string> GearCarriers { get; }
         public IList<string> ShipUpgrades { get; }
         public string? DriveCoreId { get; set; }
         public int CargoHold { get; set; } = 8;
@@ -50,7 +55,7 @@ namespace Firefly.Core.State
         {
             get
             {
-                var range = DriveRange;
+                var range = DriveRange + AbilityDispatcher.FullBurnRangeBonus(this);
                 if (string.Equals(ShipId, "ship_interceptor", StringComparison.OrdinalIgnoreCase))
                     range -= ShipUpgrades.Count;
                 return range < 1 ? 1 : range;
@@ -117,6 +122,7 @@ namespace Firefly.Core.State
             SolidWith = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             Deal = new DealModifiers();
             Gear = new List<string>();
+            GearCarriers = new Dictionary<string, string>(StringComparer.Ordinal);
             ShipUpgrades = new List<string>();
         }
 

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
+using Firefly.Core.Abilities;
 using Firefly.Core.Cards;
 using Firefly.Core.State;
 
@@ -137,7 +138,10 @@ namespace Firefly.Core.Actions
                 }
                 if (IsAllianceAlertUpdate(card, null))
                     CycleAllianceAlert(game);
-                return Finish(game, playerId, card, null, MisbehaveOutcome.Proceed, null, 0, 0, 0, 0, true, out resolution, out error);
+                var aceCash = AbilityDispatcher.MisbehaveProceedCash(player, AbilityContext.WorkingJob);
+                if (aceCash > 0)
+                    player.Cash += aceCash;
+                return Finish(game, playerId, card, null, MisbehaveOutcome.Proceed, null, 0, 0, 0, aceCash, true, out resolution, out error);
             }
 
             if (choice.OptionIndex < 0 || choice.OptionIndex >= card.Options.Count)
@@ -253,6 +257,18 @@ namespace Firefly.Core.Actions
                 ? MisbehaveOutcome.Botched
                 : MisbehaveOutcome.Proceed;
 
+            if (outcome == MisbehaveOutcome.Proceed)
+            {
+                // Big Damn Heroes / typed misbehaveProceedCash (Job-only; Goals Work not implemented).
+                var proceedCash = AbilityDispatcher.MisbehaveProceedCash(
+                    player, AbilityContext.WorkingJob);
+                if (proceedCash > 0)
+                {
+                    player.Cash += proceedCash;
+                    cashDelta += proceedCash;
+                }
+            }
+
             return Finish(game, playerId, card, option, outcome, check, warrants, killed, loaded, cashDelta, false, out resolution, out error);
         }
 
@@ -324,18 +340,9 @@ namespace Firefly.Core.Actions
 
             if (game.Gear != null)
             {
-                foreach (var id in player.Gear)
-                {
-                    if (!game.Gear.TryGet(id, out var gear))
-                        continue;
-                    if (NamesMatch(gear.Name, tag))
-                        return true;
-                    foreach (var keyword in gear.Keywords)
-                    {
-                        if (NamesMatch(keyword, tag))
-                            return true;
-                    }
-                }
+                // FAQ 4.1 p.2 / GF9 p.14: Onboard Ship Gear may not be used — only carried Gear.
+                if (GearCarriage.HasUsableGearTag(game, player, tag))
+                    return true;
             }
 
             foreach (var upgradeId in player.ShipUpgrades)
@@ -631,6 +638,7 @@ namespace Firefly.Core.Actions
                 killed += CrewKill.KillUpTo(game, player, 1, rng ?? new SystemRng(), killChoice);
 
             game.PendingMisbehave = null;
+            game.WorkGearLocked = false;
             game.TryConsumeAction(TurnAction.Work, out _);
             work = new WorkResult(
                 pending.Site == WorkSite.Pickup ? WorkKind.Pickup : WorkKind.Complete,
