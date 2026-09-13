@@ -385,6 +385,184 @@ namespace Firefly.Core.Tests
             Assert.Equal(0, player.Fuel);
         }
 
+        [Fact]
+        public void Punctured_Fuel_Lines_fail_band_loses_fuel()
+        {
+            var (game, resolver, player) = GameWithQueuedDraws(1);
+            player.Fuel = 4;
+            player.TechBonus = 1;
+            game.Decks!.Alliance.PlaceOnTop(game.Decks.Catalog.Get("nav_punctured-fuel-lines"));
+            resolver.DrawNext(game);
+
+            Assert.True(resolver.TryResolve(game, 0, out var resolution, out var error, ScriptedRng.FromDieFaces(2)), error);
+            Assert.False(resolution!.SkillCheck!.Success);
+            Assert.Equal(FlightOutcome.FullStop, resolution.Outcome);
+            Assert.Equal(2, resolution.FuelLost);
+            Assert.Equal(2, player.Fuel);
+            Assert.Equal(Pelorum, player.SectorId);
+        }
+
+        [Fact]
+        public void Punctured_Fuel_Lines_success_keeps_flying_without_fuel_loss()
+        {
+            var (game, resolver, player) = GameWithQueuedDraws(2);
+            player.Fuel = 4;
+            player.TechBonus = 2;
+            game.Decks!.Alliance.PlaceOnTop(game.Decks.Catalog.Get("nav_punctured-fuel-lines"));
+            resolver.DrawNext(game);
+
+            Assert.True(resolver.TryResolve(game, 0, out var resolution, out var error, ScriptedRng.FromDieFaces(5, 5)), error);
+            Assert.True(resolution!.SkillCheck!.Success);
+            Assert.Equal(FlightOutcome.KeepFlying, resolution.Outcome);
+            Assert.Equal(0, resolution.FuelLost);
+            Assert.Equal(4, player.Fuel);
+            Assert.Single(game.PendingNavDraws);
+        }
+
+        [Fact]
+        public void Ghost_Ship_fail_band_kills_crew()
+        {
+            var (game, resolver, player) = GameWithQueuedDraws(1);
+            var catalog = CrewCatalog.LoadDefault();
+            Assert.True(player.Roster.TryHire(catalog.Get("crew_jayne"), out _));
+            Assert.True(player.Roster.TryHire(catalog.Get("crew_zoe"), out _));
+            Assert.True(player.Roster.TryHire(catalog.Get("crew_kaylee"), out _));
+            player.FightBonus = 0;
+            game.Decks!.Alliance.PlaceOnTop(game.Decks.Catalog.Get("nav_ghost-ship"));
+            resolver.DrawNext(game);
+
+            Assert.True(resolver.TryResolve(game, 1, out var resolution, out var error, ScriptedRng.FromDieFaces(1)), error);
+            Assert.False(resolution!.SkillCheck!.Success);
+            Assert.Equal(FlightOutcome.FullStop, resolution.Outcome);
+            Assert.Equal(2, resolution.CrewKilled);
+            Assert.Equal(1, player.Roster.Count);
+            Assert.Equal(0, resolution.CashGained);
+            Assert.Equal(0, player.Cash);
+        }
+
+        [Fact]
+        public void Ghost_Ship_success_band_takes_cash()
+        {
+            var (game, resolver, player) = GameWithQueuedDraws(1);
+            player.FightBonus = 2;
+            player.Cash = 100;
+            game.Decks!.Alliance.PlaceOnTop(game.Decks.Catalog.Get("nav_ghost-ship"));
+            resolver.DrawNext(game);
+
+            Assert.True(resolver.TryResolve(game, 1, out var resolution, out var error, ScriptedRng.FromDieFaces(6, 6)), error);
+            Assert.True(resolution!.SkillCheck!.Success);
+            Assert.Equal(FlightOutcome.FullStop, resolution.Outcome);
+            Assert.Equal(0, resolution.CrewKilled);
+            Assert.Equal(1000, resolution.CashGained);
+            Assert.Equal(1100, player.Cash);
+        }
+
+        [Fact]
+        public void Scrapper_Ambush_fail_kills_a_crew_success_takes_cash_and_parts()
+        {
+            var (game, resolver, player) = GameWithQueuedDraws(1);
+            var catalog = CrewCatalog.LoadDefault();
+            Assert.True(player.Roster.TryHire(catalog.Get("crew_jayne"), out _));
+            player.FightBonus = 0;
+            game.Decks!.Alliance.PlaceOnTop(game.Decks.Catalog.Get("nav_scrapper-ambush"));
+            resolver.DrawNext(game);
+
+            Assert.True(resolver.TryResolve(game, 1, out var fail, out var failErr, ScriptedRng.FromDieFaces(1)), failErr);
+            Assert.False(fail!.SkillCheck!.Success);
+            Assert.Equal(1, fail.CrewKilled);
+            Assert.Equal(0, player.Roster.Count);
+            Assert.Equal(0, fail.CashGained);
+
+            player.FightBonus = 3;
+            player.Parts = 1;
+            player.Cash = 0;
+            game.PendingNavDraws.Add(new PendingNavDraw(Pelorum, NavRegion.Alliance));
+            game.Decks.Alliance.PlaceOnTop(game.Decks.Catalog.Get("nav_scrapper-ambush"));
+            resolver.DrawNext(game);
+            Assert.True(resolver.TryResolve(game, 1, out var win, out var winErr, ScriptedRng.FromDieFaces(6, 6, 6)), winErr);
+            Assert.True(win!.SkillCheck!.Success);
+            Assert.Equal(500, win.CashGained);
+            Assert.Equal(500, player.Cash);
+            Assert.Equal(3, player.Parts);
+        }
+
+        [Fact]
+        public void Alliance_Checkpoint_fail_band_issues_warrant()
+        {
+            var (game, resolver, player) = GameWithQueuedDraws(1);
+            player.TalkBonus = 1;
+            player.Warrants = 0;
+            game.Decks!.Alliance.PlaceOnTop(game.Decks.Catalog.Get("nav_alliance-checkpoint"));
+            resolver.DrawNext(game);
+
+            Assert.True(resolver.TryResolve(game, 1, out var resolution, out var error, ScriptedRng.FromDieFaces(2)), error);
+            Assert.False(resolution!.SkillCheck!.Success);
+            Assert.Equal(FlightOutcome.FullStop, resolution.Outcome);
+            Assert.Equal(1, resolution.WarrantsIssued);
+            Assert.Equal(1, player.Warrants);
+        }
+
+        [Fact]
+        public void Locking_Horns_loads_goods_from_skill_band_with_choice()
+        {
+            var (game, resolver, player) = GameWithQueuedDraws(1);
+            player.TalkBonus = 2;
+            player.Cargo = 0;
+            player.Fuel = 0;
+            game.Decks!.Alliance.PlaceOnTop(game.Decks.Catalog.Get("nav_locking-horns-over-scraps"));
+            resolver.DrawNext(game);
+            var choice = new NavResolveChoice
+            {
+                LoadGoodsCargo = 2,
+                LoadGoodsFuel = 1
+            };
+
+            Assert.True(resolver.TryResolve(
+                game,
+                0,
+                out var resolution,
+                out var error,
+                ScriptedRng.FromDieFaces(6, 6),
+                choice), error);
+            Assert.True(resolution!.SkillCheck!.Success);
+            Assert.Equal(3, resolution.GoodsLoaded);
+            Assert.Equal(2, player.Cargo);
+            Assert.Equal(1, player.Fuel);
+            Assert.Equal(FlightOutcome.FullStop, resolution.Outcome);
+        }
+
+        [Fact]
+        public void Locking_Horns_load_goods_requires_composition_choice()
+        {
+            var (game, resolver, player) = GameWithQueuedDraws(1);
+            player.TalkBonus = 1;
+            game.Decks!.Alliance.PlaceOnTop(game.Decks.Catalog.Get("nav_locking-horns-over-scraps"));
+            resolver.DrawNext(game);
+
+            Assert.False(resolver.TryResolve(game, 0, out _, out var error, ScriptedRng.FromDieFaces(1)));
+            Assert.Contains("Goods composition", error);
+            Assert.Equal(0, player.Cargo);
+            Assert.NotNull(resolver.FaceUp);
+        }
+
+        [Fact]
+        public void Nested_Fight_band_does_not_apply_kill_without_nested_roll()
+        {
+            var (game, resolver, player) = GameWithQueuedDraws(1);
+            var catalog = CrewCatalog.LoadDefault();
+            Assert.True(player.Roster.TryHire(catalog.Get("crew_jayne"), out _));
+            player.TalkBonus = 0;
+            game.Decks!.Alliance.PlaceOnTop(game.Decks.Catalog.Get("nav_alliance-interrogation"));
+            resolver.DrawNext(game);
+
+            Assert.True(resolver.TryResolve(game, 1, out var resolution, out var error, ScriptedRng.FromDieFaces(1)), error);
+            Assert.False(resolution!.SkillCheck!.Success);
+            Assert.Equal(0, resolution.CrewKilled);
+            Assert.Equal(0, resolution.WarrantsIssued);
+            Assert.Equal(1, player.Roster.Count);
+            Assert.Equal(0, player.Warrants);
+        }
+
         private const string Londinium = "alliance-white-sun-r1-02";
         private const string Bernadette = "alliance-white-sun-r1-01";
         private const string EmptyAllianceNearPelorum = "alliance-white-sun-r3-02";

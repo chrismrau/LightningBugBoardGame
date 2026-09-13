@@ -17,6 +17,11 @@ namespace Firefly.Core.Actions
         public ReaverContactResult? ReaverContact { get; }
         public CorvetteContactResult? CorvetteContact { get; }
         public bool ReaverCutterBlockedByCorvette { get; }
+        public int CrewKilled { get; }
+        public int WarrantsIssued { get; }
+        public int FuelLost { get; }
+        public int CashGained { get; }
+        public int GoodsLoaded { get; }
 
         public NavResolution(
             DrawnNav drawn,
@@ -26,7 +31,12 @@ namespace Firefly.Core.Actions
             SkillCheckResult? skillCheck = null,
             ReaverContactResult? reaverContact = null,
             CorvetteContactResult? corvetteContact = null,
-            bool reaverCutterBlockedByCorvette = false)
+            bool reaverCutterBlockedByCorvette = false,
+            int crewKilled = 0,
+            int warrantsIssued = 0,
+            int fuelLost = 0,
+            int cashGained = 0,
+            int goodsLoaded = 0)
         {
             Drawn = drawn;
             Option = option;
@@ -36,6 +46,11 @@ namespace Firefly.Core.Actions
             ReaverContact = reaverContact;
             CorvetteContact = corvetteContact;
             ReaverCutterBlockedByCorvette = reaverCutterBlockedByCorvette;
+            CrewKilled = crewKilled;
+            WarrantsIssued = warrantsIssued;
+            FuelLost = fuelLost;
+            CashGained = cashGained;
+            GoodsLoaded = goodsLoaded;
         }
     }
 
@@ -62,11 +77,21 @@ namespace Firefly.Core.Actions
         /// Crew discarded when an option Requires Discarding 1 Crew (not the Leader).
         /// </summary>
         public string? DiscardCrewId { get; set; }
+        /// <summary>
+        /// When a skill-check band Loads N Goods (Fuel/Parts/Cargo/Contraband), the chosen mix.
+        /// Counts must sum to the printed Load N. Thin hook until the shared PendingChoice layer.
+        /// </summary>
+        public int LoadGoodsFuel { get; set; }
+        public int LoadGoodsParts { get; set; }
+        public int LoadGoodsCargo { get; set; }
+        public int LoadGoodsContraband { get; set; }
     }
 
     /// <summary>
     /// Resolves queued Full Burn Nav draws in order.
     /// Conditional options run a Fight/Tech/Talk test to pick Keep Flying vs Full Stop.
+    /// Skill-check bands also apply printed side effects (Kill Crew, Lose/Discard Fuel,
+    /// Warrant Issued, Load Goods, Take $ / Parts) for the rolled total.
     /// Option Requires / Spend costs (Parts, Fuel, Cargo, crew keywords, Solid, Moral Crew, …)
     /// are enforced before applying flight outcomes; unmet gates fail closed.
     /// Named "Alliance Cruiser" Nav snaps the Cruiser onto the ship and queues Contact.
@@ -157,11 +182,13 @@ namespace Firefly.Core.Actions
             var option = drawn.Card.Options[optionIndex];
             var outcome = option.Outcome;
             SkillCheckResult? check = null;
-            if (outcome == FlightOutcome.Conditional &&
-                SkillCheck.TryParse(option.Details, out var skillCheck))
+            string? bandText = null;
+            if (SkillCheck.TryParse(option.Details, out var skillCheck))
             {
                 check = skillCheck.Resolve(game.CurrentPlayer, rng ?? new SystemRng());
-                outcome = SkillCheck.OutcomeFor(option.Details, check.Success);
+                if (outcome == FlightOutcome.Conditional)
+                    outcome = SkillCheck.OutcomeFor(option.Details, check.Success);
+                bandText = SkillCheck.BandText(option.Details, check.Roll.Sum);
             }
 
             var tokensBefore = game.Tokens;
@@ -240,6 +267,14 @@ namespace Firefly.Core.Actions
                 return false;
             }
 
+            if (check != null
+                && !CanApplySkillBandEffects(player, bandText, choice, out error))
+            {
+                RollbackTokens();
+                RollbackResources();
+                return false;
+            }
+
             ReaverContactResult? reaverContact = null;
             CorvetteContactResult? corvetteContact = null;
             var stopped = outcome == FlightOutcome.FullStop || outcome == FlightOutcome.Evade;
@@ -293,10 +328,39 @@ namespace Firefly.Core.Actions
                 game.PendingNavDraws.Clear();
             }
 
+            var crewKilled = 0;
+            var warrantsIssued = 0;
+            var fuelLost = 0;
+            var cashGained = 0;
+            var goodsLoaded = 0;
+            if (check != null)
+            {
+                ApplySkillBandEffects(
+                    player,
+                    bandText,
+                    choice,
+                    out crewKilled,
+                    out warrantsIssued,
+                    out fuelLost,
+                    out cashGained,
+                    out goodsLoaded);
+            }
+
             game.Decks!.For(drawn.Region).ResolveIntoDiscard(drawn.Card);
             FaceUp = null;
             resolution = new NavResolution(
-                drawn, option, outcome, stopped, check, reaverContact, corvetteContact);
+                drawn,
+                option,
+                outcome,
+                stopped,
+                check,
+                reaverContact,
+                corvetteContact,
+                crewKilled: crewKilled,
+                warrantsIssued: warrantsIssued,
+                fuelLost: fuelLost,
+                cashGained: cashGained,
+                goodsLoaded: goodsLoaded);
             return true;
         }
 
@@ -363,7 +427,7 @@ namespace Firefly.Core.Actions
                 error = "Card requires an option choice.";
                 return false;
             }
-            if (drawn.Card.Options[0].Outcome == FlightOutcome.Conditional && rng == null)
+            if (SkillCheck.TryParse(drawn.Card.Options[0].Details, out _) && rng == null)
             {
                 error = "Card requires an option choice.";
                 return false;
@@ -442,8 +506,13 @@ namespace Firefly.Core.Actions
                     return false;
             }
 
-            if (Contains(text, "Take $500"))
-                player.Cash += 500;
+            // Entanglements etc.: Take $ outside skill bands. Skill-check Take $ is band-applied.
+            if (Contains(text, "Take $") && !SkillCheck.TryParse(text, out _))
+            {
+                var take = Regex.Match(text, @"Take\s+\$(\d+)", RegexOptions.IgnoreCase);
+                if (take.Success)
+                    player.Cash += int.Parse(take.Groups[1].Value);
+            }
 
             // Resource-gated Conditional (no skill check) is resolved above; leftover Conditional → Keep Flying.
             if (outcome == FlightOutcome.Conditional)
@@ -1060,6 +1129,219 @@ namespace Firefly.Core.Actions
             Contains(details, "to your current location")
             || Contains(details, "to your Sector")
             || Contains(details, "to your sector");
+
+        private static readonly Regex KillCrewCount = new Regex(
+            @"Kill\s+(?:(\d+)|a)\s+Crew",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        private static readonly Regex LoseOrDiscardFuel = new Regex(
+            @"(?:Lose|Discard)\s+(\d+)\s+Fuel",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        private static readonly Regex TakeCash = new Regex(
+            @"Take\s+\$(\d+)",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        private static readonly Regex TakeParts = new Regex(
+            @"Take\s+\$\d+\s+and\s+(\d+)\s+Parts|Take\s+(\d+)\s+Parts",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        private static readonly Regex LoadGoodsCount = new Regex(
+            @"Load\s+(\d+)\s+Goods",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        private static readonly Regex LoadTypedGoods = new Regex(
+            @"Load\s+(\d+)\s+(Cargo|Contraband|Parts|Fuel)",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        /// <summary>
+        /// Nested [Fight]/] trees are deferred; do not apply their Kill/Warrant text without rolling.
+        /// </summary>
+        private static bool IsNestedSkillTreeStub(string? bandText) =>
+            !string.IsNullOrWhiteSpace(bandText) && SkillCheck.TryParse(bandText, out _);
+
+        private static bool CanApplySkillBandEffects(
+            PlayerState player,
+            string? bandText,
+            NavResolveChoice? choice,
+            out string? error)
+        {
+            error = null;
+            if (string.IsNullOrWhiteSpace(bandText) || IsNestedSkillTreeStub(bandText))
+                return true;
+
+            var text = bandText!;
+            if (!TryPlanGoodsLoad(player, text, choice, out _, out _, out _, out _, out _, out error))
+                return false;
+
+            var parts = PlannedTakeParts(text);
+            if (parts > 0 && !HoldSpace.Fits(player, addParts: parts))
+            {
+                error = "Not enough cargo/stash space for Parts.";
+                return false;
+            }
+
+            return true;
+        }
+
+        private static void ApplySkillBandEffects(
+            PlayerState player,
+            string? bandText,
+            NavResolveChoice? choice,
+            out int crewKilled,
+            out int warrantsIssued,
+            out int fuelLost,
+            out int cashGained,
+            out int goodsLoaded)
+        {
+            crewKilled = 0;
+            warrantsIssued = 0;
+            fuelLost = 0;
+            cashGained = 0;
+            goodsLoaded = 0;
+            if (string.IsNullOrWhiteSpace(bandText) || IsNestedSkillTreeStub(bandText))
+                return;
+
+            var text = bandText!;
+
+            if (Contains(text, "Warrant Issued"))
+            {
+                player.Warrants++;
+                warrantsIssued = 1;
+            }
+
+            var kill = KillCrewCount.Match(text);
+            if (kill.Success)
+            {
+                var count = kill.Groups[1].Success ? int.Parse(kill.Groups[1].Value) : 1;
+                crewKilled = player.Roster.KillUpTo(count);
+            }
+
+            var fuel = LoseOrDiscardFuel.Match(text);
+            if (fuel.Success)
+            {
+                var n = int.Parse(fuel.Groups[1].Value);
+                fuelLost = System.Math.Min(n, player.Fuel);
+                player.Fuel -= fuelLost;
+            }
+
+            var cash = TakeCash.Match(text);
+            if (cash.Success)
+            {
+                cashGained = int.Parse(cash.Groups[1].Value);
+                player.Cash += cashGained;
+            }
+
+            var parts = PlannedTakeParts(text);
+            if (parts > 0 && HoldSpace.Fits(player, addParts: parts))
+                player.Parts += parts;
+
+            if (TryPlanGoodsLoad(
+                player,
+                text,
+                choice,
+                out var addFuel,
+                out var addParts,
+                out var addCargo,
+                out var addContra,
+                out var loaded,
+                out _))
+            {
+                player.Fuel += addFuel;
+                player.Parts += addParts;
+                player.Cargo += addCargo;
+                player.Contraband += addContra;
+                goodsLoaded = loaded;
+            }
+        }
+
+        private static int PlannedTakeParts(string text)
+        {
+            var match = TakeParts.Match(text);
+            if (!match.Success)
+                return 0;
+            if (match.Groups[1].Success)
+                return int.Parse(match.Groups[1].Value);
+            if (match.Groups[2].Success)
+                return int.Parse(match.Groups[2].Value);
+            return 0;
+        }
+
+        private static bool TryPlanGoodsLoad(
+            PlayerState player,
+            string text,
+            NavResolveChoice? choice,
+            out int addFuel,
+            out int addParts,
+            out int addCargo,
+            out int addContra,
+            out int loaded,
+            out string? error)
+        {
+            addFuel = 0;
+            addParts = 0;
+            addCargo = 0;
+            addContra = 0;
+            loaded = 0;
+            error = null;
+
+            if (Contains(text, "Load no Goods"))
+                return true;
+
+            var goods = LoadGoodsCount.Match(text);
+            if (goods.Success)
+            {
+                var n = int.Parse(goods.Groups[1].Value);
+                if (n <= 0)
+                    return true;
+                addFuel = choice?.LoadGoodsFuel ?? 0;
+                addParts = choice?.LoadGoodsParts ?? 0;
+                addCargo = choice?.LoadGoodsCargo ?? 0;
+                addContra = choice?.LoadGoodsContraband ?? 0;
+                var sum = addFuel + addParts + addCargo + addContra;
+                if (sum != n)
+                {
+                    error = $"Load {n} Goods requires a Goods composition choice totaling {n}.";
+                    return false;
+                }
+                if (!HoldSpace.TryExplain(
+                    player,
+                    out error,
+                    addFuel: addFuel,
+                    addParts: addParts,
+                    addCargo: addCargo,
+                    addContraband: addContra))
+                    return false;
+                loaded = n;
+                return true;
+            }
+
+            var typed = LoadTypedGoods.Match(text);
+            if (!typed.Success)
+                return true;
+
+            var count = int.Parse(typed.Groups[1].Value);
+            var kind = typed.Groups[2].Value;
+            if (kind.Equals("Fuel", System.StringComparison.OrdinalIgnoreCase))
+                addFuel = count;
+            else if (kind.Equals("Parts", System.StringComparison.OrdinalIgnoreCase))
+                addParts = count;
+            else if (kind.Equals("Cargo", System.StringComparison.OrdinalIgnoreCase))
+                addCargo = count;
+            else
+                addContra = count;
+
+            if (!HoldSpace.TryExplain(
+                player,
+                out error,
+                addFuel: addFuel,
+                addParts: addParts,
+                addCargo: addCargo,
+                addContraband: addContra))
+                return false;
+            loaded = count;
+            return true;
+        }
 
         private static bool Contains(string text, string value) =>
             text.IndexOf(value, System.StringComparison.OrdinalIgnoreCase) >= 0;
