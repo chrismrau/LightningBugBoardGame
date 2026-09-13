@@ -165,6 +165,7 @@ namespace Firefly.Core.Tests
                 {
                     SetupCardId = "setup_alliance-high-alert",
                     DealStartingJobs = false,
+                    UseBountyDeck = true,
                     Rng = new SystemRng(11)
                 });
 
@@ -182,7 +183,7 @@ namespace Firefly.Core.Tests
             Assert.NotEqual(first!.Id, game.AllianceAlertDeck.Active!.Id);
             Assert.False(game.AllianceAlertDeck.IsParked);
             Assert.Equal(9, game.AllianceAlertDeck.DrawCount);
-            Assert.Equal(3, game.BountyDeck.FaceUp.Count);
+            Assert.Equal(3, game.BountyDeck!.FaceUp.Count);
         }
 
         [Fact]

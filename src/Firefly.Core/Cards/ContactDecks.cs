@@ -63,11 +63,15 @@ namespace Firefly.Core.Cards
         private readonly Dictionary<string, ContactDeck> _decks =
             new Dictionary<string, ContactDeck>(StringComparer.Ordinal);
 
-        public ContactDecks(JobCatalog jobs, IRng rng)
+        public ContactDecks(JobCatalog jobs, IRng rng, BountyCatalog? bounties = null)
         {
             var grouped = new Dictionary<string, List<JobCard>>(StringComparer.Ordinal);
             foreach (var card in jobs.Cards.Values)
             {
+                // PBH: Bounty Cards form a separate deck — do not shuffle
+                // duplicate Jobs.json rows into Contact Deal decks.
+                if (BountyJobAuthority.IsCoveredByBountyDeck(card, bounties))
+                    continue;
                 var key = ContactNames.Normalize(card.ContactName);
                 if (string.IsNullOrEmpty(key))
                     continue;

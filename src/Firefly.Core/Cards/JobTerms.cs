@@ -178,5 +178,18 @@ namespace Firefly.Core.Cards
             return name.Equals("Various", StringComparison.OrdinalIgnoreCase)
                 || name.Equals("Any Rival", StringComparison.OrdinalIgnoreCase);
         }
+
+        public static bool IsVarious(string? location) =>
+            PlaceName(location).Equals("Various", StringComparison.OrdinalIgnoreCase);
+
+        public static bool IsAnyRival(string? location) =>
+            PlaceName(location).Equals("Any Rival", StringComparison.OrdinalIgnoreCase);
+
+        /// <summary>
+        /// Kalidasa / Blue Sun map token drop-off (not a planet name).
+        /// </summary>
+        public static bool IsOperativesCorvette(string? location) =>
+            PlaceName(location).Equals("Operative's Corvette", StringComparison.OrdinalIgnoreCase);
     }
 }
+

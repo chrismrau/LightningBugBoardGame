@@ -54,10 +54,101 @@ namespace Firefly.Core.Tests
         {
             var game = GameSetup.Create(
                 new[] { new PlayerSeat("p1", "Mal", Persephone) },
-                new GameSetupOptions { DealStartingJobs = false, Rng = new SystemRng(3) });
+                new GameSetupOptions { DealStartingJobs = false, UseBountyDeck = true, Rng = new SystemRng(3) });
             Assert.NotNull(game.Bounties);
             Assert.NotNull(game.BountyDeck);
             Assert.Equal(3, game.BountyDeck!.FaceUp.Count);
+        }
+
+        [Fact]
+        public void Setup_omits_bounty_deck_unless_selected()
+        {
+            var game = GameSetup.Create(
+                new[] { new PlayerSeat("p1", "Mal", Persephone) },
+                new GameSetupOptions { DealStartingJobs = false, Rng = new SystemRng(3) });
+            Assert.Null(game.BountyDeck);
+        }
+
+        [Fact]
+        public void Lone_target_rejects_when_subject_is_on_a_rival_ship()
+        {
+            var (game, mal, zoe) = TwoShips();
+            PutOnWanted(game, "bounty_billy");
+            Assert.True(zoe.Roster.TryHire(Crew.Get("crew_billy"), out _));
+            var hunt = new BountyAction();
+            Assert.False(hunt.TryApprehendLone(
+                game, "p1", "bounty_billy", "crew_billy", Skill.Fight, ScriptedRng.FromDieFaces(6),
+                out _, out var error));
+            Assert.Contains("confrontation", error);
+            Assert.Contains("same sector", error);
+
+            // Same sector + confrontation succeeds (PBH p.10).
+            var rng = ScriptedRng.FromDieFaces(6, 6, 1);
+            Assert.True(hunt.TryApprehendRival(
+                game, "p1", "bounty_billy", "p2", "crew_billy",
+                Skill.Fight, Skill.Talk, Skill.Talk, rng,
+                out var result, out error), error);
+            Assert.True(result!.Success);
+            Assert.Contains("crew_billy", mal.BoundBounties[0].CrewIds);
+        }
+
+        [Fact]
+        public void Lone_target_follows_supply_discard_planet_not_only_last_seen()
+        {
+            var (game, mal, _) = TwoShips();
+            PutOnWanted(game, "bounty_billy");
+            game.Supply = SupplyCatalog.LoadDefault();
+            game.SupplyDecks = SupplyDecks.FromCatalog(game.Supply, new SystemRng(9));
+            // Move Billy into Regina discard — nab requires Regina, not Persephone (Last Seen).
+            Assert.True(game.Crew!.TryGet("crew_billy", out var billy));
+            PullIntoDiscard(game, billy!, "Regina");
+            mal.SectorId = Persephone;
+            var hunt = new BountyAction();
+            Assert.False(hunt.TryApprehendLone(
+                game, "p1", "bounty_billy", "crew_billy", Skill.Fight, ScriptedRng.FromDieFaces(6),
+                out _, out var error));
+            Assert.Contains("Regina", error);
+
+            mal.SectorId = "border-georgia-r1-01"; // Regina
+            Assert.True(hunt.TryApprehendLone(
+                game, "p1", "bounty_billy", "crew_billy", Skill.Fight, ScriptedRng.FromDieFaces(6, 1),
+                out var result, out error), error);
+            Assert.True(result!.Success);
+        }
+
+        private static void PullIntoDiscard(GameState game, CrewCard crew, string planet)
+        {
+            foreach (var market in game.SupplyDecks!.Markets)
+            {
+                Strip(market.Deck, crew.Id);
+                Strip(market.FaceUp, crew.Id);
+                Strip(market.Discard, crew.Id);
+                market.Refill();
+            }
+            Assert.True(game.SupplyDecks.TryGet(planet, out var target));
+            target!.Discard.Add(new SupplyCard(crew.Id, crew.Name, 0, SupplyKind.Crew));
+        }
+
+        private static void Strip(System.Collections.Generic.IList<SupplyCard> pile, string crewId)
+        {
+            for (var i = pile.Count - 1; i >= 0; i--)
+            {
+                if (pile[i].Id == crewId)
+                    pile.RemoveAt(i);
+            }
+        }
+
+        [Fact]
+        public void Cortex_lone_target_requires_subject_supply_location()
+        {
+            var (game, mal, _) = TwoShips();
+            PutOnWanted(game, "bounty_enforcers");
+            // No supply location → cannot lone-target a Cortex Alert from nowhere.
+            Assert.False(new BountyAction().TryApprehendLone(
+                game, "p1", "bounty_enforcers", "crew_enforcer", Skill.Fight, ScriptedRng.FromDieFaces(6),
+                out _, out var error));
+            Assert.Contains("confrontation or betrayal", error);
+            Assert.Equal(Persephone, mal.SectorId);
         }
 
         [Fact]
