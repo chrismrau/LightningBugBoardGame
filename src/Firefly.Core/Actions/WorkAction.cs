@@ -272,7 +272,7 @@ namespace Firefly.Core.Actions
             if (!UnloadGoods(player, active ?? new ActiveJob(job.Id), JobTerms.HasDropoff(job) ? JobTerms.Dropoff(job) : terms, out error))
                 return false;
 
-            var pay = PayOut(player, job, active ?? new ActiveJob(job.Id));
+            var pay = PayOut(game, player, job, active ?? new ActiveJob(job.Id));
             player.Cash += pay;
             if (game.Contacts != null && game.Contacts.TryFindByName(job.ContactName, out var contact))
             {
@@ -344,12 +344,16 @@ namespace Firefly.Core.Actions
             return true;
         }
 
-        private static int PayOut(PlayerState player, JobCard job, ActiveJob active)
+        private static int PayOut(GameState game, PlayerState player, JobCard job, ActiveJob active)
         {
             var pay = job.PayBase ?? 0;
             if (JobTerms.PayPerPassenger(job))
                 pay *= System.Math.Max(1, active.Passengers);
             pay += JobTerms.ProfessionBonus(job, player.Roster.HasProfession);
+            // Keyword Bonus Tab (TRANSPORT +200): same availability as Misbehave HasTag —
+            // roster (incl. Disgruntled) + owned gear. Gear carriage vs Onboard Ship waits
+            // on the gear-assign model (GF9 p.14: onboard may not be used while Working).
+            pay += JobTerms.KeywordBonus(job, kw => MisbehaveResolver.HasTag(game, player, kw));
             var partsBonus = JobTerms.ProfessionPartsBonus(job, player.Roster.HasProfession);
             if (partsBonus > 0 && HoldSpace.Fits(player, addParts: partsBonus))
                 player.Parts += partsBonus;

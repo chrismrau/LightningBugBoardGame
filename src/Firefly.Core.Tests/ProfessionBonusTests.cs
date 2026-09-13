@@ -11,7 +11,7 @@ namespace Firefly.Core.Tests
     /// <summary>
     /// GF9 p.15 / Director's Cut: Bonus Tab pays once for the listed Profession.
     /// Jobs.json bonus inventory (171 non-null): cash professions, Mechanic Parts,
-    /// and ambiguous TRANSPORT +200 (deferred — not a Supplies.tsv profession).
+    /// and TRANSPORT +200 keyword cash (Higgins Mud Runs; user ruling).
     /// </summary>
     public class ProfessionBonusTests
     {
@@ -25,6 +25,7 @@ namespace Firefly.Core.Tests
         private const string Ithaca = "border-georgia-r2-01";
         private const string CortexRelay2 = "rim-cortex-relay-2-r1-11";
         private const string Angel = "rim-kalidasa-r2-04";
+        private const string Aberdeen = "rim-kalidasa-r3-01";
 
         private const string CompanionJob = "job_amnon-duul_feeding-alliance-fat-cats"; // Companion +500
         private const string GrifterJob = "job_amnon-duul_courting-aphrodite"; // Grifter +500
@@ -119,15 +120,103 @@ namespace Firefly.Core.Tests
         }
 
         [Fact]
-        public void Transport_allcaps_bonus_is_not_treated_as_profession_cash()
+        public void Transport_bonus_is_keyword_cash_not_profession()
         {
-            // Deferred: TRANSPORT is a Supplies.tsv keyword (gear/leader), not a profession column.
-            // Do not invent keyword-or-job-type matching until printed Mud Run text is confirmed.
+            // User ruling: TRANSPORT +200 is a Transport keyword bonus, not a profession.
             var job = Job(TransportBonusJob);
             Assert.Equal("TRANSPORT +200", job.Bonus);
             Assert.Equal(0, JobTerms.ProfessionBonus(job, _ => true));
             Assert.Equal(0, JobTerms.ProfessionPartsBonus(job, _ => true));
             Assert.Equal(0, JobTerms.ProfessionBonus(Synthetic("TRANSPORT +200"), p => p == "TRANSPORT"));
+            Assert.Equal(200, JobTerms.KeywordBonus(job, kw => kw == "TRANSPORT"));
+            Assert.Equal(0, JobTerms.KeywordBonus(job, _ => false));
+            // Once only — HasKeyword is boolean, not a count.
+            var calls = 0;
+            Assert.Equal(200, JobTerms.KeywordBonus(Synthetic("TRANSPORT +200"), kw =>
+            {
+                calls++;
+                return string.Equals(kw, "TRANSPORT", StringComparison.OrdinalIgnoreCase);
+            }));
+            Assert.Equal(1, calls);
+        }
+
+        [Fact]
+        public void Work_mud_run_pays_transport_keyword_with_leader_marco()
+        {
+            // User: pay if any on-job entity has Transport — Leader Marco qualifies.
+            var game = NewMudRunGame();
+            Assert.True(game.CurrentPlayer.Roster.TryHire(
+                LeaderCatalog.LoadDefault().Get("leader_marco"), out _));
+            CompleteMudRun(game, out var done, out var error);
+            Assert.True(error == null, error);
+            Assert.Equal(WorkKind.Complete, done!.Kind);
+            Assert.Equal(2600, done.Pay); // 2400 + 200
+        }
+
+        [Fact]
+        public void Work_mud_run_pays_transport_keyword_with_disgruntled_marco()
+        {
+            // User: Disgruntled still counts for Transport keyword.
+            var game = NewMudRunGame();
+            Assert.True(game.CurrentPlayer.Roster.TryHire(
+                LeaderCatalog.LoadDefault().Get("leader_marco"), out _));
+            var marco = game.CurrentPlayer.Roster.Leader!;
+            marco.Disgruntled = true;
+            CompleteMudRun(game, out var done, out var error);
+            Assert.True(error == null, error);
+            Assert.Equal(2600, done!.Pay);
+        }
+
+        [Fact]
+        public void Work_mud_run_pays_transport_keyword_with_gear()
+        {
+            // GF9 p.14: commit carried Gear while Working. Kernel HasTag uses owned gear
+            // until a carriage/Onboard model exists (same as Misbehave Aces).
+            var game = NewMudRunGame();
+            game.Gear = GearIndex.LoadDefault();
+            game.CurrentPlayer.Gear.Add("gear_4wd-mule");
+            CompleteMudRun(game, out var done, out var error);
+            Assert.True(error == null, error);
+            Assert.Equal(2600, done!.Pay);
+        }
+
+        [Fact]
+        public void Work_mud_run_pays_transport_once_with_marco_and_gear()
+        {
+            var game = NewMudRunGame();
+            game.Gear = GearIndex.LoadDefault();
+            Assert.True(game.CurrentPlayer.Roster.TryHire(
+                LeaderCatalog.LoadDefault().Get("leader_marco"), out _));
+            game.CurrentPlayer.Gear.Add("gear_4wd-mule");
+            CompleteMudRun(game, out var done, out var error);
+            Assert.True(error == null, error);
+            Assert.Equal(2600, done!.Pay); // +200 once, not stacked
+        }
+
+        [Fact]
+        public void Work_mud_run_pays_base_only_without_transport_keyword()
+        {
+            var game = NewMudRunGame();
+            CompleteMudRun(game, out var done, out var error);
+            Assert.True(error == null, error);
+            Assert.Equal(2400, done!.Pay);
+        }
+
+        private static GameState NewMudRunGame()
+        {
+            var game = NewGame(Harvest);
+            game.CurrentPlayer.JobHand.Add(TransportBonusJob);
+            return game;
+        }
+
+        private static void CompleteMudRun(GameState game, out WorkResult? done, out string? error)
+        {
+            var work = new WorkAction();
+            Assert.True(work.TryWork(game, "p1", TransportBonusJob, out _, out error), error);
+            Assert.Equal(5, game.CurrentPlayer.Cargo);
+            game.EndTurn();
+            game.CurrentPlayer.SectorId = Aberdeen;
+            Assert.True(work.TryWork(game, "p1", TransportBonusJob, out done, out error), error);
         }
 
         [Fact]

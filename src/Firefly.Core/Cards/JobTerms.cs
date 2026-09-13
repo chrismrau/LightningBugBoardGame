@@ -90,8 +90,17 @@ namespace Firefly.Core.Cards
         };
 
         /// <summary>
+        /// Keyword columns from Documents/Supplies.tsv (gear / some Leaders).
+        /// </summary>
+        private static readonly string[] KnownKeywords =
+        {
+            "Fake ID", "Fancy Duds", "Hacking Rig", "Transport",
+            "Firearm", "Sniper Rifle", "Explosives"
+        };
+
+        /// <summary>
         /// GF9 p.15 / Director's Cut: Bonus Tab cash ("Soldier +300") once per Job.
-        /// Does not match Parts ("Mechanic +1 Part") or non-profession strings (e.g. TRANSPORT +200).
+        /// Does not match Parts ("Mechanic +1 Part") or keyword bonuses (e.g. TRANSPORT +200).
         /// </summary>
         public static int ProfessionBonus(JobCard job, Func<string, bool> hasProfession)
         {
@@ -125,11 +134,39 @@ namespace Firefly.Core.Cards
             return hasProfession(profession) ? int.Parse(match.Groups[2].Value) : 0;
         }
 
+        /// <summary>
+        /// Keyword Bonus Tab cash (e.g. Higgins Mud Runs "TRANSPORT +200").
+        /// User ruling: pay once if any entity on the Job has the listed keyword
+        /// (crew, carried gear, Leader); Disgruntled still qualifies.
+        /// </summary>
+        public static int KeywordBonus(JobCard job, Func<string, bool> hasKeyword)
+        {
+            if (string.IsNullOrWhiteSpace(job.Bonus))
+                return 0;
+            var match = Regex.Match(job.Bonus, @"^([A-Za-z][A-Za-z ]+)\s*\+(\d+)\s*$");
+            if (!match.Success)
+                return 0;
+            var keyword = match.Groups[1].Value.Trim();
+            if (IsKnownProfession(keyword) || !IsKnownKeyword(keyword))
+                return 0;
+            return hasKeyword(keyword) ? int.Parse(match.Groups[2].Value) : 0;
+        }
+
         private static bool IsKnownProfession(string profession)
         {
             foreach (var known in KnownProfessions)
             {
                 if (string.Equals(known, profession, StringComparison.OrdinalIgnoreCase))
+                    return true;
+            }
+            return false;
+        }
+
+        private static bool IsKnownKeyword(string keyword)
+        {
+            foreach (var known in KnownKeywords)
+            {
+                if (string.Equals(known, keyword, StringComparison.OrdinalIgnoreCase))
                     return true;
             }
             return false;
