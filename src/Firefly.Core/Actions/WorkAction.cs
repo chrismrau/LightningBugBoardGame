@@ -350,6 +350,9 @@ namespace Firefly.Core.Actions
             if (JobTerms.PayPerPassenger(job))
                 pay *= System.Math.Max(1, active.Passengers);
             pay += JobTerms.ProfessionBonus(job, player.Roster.HasProfession);
+            var partsBonus = JobTerms.ProfessionPartsBonus(job, player.Roster.HasProfession);
+            if (partsBonus > 0 && HoldSpace.Fits(player, addParts: partsBonus))
+                player.Parts += partsBonus;
             return pay;
         }
 

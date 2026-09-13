@@ -73,7 +73,8 @@ namespace Firefly.Core.Actions
             Skill boardSkill,
             IRng rng,
             out BountyResult? result,
-            out string? error)
+            out string? error,
+            KillChoice? killChoice = null)
         {
             result = null;
             if (!BeginWork(game, playerId, bountyId, out var player, out var bounty, out error))
@@ -113,7 +114,7 @@ namespace Firefly.Core.Actions
             var showdown = Showdown.Resolve(Showdown.Of(player, attackSkill), Showdown.Of(rival, defendSkill), rng);
             if (!showdown.AttackerWins)
             {
-                var killed = ApplyBotch(player, bounty);
+                var killed = ApplyBotch(game, player, bounty, rng, killChoice);
                 if (!game.TryConsumeAction(TurnAction.Work, out error))
                     return false;
                 result = new BountyResult(BountyHuntKind.Confrontation, bounty.Id, false, crewKilled: killed, showdown: showdown);
@@ -136,7 +137,8 @@ namespace Firefly.Core.Actions
             Skill attackSkill,
             IRng rng,
             out BountyResult? result,
-            out string? error)
+            out string? error,
+            KillChoice? killChoice = null)
         {
             result = null;
             if (!BeginWork(game, playerId, bountyId, out var player, out var bounty, out error))
@@ -169,7 +171,7 @@ namespace Firefly.Core.Actions
             var showdown = Showdown.Resolve(Showdown.Of(player, attackSkill), Showdown.BestSkill(crew), rng);
             if (!showdown.AttackerWins)
             {
-                var killed = ApplyBotch(player, bounty);
+                var killed = ApplyBotch(game, player, bounty, rng, killChoice);
                 if (!game.TryConsumeAction(TurnAction.Work, out error))
                     return false;
                 result = new BountyResult(BountyHuntKind.LoneTarget, bounty.Id, false, crewKilled: killed, showdown: showdown);
@@ -274,7 +276,8 @@ namespace Firefly.Core.Actions
             IRng rng,
             bool rescue,
             out BountyResult? result,
-            out string? error)
+            out string? error,
+            KillChoice? killChoice = null)
         {
             result = null;
             if (!CanStart(game, playerId, out var player, out error))
@@ -313,7 +316,7 @@ namespace Firefly.Core.Actions
             var showdown = Showdown.Resolve(Showdown.Of(player, attackSkill), Showdown.Of(rival, defendSkill), rng);
             if (!showdown.AttackerWins)
             {
-                var killed = ApplyBotch(player, bounty);
+                var killed = ApplyBotch(game, player, bounty, rng, killChoice);
                 if (!game.TryConsumeAction(TurnAction.Work, out error))
                     return false;
                 result = new BountyResult(BountyHuntKind.Jump, bounty.Id, false, crewKilled: killed, showdown: showdown);
@@ -411,8 +414,13 @@ namespace Firefly.Core.Actions
             return total >= BoardingTarget;
         }
 
-        private static int ApplyBotch(PlayerState player, BountyCard bounty) =>
-            player.Roster.KillUpTo(bounty.BotchKill);
+        private static int ApplyBotch(
+            GameState game,
+            PlayerState player,
+            BountyCard bounty,
+            IRng rng,
+            KillChoice? killChoice = null) =>
+            CrewKill.KillUpTo(game, player, bounty.BotchKill, rng, killChoice);
 
         private static bool AtPlanet(GameState game, PlayerState player, string planet)
         {
