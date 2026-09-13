@@ -108,6 +108,11 @@ namespace Firefly.Core.Actions
                 return false;
             }
 
+            if (!BoardingTest.IsAllowedSkill(boardSkill))
+            {
+                error = "Boarding Test uses Tech or Negotiate only (PBH p.3).";
+                return false;
+            }
             if (!PassBoarding(player, boardSkill, rng))
             {
                 if (!game.TryConsumeAction(TurnAction.Work, out error))
@@ -316,6 +321,11 @@ namespace Firefly.Core.Actions
                 return false;
             }
 
+            if (!BoardingTest.IsAllowedSkill(boardSkill))
+            {
+                error = "Boarding Test uses Tech or Negotiate only (PBH p.3).";
+                return false;
+            }
             if (!PassBoarding(player, boardSkill, rng))
             {
                 if (!game.TryConsumeAction(TurnAction.Work, out error))
@@ -419,10 +429,10 @@ namespace Firefly.Core.Actions
 
         private static bool PassBoarding(PlayerState player, Skill boardSkill, IRng rng)
         {
-            if (boardSkill == Skill.Fight)
-                boardSkill = Skill.Talk;
-            var total = Showdown.Of(player, boardSkill) + Dice.D6(rng);
-            return total >= BoardingTarget;
+            // PBH p.3: Tech or Negotiate only. Shared with piracy BoardingTest.
+            if (!BoardingTest.TryResolve(player, boardSkill, rng, out var result, out _))
+                return false;
+            return result.Success;
         }
 
         private static int ApplyBotch(

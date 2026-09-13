@@ -40,8 +40,15 @@ namespace Firefly.Core.State
         /// <summary>
         /// Pirates &amp; Bounty Hunters: Bounty Deck + Most Wanted List.
         /// Optional — not required for basic play (PBH p.3 expanding the 'Verse).
+        /// Also enables <see cref="UsePiratesBountyHunters"/> for piracy Work.
         /// </summary>
         public bool UseBountyDeck { get; set; }
+
+        /// <summary>
+        /// Pirates &amp; Bounty Hunters: piracy Jobs (Any Rival boarding + showdown).
+        /// Optional expansion flag. When set, also wires the Bounty Deck unless already off.
+        /// </summary>
+        public bool UsePiratesBountyHunters { get; set; }
 
         /// <summary>
         /// Blue Sun: three Reaver Cutters on Burnham r2. Core: one Cutter in Border Space.
@@ -182,8 +189,10 @@ namespace Firefly.Core.State
             game.MisbehaveCatalog = misbehave;
             game.Misbehave = MisbehaveDeck.FromCatalog(misbehave, rng);
             // PBH p.8: Bounty Cards form a separate deck; reveal top 3 Most Wanted
-            // (optional expansion via UseBountyDeck).
-            if (options.UseBountyDeck)
+            // (optional expansion via UseBountyDeck / UsePiratesBountyHunters).
+            var pbh = options.UsePiratesBountyHunters || options.UseBountyDeck;
+            game.UsePiratesBountyHunters = pbh;
+            if (pbh)
                 game.BountyDeck = BountyDeck.FromCatalog(game.Bounties, rng);
             game.AllianceAlerts = AllianceAlertCatalog.LoadDefault();
             game.AllianceAlertDeck = AllianceAlertDeck.FromCatalog(game.AllianceAlerts, rng);

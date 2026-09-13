@@ -86,7 +86,7 @@ namespace Firefly.Core.Actions
                 }
                 if (JobTerms.IsAnyRival(pickup.Location))
                 {
-                    error = $"Pickup location '{pickup.Location}' is not handled by the Work kernel yet.";
+                    error = "Any Rival piracy Jobs use PiracyAction (PBH boarding + showdown).";
                     return false;
                 }
                 if (!AtSite(game, player.SectorId, pickup.Location))

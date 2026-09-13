@@ -71,6 +71,11 @@ namespace Firefly.Core.State
         /// Off for core-only; on when <see cref="GameSetupOptions.UseBlueSun"/> unless a Setup card disables them.
         /// </summary>
         public bool UseAlertTokens { get; set; }
+        /// <summary>
+        /// Pirates &amp; Bounty Hunters: piracy Work / boarding (optional expansion).
+        /// Set when <see cref="GameSetupOptions.UsePiratesBountyHunters"/> or <see cref="GameSetupOptions.UseBountyDeck"/>.
+        /// </summary>
+        public bool UsePiratesBountyHunters { get; set; }
         public NavDecks? Decks { get; set; }
         public JobCatalog? Jobs { get; set; }
         public ContactCatalog? Contacts { get; set; }
