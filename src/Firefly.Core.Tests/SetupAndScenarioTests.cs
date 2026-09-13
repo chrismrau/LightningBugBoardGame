@@ -56,8 +56,162 @@ namespace Firefly.Core.Tests
             Assert.True(card.GetProperty("deferred").GetBoolean());
         }
 
+        [Fact]
+        public void Standard_setup_loads_nav_reshuffle_discard_at_three_players()
+        {
+            var standard = SetupCatalog.LoadDefault().Get("setup_standard");
+            Assert.Equal(NavReshuffleSetupMode.DiscardIfPlayerCountAtLeast, standard.NavReshuffleMode);
+            Assert.Equal(3, standard.NavReshufflePlayerCountThreshold);
+            Assert.False(standard.PlacesNavReshuffleInDiscard(1));
+            Assert.False(standard.PlacesNavReshuffleInDiscard(2));
+            Assert.True(standard.PlacesNavReshuffleInDiscard(3));
+            Assert.True(standard.PlacesNavReshuffleInDiscard(4));
+        }
+
+        [Fact]
+        public void Clearer_skies_keeps_reshuffle_in_deck_regardless_of_player_count()
+        {
+            var card = SetupCatalog.LoadDefault().Get("setup_clearer-skies-better-days");
+            Assert.Equal(NavReshuffleSetupMode.ShuffleIntoDecksRegardlessOfPlayerCount, card.NavReshuffleMode);
+            Assert.False(card.PlacesNavReshuffleInDiscard(1));
+            Assert.False(card.PlacesNavReshuffleInDiscard(4));
+        }
+
+        [Fact]
+        public void Standard_one_player_keeps_reshuffle_in_nav_draw_piles()
+        {
+            var game = GameSetup.Create(
+                new[] { new PlayerSeat("p1", "Mal", Persephone) },
+                new GameSetupOptions { DealStartingJobs = false, Rng = new SystemRng(20) });
+
+            AssertReshufflesStayInDraw(game);
+        }
+
+        [Fact]
+        public void Standard_two_players_keeps_reshuffle_in_nav_draw_piles()
+        {
+            // GF9 p.4: discard step only applies with 3 or more players.
+            var game = GameSetup.Standard(
+                new PlayerSeat("p1", "Mal", Persephone),
+                new PlayerSeat("p2", "Zoe", Santo));
+
+            AssertReshufflesStayInDraw(game);
+        }
+
+        [Fact]
+        public void Standard_three_players_places_reshuffle_in_nav_discard_piles()
+        {
+            // FAQ 4.1 p.1 / GF9 p.4: "In games with 3 or more players, the reshuffle cards
+            // from both Nav Decks are placed in the discard pile at the start of the game"
+            var game = GameSetup.Create(
+                new[]
+                {
+                    new PlayerSeat("p1", "Mal", Persephone),
+                    new PlayerSeat("p2", "Zoe", Santo),
+                    new PlayerSeat("p3", "Wash", Bernadette)
+                },
+                new GameSetupOptions { DealStartingJobs = false, Rng = new SystemRng(21) });
+
+            AssertReshufflesStartInDiscard(game);
+        }
+
+        [Fact]
+        public void Standard_four_players_places_reshuffle_in_nav_discard_piles()
+        {
+            var game = GameSetup.Create(
+                new[]
+                {
+                    new PlayerSeat("p1", "Mal", Persephone),
+                    new PlayerSeat("p2", "Zoe", Santo),
+                    new PlayerSeat("p3", "Wash", Bernadette),
+                    new PlayerSeat("p4", "Kaylee", Regina)
+                },
+                new GameSetupOptions { DealStartingJobs = false, Rng = new SystemRng(22) });
+
+            AssertReshufflesStartInDiscard(game);
+        }
+
+        [Fact]
+        public void Clearer_skies_three_players_still_shuffles_reshuffle_into_draw()
+        {
+            // SetupCards.json: "Shuffle the RESHUFFLE Nav Cards into the Nav Decks before the game begins."
+            var game = GameSetup.Create(
+                new[]
+                {
+                    new PlayerSeat("p1", "Mal", Persephone),
+                    new PlayerSeat("p2", "Zoe", Santo),
+                    new PlayerSeat("p3", "Wash", Bernadette)
+                },
+                new GameSetupOptions
+                {
+                    SetupCardId = "setup_clearer-skies-better-days",
+                    DealStartingJobs = false,
+                    Rng = new SystemRng(23)
+                });
+
+            AssertReshufflesStayInDraw(game);
+        }
+
+        [Fact]
+        public void Setup_discarded_reshuffle_enters_draw_only_after_first_exhaustion()
+        {
+            // GF9 p.4: when the deck is first exhausted, reshuffle discard including RESHUFFLE.
+            var game = GameSetup.Create(
+                new[]
+                {
+                    new PlayerSeat("p1", "Mal", Persephone),
+                    new PlayerSeat("p2", "Zoe", Santo),
+                    new PlayerSeat("p3", "Wash", Bernadette)
+                },
+                new GameSetupOptions { DealStartingJobs = false, Rng = new SystemRng(24) });
+
+            var alliance = game.Decks!.Alliance;
+            Assert.Equal(1, alliance.DiscardCount);
+            Assert.True(alliance.DiscardPile[0].IsReshuffle);
+            var drawBefore = alliance.DrawCount;
+            for (var i = 0; i < drawBefore; i++)
+                alliance.ResolveIntoDiscard(alliance.Draw());
+
+            Assert.Equal(0, alliance.DrawCount);
+            Assert.True(alliance.DiscardCount > 1);
+            var next = alliance.Draw();
+            Assert.Equal(drawBefore, alliance.DrawCount); // discard (incl. RESHUFFLE) reshuffled in; one drawn
+            Assert.Equal(0, alliance.DiscardCount);
+            Assert.False(string.IsNullOrWhiteSpace(next.Id));
+        }
+
+        private static void AssertReshufflesStayInDraw(GameState game)
+        {
+            Assert.NotNull(game.Decks);
+            foreach (var deck in new[] { game.Decks!.Alliance, game.Decks.Border, game.Decks.Rim })
+            {
+                Assert.Equal(60, deck.DrawCount);
+                Assert.Equal(0, deck.DiscardCount);
+                Assert.True(deck.DrawContainsReshuffle());
+            }
+        }
+
+        private static void AssertReshufflesStartInDiscard(GameState game)
+        {
+            Assert.NotNull(game.Decks);
+            AssertRegionalReshuffleInDiscard(game.Decks!.Alliance, "nav_alliance-cruiser");
+            AssertRegionalReshuffleInDiscard(game.Decks.Border, "nav_reaver-cutter");
+            AssertRegionalReshuffleInDiscard(game.Decks.Rim, "nav_reaver-cutter");
+        }
+
+        private static void AssertRegionalReshuffleInDiscard(NavDeck deck, string expectedId)
+        {
+            Assert.Equal(59, deck.DrawCount);
+            Assert.Equal(1, deck.DiscardCount);
+            Assert.False(deck.DrawContainsReshuffle());
+            Assert.True(deck.DiscardPile[0].IsReshuffle);
+            Assert.Equal(expectedId, deck.DiscardPile[0].Id);
+        }
+
         private const string Persephone = "alliance-lux-r1-01";
         private const string Santo = "alliance-qin-shi-huang-r1-01";
+        private const string Bernadette = "alliance-white-sun-r1-01";
+        private const string Regina = "border-georgia-r1-01";
 
         [Fact]
         public void Standard_setup_wires_misbehave_and_supply_decks()
