@@ -563,6 +563,191 @@ namespace Firefly.Core.Tests
             Assert.Equal(0, player.Warrants);
         }
 
+        [Fact]
+        public void Broken_Down_Shuttle_disgruntles_moral_crew_on_pass_by()
+        {
+            var (game, resolver, player) = GameWithQueuedDraws(1);
+            var catalog = CrewCatalog.LoadDefault();
+            Assert.True(player.Roster.TryHire(catalog.Get("crew_kaylee"), out _));
+            Assert.True(player.Roster.TryHire(catalog.Get("crew_jayne"), out _));
+            Assert.True(player.Roster.Find("crew_kaylee")!.Moral);
+            Assert.False(player.Roster.Find("crew_jayne")!.Moral);
+            game.Decks!.Alliance.PlaceOnTop(game.Decks.Catalog.Get("nav_broken-down-shuttle"));
+            resolver.DrawNext(game);
+
+            Assert.True(resolver.TryResolve(game, 1, out var resolution, out var error), error);
+            Assert.Equal(FlightOutcome.KeepFlying, resolution!.Outcome);
+            Assert.Equal(1, resolution.MoralDisgruntled);
+            Assert.True(player.Roster.Find("crew_kaylee")!.Disgruntled);
+            Assert.False(player.Roster.Find("crew_jayne")!.Disgruntled);
+        }
+
+        [Fact]
+        public void Distress_Signal_clear_disgruntled_moral_and_pass_by_disgruntles()
+        {
+            var (game, resolver, player) = GameWithQueuedDraws(1);
+            var catalog = CrewCatalog.LoadDefault();
+            Assert.True(player.Roster.TryHire(catalog.Get("crew_kaylee"), out _));
+            player.Roster.Disgruntle(player.Roster.Find("crew_kaylee")!);
+            player.Fuel = 2;
+            player.Cash = 0;
+            game.Decks!.Alliance.PlaceOnTop(game.Decks.Catalog.Get("nav_distress-signal"));
+            resolver.DrawNext(game);
+
+            Assert.True(resolver.TryResolve(game, 0, out var rescue, out var rescueErr), rescueErr);
+            Assert.Equal(FlightOutcome.FullStop, rescue!.Outcome);
+            Assert.Equal(1, rescue.DisgruntledCleared);
+            Assert.False(player.Roster.Find("crew_kaylee")!.Disgruntled);
+            Assert.Equal(1, player.Fuel);
+            Assert.Equal(200, player.Cash);
+
+            player.Fuel = 1;
+            game.PendingNavDraws.Add(new PendingNavDraw(Pelorum, NavRegion.Alliance));
+            game.Decks.Alliance.PlaceOnTop(game.Decks.Catalog.Get("nav_distress-signal"));
+            resolver.DrawNext(game);
+            Assert.True(resolver.TryResolve(game, 1, out var pass, out var passErr), passErr);
+            Assert.Equal(1, pass!.MoralDisgruntled);
+            Assert.True(player.Roster.Find("crew_kaylee")!.Disgruntled);
+        }
+
+        [Fact]
+        public void Customs_Prepare_seizes_contraband_and_fugitives_not_in_stash()
+        {
+            var (game, resolver, player) = GameWithQueuedDraws(1);
+            player.StashHold = 4;
+            player.Contraband = 3;
+            player.Fugitives = 3;
+            game.Decks!.Alliance.PlaceOnTop(game.Decks.Catalog.Get("nav_customs-inspection"));
+            resolver.DrawNext(game);
+
+            Assert.True(resolver.TryResolve(game, 0, out var resolution, out var error), error);
+            Assert.Equal(FlightOutcome.FullStop, resolution!.Outcome);
+            // Auto-pack protects Contraband first into 4 stash slots: keep 3 Contra + 1 Fugitive.
+            Assert.Equal(0, resolution.ContrabandSeized);
+            Assert.Equal(2, resolution.FugitivesSeized);
+            Assert.Equal(3, player.Contraband);
+            Assert.Equal(1, player.Fugitives);
+        }
+
+        [Fact]
+        public void Customs_Prepare_honors_stash_keep_choice()
+        {
+            var (game, resolver, player) = GameWithQueuedDraws(1);
+            player.StashHold = 4;
+            player.Contraband = 3;
+            player.Fugitives = 3;
+            game.Decks!.Alliance.PlaceOnTop(game.Decks.Catalog.Get("nav_customs-inspection"));
+            resolver.DrawNext(game);
+            var choice = new NavResolveChoice
+            {
+                KeepInStashContraband = 1,
+                KeepInStashFugitives = 3
+            };
+
+            Assert.True(resolver.TryResolve(game, 0, out var resolution, out var error, choice: choice), error);
+            Assert.Equal(2, resolution!.ContrabandSeized);
+            Assert.Equal(0, resolution.FugitivesSeized);
+            Assert.Equal(1, player.Contraband);
+            Assert.Equal(3, player.Fugitives);
+        }
+
+        [Fact]
+        public void Customs_Turn_and_Burn_issues_warrant_and_evades()
+        {
+            var (game, resolver, player) = GameWithQueuedDraws(1);
+            player.Fuel = 2;
+            player.Warrants = 0;
+            game.Decks!.Alliance.PlaceOnTop(game.Decks.Catalog.Get("nav_customs-inspection"));
+            resolver.DrawNext(game);
+            var choice = new NavResolveChoice { EvadeToSectorId = Persephone };
+
+            Assert.True(resolver.TryResolve(game, 1, out var resolution, out var error, choice: choice), error);
+            Assert.Equal(FlightOutcome.Evade, resolution!.Outcome);
+            Assert.Equal(1, resolution.WarrantsIssued);
+            Assert.Equal(1, player.Warrants);
+            Assert.Equal(1, player.Fuel);
+            Assert.Equal(Persephone, player.SectorId);
+        }
+
+        [Fact]
+        public void Spy_Satellite_issues_warrant_only_when_Outlaw()
+        {
+            var (game, resolver, player) = GameWithQueuedDraws(1);
+            player.Warrants = 0;
+            player.Contraband = 0;
+            player.Fugitives = 0;
+            game.Decks!.Alliance.PlaceOnTop(game.Decks.Catalog.Get("nav_alliance-spy-satellite"));
+            resolver.DrawNext(game);
+
+            Assert.True(resolver.TryResolve(game, 1, out var legal, out var legalErr), legalErr);
+            Assert.Equal(0, legal!.WarrantsIssued);
+            Assert.Equal(0, player.Warrants);
+
+            player.Contraband = 1;
+            game.PendingNavDraws.Add(new PendingNavDraw(Pelorum, NavRegion.Alliance));
+            game.Decks.Alliance.PlaceOnTop(game.Decks.Catalog.Get("nav_alliance-spy-satellite"));
+            resolver.DrawNext(game);
+            Assert.True(resolver.TryResolve(game, 1, out var outlaw, out var outlawErr), outlawErr);
+            Assert.Equal(1, outlaw!.WarrantsIssued);
+            Assert.Equal(1, player.Warrants);
+        }
+
+        [Fact]
+        public void Local_Tariff_fail_band_seizes_goods_not_in_stash()
+        {
+            var (game, resolver, player) = GameWithQueuedDraws(1);
+            player.TalkBonus = 1;
+            player.StashHold = 4;
+            player.Fuel = 0;
+            player.Parts = 0;
+            player.Cargo = 2;
+            player.Contraband = 6;
+            game.Decks!.Alliance.PlaceOnTop(game.Decks.Catalog.Get("nav_local-tariff-patrol"));
+            resolver.DrawNext(game);
+
+            Assert.True(resolver.TryResolve(game, 0, out var resolution, out var error, ScriptedRng.FromDieFaces(1)), error);
+            Assert.False(resolution!.SkillCheck!.Success);
+            // Stash protects 4 Contraband; 2 Contra + 2 Cargo unprotected; seize all 4 (cap 5).
+            Assert.Equal(4, resolution.GoodsSeized);
+            Assert.Equal(4, player.Contraband);
+            Assert.Equal(0, player.Cargo);
+        }
+
+        [Fact]
+        public void Local_Tariff_Turn_and_Burn_issues_warrant()
+        {
+            var (game, resolver, player) = GameWithQueuedDraws(1);
+            player.Fuel = 1;
+            player.Warrants = 0;
+            game.Decks!.Alliance.PlaceOnTop(game.Decks.Catalog.Get("nav_local-tariff-patrol"));
+            resolver.DrawNext(game);
+            var choice = new NavResolveChoice { EvadeToSectorId = Persephone };
+
+            Assert.True(resolver.TryResolve(game, 1, out var resolution, out var error, choice: choice), error);
+            Assert.Equal(1, resolution!.WarrantsIssued);
+            Assert.Equal(1, player.Warrants);
+            Assert.Equal(0, player.Fuel);
+        }
+
+        [Fact]
+        public void Family_Dinner_removes_disgruntled_from_all_crew()
+        {
+            var (game, resolver, player) = GameWithQueuedDraws(1);
+            var catalog = CrewCatalog.LoadDefault();
+            Assert.True(player.Roster.TryHire(catalog.Get("crew_kaylee"), out _));
+            Assert.True(player.Roster.TryHire(catalog.Get("crew_jayne"), out _));
+            player.Roster.Disgruntle(player.Roster.Find("crew_kaylee")!);
+            player.Roster.Disgruntle(player.Roster.Find("crew_jayne")!);
+            player.Cargo = 1;
+            game.Decks!.Alliance.PlaceOnTop(game.Decks.Catalog.Get("nav_family-dinner"));
+            resolver.DrawNext(game);
+
+            Assert.True(resolver.TryResolve(game, 0, out var resolution, out var error), error);
+            Assert.Equal(2, resolution!.DisgruntledCleared);
+            Assert.Equal(0, player.Roster.DisgruntledCount);
+            Assert.Equal(0, player.Cargo);
+        }
+
         private const string Londinium = "alliance-white-sun-r1-02";
         private const string Bernadette = "alliance-white-sun-r1-01";
         private const string EmptyAllianceNearPelorum = "alliance-white-sun-r3-02";
