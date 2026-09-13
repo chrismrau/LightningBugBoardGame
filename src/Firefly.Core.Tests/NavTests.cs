@@ -100,6 +100,29 @@ namespace Firefly.Core.Tests
         }
 
         [Fact]
+        public void Empty_draw_reshuffles_discard_including_parked_RESHUFFLE()
+        {
+            // GF9 p.4 / Director's Cut p.12: exhaustion reshuffles discard including RESHUFFLE.
+            // Setup parks RESHUFFLE in discard without resolving; first empty draw must include it.
+            var decks = NavCatalog.BuildDecks(NavPath, new SystemRng(3));
+            Assert.Equal(1, decks.Alliance.MoveReshufflesToDiscardForSetup());
+            Assert.False(decks.Alliance.DrawContainsReshuffle());
+            Assert.True(decks.Alliance.DiscardPile[0].IsReshuffle);
+
+            var nonReshuffleCount = decks.Alliance.DrawCount;
+            for (var i = 0; i < nonReshuffleCount; i++)
+                decks.Alliance.ResolveIntoDiscard(decks.Alliance.Draw());
+
+            Assert.Equal(0, decks.Alliance.DrawCount);
+            Assert.Equal(nonReshuffleCount + 1, decks.Alliance.DiscardCount);
+
+            var drawn = decks.Alliance.Draw();
+            Assert.Equal(0, decks.Alliance.DiscardCount);
+            Assert.Equal(nonReshuffleCount, decks.Alliance.DrawCount);
+            Assert.True(drawn.IsReshuffle || decks.Alliance.DrawContainsReshuffle());
+        }
+
+        [Fact]
         public void Multi_option_card_stays_face_up_until_chosen()
         {
             var (game, resolver, _) = GameWithQueuedDraws(1);
