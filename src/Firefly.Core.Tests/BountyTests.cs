@@ -344,5 +344,54 @@ namespace Firefly.Core.Tests
             Assert.True(zoe.Roster.HasName("Billy"));
             Assert.Empty(mal.BoundBounties);
         }
+
+        [Fact]
+        public void Bound_bounties_do_not_count_toward_active_job_slots()
+        {
+            // PBH p.9 / FAQ 4.1 p.11: Bounties never count towards Active Jobs limit.
+            var (game, mal, _) = TwoShips();
+            PutOnWanted(game, "bounty_jayne");
+            mal.Roster.TryHire(Crew.Get("crew_jayne"), out _);
+            mal.Roster.TryHire(Crew.Get("crew_kaylee"), out _);
+            Assert.True(new BountyAction().TryBetray(
+                game, "p1", "bounty_jayne", "crew_jayne", out _, out var error), error);
+            Assert.Single(mal.BoundBounties);
+            Assert.Empty(mal.ActiveJobs);
+            Assert.Equal(3, mal.ActiveJobLimit);
+            // Still room for three Contact Active Jobs.
+            mal.ActiveJobs.Add(new ActiveJob("job_a"));
+            mal.ActiveJobs.Add(new ActiveJob("job_b"));
+            mal.ActiveJobs.Add(new ActiveJob("job_c"));
+            Assert.Equal(3, mal.ActiveJobs.Count);
+        }
+
+        [Fact]
+        public void Bound_fugitives_count_for_outlaw_ship_and_reaver_removal()
+        {
+            // User / PBH: Bound count as Fugitives for Fugitive-affecting effects;
+            // PBH p.12 Reavers remove Bound when killing Fugitive tokens.
+            var (game, mal, _) = TwoShips();
+            PutOnWanted(game, "bounty_jayne");
+            mal.Roster.TryHire(Crew.Get("crew_jayne"), out _);
+            mal.Roster.TryHire(Crew.Get("crew_kaylee"), out _);
+            Assert.True(new BountyAction().TryBetray(
+                game, "p1", "bounty_jayne", "crew_jayne", out _, out var error), error);
+            Assert.Equal(0, mal.Fugitives);
+            Assert.True(BoundFugitives.HasAny(mal));
+            Assert.True(AlertTokenRules.IsOutlawShip(mal));
+
+            const string cutter = "border-space-r2-06";
+            const string evadeTo = "border-space-r2-05";
+            mal.SectorId = cutter;
+            game.Tokens = new MapTokens(reaverCutterSectorIds: new[] { cutter });
+            game.PendingEncounter = TokenKind.ReaverCutter;
+            game.PendingEncounterSectorId = cutter;
+            Assert.True(ReaverContact.TryResolve(
+                game, ScriptedRng.FromDieFaces(6, 6), evadeTo,
+                out var result, out error), error);
+            Assert.True(result!.FugitivesKilled >= 1);
+            Assert.Empty(mal.BoundBounties);
+            Assert.Contains("crew_jayne", game.RemovedFromPlay);
+        }
     }
 }

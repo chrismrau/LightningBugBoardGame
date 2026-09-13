@@ -91,15 +91,17 @@ namespace Firefly.Core.Tests
         }
 
         [Fact]
-        public void Crime_job_completes_from_hand_after_misbehave()
+        public void Crime_job_completes_after_misbehave_while_active()
         {
             var game = NewGame(Santo);
             game.CurrentPlayer.JobHand.Add(Crime);
             var work = new WorkAction();
             Assert.True(work.TryWork(game, "p1", Crime, out var start, out var error), error);
             Assert.True(start!.AwaitingMisbehave);
-            Assert.Contains(Crime, game.CurrentPlayer.JobHand);
-            Assert.Null(game.CurrentPlayer.FindActive(Crime));
+            // FAQ 4.1 p.5: Active on first Work Action, before Misbehave resolves.
+            Assert.True(start.BecameActive);
+            Assert.DoesNotContain(Crime, game.CurrentPlayer.JobHand);
+            Assert.NotNull(game.CurrentPlayer.FindActive(Crime));
 
             Assert.True(work.TryProceedMisbehave(game, "p1", true, out _, out _));
             Assert.True(work.TryProceedMisbehave(game, "p1", true, out _, out _));
@@ -112,15 +114,16 @@ namespace Firefly.Core.Tests
         }
 
         [Fact]
-        public void Botched_start_leaves_the_job_in_hand()
+        public void Botched_start_leaves_the_job_active()
         {
+            // FAQ 4.1 p.5 Example 2: botched Misbehave — Job stays in Active Jobs area.
             var game = NewGame(Santo);
             game.CurrentPlayer.JobHand.Add(Crime);
             var work = new WorkAction();
             Assert.True(work.TryWork(game, "p1", Crime, out _, out _));
             Assert.True(work.TryProceedMisbehave(game, "p1", proceed: false, out _, out _));
-            Assert.Contains(Crime, game.CurrentPlayer.JobHand);
-            Assert.Null(game.CurrentPlayer.FindActive(Crime));
+            Assert.DoesNotContain(Crime, game.CurrentPlayer.JobHand);
+            Assert.NotNull(game.CurrentPlayer.FindActive(Crime));
             Assert.Equal(0, game.CurrentPlayer.Cash);
             Assert.Equal(TurnAction.Work, game.LastAction);
         }
@@ -171,10 +174,13 @@ namespace Firefly.Core.Tests
             var work = new WorkAction();
             Assert.True(work.TryWork(game, "p1", Immoral, out var start, out _));
             Assert.True(start!.AwaitingMisbehave);
-            Assert.Equal(0, game.CurrentPlayer.Roster.DisgruntledCount);
+            // FAQ 4.1 p.5: Active (and Immoral Disgruntle) on first Work Action.
+            Assert.True(start.BecameActive);
+            Assert.Equal(1, start.MoralDisgruntled);
+            Assert.Equal(1, game.CurrentPlayer.Roster.DisgruntledCount);
             Assert.True(work.TryProceedMisbehave(game, "p1", true, out var picked, out var error), error);
-            Assert.True(picked!.BecameActive);
-            Assert.Equal(1, picked.MoralDisgruntled);
+            Assert.False(picked!.BecameActive);
+            Assert.Equal(0, picked.MoralDisgruntled);
             Assert.Equal(1, game.CurrentPlayer.Roster.DisgruntledCount);
         }
 

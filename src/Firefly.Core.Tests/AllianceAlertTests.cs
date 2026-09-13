@@ -227,7 +227,8 @@ namespace Firefly.Core.Tests
 
             Assert.Equal(MisbehaveOutcome.Botched, resolution!.Outcome);
             Assert.NotNull(game.AllianceAlertDeck!.Active);
-            Assert.Contains("job_badger_badgers-11-casino-caper", game.CurrentPlayer.JobHand);
+            Assert.DoesNotContain("job_badger_badgers-11-casino-caper", game.CurrentPlayer.JobHand);
+            Assert.NotNull(game.CurrentPlayer.FindActive("job_badger_badgers-11-casino-caper"));
         }
 
         [Fact]

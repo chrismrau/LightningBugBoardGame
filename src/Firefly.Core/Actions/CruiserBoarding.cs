@@ -123,7 +123,8 @@ namespace Firefly.Core.Actions
             player.Warrants = 0;
 
             var contraband = player.Contraband;
-            var fugitives = player.Fugitives;
+            // Bound-by-Law count as Fugitives for Alliance Cruiser seizure.
+            var fugitives = player.Fugitives + BoundFugitives.RemoveAllFromPlay(game, player);
             player.Contraband = 0;
             player.Fugitives = 0;
 

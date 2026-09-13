@@ -1643,7 +1643,9 @@ namespace Firefly.Core.Actions
                 && TryPlanCustomsStashKeep(player, choice, out var keepContra, out var keepFug, out _))
             {
                 contrabandSeized = player.Contraband - keepContra;
-                fugitivesSeized = player.Fugitives - keepFug;
+                // Bound Fugitives cannot occupy Stash (PBH p.11) — seized with unprotected Fugitives.
+                fugitivesSeized = player.Fugitives - keepFug
+                    + BoundFugitives.RemoveAllFromPlay(game, player);
                 player.Contraband = keepContra;
                 player.Fugitives = keepFug;
             }

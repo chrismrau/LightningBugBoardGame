@@ -103,9 +103,10 @@ namespace Firefly.Core.Tests
         }
 
         [Fact]
-        public void Boarding_fail_leaves_job_in_hand_not_active()
+        public void Boarding_fail_leaves_job_active_not_in_hand()
         {
-            // User ruling 2026-09-13 (overrides PBH p.5 Active-on-fail print).
+            // PBH p.5: "If the Boarding Test is failed, the Piracy Job Card remains
+            // in your Active Job area but your attempt is over."
             var (game, mal, _) = TwoShips();
             mal.JobHand.Add(ContractJumper);
             mal.TechBonus = 1;
@@ -115,9 +116,20 @@ namespace Firefly.Core.Tests
                 out var result, out var error), error);
             Assert.True(result!.BoardingFailed);
             Assert.False(result.Success);
-            Assert.Contains(ContractJumper, mal.JobHand);
-            Assert.Null(mal.FindActive(ContractJumper));
+            Assert.DoesNotContain(ContractJumper, mal.JobHand);
+            Assert.NotNull(mal.FindActive(ContractJumper));
             Assert.Equal(TurnAction.Work, game.LastAction);
+
+            // Retry later from the Active slot (FAQ / PBH: stay Active until complete/discard).
+            game.EndTurn();
+            game.EndTurn();
+            mal.TechBonus = 5;
+            mal.FightBonus = 5;
+            Assert.True(piracy.TryPirate(
+                game, "p1", ContractJumper, Choice("p2"),
+                ScriptedRng.FromDieFaces(6, 6, 1),
+                out var retry, out error), error);
+            Assert.False(retry!.BoardingFailed);
         }
 
         [Fact]

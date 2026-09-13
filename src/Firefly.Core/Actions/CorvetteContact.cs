@@ -127,10 +127,11 @@ namespace Firefly.Core.Actions
                 removedId = target.Id;
             }
 
-            // Free rearrange: pack as many Fugitives into Stash as fit; discard the rest.
+            // Free rearrange: pack as many Fugitive tokens into Stash as fit; discard the rest.
+            // Bound Fugitives are not hold cargo (PBH p.11) so they cannot use Stash — discarded.
             var stashSlots = System.Math.Max(0, player.StashHold);
             var kept = System.Math.Min(player.Fugitives, stashSlots);
-            var discarded = player.Fugitives - kept;
+            var discarded = player.Fugitives - kept + BoundFugitives.RemoveAllFromPlay(game, player);
             player.Fugitives = kept;
 
             result = new CorvetteContactResult(removedId, prevented, discarded, kept);

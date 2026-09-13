@@ -246,8 +246,9 @@ namespace Firefly.Core.Tests
             var work = new WorkAction();
             Assert.True(work.TryWork(game, "p1", Soldier300Job, out var start, out var error), error);
             Assert.True(start!.AwaitingMisbehave);
+            Assert.True(start.BecameActive);
             Assert.True(work.TryProceedMisbehave(game, "p1", true, out var picked, out error), error);
-            Assert.True(picked!.BecameActive);
+            Assert.False(picked!.BecameActive);
             Assert.Equal(2, game.CurrentPlayer.Contraband);
             game.EndTurn();
             game.CurrentPlayer.SectorId = Jiangyin;

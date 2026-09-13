@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Firefly.Core.State;
 
 namespace Firefly.Core.Movement
 {
@@ -77,11 +78,12 @@ namespace Firefly.Core.Movement
 
         /// <summary>
         /// FAQ 4.1: Legal Ship = no Contraband, no Fugitives, no Wanted crew, no Warrants.
+        /// Bound-by-Law count as Fugitives for this check (PBH / user: Fugitive-affecting effects).
         /// </summary>
         public static bool IsOutlawShip(State.PlayerState player) =>
             player.Warrants > 0
             || player.Contraband > 0
-            || player.Fugitives > 0
+            || BoundFugitives.HasAny(player)
             || player.Roster.WantedCount > 0;
 
         public static int EffectiveCount(
