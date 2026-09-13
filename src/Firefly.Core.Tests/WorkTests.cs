@@ -47,15 +47,15 @@ namespace Firefly.Core.Tests
         }
 
         [Fact]
-        public void Second_job_cannot_start_while_one_is_active()
+        public void Fourth_job_cannot_start_when_three_are_active()
         {
-            var game = NewGame(Harvest);
-            game.CurrentPlayer.JobHand.Add(Shipping);
+            // GF9 p.14: up to 3 Active Jobs. Higgins Solid raises the limit separately.
+            var game = NewGame(Santo);
+            game.CurrentPlayer.ActiveJobs.Add(new ActiveJob("already_1"));
+            game.CurrentPlayer.ActiveJobs.Add(new ActiveJob("already_2"));
+            game.CurrentPlayer.ActiveJobs.Add(new ActiveJob("already_3"));
             game.CurrentPlayer.JobHand.Add(Crime);
             var work = new WorkAction();
-            Assert.True(work.TryWork(game, "p1", Shipping, out _, out _));
-            game.EndTurn();
-            game.CurrentPlayer.SectorId = Santo;
             Assert.False(work.TryWork(game, "p1", Crime, out _, out var error));
             Assert.Contains("active job", error);
             Assert.Contains(Crime, game.CurrentPlayer.JobHand);

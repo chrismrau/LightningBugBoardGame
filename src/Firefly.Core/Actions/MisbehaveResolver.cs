@@ -26,6 +26,8 @@ namespace Firefly.Core.Actions
         public KillChoice? Kill { get; set; }
         /// <summary>Thin skill-test Bribes hook until PendingChoice.</summary>
         public SkillCheckChoice? SkillCheck { get; set; }
+        /// <summary>Discard-down when losing Solid (Mr. Universe hand / Higgins active).</summary>
+        public SolidRepChoice? SolidRep { get; set; }
     }
 
     public sealed class MisbehaveResolution
@@ -187,6 +189,20 @@ namespace Firefly.Core.Actions
                 return false;
             }
 
+            // Validate Solid-loss discard hooks before mutating crew / warrants.
+            if (WouldLoseSolid(details) || WouldLoseSolid(bandText ?? ""))
+            {
+                var lostId = ResolveLoseSolidId(player, choice.LoseSolidId);
+                if (lostId == null)
+                {
+                    error = "Not Solid with a Contact to lose.";
+                    return false;
+                }
+                if (!ContactSolidBenefits.CanDiscardDownAfterLosing(
+                    game, player, lostId, choice.SolidRep, out error))
+                    return false;
+            }
+
             var cashDelta = -bribeCash;
             if (paying)
             {
@@ -214,8 +230,24 @@ namespace Firefly.Core.Actions
             ApplyWanted(player, effectText, choice.TargetCrewId);
             ApplyDisgruntle(player, effectText);
             ApplyClearDisgruntled(player, effectText);
-            ApplySolidLoss(player, effectText, effectText, choice.LoseSolidId);
+            if (!TryApplySolidLoss(game, player, effectText, effectText, choice, out error))
+                return false;
             ApplyWarrantDiscard(player, effectText, choice.DiscardWarrants);
+
+            // GF9 / FAQ: Warrant Issued while Working discards the Job. Niska Pound of Flesh: Kill a Crew.
+            if (warrants > 0 && game.PendingMisbehave != null)
+            {
+                if (!TryAbandonJobForWarrant(
+                    game, player, rng, choice.Kill, ref killed, out var abandonedWork, out error))
+                    return false;
+                game.Misbehave?.ResolveIntoDiscard(card);
+                if (game.PendingMisbehave != null)
+                    game.PendingMisbehave.FaceUp = null;
+                resolution = new MisbehaveResolution(
+                    card, option, MisbehaveOutcome.Botched, check, warrants, killed, loaded, cashDelta, false, abandonedWork);
+                error = null;
+                return true;
+            }
 
             var outcome = Contains(bandText, "Attempt Botched")
                 ? MisbehaveOutcome.Botched
@@ -530,13 +562,80 @@ namespace Firefly.Core.Actions
                 member.Disgruntled = false;
         }
 
-        private static void ApplySolidLoss(PlayerState player, string details, string bandText, string? loseSolidId)
+        private static bool TryApplySolidLoss(
+            GameState game,
+            PlayerState player,
+            string details,
+            string bandText,
+            MisbehaveChoice choice,
+            out string? error)
         {
-            if (!Contains(details, "Lose 1 Solid") && !Contains(details, "Loose 1 Solid")
-                && !Contains(bandText, "Lose 1 Solid") && !Contains(bandText, "Loose 1 Solid")
-                && !Contains(details, "Discard 1 Solid"))
-                return;
-            player.TryLoseSolid(loseSolidId);
+            error = null;
+            if (!WouldLoseSolid(details) && !WouldLoseSolid(bandText))
+                return true;
+
+            var solidChoice = choice.SolidRep ?? new SolidRepChoice();
+            if (solidChoice.Kill == null && choice.Kill != null)
+                solidChoice.Kill = choice.Kill;
+            return ContactSolidBenefits.TryLoseSolid(game, player, choice.LoseSolidId, solidChoice, out error);
+        }
+
+        private static bool WouldLoseSolid(string text) =>
+            Contains(text, "Lose 1 Solid") || Contains(text, "Loose 1 Solid") || Contains(text, "Discard 1 Solid");
+
+        private static string? ResolveLoseSolidId(PlayerState player, string? contactIdOrName)
+        {
+            if (!string.IsNullOrWhiteSpace(contactIdOrName))
+            {
+                foreach (var id in player.SolidWith)
+                {
+                    if (id.Equals(contactIdOrName, StringComparison.OrdinalIgnoreCase)
+                        || ContactNames.EqualsName(id, contactIdOrName))
+                        return id;
+                }
+                return null;
+            }
+            foreach (var id in player.SolidWith)
+                return id;
+            return null;
+        }
+
+        /// <summary>
+        /// FAQ 4.1 / GF9: Warrant while Working discards that Job.
+        /// Niska Pound of Flesh: Kill a Crew when Warrant Issued while working a Niska Job.
+        /// </summary>
+        private static bool TryAbandonJobForWarrant(
+            GameState game,
+            PlayerState player,
+            IRng? rng,
+            KillChoice? killChoice,
+            ref int killed,
+            out WorkResult? work,
+            out string? error)
+        {
+            work = null;
+            error = null;
+            var pending = game.PendingMisbehave;
+            if (pending == null || game.Jobs == null || !game.Jobs.TryGet(pending.JobId, out var job))
+            {
+                error = "No Work Job to abandon for Warrant.";
+                return false;
+            }
+
+            player.JobHand.Remove(job.Id);
+            player.RemoveActive(job.Id);
+            if (game.ContactDecks != null && game.ContactDecks.TryGet(job.ContactName, out var deck))
+                deck.MoveToDiscard(job);
+
+            if (ContactSolidBenefits.IsNiskaJob(job))
+                killed += CrewKill.KillUpTo(game, player, 1, rng ?? new SystemRng(), killChoice);
+
+            game.PendingMisbehave = null;
+            game.TryConsumeAction(TurnAction.Work, out _);
+            work = new WorkResult(
+                pending.Site == WorkSite.Pickup ? WorkKind.Pickup : WorkKind.Complete,
+                job, false, false, 0, 0);
+            return true;
         }
 
         private static void ApplyWarrantDiscard(PlayerState player, string text, int requested)

@@ -276,7 +276,7 @@ namespace Firefly.Core.Actions
             player.Cash += pay;
             if (game.Contacts != null && game.Contacts.TryFindByName(job.ContactName, out var contact))
             {
-                player.BecomeSolid(contact.Id);
+                ContactSolidBenefits.BecomeSolid(game, player, contact.Id);
                 if (game.ContactDecks != null && game.ContactDecks.TryGet(contact.Name, out var deck))
                     deck.MoveToDiscard(job);
             }
@@ -354,6 +354,7 @@ namespace Firefly.Core.Actions
             // roster (incl. Disgruntled) + owned gear. Gear carriage vs Onboard Ship waits
             // on the gear-assign model (GF9 p.14: onboard may not be used while Working).
             pay += JobTerms.KeywordBonus(job, kw => MisbehaveResolver.HasTag(game, player, kw));
+            pay += ContactSolidBenefits.CompletionBonus(game, player, job);
             var partsBonus = JobTerms.ProfessionPartsBonus(job, player.Roster.HasProfession);
             if (partsBonus > 0 && HoldSpace.Fits(player, addParts: partsBonus))
                 player.Parts += partsBonus;

@@ -31,6 +31,10 @@ namespace Firefly.Core.Cards
         public bool IsPatience { get; }
         public bool IsHiggins { get; }
         public bool IsBadger { get; }
+        public bool IsAmnon { get; }
+        public bool IsFanty { get; }
+        public bool IsHarrow { get; }
+        public bool IsNiska { get; }
 
         public ContactCard(
             string id,
@@ -61,6 +65,14 @@ namespace Firefly.Core.Cards
             IsHiggins = ContactNames.EqualsName(name, "Magistrate Higgins")
                 || ContactNames.EqualsName(name, "Higgins");
             IsBadger = ContactNames.EqualsName(name, "Badger");
+            IsAmnon = ContactNames.EqualsName(name, "Amnon Duul")
+                || ContactNames.EqualsName(name, "Amnon");
+            IsFanty = ContactNames.EqualsName(name, "Fanty & Mingo")
+                || ContactNames.EqualsName(name, "Fanty and Mingo")
+                || ContactNames.EqualsName(name, "Fanty");
+            IsHarrow = ContactNames.EqualsName(name, "Lord Harrow")
+                || ContactNames.EqualsName(name, "Harrow");
+            IsNiska = ContactNames.EqualsName(name, "Niska");
         }
     }
 }
