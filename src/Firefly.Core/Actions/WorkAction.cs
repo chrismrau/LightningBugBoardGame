@@ -1,5 +1,4 @@
 using Firefly.Core.Cards;
-using Firefly.Core.Map;
 using Firefly.Core.State;
 
 namespace Firefly.Core.Actions
@@ -63,6 +62,12 @@ namespace Firefly.Core.Actions
                 return false;
             }
 
+            if (BountyJobAuthority.IsCoveredByBountyDeck(job, game.Bounties))
+            {
+                error = "That bounty is worked from the Most Wanted List (Bounty deck), not as a Contact Job.";
+                return false;
+            }
+
             var pickup = JobTerms.Pickup(job);
             var dropoff = JobTerms.Dropoff(job);
             var hasDropoff = JobTerms.HasDropoff(job);
@@ -74,12 +79,17 @@ namespace Firefly.Core.Actions
                     error = $"Already have {player.ActiveJobLimit} active job(s).";
                     return false;
                 }
-                if (JobTerms.LocationIsSpecialCase(pickup.Location))
+                if (JobTerms.IsVarious(pickup.Location))
+                {
+                    error = "Cortex Alert / Various pickups use the Bounty deck (PBH), not Work-as-Job.";
+                    return false;
+                }
+                if (JobTerms.IsAnyRival(pickup.Location))
                 {
                     error = $"Pickup location '{pickup.Location}' is not handled by the Work kernel yet.";
                     return false;
                 }
-                if (!AtSite(game.Map, player.SectorId, pickup.Location))
+                if (!AtSite(game, player.SectorId, pickup.Location))
                 {
                     error = $"Must be at {JobTerms.PlaceName(pickup.Location)} to start this job.";
                     return false;
@@ -89,7 +99,7 @@ namespace Firefly.Core.Actions
 
             if (!active.PickedUp)
             {
-                if (!AtSite(game.Map, player.SectorId, pickup.Location))
+                if (!AtSite(game, player.SectorId, pickup.Location))
                 {
                     error = $"Must be at {JobTerms.PlaceName(pickup.Location)} to pick up this job.";
                     return false;
@@ -102,12 +112,17 @@ namespace Firefly.Core.Actions
                 error = "This job has already been picked up and has no drop-off.";
                 return false;
             }
-            if (JobTerms.LocationIsSpecialCase(dropoff.Location))
+            if (JobTerms.IsVarious(dropoff.Location))
+            {
+                error = "Cortex Alert / Various drop-offs use the Bounty deck (PBH), not Work-as-Job.";
+                return false;
+            }
+            if (JobTerms.IsAnyRival(dropoff.Location))
             {
                 error = $"Drop-off '{dropoff.Location}' is not handled by the Work kernel yet.";
                 return false;
             }
-            if (!AtSite(game.Map, player.SectorId, dropoff.Location))
+            if (!AtSite(game, player.SectorId, dropoff.Location))
             {
                 error = $"Must be at {JobTerms.PlaceName(dropoff.Location)} to complete this job.";
                 return false;
@@ -361,10 +376,20 @@ namespace Firefly.Core.Actions
             return pay;
         }
 
-        private static bool AtSite(SectorMap map, string sectorId, string? location)
+        /// <summary>
+        /// Planet name match, or Operative's Corvette token co-location when that expansion is in play.
+        /// </summary>
+        private static bool AtSite(GameState game, string sectorId, string? location)
         {
+            // Kalidasa / Blue Sun: drop-off at the Corvette token sector when the ship is selected.
+            if (JobTerms.IsOperativesCorvette(location))
+            {
+                return game.Tokens.OperativeCorvetteSectorId != null
+                    && game.Tokens.OperativeCorvetteSectorId == sectorId;
+            }
+
             var name = JobTerms.PlaceName(location);
-            return !string.IsNullOrEmpty(name) && map.SatisfiesDestination(sectorId, name);
+            return !string.IsNullOrEmpty(name) && game.Map.SatisfiesDestination(sectorId, name);
         }
 
         private static bool CanWorkContact(GameState game, PlayerState player, JobCard job, out string? error)

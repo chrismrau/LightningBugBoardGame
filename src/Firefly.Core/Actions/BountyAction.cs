@@ -50,10 +50,12 @@ namespace Firefly.Core.Actions
     }
 
     /// <summary>
-    /// Pirates & Bounty Hunters bounty hunting (PBH pp.5–8).
+    /// Pirates &amp; Bounty Hunters bounty hunting (PBH pp.8–12).
     /// Work action. Face-up Most Wanted only. Does not use a job-hand
     /// or active-job slot. One fugitive per Work action (Cortex jump
     /// is the printed exception).
+    /// Thin choice hooks: rival/crew ids and rescue flag are caller-supplied
+    /// until PendingChoice.
     /// </summary>
     public sealed class BountyAction
     {
@@ -62,6 +64,9 @@ namespace Firefly.Core.Actions
             @"Bounty Bonus[:\s]*\+?\$(\d+)",
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
+        /// <summary>
+        /// Confrontation: fugitive is in a rival's Crew — same sector, Boarding then Showdown (PBH p.10).
+        /// </summary>
         public bool TryApprehendRival(
             GameState game,
             string playerId,
@@ -155,17 +160,23 @@ namespace Firefly.Core.Actions
             }
             if (HiredAnywhere(game, crew.Id) || BoundAnywhere(game, crew.Id))
             {
+                if (FindHiredOnRival(game, playerId, crew.Id, out var rivalId))
+                {
+                    error = $"{crew.Name} is on another ship — use confrontation in the same sector as {rivalId}.";
+                    return false;
+                }
                 error = $"{crew.Name} is already in play.";
                 return false;
             }
-            if (!bounty.IsCortex)
+
+            // PBH p.10: Work while in the same sector as the Target Fugitive.
+            // Lone Target = discard pile of a Supply Planet; otherwise Last Seen (printed pickup).
+            if (!TryResolveLoneTargetPlanet(game, bounty, crew, out var targetPlanet, out error))
+                return false;
+            if (!AtPlanet(game, player, targetPlanet))
             {
-                if (string.IsNullOrWhiteSpace(bounty.PickupPlanet)
-                    || !AtPlanet(game, player, bounty.PickupPlanet))
-                {
-                    error = $"Must be at {bounty.PickupPlanet} to nab {crew.Name}.";
-                    return false;
-                }
+                error = $"Must be at {targetPlanet} to nab {crew.Name}.";
+                return false;
             }
 
             var showdown = Showdown.Resolve(Showdown.Of(player, attackSkill), Showdown.BestSkill(crew), rng);
@@ -455,6 +466,89 @@ namespace Firefly.Core.Actions
                         if (id == crewId)
                             return true;
                     }
+                }
+            }
+            return false;
+        }
+
+        private static bool TryResolveLoneTargetPlanet(
+            GameState game,
+            BountyCard bounty,
+            CrewCard crew,
+            out string targetPlanet,
+            out string? error)
+        {
+            targetPlanet = "";
+            error = null;
+
+            // PBH p.10 Lone Target: fugitive in a Supply Planet discard (prefer actual card location).
+            if (TryFindCrewSupplyPlanet(game, crew, out var supplyPlanet))
+            {
+                targetPlanet = supplyPlanet;
+                return true;
+            }
+
+            // Wanted Last Seen when the card is not tracked on a market (or still "out there").
+            if (!bounty.IsCortex && !string.IsNullOrWhiteSpace(bounty.PickupPlanet))
+            {
+                targetPlanet = bounty.PickupPlanet!;
+                return true;
+            }
+
+            // Cortex Alert has no Last Seen — subject location is wherever matching crew currently is.
+            error = bounty.IsCortex
+                ? $"{crew.Name} is not on a Supply Planet — nab them via confrontation or betrayal where they are."
+                : $"Must be at {bounty.PickupPlanet} to nab {crew.Name}.";
+            return false;
+        }
+
+        private static bool TryFindCrewSupplyPlanet(GameState game, CrewCard crew, out string planet)
+        {
+            planet = "";
+            if (game.SupplyDecks == null)
+                return false;
+
+            // Prefer discard (printed Lone Target), then face-up / deck at that market.
+            foreach (var market in game.SupplyDecks.Markets)
+            {
+                if (ContainsCrew(market.Discard, crew.Id))
+                {
+                    planet = market.Planet;
+                    return true;
+                }
+            }
+            foreach (var market in game.SupplyDecks.Markets)
+            {
+                if (ContainsCrew(market.FaceUp, crew.Id) || ContainsCrew(market.Deck, crew.Id))
+                {
+                    planet = market.Planet;
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private static bool ContainsCrew(System.Collections.Generic.IList<SupplyCard> pile, string crewId)
+        {
+            foreach (var card in pile)
+            {
+                if (card.Id == crewId)
+                    return true;
+            }
+            return false;
+        }
+
+        private static bool FindHiredOnRival(GameState game, string playerId, string crewId, out string rivalId)
+        {
+            rivalId = "";
+            foreach (var other in game.Players)
+            {
+                if (string.Equals(other.Id, playerId, StringComparison.Ordinal))
+                    continue;
+                if (other.Roster.Find(crewId) != null)
+                {
+                    rivalId = other.Id;
+                    return true;
                 }
             }
             return false;

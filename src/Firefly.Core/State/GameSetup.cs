@@ -38,6 +38,12 @@ namespace Firefly.Core.State
         public bool UseOperativesCorvette { get; set; }
 
         /// <summary>
+        /// Pirates &amp; Bounty Hunters: Bounty Deck + Most Wanted List.
+        /// Optional — not required for basic play (PBH p.3 expanding the 'Verse).
+        /// </summary>
+        public bool UseBountyDeck { get; set; }
+
+        /// <summary>
         /// Blue Sun: three Reaver Cutters on Burnham r2. Core: one Cutter in Border Space.
         /// </summary>
         public bool UseBlueSun { get; set; }
@@ -168,13 +174,16 @@ namespace Firefly.Core.State
             // GF9 p.4 / FAQ 4.1 p.1 / SetupCards.json navReshuffle:
             // Standard: place RESHUFFLE (Alliance Cruiser / Reaver Cutter) in discard for 3+ players.
             game.Decks.ApplyReshuffleSetup(setup, players.Count);
-            game.ContactDecks = new ContactDecks(game.Jobs, rng);
+            // Always load Bounties.json as authority so Jobs.json duplicates stay out of Contact decks.
+            game.Bounties = BountyCatalog.LoadDefault();
+            game.ContactDecks = new ContactDecks(game.Jobs, rng, game.Bounties);
             game.SupplyDecks = BuildSupplyDecks(game.Supply, rng, options.PrimeSupplyReveal);
             var misbehave = MisbehaveCatalog.LoadDefault();
             game.MisbehaveCatalog = misbehave;
             game.Misbehave = MisbehaveDeck.FromCatalog(misbehave, rng);
-            game.Bounties = BountyCatalog.LoadDefault();
-            game.BountyDeck = BountyDeck.FromCatalog(game.Bounties, rng);
+            // PBH p.3 / p.8: Bounty Cards form a new, separate deck — optional expansion.
+            if (options.UseBountyDeck)
+                game.BountyDeck = BountyDeck.FromCatalog(game.Bounties, rng);
             game.AllianceAlerts = AllianceAlertCatalog.LoadDefault();
             game.AllianceAlertDeck = AllianceAlertDeck.FromCatalog(game.AllianceAlerts, rng);
             if (setup.StartingAlertCard || (scenario != null && scenario.StartingAlertCard))
