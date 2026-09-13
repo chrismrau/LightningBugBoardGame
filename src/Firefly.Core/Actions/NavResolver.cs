@@ -22,6 +22,11 @@ namespace Firefly.Core.Actions
         public int FuelLost { get; }
         public int CashGained { get; }
         public int GoodsLoaded { get; }
+        public int MoralDisgruntled { get; }
+        public int DisgruntledCleared { get; }
+        public int ContrabandSeized { get; }
+        public int FugitivesSeized { get; }
+        public int GoodsSeized { get; }
 
         public NavResolution(
             DrawnNav drawn,
@@ -36,7 +41,12 @@ namespace Firefly.Core.Actions
             int warrantsIssued = 0,
             int fuelLost = 0,
             int cashGained = 0,
-            int goodsLoaded = 0)
+            int goodsLoaded = 0,
+            int moralDisgruntled = 0,
+            int disgruntledCleared = 0,
+            int contrabandSeized = 0,
+            int fugitivesSeized = 0,
+            int goodsSeized = 0)
         {
             Drawn = drawn;
             Option = option;
@@ -51,6 +61,11 @@ namespace Firefly.Core.Actions
             FuelLost = fuelLost;
             CashGained = cashGained;
             GoodsLoaded = goodsLoaded;
+            MoralDisgruntled = moralDisgruntled;
+            DisgruntledCleared = disgruntledCleared;
+            ContrabandSeized = contrabandSeized;
+            FugitivesSeized = fugitivesSeized;
+            GoodsSeized = goodsSeized;
         }
     }
 
@@ -85,6 +100,21 @@ namespace Firefly.Core.Actions
         public int LoadGoodsParts { get; set; }
         public int LoadGoodsCargo { get; set; }
         public int LoadGoodsContraband { get; set; }
+        /// <summary>
+        /// Customs-style: how many Contraband / Fugitives remain in Stash after seizure.
+        /// When both types are present and exceed StashHold, counts must sum to min(total, StashHold).
+        /// Negative = auto-pack (protect Contraband first). Thin hook until PendingChoice.
+        /// </summary>
+        public int KeepInStashContraband { get; set; } = -1;
+        public int KeepInStashFugitives { get; set; } = -1;
+        /// <summary>
+        /// When a band seizes N Goods not in Stash, the chosen mix to remove.
+        /// Counts must sum to the seized amount. Negative fields → auto order.
+        /// </summary>
+        public int SeizeGoodsFuel { get; set; } = -1;
+        public int SeizeGoodsParts { get; set; } = -1;
+        public int SeizeGoodsCargo { get; set; } = -1;
+        public int SeizeGoodsContraband { get; set; } = -1;
     }
 
     /// <summary>
@@ -92,6 +122,8 @@ namespace Firefly.Core.Actions
     /// Conditional options run a Fight/Tech/Talk test to pick Keep Flying vs Full Stop.
     /// Skill-check bands also apply printed side effects (Kill Crew, Lose/Discard Fuel,
     /// Warrant Issued, Load Goods, Take $ / Parts) for the rolled total.
+    /// Option-level Moral / Warrant / Seize micro-effects (Disgruntle Moral Crew, free-text
+    /// Warrant Issued, stash-aware Customs seizure) apply when printed outside skill bands.
     /// Option Requires / Spend costs (Parts, Fuel, Cargo, crew keywords, Solid, Moral Crew, …)
     /// are enforced before applying flight outcomes; unmet gates fail closed.
     /// Named "Alliance Cruiser" Nav snaps the Cruiser onto the ship and queues Contact.
@@ -275,6 +307,13 @@ namespace Firefly.Core.Actions
                 return false;
             }
 
+            if (!CanApplyOptionMicroEffects(player, option.Details, choice, check != null, out error))
+            {
+                RollbackTokens();
+                RollbackResources();
+                return false;
+            }
+
             ReaverContactResult? reaverContact = null;
             CorvetteContactResult? corvetteContact = null;
             var stopped = outcome == FlightOutcome.FullStop || outcome == FlightOutcome.Evade;
@@ -333,6 +372,11 @@ namespace Firefly.Core.Actions
             var fuelLost = 0;
             var cashGained = 0;
             var goodsLoaded = 0;
+            var moralDisgruntled = 0;
+            var disgruntledCleared = 0;
+            var contrabandSeized = 0;
+            var fugitivesSeized = 0;
+            var goodsSeized = 0;
             if (check != null)
             {
                 ApplySkillBandEffects(
@@ -343,8 +387,20 @@ namespace Firefly.Core.Actions
                     out warrantsIssued,
                     out fuelLost,
                     out cashGained,
-                    out goodsLoaded);
+                    out goodsLoaded,
+                    out goodsSeized);
             }
+
+            ApplyOptionMicroEffects(
+                player,
+                option.Details,
+                choice,
+                skillCheckPresent: check != null,
+                ref warrantsIssued,
+                out moralDisgruntled,
+                out disgruntledCleared,
+                out contrabandSeized,
+                out fugitivesSeized);
 
             game.Decks!.For(drawn.Region).ResolveIntoDiscard(drawn.Card);
             FaceUp = null;
@@ -360,7 +416,12 @@ namespace Firefly.Core.Actions
                 warrantsIssued: warrantsIssued,
                 fuelLost: fuelLost,
                 cashGained: cashGained,
-                goodsLoaded: goodsLoaded);
+                goodsLoaded: goodsLoaded,
+                moralDisgruntled: moralDisgruntled,
+                disgruntledCleared: disgruntledCleared,
+                contrabandSeized: contrabandSeized,
+                fugitivesSeized: fugitivesSeized,
+                goodsSeized: goodsSeized);
             return true;
         }
 
@@ -1154,8 +1215,12 @@ namespace Firefly.Core.Actions
             @"Load\s+(\d+)\s+(Cargo|Contraband|Parts|Fuel)",
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
+        private static readonly Regex SeizeGoodsNotInStash = new Regex(
+            @"(\d+)\s+Goods\s+not\s+in\s+Stash\s+are\s+seized",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
         /// <summary>
-        /// Nested [Fight]/] trees are deferred; do not apply their Kill/Warrant text without rolling.
+        /// Nested [Fight COP] trees are deferred; do not apply their Kill/Warrant text without rolling.
         /// </summary>
         private static bool IsNestedSkillTreeStub(string? bandText) =>
             !string.IsNullOrWhiteSpace(bandText) && SkillCheck.TryParse(bandText, out _);
@@ -1181,6 +1246,26 @@ namespace Firefly.Core.Actions
                 return false;
             }
 
+            if (!TryPlanGoodsSeize(player, text, choice, out _, out _, out _, out _, out _, out error))
+                return false;
+
+            return true;
+        }
+
+        private static bool CanApplyOptionMicroEffects(
+            PlayerState player,
+            string details,
+            NavResolveChoice? choice,
+            bool skillCheckPresent,
+            out string? error)
+        {
+            error = null;
+            var text = details ?? "";
+            if (IsCustomsStashSeize(text)
+                && !TryPlanCustomsStashKeep(player, choice, out _, out _, out error))
+                return false;
+
+            _ = skillCheckPresent;
             return true;
         }
 
@@ -1192,13 +1277,15 @@ namespace Firefly.Core.Actions
             out int warrantsIssued,
             out int fuelLost,
             out int cashGained,
-            out int goodsLoaded)
+            out int goodsLoaded,
+            out int goodsSeized)
         {
             crewKilled = 0;
             warrantsIssued = 0;
             fuelLost = 0;
             cashGained = 0;
             goodsLoaded = 0;
+            goodsSeized = 0;
             if (string.IsNullOrWhiteSpace(bandText) || IsNestedSkillTreeStub(bandText))
                 return;
 
@@ -1253,6 +1340,299 @@ namespace Firefly.Core.Actions
                 player.Contraband += addContra;
                 goodsLoaded = loaded;
             }
+
+            if (TryPlanGoodsSeize(
+                player,
+                text,
+                choice,
+                out var seizeFuel,
+                out var seizeParts,
+                out var seizeCargo,
+                out var seizeContra,
+                out var seized,
+                out _))
+            {
+                player.Fuel -= seizeFuel;
+                player.Parts -= seizeParts;
+                player.Cargo -= seizeCargo;
+                player.Contraband -= seizeContra;
+                goodsSeized = seized;
+            }
+        }
+
+        /// <summary>
+        /// Option-level Moral / free-text Warrant / Customs stash seize (not skill-band text).
+        /// When a skill check is present, Warrant Issued is band-only to avoid double-issue.
+        /// </summary>
+        private static void ApplyOptionMicroEffects(
+            PlayerState player,
+            string details,
+            NavResolveChoice? choice,
+            bool skillCheckPresent,
+            ref int warrantsIssued,
+            out int moralDisgruntled,
+            out int disgruntledCleared,
+            out int contrabandSeized,
+            out int fugitivesSeized)
+        {
+            moralDisgruntled = 0;
+            disgruntledCleared = 0;
+            contrabandSeized = 0;
+            fugitivesSeized = 0;
+            var text = details ?? "";
+
+            if (IsDisgruntleMoral(text))
+                moralDisgruntled = player.Roster.DisgruntleMoral();
+
+            if (Contains(text, "Remove Disgruntled from all Moral Crew"))
+                disgruntledCleared = player.Roster.ClearDisgruntledMoral();
+            else if (Contains(text, "Remove Disgruntled from all Crew"))
+                disgruntledCleared = player.Roster.ClearDisgruntled();
+
+            if (!skillCheckPresent && ShouldIssueWarrant(text, player))
+            {
+                player.Warrants++;
+                warrantsIssued += 1;
+            }
+
+            if (IsCustomsStashSeize(text)
+                && TryPlanCustomsStashKeep(player, choice, out var keepContra, out var keepFug, out _))
+            {
+                contrabandSeized = player.Contraband - keepContra;
+                fugitivesSeized = player.Fugitives - keepFug;
+                player.Contraband = keepContra;
+                player.Fugitives = keepFug;
+            }
+        }
+
+        private static bool IsDisgruntleMoral(string text) =>
+            Contains(text, "Moral Crew become Disgruntled")
+            || Contains(text, "Disgruntle all Moral Crew")
+            || Contains(text, "All Moral Crew are Disgruntled");
+
+        private static bool IsCustomsStashSeize(string text) =>
+            Contains(text, "not in your Stash are seized")
+            || (Contains(text, "Contraband")
+                && Contains(text, "Fugitives")
+                && Contains(text, "not in your Stash")
+                && Contains(text, "seized"));
+
+        private static bool ShouldIssueWarrant(string text, PlayerState player)
+        {
+            if (!Contains(text, "Warrant Issued"))
+                return false;
+            // Regulated Salvage FAKE ID branch is deferred (Otherwise: … Warrant Issued).
+            if (Contains(text, "If you have FAKE ID") && Contains(text, "Otherwise"))
+                return false;
+            if (Contains(text, "If you are an Outlaw Ship"))
+                return AlertTokenRules.IsOutlawShip(player);
+            return true;
+        }
+
+        private static bool TryPlanCustomsStashKeep(
+            PlayerState player,
+            NavResolveChoice? choice,
+            out int keepContraband,
+            out int keepFugitives,
+            out string? error)
+        {
+            error = null;
+            keepContraband = 0;
+            keepFugitives = 0;
+            var stash = System.Math.Max(0, player.StashHold);
+            var total = player.Contraband + player.Fugitives;
+            var keep = System.Math.Min(total, stash);
+
+            var choiceContra = choice?.KeepInStashContraband ?? -1;
+            var choiceFug = choice?.KeepInStashFugitives ?? -1;
+            if (choiceContra >= 0 || choiceFug >= 0)
+            {
+                keepContraband = System.Math.Max(0, choiceContra);
+                keepFugitives = System.Math.Max(0, choiceFug);
+                if (keepContraband > player.Contraband || keepFugitives > player.Fugitives)
+                {
+                    error = "Stash keep exceeds Contraband or Fugitives on board.";
+                    return false;
+                }
+                if (keepContraband + keepFugitives != keep)
+                {
+                    error = $"Customs stash keep must total {keep} (StashHold {stash}).";
+                    return false;
+                }
+                return true;
+            }
+
+            // Auto-pack: protect Contraband first, then Fugitives (Corvette-style free rearrange).
+            keepContraband = System.Math.Min(player.Contraband, keep);
+            keepFugitives = keep - keepContraband;
+            return true;
+        }
+
+        private static bool TryPlanGoodsSeize(
+            PlayerState player,
+            string text,
+            NavResolveChoice? choice,
+            out int seizeFuel,
+            out int seizeParts,
+            out int seizeCargo,
+            out int seizeContra,
+            out int seized,
+            out string? error)
+        {
+            seizeFuel = 0;
+            seizeParts = 0;
+            seizeCargo = 0;
+            seizeContra = 0;
+            seized = 0;
+            error = null;
+
+            var match = SeizeGoodsNotInStash.Match(text);
+            if (!match.Success)
+                return true;
+
+            var n = int.Parse(match.Groups[1].Value);
+            var unprotected = GoodsTokensNotInStash(player);
+            var toSeize = System.Math.Min(n, unprotected);
+            if (toSeize <= 0)
+                return true;
+
+            var choiceFuel = choice?.SeizeGoodsFuel ?? -1;
+            var choiceParts = choice?.SeizeGoodsParts ?? -1;
+            var choiceCargo = choice?.SeizeGoodsCargo ?? -1;
+            var choiceContra = choice?.SeizeGoodsContraband ?? -1;
+            if (choiceFuel >= 0 || choiceParts >= 0 || choiceCargo >= 0 || choiceContra >= 0)
+            {
+                seizeFuel = System.Math.Max(0, choiceFuel);
+                seizeParts = System.Math.Max(0, choiceParts);
+                seizeCargo = System.Math.Max(0, choiceCargo);
+                seizeContra = System.Math.Max(0, choiceContra);
+                var sum = seizeFuel + seizeParts + seizeCargo + seizeContra;
+                if (sum != toSeize)
+                {
+                    error = $"Seize {toSeize} Goods requires a Goods composition choice totaling {toSeize}.";
+                    return false;
+                }
+                if (seizeFuel > player.Fuel
+                    || seizeParts > player.Parts
+                    || seizeCargo > player.Cargo
+                    || seizeContra > player.Contraband)
+                {
+                    error = "Seize Goods exceeds tokens on board.";
+                    return false;
+                }
+                if (!CanRemoveFromUnprotected(player, seizeFuel, seizeParts, seizeCargo, seizeContra))
+                {
+                    error = "Cannot seize Goods protected in Stash.";
+                    return false;
+                }
+                seized = toSeize;
+                return true;
+            }
+
+            AutoSeizeUnprotectedGoods(
+                player,
+                toSeize,
+                out seizeFuel,
+                out seizeParts,
+                out seizeCargo,
+                out seizeContra);
+            seized = seizeFuel + seizeParts + seizeCargo + seizeContra;
+            return true;
+        }
+
+        /// <summary>
+        /// Director's Cut Piracy: Goods = Fuel, Parts, Cargo, Contraband. Free rearrange into Stash;
+        /// stash capacity uses Hold packing (2 Fuel/Parts per space).
+        /// </summary>
+        private static int GoodsTokensNotInStash(PlayerState player)
+        {
+            var total = player.Fuel + player.Parts + player.Cargo + player.Contraband;
+            return System.Math.Max(0, total - MaxGoodsProtectedInStash(player));
+        }
+
+        private static int MaxGoodsProtectedInStash(PlayerState player)
+        {
+            var stash = System.Math.Max(0, player.StashHold);
+            if (stash == 0)
+                return 0;
+
+            var half = player.Fuel + player.Parts;
+            var halfProtected = System.Math.Min(half, stash * HoldSpace.FuelOrPartsPerHold);
+            var slotsUsedByHalf = (halfProtected + HoldSpace.FuelOrPartsPerHold - 1) / HoldSpace.FuelOrPartsPerHold;
+            var fullSlotsLeft = stash - slotsUsedByHalf;
+            var fullProtected = System.Math.Min(
+                player.Cargo + player.Contraband,
+                System.Math.Max(0, fullSlotsLeft));
+            return halfProtected + fullProtected;
+        }
+
+        private static void AutoSeizeUnprotectedGoods(
+            PlayerState player,
+            int toSeize,
+            out int seizeFuel,
+            out int seizeParts,
+            out int seizeCargo,
+            out int seizeContra)
+        {
+            UnprotectedGoods(player, out var openFuel, out var openParts, out var openCargo, out var openContra);
+            seizeFuel = 0;
+            seizeParts = 0;
+            seizeCargo = 0;
+            seizeContra = 0;
+            var remaining = toSeize;
+            // Prefer seizing full-slot Goods first (Contraband, Cargo), then Parts, then Fuel.
+            Take(ref remaining, openContra, ref seizeContra);
+            Take(ref remaining, openCargo, ref seizeCargo);
+            Take(ref remaining, openParts, ref seizeParts);
+            Take(ref remaining, openFuel, ref seizeFuel);
+        }
+
+        private static void UnprotectedGoods(
+            PlayerState player,
+            out int openFuel,
+            out int openParts,
+            out int openCargo,
+            out int openContra)
+        {
+            var stash = System.Math.Max(0, player.StashHold);
+            var half = player.Fuel + player.Parts;
+            var halfProtected = System.Math.Min(half, stash * HoldSpace.FuelOrPartsPerHold);
+            var slotsUsedByHalf = (halfProtected + HoldSpace.FuelOrPartsPerHold - 1) / HoldSpace.FuelOrPartsPerHold;
+            var fullSlotsLeft = System.Math.Max(0, stash - slotsUsedByHalf);
+            var protectContra = System.Math.Min(player.Contraband, fullSlotsLeft);
+            fullSlotsLeft -= protectContra;
+            var protectCargo = System.Math.Min(player.Cargo, fullSlotsLeft);
+            // Split half-protection across Fuel then Parts.
+            var protectFuel = System.Math.Min(player.Fuel, halfProtected);
+            var protectParts = System.Math.Min(player.Parts, halfProtected - protectFuel);
+            openFuel = player.Fuel - protectFuel;
+            openParts = player.Parts - protectParts;
+            openCargo = player.Cargo - protectCargo;
+            openContra = player.Contraband - protectContra;
+        }
+
+        private static void Take(ref int remaining, int available, ref int taken)
+        {
+            if (remaining <= 0 || available <= 0)
+                return;
+            taken = System.Math.Min(remaining, available);
+            remaining -= taken;
+        }
+
+        private static bool CanRemoveFromUnprotected(
+            PlayerState player,
+            int seizeFuel,
+            int seizeParts,
+            int seizeCargo,
+            int seizeContra)
+        {
+            if (seizeFuel < 0 || seizeParts < 0 || seizeCargo < 0 || seizeContra < 0)
+                return false;
+            UnprotectedGoods(player, out var openFuel, out var openParts, out var openCargo, out var openContra);
+            return seizeFuel <= openFuel
+                && seizeParts <= openParts
+                && seizeCargo <= openCargo
+                && seizeContra <= openContra;
         }
 
         private static int PlannedTakeParts(string text)

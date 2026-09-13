@@ -317,12 +317,16 @@ namespace Firefly.Core.State
             return member.TryClearWanted();
         }
 
-        public int ClearDisgruntled()
+        public int ClearDisgruntled() => ClearDisgruntledWhere(_ => true);
+
+        public int ClearDisgruntledMoral() => ClearDisgruntledWhere(m => m.Moral);
+
+        public int ClearDisgruntledWhere(Func<CrewMember, bool> predicate)
         {
             var n = 0;
             foreach (var member in _members)
             {
-                if (!member.Disgruntled)
+                if (!member.Disgruntled || !predicate(member))
                     continue;
                 member.Disgruntled = false;
                 n++;
