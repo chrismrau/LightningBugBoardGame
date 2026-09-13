@@ -178,6 +178,12 @@ namespace Firefly.Core.Actions
                 throw new System.InvalidOperationException("Nav decks have not been loaded.");
             if (game.PendingNavDraws.Count == 0)
                 throw new System.InvalidOperationException("No pending Nav draws.");
+            // FAQ 4.1 p.14: Alliance Contact is resolved before the Nav Card for that Sector.
+            if (game.PendingEncounter.HasValue)
+            {
+                throw new System.InvalidOperationException(
+                    "Resolve Contact before drawing a Nav Card.");
+            }
             if (MustResolveAlertsBeforeNav(game))
             {
                 throw new System.InvalidOperationException(

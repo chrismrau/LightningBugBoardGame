@@ -73,6 +73,20 @@ namespace Firefly.Core.Tests
         }
 
         [Fact]
+        public void Legal_ship_Alliance_Cruiser_Nav_still_queues_Contact()
+        {
+            // FAQ 4.1 p.14: Legal ships ignore Cruiser *presence*, but the named Nav Card harasses any ship.
+            var (game, resolver, player) = GameWithQueuedDraws(1);
+            Assert.False(AlertTokenRules.IsOutlawShip(player));
+            game.Decks!.Alliance.PlaceOnTop(game.Decks.Catalog.Get("nav_alliance-cruiser"));
+
+            Assert.True(resolver.TryAutoResolve(game, out var resolution, out var error), error);
+            Assert.True(resolution!.Stopped);
+            Assert.Equal(TokenKind.AllianceCruiser, game.PendingEncounter);
+            Assert.Equal(Pelorum, game.Tokens.AllianceCruiserSectorId);
+        }
+
+        [Fact]
         public void Reshuffle_card_returns_discard_to_the_draw_pile()
         {
             var decks = NavCatalog.BuildDecks(NavPath, new SystemRng(2));

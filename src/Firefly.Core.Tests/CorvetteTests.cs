@@ -89,12 +89,15 @@ namespace Firefly.Core.Tests
             Assert.True(fly.TryFullBurnTo(game, "p1", Pelorum, out var result, out var error), error);
             Assert.True(result!.StoppedForEncounter);
             Assert.Equal(TokenKind.OperativeCorvette, game.PendingEncounter);
+            // FAQ Contact-before-Nav pattern: Full Stop Contact skips Nav for the entered Sector.
+            Assert.Empty(game.PendingNavDraws);
 
             var legal = new PlayerState("p2", "Zoe", Persephone, fuel: 3);
             var game2 = new GameState(map, new[] { legal }, tokens);
             Assert.True(fly.TryFullBurnTo(game2, "p2", Pelorum, out var legalResult, out _), error);
             Assert.False(legalResult!.StoppedForEncounter);
             Assert.Null(game2.PendingEncounter);
+            Assert.Single(game2.PendingNavDraws);
         }
 
         [Fact]
