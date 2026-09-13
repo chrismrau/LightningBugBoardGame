@@ -149,6 +149,7 @@ namespace Firefly.Core.Tests
             Assert.Contains("same sector", error);
 
             // Same sector + confrontation succeeds (PBH p.10).
+            mal.TalkBonus = 1; // Boarding Test: Negotiate / Tech Skill Test (N dice).
             var rng = ScriptedRng.FromDieFaces(6, 6, 1);
             Assert.True(hunt.TryApprehendRival(
                 game, "p1", "bounty_billy", "p2", "crew_billy",
@@ -308,6 +309,7 @@ namespace Firefly.Core.Tests
             Assert.True(hunt.TryBetray(game, "p1", "bounty_scrappers", "crew_scrapper", out _, out var error), error);
             game.EndTurn();
             game.EndTurn();
+            mal.TalkBonus = 1;
             var rng = ScriptedRng.FromDieFaces(6, 6, 1);
             Assert.True(hunt.TryApprehendRival(
                 game, "p1", "bounty_scrappers", "p2",
@@ -332,6 +334,7 @@ namespace Firefly.Core.Tests
             var hunt = new BountyAction();
             Assert.True(hunt.TryBetray(game, "p1", "bounty_billy", "crew_billy", out _, out var error), error);
             game.EndTurn();
+            zoe.TalkBonus = 1;
             var rng = ScriptedRng.FromDieFaces(6, 6, 1);
             Assert.True(hunt.TryJump(
                 game, "p2", "p1", "bounty_billy",
