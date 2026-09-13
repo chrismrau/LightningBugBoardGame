@@ -748,7 +748,165 @@ namespace Firefly.Core.Tests
             Assert.Equal(0, player.Cargo);
         }
 
+        [Fact]
+        public void Derelict_Ship_loads_cargo_on_Full_Stop_salvage()
+        {
+            var (game, resolver, player) = GameWithQueuedDraws(1);
+            player.Cargo = 0;
+            game.Decks!.Alliance.PlaceOnTop(game.Decks.Catalog.Get("nav_derelict-ship"));
+            resolver.DrawNext(game);
+
+            Assert.True(resolver.TryResolve(game, 0, out var resolution, out var error), error);
+            Assert.Equal(FlightOutcome.FullStop, resolution!.Outcome);
+            Assert.Equal(2, resolution.GoodsLoaded);
+            Assert.Equal(2, player.Cargo);
+            Assert.Empty(game.PendingNavDraws);
+        }
+
+        [Fact]
+        public void Abandoned_Ship_loads_contraband_on_salvage()
+        {
+            var (game, resolver, player) = GameWithQueuedDraws(1);
+            player.Contraband = 0;
+            game.Decks!.Alliance.PlaceOnTop(game.Decks.Catalog.Get("nav_abandoned-ship"));
+            resolver.DrawNext(game);
+
+            Assert.True(resolver.TryResolve(game, 0, out var resolution, out var error), error);
+            Assert.Equal(FlightOutcome.FullStop, resolution!.Outcome);
+            Assert.Equal(2, resolution.GoodsLoaded);
+            Assert.Equal(2, player.Contraband);
+        }
+
+        [Fact]
+        public void Ship_Graveyard_fail_band_loads_parts()
+        {
+            var (game, resolver, player) = GameWithQueuedDraws(1);
+            player.TechBonus = 1;
+            player.Parts = 1;
+            game.Decks!.Alliance.PlaceOnTop(game.Decks.Catalog.Get("nav_ship-graveyard"));
+            resolver.DrawNext(game);
+
+            Assert.True(resolver.TryResolve(game, 0, out var resolution, out var error, ScriptedRng.FromDieFaces(2)), error);
+            Assert.False(resolution!.SkillCheck!.Success);
+            Assert.Equal(FlightOutcome.FullStop, resolution.Outcome);
+            Assert.Equal(2, resolution.GoodsLoaded);
+            Assert.Equal(3, player.Parts);
+        }
+
+        [Fact]
+        public void Orphaned_Cargo_Pod_loads_goods_with_composition_choice()
+        {
+            var (game, resolver, player) = GameWithQueuedDraws(1);
+            player.Fuel = 0;
+            player.Parts = 0;
+            player.Cargo = 0;
+            player.Contraband = 0;
+            game.Decks!.Alliance.PlaceOnTop(game.Decks.Catalog.Get("nav_orphaned-cargo-pod"));
+            resolver.DrawNext(game);
+            var choice = new NavResolveChoice
+            {
+                LoadGoodsParts = 1,
+                LoadGoodsContraband = 1
+            };
+
+            Assert.True(resolver.TryResolve(game, 1, out var resolution, out var error, choice: choice), error);
+            Assert.Equal(FlightOutcome.FullStop, resolution!.Outcome);
+            Assert.Equal(2, resolution.GoodsLoaded);
+            Assert.Equal(1, player.Parts);
+            Assert.Equal(1, player.Contraband);
+        }
+
+        [Fact]
+        public void First_Come_Keep_Flying_loads_one_goods()
+        {
+            var (game, resolver, player) = GameWithQueuedDraws(2);
+            player.Cargo = 0;
+            game.Decks!.Alliance.PlaceOnTop(game.Decks.Catalog.Get("nav_first-come-first-serve"));
+            resolver.DrawNext(game);
+            var choice = new NavResolveChoice { LoadGoodsCargo = 1 };
+
+            Assert.True(resolver.TryResolve(game, 0, out var resolution, out var error, choice: choice), error);
+            Assert.Equal(FlightOutcome.KeepFlying, resolution!.Outcome);
+            Assert.Equal(1, resolution.GoodsLoaded);
+            Assert.Equal(1, player.Cargo);
+            Assert.Single(game.PendingNavDraws);
+        }
+
+        [Fact]
+        public void Hollowed_Out_Space_Liner_loads_up_to_parts()
+        {
+            var (game, resolver, player) = GameWithQueuedDraws(1);
+            Assert.True(player.Roster.TryHire(CrewCatalog.LoadDefault().Get("crew_kaylee"), out _));
+            player.Parts = 0;
+            game.Decks!.Alliance.PlaceOnTop(game.Decks.Catalog.Get("nav_hollowed-out-space-liner"));
+            resolver.DrawNext(game);
+            var choice = new NavResolveChoice { LoadAmount = 4 };
+
+            Assert.True(resolver.TryResolve(game, 0, out var resolution, out var error, choice: choice), error);
+            Assert.Equal(FlightOutcome.FullStop, resolution!.Outcome);
+            Assert.Equal(4, resolution.GoodsLoaded);
+            Assert.Equal(4, player.Parts);
+        }
+
+        [Fact]
+        public void Abandoned_Tanker_loads_fuel_no_limit_into_free_hold()
+        {
+            var (game, resolver, player) = GameWithQueuedDraws(1);
+            Assert.True(player.Roster.TryHire(CrewCatalog.LoadDefault().Get("crew_kaylee"), out _));
+            player.Fuel = 0;
+            player.Cargo = 0;
+            player.Parts = 0;
+            player.Contraband = 0;
+            player.Passengers = 0;
+            player.Fugitives = 0;
+            // Default Firefly: 8 cargo + 4 stash = 12 holds × 2 fuel/parts = 24 fuel.
+            game.Decks!.Alliance.PlaceOnTop(game.Decks.Catalog.Get("nav_abandoned-tanker"));
+            resolver.DrawNext(game);
+
+            Assert.True(resolver.TryResolve(game, 1, out var resolution, out var error), error);
+            Assert.Equal(FlightOutcome.FullStop, resolution!.Outcome);
+            Assert.Equal(24, resolution.GoodsLoaded);
+            Assert.Equal(24, player.Fuel);
+            Assert.Equal(0, player.FreeHolds);
+        }
+
+        [Fact]
+        public void Exact_Load_fails_closed_when_hold_is_full()
+        {
+            var (game, resolver, player) = GameWithQueuedDraws(1);
+            // Fill all general holds with Cargo (1 per hold).
+            player.Cargo = player.CargoHold + player.StashHold;
+            player.Fuel = 0;
+            player.Parts = 0;
+            player.Contraband = 0;
+            Assert.Equal(0, player.FreeHolds);
+            game.Decks!.Alliance.PlaceOnTop(game.Decks.Catalog.Get("nav_derelict-ship"));
+            resolver.DrawNext(game);
+
+            Assert.False(resolver.TryResolve(game, 0, out _, out var error));
+            Assert.Contains("cargo/stash space", error);
+            Assert.Equal(player.CargoHold + player.StashHold, player.Cargo);
+            Assert.NotNull(resolver.FaceUp);
+        }
+
+        [Fact]
+        public void Debris_Field_success_band_loads_typed_cargo()
+        {
+            var (game, resolver, player) = GameWithQueuedDraws(1);
+            player.TechBonus = 2;
+            player.Cargo = 0;
+            game.Decks!.Alliance.PlaceOnTop(game.Decks.Catalog.Get("nav_nav-hazard-debris-field"));
+            resolver.DrawNext(game);
+
+            Assert.True(resolver.TryResolve(game, 1, out var resolution, out var error, ScriptedRng.FromDieFaces(6)), error);
+            Assert.True(resolution!.SkillCheck!.Success);
+            Assert.Equal(2, resolution.GoodsLoaded);
+            Assert.Equal(2, player.Cargo);
+            Assert.Equal(FlightOutcome.FullStop, resolution.Outcome);
+        }
+
         private const string Londinium = "alliance-white-sun-r1-02";
+
         private const string Bernadette = "alliance-white-sun-r1-01";
         private const string EmptyAllianceNearPelorum = "alliance-white-sun-r3-02";
         private const string BorderNearPersephone = "border-space-r1-04";
