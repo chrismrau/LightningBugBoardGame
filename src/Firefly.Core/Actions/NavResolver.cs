@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using Firefly.Core.Cards;
 using Firefly.Core.Map;
@@ -120,6 +121,28 @@ namespace Firefly.Core.Actions
         public int SeizeGoodsParts { get; set; } = -1;
         public int SeizeGoodsCargo { get; set; } = -1;
         public int SeizeGoodsContraband { get; set; } = -1;
+        /// <summary>
+        /// Buy-on-the-go Opportunity purchases (Rogue Trader / Freighter Convoy). "You may" — zeros skip.
+        /// </summary>
+        public int BuyFuel { get; set; }
+        public int BuyParts { get; set; }
+        public int BuyCargo { get; set; }
+        public int BuyContraband { get; set; }
+        /// <summary>
+        /// Outbound Colonists: sell up to N Parts at the printed price.
+        /// </summary>
+        public int SellParts { get; set; }
+        /// <summary>
+        /// Discard-pile grab: planet Supply discard (optional when "any") and card id to take.
+        /// </summary>
+        public string? TakeFromDiscardPlanet { get; set; }
+        public string? TakeFromDiscardCardId { get; set; }
+        /// <summary>
+        /// Nav System on the Fritz: player-to-the-right 2-Sector path (via then destination).
+        /// Origin is the Nav draw Sector. Thin hook until PendingChoice.
+        /// </summary>
+        public string? ShipNudgeViaSectorId { get; set; }
+        public string? ShipNudgeToSectorId { get; set; }
     }
 
     /// <summary>
@@ -131,6 +154,8 @@ namespace Firefly.Core.Actions
     /// Warrant Issued, stash-aware Customs seizure) apply when printed outside skill bands.
     /// Option-level Salvage Loads (Cargo / Contraband / Parts / Goods / Fuel) pack via HoldSpace
     /// when printed outside skill bands; skill-band Loads stay band-only.
+    /// Opportunity buy-on-the-go / discard-pile grabs / Fly range bonuses / ship nudge apply from
+    /// printed option (and skill-band discard grabs) via thin <see cref="NavResolveChoice"/> hooks.
     /// Option Requires / Spend costs (Parts, Fuel, Cargo, crew keywords, Solid, Moral Crew, …)
     /// are enforced before applying flight outcomes; unmet gates fail closed.
     /// Named "Alliance Cruiser" Nav snaps the Cruiser onto the ship and queues Contact.
@@ -237,7 +262,10 @@ namespace Firefly.Core.Actions
             var fuelBefore = player.Fuel;
             var partsBefore = player.Parts;
             var cargoBefore = player.Cargo;
+            var contraBefore = player.Contraband;
             var cashBefore = player.Cash;
+            var rangeBonusBefore = game.FlyRangeBonusThisAction;
+            var fuelCouplingBefore = game.DiscardFuelPerExtraSectorThisFly;
 
             if (!ApplyTokenMoves(
                 game,
@@ -261,7 +289,10 @@ namespace Firefly.Core.Actions
                 player.Fuel = fuelBefore;
                 player.Parts = partsBefore;
                 player.Cargo = cargoBefore;
+                player.Contraband = contraBefore;
                 player.Cash = cashBefore;
+                game.FlyRangeBonusThisAction = rangeBonusBefore;
+                game.DiscardFuelPerExtraSectorThisFly = fuelCouplingBefore;
             }
 
             if (triggersReaverContact || outcome == FlightOutcome.Evade)
@@ -307,14 +338,14 @@ namespace Firefly.Core.Actions
             }
 
             if (check != null
-                && !CanApplySkillBandEffects(player, bandText, choice, out error))
+                && !CanApplySkillBandEffects(game, player, bandText, choice, out error))
             {
                 RollbackTokens();
                 RollbackResources();
                 return false;
             }
 
-            if (!CanApplyOptionMicroEffects(player, option.Details, choice, check != null, out error))
+            if (!CanApplyOptionMicroEffects(game, drawn, player, option.Details, choice, check != null, out error))
             {
                 RollbackTokens();
                 RollbackResources();
@@ -387,6 +418,7 @@ namespace Firefly.Core.Actions
             if (check != null)
             {
                 ApplySkillBandEffects(
+                    game,
                     player,
                     bandText,
                     choice,
@@ -399,6 +431,8 @@ namespace Firefly.Core.Actions
             }
 
             ApplyOptionMicroEffects(
+                game,
+                drawn,
                 player,
                 option.Details,
                 choice,
@@ -1346,6 +1380,7 @@ namespace Firefly.Core.Actions
             !string.IsNullOrWhiteSpace(bandText) && SkillCheck.TryParse(bandText, out _);
 
         private static bool CanApplySkillBandEffects(
+            GameState game,
             PlayerState player,
             string? bandText,
             NavResolveChoice? choice,
@@ -1369,10 +1404,15 @@ namespace Firefly.Core.Actions
             if (!TryPlanGoodsSeize(player, text, choice, out _, out _, out _, out _, out _, out error))
                 return false;
 
+            if (!CanApplyDiscardGrab(game, player, text, choice, optional: false, out error))
+                return false;
+
             return true;
         }
 
         private static bool CanApplyOptionMicroEffects(
+            GameState game,
+            DrawnNav drawn,
             PlayerState player,
             string details,
             NavResolveChoice? choice,
@@ -1390,10 +1430,24 @@ namespace Firefly.Core.Actions
                 && !TryPlanGoodsLoad(player, text, choice, out _, out _, out _, out _, out _, out error))
                 return false;
 
+            if (!CanApplyBuyOnTheGo(player, text, choice, out error))
+                return false;
+
+            if (!CanApplySellParts(player, text, choice, out error))
+                return false;
+
+            if (!skillCheckPresent
+                && !CanApplyDiscardGrab(game, player, text, choice, optional: true, out error))
+                return false;
+
+            if (!CanApplyShipNudge(game, drawn, text, choice, out error))
+                return false;
+
             return true;
         }
 
         private static void ApplySkillBandEffects(
+            GameState game,
             PlayerState player,
             string? bandText,
             NavResolveChoice? choice,
@@ -1482,14 +1536,19 @@ namespace Firefly.Core.Actions
                 player.Contraband -= seizeContra;
                 goodsSeized = seized;
             }
+
+            TryApplyDiscardGrab(game, player, text, choice, optional: false);
         }
 
         /// <summary>
-        /// Option-level Moral / free-text Warrant / Customs stash seize / Salvage Load
+        /// Option-level Moral / free-text Warrant / Customs stash seize / Salvage Load /
+        /// Opportunity buy-sell / discard grabs / range / ship-nudge / fuel-coupling
         /// (not skill-band text). When a skill check is present, Warrant Issued and Load are
         /// band-only to avoid double-issue / double-load.
         /// </summary>
         private static void ApplyOptionMicroEffects(
+            GameState game,
+            DrawnNav drawn,
             PlayerState player,
             string details,
             NavResolveChoice? choice,
@@ -1549,6 +1608,16 @@ namespace Firefly.Core.Actions
                 player.Contraband += addContra;
                 goodsLoaded = loaded;
             }
+
+            TryApplyBuyOnTheGo(player, text, choice);
+            TryApplySellParts(player, text, choice);
+
+            if (!skillCheckPresent)
+                TryApplyDiscardGrab(game, player, text, choice, optional: true);
+
+            TryApplyRangeBonus(game, drawn, player, text);
+            TryApplyFuelCoupling(game, player, text);
+            TryApplyShipNudge(game, drawn, text, choice);
         }
 
         private static bool IsDisgruntleMoral(string text) =>
@@ -1992,6 +2061,555 @@ namespace Firefly.Core.Actions
                 addParts: addParts,
                 addCargo: addCargo,
                 addContraband: addContra);
+        }
+
+        private static readonly Regex BuyFuelPartsContra = new Regex(
+            @"You may buy Fuel for \$(\d+),\s*Parts for \$(\d+)\s+or up to (\d+) Contraband for \$(\d+) each",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        private static readonly Regex BuyFuelPartsCargo = new Regex(
+            @"You may purchase Fuel for \$(\d+),\s*Parts for \$(\d+)\s+and up to (\d+) Cargo for \$(\d+) each",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        private static readonly Regex SellPartsUpTo = new Regex(
+            @"You may sell up to (\d+) Parts for \$(\d+) per Part",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        private static readonly Regex TakeCryBabyDiscard = new Regex(
+            @"take one\s+""Cry Baby""\s+card from any Supply Deck discard pile",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        private static readonly Regex TakeCrewAnyDiscard = new Regex(
+            @"take 1 Crew Card from any discard pile",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        private static readonly Regex TakeUpgradeAnyDiscard = new Regex(
+            @"Take 1 Ship Upgrade from any discard pile",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        private static readonly Regex TakeCrewNamedDiscard = new Regex(
+            @"Take 1 Crew from ([A-Za-z][A-Za-z\s]*?)(?:'s)? Discard Pile",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        private static readonly Regex MoralRangeBonus = new Regex(
+            @"Add 1 to the Range of this Fly Action for each Moral Crew",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        private static readonly Regex PlanetaryRangeBonus = new Regex(
+            @"\+(\d+) to Ship's Range this turn",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        private static bool CanApplyBuyOnTheGo(
+            PlayerState player,
+            string text,
+            NavResolveChoice? choice,
+            out string? error)
+        {
+            error = null;
+            if (!TryPlanBuyOnTheGo(player, text, choice, out _, out _, out _, out _, out _, out error))
+                return false;
+            return true;
+        }
+
+        private static bool TryPlanBuyOnTheGo(
+            PlayerState player,
+            string text,
+            NavResolveChoice? choice,
+            out int buyFuel,
+            out int buyParts,
+            out int buyCargo,
+            out int buyContra,
+            out int cost,
+            out string? error)
+        {
+            buyFuel = 0;
+            buyParts = 0;
+            buyCargo = 0;
+            buyContra = 0;
+            cost = 0;
+            error = null;
+
+            var contra = BuyFuelPartsContra.Match(text);
+            var cargo = BuyFuelPartsCargo.Match(text);
+            if (!contra.Success && !cargo.Success)
+                return true;
+
+            buyFuel = System.Math.Max(0, choice?.BuyFuel ?? 0);
+            buyParts = System.Math.Max(0, choice?.BuyParts ?? 0);
+            buyCargo = System.Math.Max(0, choice?.BuyCargo ?? 0);
+            buyContra = System.Math.Max(0, choice?.BuyContraband ?? 0);
+
+            int fuelPrice;
+            int partsPrice;
+            int unitPrice;
+            int unitCap;
+            bool isContra;
+            if (contra.Success)
+            {
+                fuelPrice = int.Parse(contra.Groups[1].Value);
+                partsPrice = int.Parse(contra.Groups[2].Value);
+                unitCap = int.Parse(contra.Groups[3].Value);
+                unitPrice = int.Parse(contra.Groups[4].Value);
+                isContra = true;
+                if (buyCargo > 0)
+                {
+                    error = "Rogue Trader does not sell Cargo.";
+                    return false;
+                }
+                if (buyContra > unitCap)
+                {
+                    error = $"May buy at most {unitCap} Contraband.";
+                    return false;
+                }
+            }
+            else
+            {
+                fuelPrice = int.Parse(cargo.Groups[1].Value);
+                partsPrice = int.Parse(cargo.Groups[2].Value);
+                unitCap = int.Parse(cargo.Groups[3].Value);
+                unitPrice = int.Parse(cargo.Groups[4].Value);
+                isContra = false;
+                if (buyContra > 0)
+                {
+                    error = "Freighter Convoy does not sell Contraband.";
+                    return false;
+                }
+                if (buyCargo > unitCap)
+                {
+                    error = $"May buy at most {unitCap} Cargo.";
+                    return false;
+                }
+            }
+
+            var units = isContra ? buyContra : buyCargo;
+            cost = buyFuel * fuelPrice + buyParts * partsPrice + units * unitPrice;
+            if (cost == 0)
+                return true;
+            if (player.Cash < cost)
+            {
+                error = $"Need ${cost}, have ${player.Cash}.";
+                return false;
+            }
+            if (!HoldSpace.TryExplain(
+                player,
+                out error,
+                addFuel: buyFuel,
+                addParts: buyParts,
+                addCargo: buyCargo,
+                addContraband: buyContra))
+                return false;
+            return true;
+        }
+
+        private static void TryApplyBuyOnTheGo(PlayerState player, string text, NavResolveChoice? choice)
+        {
+            if (!TryPlanBuyOnTheGo(
+                player,
+                text,
+                choice,
+                out var buyFuel,
+                out var buyParts,
+                out var buyCargo,
+                out var buyContra,
+                out var cost,
+                out _))
+                return;
+            if (cost == 0 && buyFuel == 0 && buyParts == 0 && buyCargo == 0 && buyContra == 0)
+                return;
+            player.Cash -= cost;
+            player.Fuel += buyFuel;
+            player.Parts += buyParts;
+            player.Cargo += buyCargo;
+            player.Contraband += buyContra;
+        }
+
+        private static bool CanApplySellParts(
+            PlayerState player,
+            string text,
+            NavResolveChoice? choice,
+            out string? error)
+        {
+            error = null;
+            var match = SellPartsUpTo.Match(text);
+            if (!match.Success)
+                return true;
+            var cap = int.Parse(match.Groups[1].Value);
+            var sell = System.Math.Max(0, choice?.SellParts ?? 0);
+            if (sell > cap)
+            {
+                error = $"May sell at most {cap} Parts.";
+                return false;
+            }
+            if (sell > player.Parts)
+            {
+                error = "Not enough Parts to sell.";
+                return false;
+            }
+            return true;
+        }
+
+        private static void TryApplySellParts(PlayerState player, string text, NavResolveChoice? choice)
+        {
+            var match = SellPartsUpTo.Match(text);
+            if (!match.Success)
+                return;
+            var price = int.Parse(match.Groups[2].Value);
+            var sell = System.Math.Max(0, choice?.SellParts ?? 0);
+            if (sell <= 0)
+                return;
+            player.Parts -= sell;
+            player.Cash += sell * price;
+        }
+
+        private enum DiscardGrabKind
+        {
+            None,
+            CryBaby,
+            CrewAny,
+            UpgradeAny,
+            CrewPlanet
+        }
+
+        private static DiscardGrabKind ParseDiscardGrab(string text, out string? planetHint)
+        {
+            planetHint = null;
+            if (TakeCryBabyDiscard.IsMatch(text))
+                return DiscardGrabKind.CryBaby;
+            if (TakeUpgradeAnyDiscard.IsMatch(text))
+                return DiscardGrabKind.UpgradeAny;
+            if (TakeCrewAnyDiscard.IsMatch(text))
+                return DiscardGrabKind.CrewAny;
+            var named = TakeCrewNamedDiscard.Match(text);
+            if (named.Success)
+            {
+                var raw = named.Groups[1].Value.Trim();
+                if (raw.EndsWith("'s", StringComparison.OrdinalIgnoreCase))
+                    planetHint = raw.Substring(0, raw.Length - 2).Trim();
+                else if (raw.EndsWith("s'", StringComparison.OrdinalIgnoreCase))
+                    planetHint = raw.Substring(0, raw.Length - 2).Trim();
+                else
+                    planetHint = raw;
+                return DiscardGrabKind.CrewPlanet;
+            }
+            return DiscardGrabKind.None;
+        }
+
+        private static bool CanApplyDiscardGrab(
+            GameState game,
+            PlayerState player,
+            string text,
+            NavResolveChoice? choice,
+            bool optional,
+            out string? error)
+        {
+            error = null;
+            var kind = ParseDiscardGrab(text, out var planetHint);
+            if (kind == DiscardGrabKind.None)
+                return true;
+
+            var cardId = choice?.TakeFromDiscardCardId;
+            if (string.IsNullOrWhiteSpace(cardId))
+            {
+                // Optional grabs ("You may" / "If you have space") may skip.
+                if (optional || Contains(text, "You may") || Contains(text, "If you have space"))
+                    return true;
+                // Printed Take with nothing available: skip rather than invent a card.
+                if (!AnyMatchingDiscardAvailable(game, kind, planetHint))
+                    return true;
+                error = "Discard-pile grab requires TakeFromDiscardCardId.";
+                return false;
+            }
+
+            if (game.SupplyDecks == null)
+            {
+                error = "Supply decks have not been loaded.";
+                return false;
+            }
+
+            if (!TryResolveDiscardCard(
+                game,
+                choice,
+                planetHint,
+                cardId!,
+                kind,
+                out var market,
+                out var card,
+                out error))
+                return false;
+
+            return CanReceiveDiscardCard(game, player, card, market.Planet, out error);
+        }
+
+        private static bool AnyMatchingDiscardAvailable(
+            GameState game,
+            DiscardGrabKind kind,
+            string? planetHint)
+        {
+            if (game.SupplyDecks == null)
+                return false;
+            IEnumerable<SupplyMarket> markets = game.SupplyDecks.Markets;
+            if (!string.IsNullOrWhiteSpace(planetHint)
+                && game.SupplyDecks.TryGet(planetHint!, out var one))
+                markets = new[] { one };
+
+            foreach (var market in markets)
+            {
+                foreach (var card in market.Discard)
+                {
+                    if (kind == DiscardGrabKind.CryBaby
+                        && string.Equals(card.Name, "Cry Baby", StringComparison.OrdinalIgnoreCase))
+                        return true;
+                    if ((kind == DiscardGrabKind.CrewAny || kind == DiscardGrabKind.CrewPlanet)
+                        && card.Kind == SupplyKind.Crew)
+                        return true;
+                    if (kind == DiscardGrabKind.UpgradeAny && card.Kind == SupplyKind.ShipUpgrade)
+                        return true;
+                }
+            }
+            return false;
+        }
+
+        private static void TryApplyDiscardGrab(
+            GameState game,
+            PlayerState player,
+            string text,
+            NavResolveChoice? choice,
+            bool optional)
+        {
+            var kind = ParseDiscardGrab(text, out var planetHint);
+            if (kind == DiscardGrabKind.None)
+                return;
+            var cardId = choice?.TakeFromDiscardCardId;
+            if (string.IsNullOrWhiteSpace(cardId))
+                return;
+            if (game.SupplyDecks == null)
+                return;
+            if (!TryResolveDiscardCard(
+                game,
+                choice,
+                planetHint,
+                cardId!,
+                kind,
+                out var market,
+                out var card,
+                out _))
+                return;
+            if (!CanReceiveDiscardCard(game, player, card, market.Planet, out _))
+                return;
+            if (!market.TryTakeFromDiscard(card.Id, out var taken))
+                return;
+            GiveDiscardCard(game, player, taken, market.Planet);
+        }
+
+        private static bool TryResolveDiscardCard(
+            GameState game,
+            NavResolveChoice? choice,
+            string? planetHint,
+            string cardId,
+            DiscardGrabKind kind,
+            out SupplyMarket market,
+            out SupplyCard card,
+            out string? error)
+        {
+            market = null!;
+            card = null!;
+            error = null;
+            var planet = choice?.TakeFromDiscardPlanet ?? planetHint;
+
+            if (!string.IsNullOrWhiteSpace(planet))
+            {
+                if (!game.SupplyDecks!.TryGet(planet!, out market))
+                {
+                    error = $"Unknown Supply planet '{planet}'.";
+                    return false;
+                }
+                if (!market.TryFindInDiscard(cardId, out card))
+                {
+                    error = $"'{cardId}' is not in {market.Planet}'s discard pile.";
+                    return false;
+                }
+            }
+            else if (!game.SupplyDecks!.TryFindInAnyDiscard(cardId, out market, out card))
+            {
+                error = $"'{cardId}' is not in any Supply discard pile.";
+                return false;
+            }
+
+            if (kind == DiscardGrabKind.CryBaby
+                && !string.Equals(card.Name, "Cry Baby", StringComparison.OrdinalIgnoreCase))
+            {
+                error = "Damaged Spy Satellite requires a Cry Baby card.";
+                return false;
+            }
+            if ((kind == DiscardGrabKind.CrewAny || kind == DiscardGrabKind.CrewPlanet)
+                && card.Kind != SupplyKind.Crew)
+            {
+                error = "Expected a Crew card from the discard pile.";
+                return false;
+            }
+            if (kind == DiscardGrabKind.UpgradeAny && card.Kind != SupplyKind.ShipUpgrade)
+            {
+                error = "Expected a Ship Upgrade from the discard pile.";
+                return false;
+            }
+            return true;
+        }
+
+        private static bool CanReceiveDiscardCard(
+            GameState game,
+            PlayerState player,
+            SupplyCard card,
+            string planet,
+            out string? error)
+        {
+            error = null;
+            switch (card.Kind)
+            {
+                case SupplyKind.Crew:
+                    if (player.Roster.Count >= player.Roster.MaxCrew)
+                    {
+                        error = $"Roster is full ({player.Roster.MaxCrew}).";
+                        return false;
+                    }
+                    if (game.Crew == null || !game.Crew.TryGet(card.Id, out _))
+                    {
+                        error = $"Crew card '{card.Id}' is not in the catalog.";
+                        return false;
+                    }
+                    return true;
+                case SupplyKind.ShipUpgrade:
+                    return true;
+                default:
+                    error = $"Cannot take '{card.Kind}' via this Nav discard grab.";
+                    return false;
+            }
+        }
+
+        private static void GiveDiscardCard(GameState game, PlayerState player, SupplyCard card, string planet)
+        {
+            switch (card.Kind)
+            {
+                case SupplyKind.Crew:
+                    if (game.Crew != null && game.Crew.TryGet(card.Id, out var crew))
+                    {
+                        if (player.Roster.TryHire(crew, out _))
+                        {
+                            DeceptiveCrew.AfterHired(game, crew.Name);
+                            if (crew.Wanted)
+                                ActiveAlertRules.OnWantedCrewHired(game, planet);
+                        }
+                    }
+                    break;
+                case SupplyKind.ShipUpgrade:
+                    player.ShipUpgrades.Add(card.Id);
+                    break;
+            }
+        }
+
+        private static void TryApplyRangeBonus(
+            GameState game,
+            DrawnNav drawn,
+            PlayerState player,
+            string text)
+        {
+            if (MoralRangeBonus.IsMatch(text))
+            {
+                game.FlyRangeBonusThisAction += System.Math.Max(0, player.Roster.MoralCount);
+                return;
+            }
+
+            var planetary = PlanetaryRangeBonus.Match(text);
+            if (!planetary.Success)
+                return;
+            if (!game.Map.TryGet(drawn.SectorId, out var sector) || !sector.IsPlanetary)
+                return;
+            game.FlyRangeBonusThisAction += int.Parse(planetary.Groups[1].Value);
+        }
+
+        private static void TryApplyFuelCoupling(GameState game, PlayerState player, string text)
+        {
+            if (!Contains(text, "Discard 1 Fuel for each additional Sector"))
+                return;
+            game.DiscardFuelPerExtraSectorThisFly = true;
+            // Remaining queued Full Burn sectors are "additional" after Keep Flying.
+            var extra = game.PendingNavDraws.Count;
+            if (extra <= 0)
+                return;
+            var lost = System.Math.Min(extra, player.Fuel);
+            player.Fuel -= lost;
+        }
+
+        private static bool CanApplyShipNudge(
+            GameState game,
+            DrawnNav drawn,
+            string text,
+            NavResolveChoice? choice,
+            out string? error)
+        {
+            error = null;
+            if (!Contains(text, "move your ship two Sectors"))
+                return true;
+            if (choice == null
+                || string.IsNullOrWhiteSpace(choice.ShipNudgeViaSectorId)
+                || string.IsNullOrWhiteSpace(choice.ShipNudgeToSectorId))
+            {
+                error = "Ship nudge requires a two-Sector path (via + destination).";
+                return false;
+            }
+            return TryValidateShipNudgePath(
+                game,
+                drawn.SectorId,
+                choice.ShipNudgeViaSectorId!,
+                choice.ShipNudgeToSectorId!,
+                out error);
+        }
+
+        private static void TryApplyShipNudge(
+            GameState game,
+            DrawnNav drawn,
+            string text,
+            NavResolveChoice? choice)
+        {
+            if (!Contains(text, "move your ship two Sectors"))
+                return;
+            if (choice == null
+                || string.IsNullOrWhiteSpace(choice.ShipNudgeViaSectorId)
+                || string.IsNullOrWhiteSpace(choice.ShipNudgeToSectorId))
+                return;
+            if (!TryValidateShipNudgePath(
+                game,
+                drawn.SectorId,
+                choice.ShipNudgeViaSectorId!,
+                choice.ShipNudgeToSectorId!,
+                out _))
+                return;
+
+            // Two Mosey-like hops from the Nav draw Sector; no Nav draws for the nudge.
+            var player = game.CurrentPlayer;
+            player.SectorId = drawn.SectorId;
+            if (!FlightEvade.TryMove(game, player, choice.ShipNudgeViaSectorId!, out _))
+                return;
+            FlightEvade.TryMove(game, player, choice.ShipNudgeToSectorId!, out _);
+        }
+
+        private static bool TryValidateShipNudgePath(
+            GameState game,
+            string fromSectorId,
+            string viaSectorId,
+            string toSectorId,
+            out string? error)
+        {
+            var player = game.CurrentPlayer;
+            var saved = player.SectorId;
+            player.SectorId = fromSectorId;
+            var ok = FlightEvade.CanMove(game, player, viaSectorId, out error);
+            if (ok)
+            {
+                player.SectorId = viaSectorId;
+                ok = FlightEvade.CanMove(game, player, toSectorId, out error);
+            }
+            player.SectorId = saved;
+            return ok;
         }
 
         private static bool Contains(string text, string value) =>

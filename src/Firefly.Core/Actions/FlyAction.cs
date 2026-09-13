@@ -164,5 +164,124 @@ namespace Firefly.Core.Actions
             game.TryConsumeAction(TurnAction.Fly, out _);
             result = new FlyResult(applied, stopped);
         }
+
+        /// <summary>
+        /// Spend Nav-granted Fly range bonus to enter more Full Burn sectors (no second initiate Fuel).
+        /// Fuel Coupling Failure still discards 1 Fuel per sector entered when that flag is set.
+        /// </summary>
+        public bool TryContinueFullBurn(
+            GameState game,
+            string playerId,
+            IReadOnlyList<string> path,
+            out FlyResult? result,
+            out string? error)
+        {
+            result = null;
+            var player = game.GetPlayer(playerId);
+            if (!ReferenceEquals(player, game.CurrentPlayer))
+            {
+                error = $"It is not {player.Name}'s turn.";
+                return false;
+            }
+            if (game.FlyRangeBonusThisAction < 1)
+            {
+                error = "No Fly range bonus to spend.";
+                return false;
+            }
+            if (game.PendingNavDraws.Count > 0 || game.PendingAlertSectors.Count > 0 || game.PendingEncounter.HasValue)
+            {
+                error = "Resolve pending Nav / Alert / encounter before continuing the Fly.";
+                return false;
+            }
+            if (path == null || path.Count < 2)
+            {
+                error = "Continue path must include origin and at least one entered sector.";
+                return false;
+            }
+            if (path[0] != player.SectorId)
+            {
+                error = "Continue path must start in the player's current sector.";
+                return false;
+            }
+
+            var hops = path.Count - 1;
+            if (hops > game.FlyRangeBonusThisAction)
+            {
+                error = $"Path length {hops} exceeds Fly range bonus {game.FlyRangeBonusThisAction}.";
+                return false;
+            }
+
+            if (!_movement.TryFullBurn(path, hops, game.Tokens, out var plan, out error) || plan == null)
+                return false;
+
+            if (game.DiscardFuelPerExtraSectorThisFly)
+            {
+                if (player.Fuel < hops)
+                {
+                    error = "Not enough fuel.";
+                    return false;
+                }
+                player.Fuel -= hops;
+            }
+
+            // Already paid Full Burn initiate Fuel; do not charge again.
+            var zeroFuelPlan = new MovementPlan(
+                plan.Kind,
+                plan.FromSectorId,
+                plan.ToSectorId,
+                plan.Path,
+                plan.EnteredSteps,
+                fuelCost: 0);
+
+            ApplyContinue(game, player, zeroFuelPlan, out result);
+            game.FlyRangeBonusThisAction -= hops;
+            return true;
+        }
+
+        private static void ApplyContinue(
+            GameState game,
+            PlayerState player,
+            MovementPlan plan,
+            out FlyResult result)
+        {
+            var steps = new List<MovementStep>();
+            var path = new List<string> { plan.FromSectorId };
+            var stopped = false;
+
+            foreach (var step in plan.EnteredSteps)
+            {
+                steps.Add(step);
+                path.Add(step.SectorId);
+                if (AlertTokenRules.SectorHasAlerts(game.Tokens, step.SectorId, game.UseAlertTokens))
+                    game.PendingAlertSectors.Add(step.SectorId);
+                if (step.DrawsNavCard)
+                    game.PendingNavDraws.Add(new PendingNavDraw(step.SectorId, step.NavRegion));
+
+                if (step.Encounter.HasValue)
+                {
+                    var encounter = step.Encounter.Value;
+                    var allianceToken = encounter == TokenKind.AllianceCruiser
+                        || encounter == TokenKind.OperativeCorvette;
+                    if (!allianceToken || AlertTokenRules.IsOutlawShip(player))
+                    {
+                        game.PendingEncounter = encounter;
+                        game.PendingEncounterSectorId = step.SectorId;
+                        stopped = true;
+                        break;
+                    }
+                }
+            }
+
+            var applied = new MovementPlan(
+                plan.Kind,
+                plan.FromSectorId,
+                path[path.Count - 1],
+                path,
+                steps,
+                plan.FuelCost);
+
+            player.SectorId = applied.ToSectorId;
+            result = new FlyResult(applied, stopped);
+        }
     }
 }
