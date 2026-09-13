@@ -220,7 +220,82 @@ namespace Firefly.Core.Tests
             Assert.Equal(FlightOutcome.KeepFlying, resolution!.Outcome);
             Assert.Equal(Pelorum, game.Tokens.AllianceCruiserSectorId);
             Assert.Equal(500, player.Cash);
+            // FAQ 4.1 p.14: Cruiser moved onto this Outlaw — Contact before continuing the Fly.
+            Assert.Equal(TokenKind.AllianceCruiser, game.PendingEncounter);
+            Assert.Equal(player.Id, game.PendingEncounterPlayerId);
+        }
+
+        [Fact]
+        public void Cruiser_Patrol_onto_other_Outlaw_queues_Contact_blocks_flyer_Nav()
+        {
+            // FAQ 4.1 p.14: "Say it is not my turn and someone else moves the Alliance Cruiser
+            // into my Sector. Do I resolve the Alliance Contact immediately? Yes, if you're an Outlaw Ship."
+            var map = SectorMap.LoadFromDirectory(MapDir);
+            var decks = NavCatalog.BuildDecks(NavPath, new SystemRng(3));
+            var flyer = new PlayerState("p1", "Mal", Pelorum);
+            var outlaw = new PlayerState("p2", "Zoe", Bernadette) { Warrants = 1, Cash = 2000 };
+            var game = new GameState(map, new[] { flyer, outlaw }, decks: decks);
+            game.Tokens = game.Tokens.WithAllianceCruiser(Londinium);
+            game.PendingNavDraws.Add(new PendingNavDraw(Pelorum, NavRegion.Alliance));
+            game.PendingNavDraws.Add(new PendingNavDraw(Pelorum, NavRegion.Alliance));
+            game.Decks!.Alliance.PlaceOnTop(game.Decks.Catalog.Get("nav_cruiser-patrol"));
+
+            var resolver = new NavResolver();
+            Assert.True(resolver.TryAutoResolve(
+                game,
+                out var resolution,
+                out var error,
+                choice: new NavResolveChoice { AllianceCruiserToSectorId = Bernadette }), error);
+            Assert.Equal(FlightOutcome.KeepFlying, resolution!.Outcome);
+            Assert.Equal(Bernadette, game.Tokens.AllianceCruiserSectorId);
+            Assert.Equal(TokenKind.AllianceCruiser, game.PendingEncounter);
+            Assert.Equal(outlaw.Id, game.PendingEncounterPlayerId);
+            // One Nav consumed by Patrol; the remaining Keep Flying draw must wait on Contact.
+            Assert.Single(game.PendingNavDraws);
+
+            Assert.Throws<System.InvalidOperationException>(() => resolver.DrawNext(game));
+
+            Assert.True(CruiserBoarding.TryResolve(
+                game,
+                ScriptedRng.FromDieFaces(),
+                out var boarding,
+                out var boardErr), boardErr);
+            Assert.Equal(1000, boarding!.FineAssessed);
+            Assert.Equal(0, outlaw.Warrants);
+            Assert.Equal(1000, outlaw.Cash);
             Assert.Null(game.PendingEncounter);
+            // Flyer Keep Flying Nav draw preserved after interrupt Contact.
+            Assert.Single(game.PendingNavDraws);
+            Assert.NotNull(resolver.DrawNext(game));
+        }
+
+        [Fact]
+        public void Alliance_Entanglements_Legitimate_Tip_onto_other_Outlaw_interrupts()
+        {
+            var map = SectorMap.LoadFromDirectory(MapDir);
+            var decks = NavCatalog.BuildDecks(NavPath, new SystemRng(3));
+            var flyer = new PlayerState("p1", "Mal", Pelorum) { Cash = 0 };
+            var outlaw = new PlayerState("p2", "Zoe", EmptyAllianceNearPelorum) { Warrants = 1, Cash = 500 };
+            var game = new GameState(map, new[] { flyer, outlaw }, decks: decks);
+            game.Contacts = ContactCatalog.LoadDefault();
+            flyer.BecomeSolid("contact_harken");
+            game.Tokens = game.Tokens.WithAllianceCruiser(Londinium);
+            game.PendingNavDraws.Add(new PendingNavDraw(Pelorum, NavRegion.Alliance));
+            game.Decks!.Alliance.PlaceOnTop(game.Decks.Catalog.Get("nav_alliance-entanglements"));
+
+            var resolver = new NavResolver();
+            resolver.DrawNext(game);
+            Assert.True(resolver.TryResolve(
+                game,
+                1,
+                out var resolution,
+                out var error,
+                choice: new NavResolveChoice { AllianceCruiserToSectorId = EmptyAllianceNearPelorum }), error);
+            Assert.Equal(FlightOutcome.KeepFlying, resolution!.Outcome);
+            Assert.Equal(500, flyer.Cash);
+            Assert.Equal(TokenKind.AllianceCruiser, game.PendingEncounter);
+            Assert.Equal(outlaw.Id, game.PendingEncounterPlayerId);
+            Assert.Throws<System.InvalidOperationException>(() => resolver.DrawNext(game));
         }
 
         [Fact]

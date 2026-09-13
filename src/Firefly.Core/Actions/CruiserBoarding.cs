@@ -81,7 +81,7 @@ namespace Firefly.Core.Actions
                 return false;
             }
 
-            var player = game.CurrentPlayer;
+            var player = AllianceCruiserContact.Subject(game);
             var sector = game.PendingEncounterSectorId ?? player.SectorId;
 
             var warrantsAtEncounter = player.Warrants;
@@ -138,9 +138,11 @@ namespace Firefly.Core.Actions
                     player.Roster.Remove(wanted[i].Id);
             }
 
-            game.PendingEncounter = null;
-            game.PendingEncounterSectorId = null;
-            game.PendingNavDraws.Clear();
+            // FAQ 4.1 p.14: Contact Full Stop ends the flyer's Fly. Interrupt Contact on another
+            // seat must not wipe the active player's remaining Nav draws.
+            var wipeFlyerNav = AllianceCruiserContact.ClearHeadOrAdvance(game);
+            if (wipeFlyerNav)
+                game.PendingNavDraws.Clear();
 
             result = new CruiserBoardingResult(fine, paid, contraband, fugitives, rolls);
             return true;

@@ -140,6 +140,10 @@ namespace Firefly.Core.Actions
                     {
                         game.PendingEncounter = encounter;
                         game.PendingEncounterSectorId = step.SectorId;
+                        game.PendingEncounterPlayerId = player.Id;
+                        // FAQ Cry Baby: entering Cruiser Sector deferred Nav until Contact or Cry Baby.
+                        game.PendingEncounterDeferredNav =
+                            encounter == TokenKind.AllianceCruiser;
                         stopForContact = true;
                         stopped = true;
                     }
@@ -273,6 +277,10 @@ namespace Firefly.Core.Actions
                     {
                         game.PendingEncounter = encounter;
                         game.PendingEncounterSectorId = step.SectorId;
+                        game.PendingEncounterPlayerId = player.Id;
+                        // FAQ Cry Baby: entering Cruiser Sector deferred Nav until Contact or Cry Baby.
+                        game.PendingEncounterDeferredNav =
+                            encounter == TokenKind.AllianceCruiser;
                         stopForContact = true;
                         stopped = true;
                     }

@@ -871,8 +871,7 @@ namespace Firefly.Core.Actions
             if (IsNamedAllianceCruiserCard(drawn.Card))
             {
                 game.Tokens = game.Tokens.WithAllianceCruiser(drawn.SectorId);
-                game.PendingEncounter = TokenKind.AllianceCruiser;
-                game.PendingEncounterSectorId = drawn.SectorId;
+                AllianceCruiserContact.SetHead(game, game.CurrentPlayer.Id, drawn.SectorId);
                 game.BountyDeck?.CycleWantedList(game.RemovedFromPlay);
                 game.AllianceAlertDeck?.DrawAndActivate();
                 return true;
@@ -938,6 +937,8 @@ namespace Firefly.Core.Actions
             }
 
             game.Tokens = game.Tokens.WithAllianceCruiser(destination);
+            // FAQ 4.1 p.14: Outlaws in the Cruiser's new Sector resolve Contact before the flyer continues.
+            AllianceCruiserContact.QueueForOutlawsInSector(game, destination!);
             return true;
         }
 
@@ -975,6 +976,8 @@ namespace Firefly.Core.Actions
             }
 
             game.Tokens = game.Tokens.WithAllianceCruiser(destination);
+            // FAQ 4.1 p.14: moving the Cruiser onto an Outlaw queues Contact (multi-seat interrupt).
+            AllianceCruiserContact.QueueForOutlawsInSector(game, destination!);
             return true;
         }
 
