@@ -108,8 +108,10 @@ namespace Firefly.Core.State
             CompletedGoals = new HashSet<int>();
             BoundBounties = new List<BoundBounty>();
             Roster = new CrewRoster(maxCrew);
-            JobHandLimit = 3;
-            ActiveJobLimit = 1;
+            // GF9 p.14: up to 3 Active Jobs and 3 Inactive Jobs in hand.
+            // Contact Solid bonuses (Mr. Universe / Higgins) adjust via ContactSolidBenefits.
+            JobHandLimit = ContactSolidBenefits.BaseJobHandLimit;
+            ActiveJobLimit = ContactSolidBenefits.BaseActiveJobLimit;
             JobHand = new List<string>();
             ActiveJobs = new List<ActiveJob>();
             SolidWith = new HashSet<string>(StringComparer.OrdinalIgnoreCase);

@@ -102,7 +102,7 @@ namespace Firefly.Core.State
                     return FirstWhere(game, p => p.Cash >= scenario.WinCash && AtHaven(p),
                         $"reached their Haven with ${scenario.WinCash}");
                 case "firstSolidWithDistinctContacts":
-                    return FirstWhere(game, p => p.SolidCount >= scenario.WinCount,
+                    return FirstWhere(game, p => ActiveAlertRules.CountedSolidCount(game, p) >= scenario.WinCount,
                         $"Solid with {scenario.WinCount} Contacts");
                 case "endTurnWithCash":
                     if (phase != WinPhase.EndOfTurn)
@@ -261,17 +261,26 @@ namespace Firefly.Core.State
         private static WinResult? MostSolidThenCrewValue(GameState game)
         {
             PlayerState? best = null;
+            var bestSolid = -1;
             foreach (var player in game.Players)
             {
+                var solid = ActiveAlertRules.CountedSolidCount(game, player);
                 if (best == null)
                 {
                     best = player;
+                    bestSolid = solid;
                     continue;
                 }
-                if (player.SolidCount > best.SolidCount)
+                if (solid > bestSolid)
+                {
                     best = player;
-                else if (player.SolidCount == best.SolidCount && CrewValue(player) > CrewValue(best))
+                    bestSolid = solid;
+                }
+                else if (solid == bestSolid && CrewValue(player) > CrewValue(best))
+                {
                     best = player;
+                    bestSolid = solid;
+                }
             }
             return best == null ? null : new WinResult(best.Id, best.Name, "most Solid Contacts");
         }

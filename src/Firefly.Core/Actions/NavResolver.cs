@@ -147,6 +147,11 @@ namespace Firefly.Core.Actions
         public KillChoice? Kill { get; set; }
         /// <summary>Thin skill-test Bribes hook until PendingChoice.</summary>
         public SkillCheckChoice? SkillCheck { get; set; }
+        /// <summary>
+        /// Harken Solid — Your Papers are in Order (may ignore Customs Inspection).
+        /// Requires CountsAsSolidWith Harken (Privilege Suspension blocks).
+        /// </summary>
+        public bool IgnoreCustomsInspection { get; set; }
     }
 
     /// <summary>
@@ -243,6 +248,32 @@ namespace Firefly.Core.Actions
                     FlightOutcome.KeepFlying,
                     stopped: false,
                     reaverCutterBlockedByCorvette: true);
+                return true;
+            }
+
+            // Harken Solid: Your Papers are in Order — may ignore Customs Inspection (card text).
+            // Privilege Suspension: CountsAsSolidWith(Harken) is false, so ignore is refused.
+            if (choice != null
+                && choice.IgnoreCustomsInspection
+                && ContactSolidBenefits.IsCustomsInspection(drawnEarly.Card))
+            {
+                if (!ContactSolidBenefits.IsSolidHarken(game, game.CurrentPlayer))
+                {
+                    error = "Ignoring Customs Inspection requires Solid with Harken.";
+                    return false;
+                }
+                game.Decks!.For(drawnEarly.Region).ResolveIntoDiscard(drawnEarly.Card);
+                FaceUp = null;
+                var ignored = drawnEarly.Card.Options.Count > 0
+                    ? drawnEarly.Card.Options[optionIndex >= 0 && optionIndex < drawnEarly.Card.Options.Count
+                        ? optionIndex
+                        : 0]
+                    : new NavOption(null, "", FlightOutcome.KeepFlying);
+                resolution = new NavResolution(
+                    drawnEarly,
+                    ignored,
+                    FlightOutcome.KeepFlying,
+                    stopped: false);
                 return true;
             }
 

@@ -13,6 +13,16 @@ namespace Firefly.Core.Actions
         public int SellContraband { get; set; }
         public int SellCargo { get; set; }
         public bool ClearWarrants { get; set; }
+        /// <summary>FAQ 4.1 Amnon Travel Hub: load as part of Deal when Solid.</summary>
+        public int LoadPassengers { get; set; }
+        public int LoadFugitives { get; set; }
+        /// <summary>Kalidasa: buy Contraband from Fanty when Solid. Blue Sun: buy Cargo from Harrow when Solid.</summary>
+        public int BuyContraband { get; set; }
+        public int BuyCargo { get; set; }
+        /// <summary>
+        /// FAQ 4.1: when Solid with Harken, buy Fuel for $100 each while Dealing with Harken.
+        /// </summary>
+        public int BuyFuel { get; set; }
     }
 
     public sealed class DealResult
@@ -26,6 +36,12 @@ namespace Firefly.Core.Actions
         public int CargoSold { get; }
         public int CashFromSales { get; }
         public bool WarrantsCleared { get; }
+        public int PassengersLoaded { get; }
+        public int FugitivesLoaded { get; }
+        public int ContrabandBought { get; }
+        public int CargoBought { get; }
+        public int FuelBought { get; }
+        public int CashSpentBuying { get; }
 
         public DealResult(
             ContactCard contact,
@@ -36,7 +52,13 @@ namespace Firefly.Core.Actions
             int contrabandSold,
             int cargoSold,
             int cashFromSales,
-            bool warrantsCleared)
+            bool warrantsCleared,
+            int passengersLoaded = 0,
+            int fugitivesLoaded = 0,
+            int contrabandBought = 0,
+            int cargoBought = 0,
+            int cashSpentBuying = 0,
+            int fuelBought = 0)
         {
             Contact = contact;
             Considered = considered;
@@ -47,6 +69,12 @@ namespace Firefly.Core.Actions
             CargoSold = cargoSold;
             CashFromSales = cashFromSales;
             WarrantsCleared = warrantsCleared;
+            PassengersLoaded = passengersLoaded;
+            FugitivesLoaded = fugitivesLoaded;
+            ContrabandBought = contrabandBought;
+            CargoBought = cargoBought;
+            CashSpentBuying = cashSpentBuying;
+            FuelBought = fuelBought;
         }
     }
 
@@ -109,9 +137,11 @@ namespace Firefly.Core.Actions
             }
 
             var remote = !atLocation;
-            if (remote && (request.SellContraband > 0 || request.SellCargo > 0 || request.ClearWarrants))
+            if (remote && (request.SellContraband > 0 || request.SellCargo > 0 || request.ClearWarrants
+                || request.LoadPassengers > 0 || request.LoadFugitives > 0
+                || request.BuyContraband > 0 || request.BuyCargo > 0 || request.BuyFuel > 0))
             {
-                error = "Selling and Badger's warrant wipe require being in the Contact's sector.";
+                error = "Selling, buying goods, Amnon loading, and Badger's warrant wipe require being in the Contact's sector.";
                 return false;
             }
 
@@ -241,7 +271,7 @@ namespace Firefly.Core.Actions
             var warrantsCleared = false;
             if (request.ClearWarrants)
             {
-                if (!contact.IsBadger || !player.IsSolidWith(contact.Id))
+                if (!contact.IsBadger || !ContactSolidBenefits.CountsAsSolidWith(game, player, contact))
                 {
                     foreach (var taken in fromDiscard)
                         deck.MoveToDiscard(taken);
@@ -257,6 +287,103 @@ namespace Firefly.Core.Actions
                     error = "Not enough cash to clear warrants with Badger.";
                     return false;
                 }
+            }
+
+            if (request.LoadPassengers < 0 || request.LoadFugitives < 0
+                || request.BuyContraband < 0 || request.BuyCargo < 0 || request.BuyFuel < 0)
+            {
+                foreach (var taken in fromDiscard)
+                    deck.MoveToDiscard(taken);
+                deck.PutOnBottom(drawn);
+                error = "Cannot load or buy a negative quantity.";
+                return false;
+            }
+
+            // FAQ 4.1 p.6: Solid Amnon — load Passengers/Fugitives as part of Deal.
+            if (request.LoadPassengers > 0 || request.LoadFugitives > 0)
+            {
+                if (!contact.IsAmnon || !ContactSolidBenefits.CountsAsSolidWith(game, player, contact))
+                {
+                    foreach (var taken in fromDiscard)
+                        deck.MoveToDiscard(taken);
+                    deck.PutOnBottom(drawn);
+                    error = "Only a Solid Deal with Amnon Duul can load Passengers and Fugitives.";
+                    return false;
+                }
+            }
+
+            var buyCost = 0;
+            if (request.BuyContraband > 0)
+            {
+                if (!contact.IsFanty || !ContactSolidBenefits.CountsAsSolidWith(game, player, contact))
+                {
+                    foreach (var taken in fromDiscard)
+                        deck.MoveToDiscard(taken);
+                    deck.PutOnBottom(drawn);
+                    error = "Only a Solid Deal with Fanty & Mingo can buy Contraband.";
+                    return false;
+                }
+                buyCost += request.BuyContraband * ContactSolidBenefits.FantyBuyContrabandPrice;
+            }
+            if (request.BuyCargo > 0)
+            {
+                if (!contact.IsHarrow || !ContactSolidBenefits.CountsAsSolidWith(game, player, contact))
+                {
+                    foreach (var taken in fromDiscard)
+                        deck.MoveToDiscard(taken);
+                    deck.PutOnBottom(drawn);
+                    error = "Only a Solid Deal with Lord Harrow can buy Cargo.";
+                    return false;
+                }
+                buyCost += request.BuyCargo * ContactSolidBenefits.HarrowBuyCargoPrice;
+            }
+            // FAQ 4.1: "When you're Solid with Harken, the Alliance Cruiser becomes a
+            // refueling station. You may purchase as much Fuel as you'd like from Harken
+            // for $100 each, when Dealing with Harken." Price from Contacts.json buyPrices.
+            if (request.BuyFuel > 0)
+            {
+                if (!contact.IsHarken || !ContactSolidBenefits.CountsAsSolidWith(game, player, contact))
+                {
+                    foreach (var taken in fromDiscard)
+                        deck.MoveToDiscard(taken);
+                    deck.PutOnBottom(drawn);
+                    error = "Only a Solid Deal with Harken can buy Fuel.";
+                    return false;
+                }
+                if (contact.BuyPrices?.Fuel == null)
+                {
+                    foreach (var taken in fromDiscard)
+                        deck.MoveToDiscard(taken);
+                    deck.PutOnBottom(drawn);
+                    error = "Harken has no printed Fuel buy price.";
+                    return false;
+                }
+                buyCost += request.BuyFuel * contact.BuyPrices.Fuel.Value;
+            }
+            if ((request.LoadPassengers > 0 || request.LoadFugitives > 0
+                    || request.BuyContraband > 0 || request.BuyCargo > 0 || request.BuyFuel > 0)
+                && !HoldSpace.TryExplain(
+                    player,
+                    out var buyHoldError,
+                    addFuel: request.BuyFuel,
+                    addCargo: request.BuyCargo,
+                    addContraband: request.BuyContraband,
+                    addPassengers: request.LoadPassengers,
+                    addFugitives: request.LoadFugitives))
+            {
+                foreach (var taken in fromDiscard)
+                    deck.MoveToDiscard(taken);
+                deck.PutOnBottom(drawn);
+                error = buyHoldError;
+                return false;
+            }
+            if (buyCost > 0 && player.Cash + cash - (request.ClearWarrants ? DealActionDefaults.BadgerWarrantClearCost : 0) < buyCost)
+            {
+                foreach (var taken in fromDiscard)
+                    deck.MoveToDiscard(taken);
+                deck.PutOnBottom(drawn);
+                error = "Not enough cash to buy goods from this Contact.";
+                return false;
             }
 
             foreach (var job in drawn)
@@ -282,6 +409,13 @@ namespace Firefly.Core.Actions
                 warrantsCleared = true;
             }
 
+            player.Passengers += request.LoadPassengers;
+            player.Fugitives += request.LoadFugitives;
+            player.Contraband += request.BuyContraband;
+            player.Cargo += request.BuyCargo;
+            player.Fuel += request.BuyFuel;
+            player.Cash -= buyCost;
+
             game.TryConsumeAction(TurnAction.Deal, out _);
             result = new DealResult(
                 contact,
@@ -292,13 +426,21 @@ namespace Firefly.Core.Actions
                 request.SellContraband,
                 request.SellCargo,
                 cash,
-                warrantsCleared);
+                warrantsCleared,
+                request.LoadPassengers,
+                request.LoadFugitives,
+                request.BuyContraband,
+                request.BuyCargo,
+                buyCost,
+                request.BuyFuel);
             error = null;
             return true;
         }
 
         public static int ConsiderLimit(PlayerState player, ContactCard contact, bool remote)
         {
+            // Cortex Uplink remote consider is overridden when Solid with the Contact
+            // (Mr. Universe any-sector Deal still uses full Solid consider limits).
             if (remote && player.Deal.ConsiderTopCardFromAnyContact && !player.IsSolidWith(contact.Id))
                 return DealActionDefaults.CortexUplinkConsider;
 

@@ -168,6 +168,8 @@ namespace Firefly.Core.Tests
         [Fact]
         public void Failed_ambush_kills_a_crew_and_issues_a_warrant()
         {
+            // Ambush 1–7: Kill a Crew, Warrant Issued (card proceeds past the Misbehave),
+            // but FAQ 4.1 / GF9: Warrant while Working discards the Job.
             var game = NewCrimeGame();
             Assert.True(game.CurrentPlayer.Roster.TryHire(game.Crew!.FindByName("Kaylee")!, out _));
             game.CurrentPlayer.FightBonus = 1;
@@ -181,13 +183,13 @@ namespace Firefly.Core.Tests
                 new MisbehaveChoice { OptionIndex = 0 },
                 out var resolution, out var error,
                 ScriptedRng.FromDieFaces(1)), error);
-            Assert.Equal(MisbehaveOutcome.Proceed, resolution!.Outcome);
-            Assert.Equal(1, resolution.WarrantsIssued);
+            Assert.Equal(1, resolution!.WarrantsIssued);
             Assert.Equal(1, resolution.CrewKilled);
             Assert.Equal(1, game.CurrentPlayer.Warrants);
             Assert.Equal(0, game.CurrentPlayer.Roster.Count);
-            Assert.NotNull(game.PendingMisbehave);
-            Assert.Equal(2, game.PendingMisbehave!.Remaining);
+            Assert.Null(game.PendingMisbehave);
+            Assert.DoesNotContain(Crime, game.CurrentPlayer.JobHand);
+            Assert.Null(game.CurrentPlayer.FindActive(Crime));
         }
 
         [Fact]
