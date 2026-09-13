@@ -120,7 +120,7 @@ namespace Firefly.Core.Tests
             Assert.Equal(0, deck.DrawCount);
 
             Assert.True(deck.TryClaimWanted("bounty_jayne", out _));
-            Assert.Equal(1, deck.FaceUp.Count);
+            Assert.Single(deck.FaceUp);
 
             Assert.True(deck.TryClaimWanted("bounty_helen", out _));
             Assert.Empty(deck.FaceUp);
