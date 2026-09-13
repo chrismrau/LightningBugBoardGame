@@ -6,6 +6,17 @@ using Firefly.Core.Data;
 
 namespace Firefly.Core.Cards
 {
+    /// <summary>
+    /// GF9 p.4 / Director's Cut p.12 / FAQ 4.1 p.1: Standard Set Up places Alliance Cruiser
+    /// and Reaver Cutter (RESHUFFLE) into discard for 3+ players. Some Set Up cards keep them
+    /// shuffled into the draw piles regardless of player count.
+    /// </summary>
+    public enum NavReshuffleSetupMode
+    {
+        DiscardIfPlayerCountAtLeast,
+        ShuffleIntoDecksRegardlessOfPlayerCount
+    }
+
     public sealed class SetupCard
     {
         public string Id { get; }
@@ -16,6 +27,12 @@ namespace Firefly.Core.Cards
         public int? StartingFuel { get; }
         public int? StartingParts { get; }
         public bool StartingAlertCard { get; }
+        public NavReshuffleSetupMode NavReshuffleMode { get; }
+        /// <summary>
+        /// Used when <see cref="NavReshuffleMode"/> is <see cref="NavReshuffleSetupMode.DiscardIfPlayerCountAtLeast"/>.
+        /// Standard Set Up: 3.
+        /// </summary>
+        public int NavReshufflePlayerCountThreshold { get; }
 
         public SetupCard(
             string id,
@@ -25,7 +42,9 @@ namespace Firefly.Core.Cards
             int? cash,
             int? fuel,
             int? parts,
-            bool startingAlertCard = false)
+            bool startingAlertCard = false,
+            NavReshuffleSetupMode navReshuffleMode = NavReshuffleSetupMode.DiscardIfPlayerCountAtLeast,
+            int navReshufflePlayerCountThreshold = 3)
         {
             Id = id;
             Name = name;
@@ -35,7 +54,16 @@ namespace Firefly.Core.Cards
             StartingFuel = fuel;
             StartingParts = parts;
             StartingAlertCard = startingAlertCard;
+            NavReshuffleMode = navReshuffleMode;
+            NavReshufflePlayerCountThreshold = navReshufflePlayerCountThreshold;
         }
+
+        /// <summary>
+        /// Whether RESHUFFLE Nav cards start in discard (not resolved / not reshuffled yet).
+        /// </summary>
+        public bool PlacesNavReshuffleInDiscard(int playerCount) =>
+            NavReshuffleMode == NavReshuffleSetupMode.DiscardIfPlayerCountAtLeast
+            && playerCount >= NavReshufflePlayerCountThreshold;
     }
 
     public sealed class SetupCatalog
@@ -70,15 +98,47 @@ namespace Firefly.Core.Cards
                 }
                 var startingAlert = card.TryGetProperty("startingAlertCard", out var sa)
                     && sa.ValueKind == JsonValueKind.True;
+                ParseNavReshuffle(card, out var reshuffleMode, out var reshuffleThreshold);
                 list.Add(new SetupCard(
                     card.GetProperty("id").GetString() ?? "",
                     card.GetProperty("name").GetString() ?? "",
                     card.TryGetProperty("audience", out var a) ? a.GetString() : null,
                     card.TryGetProperty("timeModifier", out var t) ? t.GetString() : null,
                     cash, fuel, parts,
-                    startingAlert));
+                    startingAlert,
+                    reshuffleMode,
+                    reshuffleThreshold));
             }
             return new SetupCatalog(list);
+        }
+
+        private static void ParseNavReshuffle(
+            JsonElement card,
+            out NavReshuffleSetupMode mode,
+            out int playerCountThreshold)
+        {
+            // Standard / missing: FAQ 4.1 p.1 + GF9 p.4 — discard for 3+ players.
+            mode = NavReshuffleSetupMode.DiscardIfPlayerCountAtLeast;
+            playerCountThreshold = 3;
+            if (!card.TryGetProperty("navReshuffle", out var nav) || nav.ValueKind != JsonValueKind.Object)
+                return;
+
+            var modeText = nav.TryGetProperty("mode", out var m) ? m.GetString() : null;
+            if (string.Equals(modeText, "shuffleIntoDecksRegardlessOfPlayerCount", StringComparison.Ordinal)
+                || string.Equals(modeText, "shuffleCruiserAndCutterRegardlessOfPlayerCount", StringComparison.Ordinal))
+            {
+                mode = NavReshuffleSetupMode.ShuffleIntoDecksRegardlessOfPlayerCount;
+                return;
+            }
+
+            if (string.Equals(modeText, "discardIfPlayerCountAtLeast", StringComparison.Ordinal)
+                && nav.TryGetProperty("playerCount", out var pc)
+                && pc.TryGetInt32(out var threshold)
+                && threshold > 0)
+            {
+                mode = NavReshuffleSetupMode.DiscardIfPlayerCountAtLeast;
+                playerCountThreshold = threshold;
+            }
         }
     }
 }

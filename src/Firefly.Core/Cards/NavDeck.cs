@@ -12,6 +12,7 @@ namespace Firefly.Core.Cards
 
         public int DrawCount => _draw.Count;
         public int DiscardCount => _discard.Count;
+        public IReadOnlyList<NavCard> DiscardPile => _discard;
 
         public NavDeck(IEnumerable<NavCard> cards, IRng rng)
         {
@@ -43,6 +44,34 @@ namespace Firefly.Core.Cards
 
         public void PlaceOnTop(NavCard card) => _draw.Add(card);
 
+        /// <summary>
+        /// Set Up only: move RESHUFFLE cards into discard without resolving them.
+        /// Director's Cut p.41: reshuffle cards may sit in discard during some Set Ups.
+        /// </summary>
+        public int MoveReshufflesToDiscardForSetup()
+        {
+            var moved = 0;
+            for (var i = _draw.Count - 1; i >= 0; i--)
+            {
+                if (!_draw[i].IsReshuffle)
+                    continue;
+                _discard.Add(_draw[i]);
+                _draw.RemoveAt(i);
+                moved++;
+            }
+            return moved;
+        }
+
+        public bool DrawContainsReshuffle()
+        {
+            for (var i = 0; i < _draw.Count; i++)
+            {
+                if (_draw[i].IsReshuffle)
+                    return true;
+            }
+            return false;
+        }
+
         private void ReshuffleDiscardIntoDraw()
         {
             _draw.AddRange(_discard);
@@ -70,5 +99,21 @@ namespace Firefly.Core.Cards
             region == NavRegion.Alliance ? Alliance
             : region == NavRegion.Border ? Border
             : Rim;
+
+        /// <summary>
+        /// GF9 p.4 / FAQ 4.1 p.1: for 3+ players under Standard Set Up, place Alliance Cruiser
+        /// and Reaver Cutter RESHUFFLE cards in their discard piles (not resolved yet).
+        /// </summary>
+        public void ApplyReshuffleSetup(SetupCard setup, int playerCount)
+        {
+            if (setup == null)
+                throw new ArgumentNullException(nameof(setup));
+            if (!setup.PlacesNavReshuffleInDiscard(playerCount))
+                return;
+
+            Alliance.MoveReshufflesToDiscardForSetup();
+            Border.MoveReshufflesToDiscardForSetup();
+            Rim.MoveReshufflesToDiscardForSetup();
+        }
     }
 }

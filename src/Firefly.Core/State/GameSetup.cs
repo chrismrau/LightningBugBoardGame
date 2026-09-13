@@ -165,6 +165,9 @@ namespace Firefly.Core.State
             };
 
             game.Decks = NavCatalog.BuildDecks(GameData.NavCardsPath, rng);
+            // GF9 p.4 / FAQ 4.1 p.1 / SetupCards.json navReshuffle:
+            // Standard: place RESHUFFLE (Alliance Cruiser / Reaver Cutter) in discard for 3+ players.
+            game.Decks.ApplyReshuffleSetup(setup, players.Count);
             game.ContactDecks = new ContactDecks(game.Jobs, rng);
             game.SupplyDecks = BuildSupplyDecks(game.Supply, rng, options.PrimeSupplyReveal);
             var misbehave = MisbehaveCatalog.LoadDefault();
