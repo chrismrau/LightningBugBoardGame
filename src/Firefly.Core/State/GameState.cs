@@ -38,6 +38,15 @@ namespace Firefly.Core.State
         public TurnAction LastAction { get; private set; }
         public IList<PendingNavDraw> PendingNavDraws { get; }
         /// <summary>
+        /// Extra Full Burn sectors granted by Nav this Fly Action (First Rule / Grav-Well).
+        /// Spent by <see cref="Actions.FlyAction.TryContinueFullBurn"/>; cleared on EndTurn / new Fly / non-Fly action.
+        /// </summary>
+        public int FlyRangeBonusThisAction { get; set; }
+        /// <summary>
+        /// Fuel Coupling Failure: discard 1 Fuel per extra Sector entered after the Nav option.
+        /// </summary>
+        public bool DiscardFuelPerExtraSectorThisFly { get; set; }
+        /// <summary>
         /// Sectors entered during Fly that still need Alert Token resolution before their Nav draw.
         /// </summary>
         public IList<string> PendingAlertSectors { get; }
@@ -112,6 +121,8 @@ namespace Firefly.Core.State
             PendingEncounter = null;
             PendingEncounterSectorId = null;
             PendingMisbehave = null;
+            FlyRangeBonusThisAction = 0;
+            DiscardFuelPerExtraSectorThisFly = false;
         }
 
         public bool CanTakeAction(TurnAction action, out string? error)
@@ -144,6 +155,12 @@ namespace Firefly.Core.State
         {
             if (!CanTakeAction(action, out error))
                 return false;
+            // Range / fuel-coupling bonuses are for the current Fly Action only.
+            if (action != TurnAction.Fly)
+            {
+                FlyRangeBonusThisAction = 0;
+                DiscardFuelPerExtraSectorThisFly = false;
+            }
             _used.Add(action);
             ActionsUsedThisTurn++;
             LastAction = action;

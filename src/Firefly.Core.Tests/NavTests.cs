@@ -905,6 +905,253 @@ namespace Firefly.Core.Tests
             Assert.Equal(FlightOutcome.FullStop, resolution.Outcome);
         }
 
+        [Fact]
+        public void Rogue_Trader_buy_on_the_go_uses_printed_prices()
+        {
+            var (game, resolver, player) = GameWithQueuedDraws(1);
+            player.Cash = 2000;
+            player.Fuel = 0;
+            player.Parts = 0;
+            player.Contraband = 0;
+            game.Decks!.Alliance.PlaceOnTop(game.Decks.Catalog.Get("nav_a-rogue-trader"));
+            resolver.DrawNext(game);
+
+            var choice = new NavResolveChoice { BuyFuel = 1, BuyParts = 1, BuyContraband = 2 };
+            Assert.True(resolver.TryResolve(game, 0, out var resolution, out var error, choice: choice), error);
+            Assert.Equal(FlightOutcome.KeepFlying, resolution!.Outcome);
+            Assert.Equal(2000 - 200 - 300 - 800, player.Cash);
+            Assert.Equal(1, player.Fuel);
+            Assert.Equal(1, player.Parts);
+            Assert.Equal(2, player.Contraband);
+        }
+
+        [Fact]
+        public void Rogue_Trader_may_skip_purchases()
+        {
+            var (game, resolver, player) = GameWithQueuedDraws(1);
+            player.Cash = 500;
+            game.Decks!.Alliance.PlaceOnTop(game.Decks.Catalog.Get("nav_a-rogue-trader"));
+            resolver.DrawNext(game);
+
+            Assert.True(resolver.TryResolve(game, 0, out var resolution, out var error), error);
+            Assert.Equal(FlightOutcome.KeepFlying, resolution!.Outcome);
+            Assert.Equal(500, player.Cash);
+        }
+
+        [Fact]
+        public void Freighter_Convoy_buys_Cargo_at_printed_prices()
+        {
+            var (game, resolver, player) = GameWithQueuedDraws(1);
+            player.Cash = 1500;
+            player.Cargo = 0;
+            game.Decks!.Alliance.PlaceOnTop(game.Decks.Catalog.Get("nav_freighter-convoy"));
+            resolver.DrawNext(game);
+
+            var choice = new NavResolveChoice { BuyFuel = 1, BuyCargo = 3 };
+            Assert.True(resolver.TryResolve(game, 0, out var resolution, out var error, choice: choice), error);
+            Assert.Equal(FlightOutcome.KeepFlying, resolution!.Outcome);
+            Assert.Equal(1500 - 200 - 900, player.Cash);
+            Assert.Equal(4, player.Fuel); // started with 3 default + 1
+            Assert.Equal(3, player.Cargo);
+        }
+
+        [Fact]
+        public void Outbound_Colonists_sell_Parts_at_printed_price()
+        {
+            var (game, resolver, player) = GameWithQueuedDraws(1);
+            player.Parts = 4;
+            player.Cash = 0;
+            game.Decks!.Alliance.PlaceOnTop(game.Decks.Catalog.Get("nav_outbound-colonists"));
+            resolver.DrawNext(game);
+
+            var choice = new NavResolveChoice { SellParts = 3 };
+            Assert.True(resolver.TryResolve(game, 0, out var resolution, out var error, choice: choice), error);
+            Assert.Equal(FlightOutcome.KeepFlying, resolution!.Outcome);
+            Assert.Equal(1, player.Parts);
+            Assert.Equal(1500, player.Cash);
+        }
+
+        [Fact]
+        public void Damaged_Spy_Satellite_may_take_Cry_Baby_from_discard()
+        {
+            var (game, resolver, player) = GameWithQueuedDraws(1);
+            var cry = new SupplyCard(
+                "ship-upgrade_cry-baby",
+                "Cry Baby",
+                400,
+                SupplyKind.ShipUpgrade,
+                new Dictionary<string, int> { ["Persephone"] = 1 });
+            var market = new SupplyMarket("Persephone");
+            market.Discard.Add(cry);
+            game.SupplyDecks = new SupplyDecks(new[] { market });
+            game.Decks!.Alliance.PlaceOnTop(game.Decks.Catalog.Get("nav_damaged-spy-satellite"));
+            resolver.DrawNext(game);
+
+            var choice = new NavResolveChoice
+            {
+                TakeFromDiscardPlanet = "Persephone",
+                TakeFromDiscardCardId = cry.Id
+            };
+            Assert.True(resolver.TryResolve(game, 1, out var resolution, out var error, choice: choice), error);
+            Assert.Equal(FlightOutcome.FullStop, resolution!.Outcome);
+            Assert.Contains(cry.Id, player.ShipUpgrades);
+            Assert.Empty(market.Discard);
+            Assert.True(game.Tokens.RemovableAlertCount(Persephone, AlertTokenKind.Alliance) > 0);
+        }
+
+        [Fact]
+        public void Objects_in_Space_takes_Crew_from_any_discard_when_space()
+        {
+            var (game, resolver, player) = GameWithQueuedDraws(1);
+            game.Crew = CrewCatalog.LoadDefault();
+            var crewCard = new SupplyCard(
+                "crew_shepherd-book",
+                "Shepherd Book",
+                200,
+                SupplyKind.Crew,
+                new Dictionary<string, int> { ["Silverhold"] = 1 });
+            var market = new SupplyMarket("Silverhold");
+            market.Discard.Add(crewCard);
+            game.SupplyDecks = new SupplyDecks(new[] { market });
+            game.Decks!.Alliance.PlaceOnTop(game.Decks.Catalog.Get("nav_objects-in-space"));
+            resolver.DrawNext(game);
+
+            var choice = new NavResolveChoice { TakeFromDiscardCardId = crewCard.Id };
+            Assert.True(resolver.TryResolve(game, 0, out var resolution, out var error, choice: choice), error);
+            Assert.Equal(FlightOutcome.FullStop, resolution!.Outcome);
+            Assert.NotNull(player.Roster.Find("crew_shepherd-book"));
+            Assert.Empty(market.Discard);
+        }
+
+        [Fact]
+        public void Ship_Graveyard_success_takes_Upgrade_from_discard()
+        {
+            var (game, resolver, player) = GameWithQueuedDraws(1);
+            Assert.True(player.Roster.TryHire(CrewCatalog.LoadDefault().Get("crew_kaylee"), out _));
+            var upgrade = new SupplyCard(
+                "ship-upgrade_cry-baby",
+                "Cry Baby",
+                400,
+                SupplyKind.ShipUpgrade,
+                new Dictionary<string, int> { ["Osiris"] = 1 });
+            var market = new SupplyMarket("Osiris");
+            market.Discard.Add(upgrade);
+            game.SupplyDecks = new SupplyDecks(new[] { market });
+            game.Decks!.Alliance.PlaceOnTop(game.Decks.Catalog.Get("nav_ship-graveyard"));
+            resolver.DrawNext(game);
+
+            var choice = new NavResolveChoice { TakeFromDiscardCardId = upgrade.Id };
+            Assert.True(resolver.TryResolve(
+                game,
+                0,
+                out var resolution,
+                out var error,
+                ScriptedRng.FromDieFaces(6, 6),
+                choice), error);
+            Assert.True(resolution!.SkillCheck!.Success);
+            Assert.Contains(upgrade.Id, player.ShipUpgrades);
+            Assert.Equal(FlightOutcome.FullStop, resolution.Outcome);
+        }
+
+        [Fact]
+        public void First_Rule_adds_Moral_Crew_to_Fly_range_bonus()
+        {
+            var (game, resolver, player) = GameWithQueuedDraws(1);
+            var catalog = CrewCatalog.LoadDefault();
+            Assert.True(player.Roster.TryHire(catalog.Get("crew_kaylee"), out _));
+            Assert.True(player.Roster.TryHire(catalog.Get("crew_zoe"), out _));
+            Assert.Equal(2, player.Roster.MoralCount);
+            game.Decks!.Alliance.PlaceOnTop(game.Decks.Catalog.Get("nav_first-rule-of-flying"));
+            resolver.DrawNext(game);
+
+            Assert.True(resolver.TryResolve(game, 0, out var resolution, out var error), error);
+            Assert.Equal(FlightOutcome.KeepFlying, resolution!.Outcome);
+            Assert.Equal(2, game.FlyRangeBonusThisAction);
+        }
+
+        [Fact]
+        public void Grav_Well_adds_three_range_in_Planetary_Sector_with_Pilot()
+        {
+            var (game, resolver, player) = GameWithQueuedDraws(1);
+            Assert.True(player.Roster.TryHire(CrewCatalog.LoadDefault().Get("crew_wash"), out _));
+            Assert.True(game.Map.TryGet(Pelorum, out var sector));
+            Assert.True(sector.IsPlanetary);
+            game.Decks!.Alliance.PlaceOnTop(game.Decks.Catalog.Get("nav_grav-well-maneuver"));
+            resolver.DrawNext(game);
+
+            Assert.True(resolver.TryResolve(game, 0, out var resolution, out var error), error);
+            Assert.Equal(FlightOutcome.KeepFlying, resolution!.Outcome);
+            Assert.Equal(3, game.FlyRangeBonusThisAction);
+        }
+
+        [Fact]
+        public void Fuel_Coupling_discards_Fuel_for_remaining_queued_Sectors()
+        {
+            var (game, resolver, player) = GameWithQueuedDraws(3);
+            player.Fuel = 5;
+            game.Decks!.Alliance.PlaceOnTop(game.Decks.Catalog.Get("nav_fuel-coupling-failure"));
+            resolver.DrawNext(game);
+
+            Assert.True(resolver.TryResolve(game, 1, out var resolution, out var error), error);
+            Assert.Equal(FlightOutcome.KeepFlying, resolution!.Outcome);
+            Assert.True(game.DiscardFuelPerExtraSectorThisFly);
+            // DrawNext already removed one pending; two remain as additional sectors.
+            Assert.Equal(2, game.PendingNavDraws.Count);
+            Assert.Equal(3, player.Fuel);
+        }
+
+        [Fact]
+        public void Nav_System_nudges_ship_two_Sectors_from_draw_location()
+        {
+            var (game, resolver, player) = GameWithQueuedDraws(2);
+            player.SectorId = "rim-blue-sun-r3-01";
+            game.Decks!.Alliance.PlaceOnTop(game.Decks.Catalog.Get("nav_nav-system-on-the-fritz"));
+            resolver.DrawNext(game);
+
+            var choice = new NavResolveChoice
+            {
+                ShipNudgeViaSectorId = Persephone,
+                ShipNudgeToSectorId = "border-space-r1-04"
+            };
+            Assert.True(resolver.TryResolve(game, 0, out var resolution, out var error, choice: choice), error);
+            Assert.Equal(FlightOutcome.KeepFlying, resolution!.Outcome);
+            Assert.Equal("border-space-r1-04", player.SectorId);
+            Assert.Single(game.PendingNavDraws);
+        }
+
+        [Fact]
+        public void Fly_Continue_spends_range_bonus_without_second_initiate_Fuel()
+        {
+            var map = SectorMap.LoadFromDirectory(MapDir);
+            var decks = NavCatalog.BuildDecks(NavPath, new SystemRng(3));
+            var player = new PlayerState("p1", "Mal", Persephone, fuel: 3, driveRange: 5);
+            var game = new GameState(map, new[] { player }, decks: decks);
+            var fly = new FlyAction(new MovementEngine(map));
+
+            Assert.True(fly.TryFullBurn(
+                game,
+                "p1",
+                new[] { Persephone, Pelorum },
+                out _,
+                out var burnErr), burnErr);
+            Assert.Equal(2, player.Fuel); // spent 1 to initiate
+            // Clear queued Nav from the burn so Continue can run (bonus is spent after Nav resolve).
+            game.PendingNavDraws.Clear();
+
+            game.FlyRangeBonusThisAction = 2;
+            Assert.True(fly.TryContinueFullBurn(
+                game,
+                "p1",
+                new[] { Pelorum, "alliance-white-sun-r4-02", "alliance-white-sun-r4-01" },
+                out var cont,
+                out var contErr), contErr);
+            Assert.Equal(2, player.Fuel); // no second initiate
+            Assert.Equal(0, game.FlyRangeBonusThisAction);
+            Assert.Equal("alliance-white-sun-r4-01", player.SectorId);
+            Assert.Equal(2, game.PendingNavDraws.Count);
+            Assert.NotNull(cont);
+        }
+
         private const string Londinium = "alliance-white-sun-r1-02";
 
         private const string Bernadette = "alliance-white-sun-r1-01";

@@ -41,6 +41,35 @@ namespace Firefly.Core.Cards
             return false;
         }
 
+        public bool TryTakeFromDiscard(string cardId, out SupplyCard card)
+        {
+            card = null!;
+            for (var i = 0; i < Discard.Count; i++)
+            {
+                if (string.Equals(Discard[i].Id, cardId, StringComparison.OrdinalIgnoreCase))
+                {
+                    card = Discard[i];
+                    Discard.RemoveAt(i);
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        public bool TryFindInDiscard(string cardId, out SupplyCard card)
+        {
+            card = null!;
+            foreach (var existing in Discard)
+            {
+                if (string.Equals(existing.Id, cardId, StringComparison.OrdinalIgnoreCase))
+                {
+                    card = existing;
+                    return true;
+                }
+            }
+            return false;
+        }
+
         public void Refill()
         {
             while (FaceUp.Count < FaceUpCount && Deck.Count > 0)
@@ -69,6 +98,26 @@ namespace Firefly.Core.Cards
 
         public bool TryGet(string planet, out SupplyMarket market) =>
             _byPlanet.TryGetValue(planet, out market!);
+
+        /// <summary>
+        /// Locates a Supply card sitting in any planet's discard pile (Nav / Salvage grabs).
+        /// </summary>
+        public bool TryFindInAnyDiscard(string cardId, out SupplyMarket market, out SupplyCard card)
+        {
+            market = null!;
+            card = null!;
+            if (string.IsNullOrWhiteSpace(cardId))
+                return false;
+            foreach (var candidate in _byPlanet.Values)
+            {
+                if (candidate.TryFindInDiscard(cardId, out card))
+                {
+                    market = candidate;
+                    return true;
+                }
+            }
+            return false;
+        }
 
         /// <summary>
         /// Pulls every crew copy of this name out of every market (deck, face-up, discard)
