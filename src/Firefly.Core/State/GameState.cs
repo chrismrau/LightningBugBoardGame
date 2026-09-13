@@ -53,6 +53,20 @@ namespace Firefly.Core.State
         public TokenKind? PendingEncounter { get; set; }
         public string? PendingEncounterSectorId { get; set; }
         /// <summary>
+        /// Player who must resolve <see cref="PendingEncounter"/> (FAQ multi-seat Cruiser Contact).
+        /// Null means <see cref="CurrentPlayer"/> (legacy / named Cruiser Nav on the flyer).
+        /// </summary>
+        public string? PendingEncounterPlayerId { get; set; }
+        /// <summary>
+        /// Additional Outlaw player ids waiting for Alliance Cruiser Contact after the head pending.
+        /// </summary>
+        public IList<string> PendingAllianceContactQueue { get; }
+        /// <summary>
+        /// Fly entered the Cruiser Sector and skipped Nav (FAQ Contact-before-Nav). Cry Baby can
+        /// clear Contact and restore that Sector's Nav draw.
+        /// </summary>
+        public bool PendingEncounterDeferredNav { get; set; }
+        /// <summary>
         /// Blue Sun physical Alert Tokens (spawn / resolve / permanent Reaver Space).
         /// Off for core-only; on when <see cref="GameSetupOptions.UseBlueSun"/> unless a Setup card disables them.
         /// </summary>
@@ -99,6 +113,7 @@ namespace Firefly.Core.State
             Tokens = tokens ?? MapTokens.None;
             PendingNavDraws = new List<PendingNavDraw>();
             PendingAlertSectors = new List<string>();
+            PendingAllianceContactQueue = new List<string>();
             Decks = decks;
         }
 
@@ -120,6 +135,9 @@ namespace Firefly.Core.State
             PendingAlertSectors.Clear();
             PendingEncounter = null;
             PendingEncounterSectorId = null;
+            PendingEncounterPlayerId = null;
+            PendingAllianceContactQueue.Clear();
+            PendingEncounterDeferredNav = false;
             PendingMisbehave = null;
             FlyRangeBonusThisAction = 0;
             DiscardFuelPerExtraSectorThisFly = false;

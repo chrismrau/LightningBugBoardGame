@@ -125,9 +125,10 @@ namespace Firefly.Core.Actions
                 path.Add(step.SectorId);
                 if (AlertTokenRules.SectorHasAlerts(game.Tokens, step.SectorId, game.UseAlertTokens))
                     game.PendingAlertSectors.Add(step.SectorId);
-                if (step.DrawsNavCard)
-                    game.PendingNavDraws.Add(new PendingNavDraw(step.SectorId, step.NavRegion));
 
+                // FAQ 4.1 p.14: Alliance Contact before Nav; if Contact Full Stops, do not draw Nav.
+                // Legal ships ignore Cruiser/Corvette presence and still draw. Named Alliance Cruiser Nav is separate.
+                var stopForContact = false;
                 if (truncateOnEncounter && step.Encounter.HasValue)
                 {
                     var encounter = step.Encounter.Value;
@@ -139,10 +140,20 @@ namespace Firefly.Core.Actions
                     {
                         game.PendingEncounter = encounter;
                         game.PendingEncounterSectorId = step.SectorId;
+                        game.PendingEncounterPlayerId = player.Id;
+                        // FAQ Cry Baby: entering Cruiser Sector deferred Nav until Contact or Cry Baby.
+                        game.PendingEncounterDeferredNav =
+                            encounter == TokenKind.AllianceCruiser;
+                        stopForContact = true;
                         stopped = true;
-                        break;
                     }
                 }
+
+                if (step.DrawsNavCard && !stopForContact)
+                    game.PendingNavDraws.Add(new PendingNavDraw(step.SectorId, step.NavRegion));
+
+                if (stopped)
+                    break;
             }
 
             var applied = new MovementPlan(
@@ -254,9 +265,9 @@ namespace Firefly.Core.Actions
                 path.Add(step.SectorId);
                 if (AlertTokenRules.SectorHasAlerts(game.Tokens, step.SectorId, game.UseAlertTokens))
                     game.PendingAlertSectors.Add(step.SectorId);
-                if (step.DrawsNavCard)
-                    game.PendingNavDraws.Add(new PendingNavDraw(step.SectorId, step.NavRegion));
 
+                // FAQ 4.1 p.14: Contact before Nav; Full Stop Contact skips the Nav draw for that Sector.
+                var stopForContact = false;
                 if (step.Encounter.HasValue)
                 {
                     var encounter = step.Encounter.Value;
@@ -266,10 +277,20 @@ namespace Firefly.Core.Actions
                     {
                         game.PendingEncounter = encounter;
                         game.PendingEncounterSectorId = step.SectorId;
+                        game.PendingEncounterPlayerId = player.Id;
+                        // FAQ Cry Baby: entering Cruiser Sector deferred Nav until Contact or Cry Baby.
+                        game.PendingEncounterDeferredNav =
+                            encounter == TokenKind.AllianceCruiser;
+                        stopForContact = true;
                         stopped = true;
-                        break;
                     }
                 }
+
+                if (step.DrawsNavCard && !stopForContact)
+                    game.PendingNavDraws.Add(new PendingNavDraw(step.SectorId, step.NavRegion));
+
+                if (stopped)
+                    break;
             }
 
             var applied = new MovementPlan(

@@ -1,4 +1,5 @@
 using Firefly.Core.Actions;
+using Firefly.Core.Cards;
 using Firefly.Core.Data;
 using Firefly.Core.Map;
 using Firefly.Core.Movement;
@@ -90,6 +91,8 @@ namespace Firefly.Core.Tests
             Assert.True(result!.StoppedForEncounter);
             Assert.Equal(TokenKind.AllianceCruiser, game.PendingEncounter);
             Assert.Equal(Pelorum, game.PendingEncounterSectorId);
+            // FAQ 4.1 p.14: Contact Full Stop — do not draw a Nav Card for that Sector.
+            Assert.Empty(game.PendingNavDraws);
         }
 
         [Fact]
@@ -102,6 +105,25 @@ namespace Firefly.Core.Tests
             Assert.False(result!.StoppedForEncounter);
             Assert.Null(game.PendingEncounter);
             Assert.Single(game.PendingNavDraws);
+        }
+
+        [Fact]
+        public void DrawNext_blocked_while_Alliance_Contact_pending()
+        {
+            var map = SectorMap.LoadFromDirectory(GameData.MapDirectory);
+            var decks = NavCatalog.BuildDecks(GameData.NavCardsPath, new SystemRng(1));
+            var player = new PlayerState("p1", "Mal", Pelorum, fuel: 3);
+            player.Warrants = 1;
+            var tokens = new MapTokens(allianceCruiserSectorId: Pelorum);
+            var game = new GameState(map, new[] { player }, tokens, decks: decks);
+            // Simulate a queued Nav that should not be drawn before Contact (defensive guard).
+            game.PendingEncounter = TokenKind.AllianceCruiser;
+            game.PendingEncounterSectorId = Pelorum;
+            game.PendingNavDraws.Add(new PendingNavDraw(Pelorum, NavRegion.Alliance));
+
+            var resolver = new NavResolver();
+            var ex = Assert.Throws<System.InvalidOperationException>(() => resolver.DrawNext(game));
+            Assert.Contains("Resolve Contact before drawing", ex.Message);
         }
 
         [Fact]
