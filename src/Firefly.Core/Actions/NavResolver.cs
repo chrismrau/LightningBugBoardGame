@@ -145,6 +145,8 @@ namespace Firefly.Core.Actions
         public string? ShipNudgeToSectorId { get; set; }
         /// <summary>Thin kill / Medic hooks until PendingChoice.</summary>
         public KillChoice? Kill { get; set; }
+        /// <summary>Thin skill-test Bribes hook until PendingChoice.</summary>
+        public SkillCheckChoice? SkillCheck { get; set; }
     }
 
     /// <summary>
@@ -253,16 +255,6 @@ namespace Firefly.Core.Actions
             var drawn = FaceUp;
             var option = drawn.Card.Options[optionIndex];
             var outcome = option.Outcome;
-            SkillCheckResult? check = null;
-            string? bandText = null;
-            if (SkillCheck.TryParse(option.Details, out var skillCheck))
-            {
-                check = skillCheck.Resolve(game.CurrentPlayer, rng ?? new SystemRng());
-                if (outcome == FlightOutcome.Conditional)
-                    outcome = SkillCheck.OutcomeFor(option.Details, check.Success);
-                bandText = SkillCheck.BandText(option.Details, check.Roll.Sum);
-            }
-
             var tokensBefore = game.Tokens;
             var pendingBefore = game.PendingEncounter;
             var pendingSectorBefore = game.PendingEncounterSectorId;
@@ -274,6 +266,22 @@ namespace Firefly.Core.Actions
             var cashBefore = player.Cash;
             var rangeBonusBefore = game.FlyRangeBonusThisAction;
             var fuelCouplingBefore = game.DiscardFuelPerExtraSectorThisFly;
+
+            SkillCheckResult? check = null;
+            string? bandText = null;
+            if (SkillCheck.TryParse(option.Details, out var skillCheck))
+            {
+                if (!skillCheck.TryResolve(
+                    player,
+                    rng ?? new SystemRng(),
+                    out check,
+                    out error,
+                    choice?.SkillCheck))
+                    return false;
+                if (outcome == FlightOutcome.Conditional)
+                    outcome = SkillCheck.OutcomeFor(option.Details, check.Success);
+                bandText = SkillCheck.BandText(option.Details, check.Total);
+            }
 
             if (!ApplyTokenMoves(
                 game,
