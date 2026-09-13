@@ -181,7 +181,8 @@ namespace Firefly.Core.State
             var misbehave = MisbehaveCatalog.LoadDefault();
             game.MisbehaveCatalog = misbehave;
             game.Misbehave = MisbehaveDeck.FromCatalog(misbehave, rng);
-            // PBH p.3 / p.8: Bounty Cards form a new, separate deck — optional expansion.
+            // PBH p.8: Bounty Cards form a separate deck; reveal top 3 Most Wanted
+            // (optional expansion via UseBountyDeck).
             if (options.UseBountyDeck)
                 game.BountyDeck = BountyDeck.FromCatalog(game.Bounties, rng);
             game.AllianceAlerts = AllianceAlertCatalog.LoadDefault();

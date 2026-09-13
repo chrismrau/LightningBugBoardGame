@@ -52,12 +52,78 @@ namespace Firefly.Core.Tests
         [Fact]
         public void Setup_reveals_three_most_wanted()
         {
+            // PBH p.8: reveal the top 3 Bounty Cards at Set Up (gated on UseBountyDeck).
             var game = GameSetup.Create(
                 new[] { new PlayerSeat("p1", "Mal", Persephone) },
                 new GameSetupOptions { DealStartingJobs = false, UseBountyDeck = true, Rng = new SystemRng(3) });
             Assert.NotNull(game.Bounties);
             Assert.NotNull(game.BountyDeck);
             Assert.Equal(3, game.BountyDeck!.FaceUp.Count);
+            Assert.Equal(17, game.BountyDeck.DrawCount);
+        }
+
+        [Fact]
+        public void Claiming_a_bounty_refills_most_wanted_from_the_draw_pile()
+        {
+            // PBH p.8: "When a Fugitive is apprehended and their Bounty is claimed,
+            // reveal a new Bounty Card. There should always be three face-up Bounties."
+            var (game, _, _) = TwoShips();
+            Assert.Equal(3, game.BountyDeck!.FaceUp.Count);
+            Assert.Equal(17, game.BountyDeck.DrawCount);
+            var claimedId = game.BountyDeck.FaceUp[0].Id;
+
+            Assert.True(game.BountyDeck.TryClaimWanted(claimedId, out _));
+
+            Assert.Equal(3, game.BountyDeck.FaceUp.Count);
+            Assert.Equal(16, game.BountyDeck.DrawCount);
+            Assert.DoesNotContain(game.BountyDeck.FaceUp, c => c.Id == claimedId);
+        }
+
+        [Fact]
+        public void Apprehend_claim_refills_most_wanted_via_Bind()
+        {
+            // Bind → TryClaimWanted is the apprehend path (PBH p.8 / p.11 Bound by Law).
+            var (game, mal, _) = TwoShips();
+            game.BountyDeck = BountyDeck.FromCatalog(game.Bounties!, new SystemRng(7));
+            // Ensure Jayne is face-up by cycling the list until she appears.
+            for (var i = 0; i < 20 && game.BountyDeck.FindWanted("bounty_jayne") == null; i++)
+                game.BountyDeck.CycleWantedList();
+            Assert.NotNull(game.BountyDeck.FindWanted("bounty_jayne"));
+            var drawBefore = game.BountyDeck.DrawCount;
+
+            Assert.True(mal.Roster.TryHire(Crew.Get("crew_jayne"), out _));
+            Assert.True(mal.Roster.TryHire(Crew.Get("crew_kaylee"), out _));
+            Assert.True(new BountyAction().TryBetray(
+                game, "p1", "bounty_jayne", "crew_jayne", out var result, out var error), error);
+            Assert.True(result!.Success);
+            Assert.Equal(3, game.BountyDeck.FaceUp.Count);
+            Assert.Null(game.BountyDeck.FindWanted("bounty_jayne"));
+            Assert.Equal(drawBefore - 1, game.BountyDeck.DrawCount);
+        }
+
+        [Fact]
+        public void Most_wanted_refill_stops_when_draw_pile_is_exhausted()
+        {
+            var catalog = Bounties;
+            var three = new[]
+            {
+                catalog.Get("bounty_billy"),
+                catalog.Get("bounty_jayne"),
+                catalog.Get("bounty_helen"),
+            };
+            var deck = new BountyDeck(three, new SystemRng(4), catalog);
+            Assert.Equal(3, deck.FaceUp.Count);
+            Assert.Equal(0, deck.DrawCount);
+
+            Assert.True(deck.TryClaimWanted("bounty_billy", out _));
+            Assert.Equal(2, deck.FaceUp.Count);
+            Assert.Equal(0, deck.DrawCount);
+
+            Assert.True(deck.TryClaimWanted("bounty_jayne", out _));
+            Assert.Equal(1, deck.FaceUp.Count);
+
+            Assert.True(deck.TryClaimWanted("bounty_helen", out _));
+            Assert.Empty(deck.FaceUp);
         }
 
         [Fact]
