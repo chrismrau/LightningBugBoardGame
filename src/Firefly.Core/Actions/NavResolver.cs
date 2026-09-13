@@ -1182,16 +1182,118 @@ namespace Firefly.Core.Actions
                 return false;
             }
 
+            var cutterIndex = choice?.ReaverCutterIndex ?? 0;
+            if (!TryValidateReaverDestination(game, drawn, details, destination!, cutterIndex, out error))
+                return false;
+
             if (!game.Tokens.TryMoveReaverCutter(
                 destination!,
                 out var updated,
                 out error,
-                choice?.ReaverCutterIndex ?? 0,
+                cutterIndex,
                 leaveReaverAlertToken: game.UseAlertTokens))
                 return false;
             game.Tokens = updated;
             return true;
         }
+
+        /// <summary>
+        /// Enforces printed Reaver Nav destination constraints (mirror of Corvette validators).
+        /// FAQ 4.1 p.12: Reaver Ships may never move into Alliance Space; if no legal
+        /// Border/Rim destination exists, do not move (caller must not invent a fallback).
+        /// </summary>
+        private static bool TryValidateReaverDestination(
+            GameState game,
+            DrawnNav drawn,
+            string details,
+            string destination,
+            int cutterIndex,
+            out string? error)
+        {
+            error = null;
+            if (!game.Map.TryGet(destination, out var sector))
+            {
+                error = $"Unknown sector '{destination}'.";
+                return false;
+            }
+
+            // FAQ 4.1: "Reaver Ships may never move into Alliance Space, for any reason."
+            if (sector.NavRegion == NavRegion.Alliance)
+            {
+                error = "Reaver Ships may never move into Alliance Space.";
+                return false;
+            }
+
+            if (RequiresUnoccupiedByFirefly(details) && HasFireflyInSector(game, destination))
+            {
+                error = "Reaver destination must not be occupied by a Firefly.";
+                return false;
+            }
+
+            if (RequiresPlanetary(details) && !sector.IsPlanetary && string.IsNullOrWhiteSpace(sector.Planet))
+            {
+                error = "Reaver destination must be a Planetary Sector.";
+                return false;
+            }
+
+            if (RequiresAdjacentToDraw(details) && !AreAdjacent(game, drawn.SectorId, destination))
+            {
+                error = "Reaver destination must be adjacent to your current location.";
+                return false;
+            }
+
+            if (RequiresBorderSectorOnly(details) && sector.NavRegion != NavRegion.Border)
+            {
+                error = "Reaver destination must be a Border Sector.";
+                return false;
+            }
+
+            if (RequiresBorderOrRimSpace(details)
+                && sector.NavRegion != NavRegion.Border
+                && sector.NavRegion != NavRegion.Rim)
+            {
+                error = "Reaver destination must be in Border or Rim Space.";
+                return false;
+            }
+
+            if (RequiresOneSectorMove(details))
+            {
+                if (cutterIndex < 0 || cutterIndex >= game.Tokens.ReaverCutterSectorIds.Count)
+                {
+                    error = "Invalid Reaver Cutter index.";
+                    return false;
+                }
+
+                var from = game.Tokens.ReaverCutterSectorIds[cutterIndex];
+                if (!AreAdjacent(game, from, destination))
+                {
+                    error = "Reaver Ship must move 1 Sector.";
+                    return false;
+                }
+
+                if (sector.NavRegion != NavRegion.Border && sector.NavRegion != NavRegion.Rim)
+                {
+                    error = "Reaver destination must be in Border or Rim Space.";
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private static bool RequiresBorderSectorOnly(string details) =>
+            Contains(details, "any Border Sector")
+            || (Contains(details, "Border Sector")
+                && !Contains(details, "Rim")
+                && !Contains(details, "Planetary Sector"));
+
+        private static bool RequiresBorderOrRimSpace(string details) =>
+            Contains(details, "Border or Rim Space")
+            || Contains(details, "within Border or Rim Space")
+            || Contains(details, "in Border or Rim Space");
+
+        private static bool RequiresOneSectorMove(string details) =>
+            Contains(details, "1 Sector within") || Contains(details, "1 sector within");
 
         private static bool IsImmediateReaverContactOption(string details) =>
             Contains(details, "Kill all Passengers") || Contains(details, "Fight 8");

@@ -15,6 +15,10 @@ namespace Firefly.Core.Tests
         private const string CutterStart = "border-space-r2-06";
         private const string CutterAdjacent = "border-space-r2-05";
         private const string CutterAdjacentAlt = "border-space-r2-07";
+        private const string BorderNearAlliance = "border-space-r1-04";
+        private const string Aesir = "border-himinbjorg-r1-01";
+        private const string Beaumonde = "rim-kalidasa-r4-14";
+        private const string RimNearBeaumonde = "rim-space-r1-07";
 
         [Fact]
         public void Mosey_and_FullBurn_reject_entering_cutter_sector()
@@ -202,6 +206,188 @@ namespace Firefly.Core.Tests
         }
 
         [Fact]
+        public void Reavers_on_the_Hunt_rejects_destination_more_than_one_Sector_away()
+        {
+            var (game, resolver, _) = BorderGameWithCutter(queuedDraws: 1);
+            game.Tokens = new MapTokens(reaverCutterSectorIds: new[] { CutterAdjacent });
+            game.Decks!.Border.PlaceOnTop(game.Decks.Catalog.Get("nav_reavers-on-the-hunt"));
+            resolver.DrawNext(game);
+
+            // CutterAdjacentAlt is two hops from CutterAdjacent via CutterStart.
+            Assert.False(resolver.TryResolve(
+                game,
+                0,
+                out _,
+                out var error,
+                choice: new NavResolveChoice { ReaverCutterToSectorId = CutterAdjacentAlt }));
+            Assert.Contains("1 Sector", error);
+            Assert.Equal(CutterAdjacent, game.Tokens.ReaverCutterSectorIds[0]);
+        }
+
+        [Fact]
+        public void Reavers_on_the_Hunt_rejects_Alliance_destination()
+        {
+            var (game, resolver, player) = BorderGameNearAlliance();
+            game.Tokens = new MapTokens(reaverCutterSectorIds: new[] { BorderNearAlliance });
+            game.Decks!.Border.PlaceOnTop(game.Decks.Catalog.Get("nav_reavers-on-the-hunt"));
+            resolver.DrawNext(game);
+
+            Assert.False(resolver.TryResolve(
+                game,
+                0,
+                out _,
+                out var error,
+                choice: new NavResolveChoice { ReaverCutterToSectorId = Persephone }));
+            Assert.Contains("Alliance", error);
+            Assert.Equal(BorderNearAlliance, game.Tokens.ReaverCutterSectorIds[0]);
+            Assert.Equal(BorderNearAlliance, player.SectorId);
+        }
+
+        [Fact]
+        public void Reavers_Dead_Ahead_moves_to_adjacent_Border_Sector_not_Firefly()
+        {
+            var (game, resolver, player) = BorderGameWithCutter(queuedDraws: 1);
+            game.Decks!.Border.PlaceOnTop(game.Decks.Catalog.Get("nav_reavers-dead-ahead"));
+
+            var choice = new NavResolveChoice { ReaverCutterToSectorId = CutterAdjacent };
+            Assert.True(resolver.TryAutoResolve(game, out var resolution, out var error, choice: choice), error);
+            Assert.Equal(FlightOutcome.KeepFlying, resolution!.Outcome);
+            Assert.Null(resolution.ReaverContact);
+            Assert.Equal(CutterAdjacent, game.Tokens.ReaverCutterSectorIds[0]);
+            Assert.Equal(CutterStart, player.SectorId);
+        }
+
+        [Fact]
+        public void Reavers_Dead_Ahead_rejects_non_adjacent_and_Firefly_occupied()
+        {
+            var (game, resolver, _) = BorderGameWithCutter(queuedDraws: 1);
+            game.Decks!.Border.PlaceOnTop(game.Decks.Catalog.Get("nav_reavers-dead-ahead"));
+            resolver.DrawNext(game);
+
+            Assert.False(resolver.TryResolve(
+                game,
+                0,
+                out _,
+                out var farError,
+                choice: new NavResolveChoice { ReaverCutterToSectorId = Aesir }));
+            Assert.Contains("adjacent", farError);
+
+            // Player's own draw sector is occupied by a Firefly.
+            Assert.False(resolver.TryResolve(
+                game,
+                0,
+                out _,
+                out var fireflyError,
+                choice: new NavResolveChoice { ReaverCutterToSectorId = CutterStart }));
+            Assert.Contains("Firefly", fireflyError);
+        }
+
+        [Fact]
+        public void Reavers_Dead_Ahead_rejects_Alliance_even_when_adjacent()
+        {
+            // FAQ 4.1 p.12: Reaver Ships may never move into Alliance Space, for any reason.
+            var (game, resolver, _) = BorderGameNearAlliance();
+            game.Decks!.Border.PlaceOnTop(game.Decks.Catalog.Get("nav_reavers-dead-ahead"));
+            resolver.DrawNext(game);
+
+            Assert.False(resolver.TryResolve(
+                game,
+                0,
+                out _,
+                out var error,
+                choice: new NavResolveChoice { ReaverCutterToSectorId = Persephone }));
+            Assert.Contains("Alliance", error);
+        }
+
+        [Fact]
+        public void Reavers_in_Orbit_moves_to_Planetary_Border_or_Rim_not_Firefly()
+        {
+            var (game, resolver, player) = RimGameWithCutter(queuedDraws: 1);
+            game.Decks!.Rim.PlaceOnTop(game.Decks.Catalog.Get("nav_reavers-in-orbit"));
+
+            var choice = new NavResolveChoice { ReaverCutterToSectorId = Beaumonde };
+            Assert.True(resolver.TryAutoResolve(game, out var resolution, out var error, choice: choice), error);
+            Assert.Equal(FlightOutcome.KeepFlying, resolution!.Outcome);
+            Assert.Null(resolution.ReaverContact);
+            Assert.Equal(Beaumonde, game.Tokens.ReaverCutterSectorIds[0]);
+            Assert.Equal(RimNearBeaumonde, player.SectorId);
+        }
+
+        [Fact]
+        public void Reavers_in_Orbit_rejects_non_Planetary_and_Firefly_occupied()
+        {
+            var map = SectorMap.LoadFromDirectory(GameData.MapDirectory);
+            var decks = NavCatalog.BuildDecks(GameData.NavCardsPath, new SystemRng(3));
+            var player = new PlayerState("p1", "Mal", RimNearBeaumonde, fuel: 3);
+            var other = new PlayerState("p2", "Zoe", Aesir);
+            var tokens = new MapTokens(reaverCutterSectorIds: new[] { CutterAdjacentAlt });
+            var game = new GameState(map, new[] { player, other }, tokens, decks);
+            game.PendingNavDraws.Add(new PendingNavDraw(RimNearBeaumonde, NavRegion.Rim));
+            var resolver = new NavResolver();
+            game.Decks!.Rim.PlaceOnTop(game.Decks.Catalog.Get("nav_reavers-in-orbit"));
+            resolver.DrawNext(game);
+
+            Assert.False(resolver.TryResolve(
+                game,
+                0,
+                out _,
+                out var spaceError,
+                choice: new NavResolveChoice { ReaverCutterToSectorId = CutterStart }));
+            Assert.Contains("Planetary", spaceError);
+
+            // Another Firefly sits on Aesir (Border planetary).
+            Assert.False(resolver.TryResolve(
+                game,
+                0,
+                out _,
+                out var fireflyError,
+                choice: new NavResolveChoice { ReaverCutterToSectorId = Aesir }));
+            Assert.Contains("Firefly", fireflyError);
+        }
+
+        [Fact]
+        public void Reaver_Bait_Decoy_moves_to_Border_Sector_not_Firefly()
+        {
+            var (game, resolver, player) = BorderGameWithCutter(queuedDraws: 1);
+            game.Decks!.Border.PlaceOnTop(game.Decks.Catalog.Get("nav_reaver-bait"));
+            resolver.DrawNext(game);
+
+            Assert.True(resolver.TryResolve(
+                game,
+                0,
+                out var resolution,
+                out var error,
+                choice: new NavResolveChoice { ReaverCutterToSectorId = Aesir }), error);
+            Assert.Equal(FlightOutcome.KeepFlying, resolution!.Outcome);
+            Assert.Equal(Aesir, game.Tokens.ReaverCutterSectorIds[0]);
+            Assert.Equal(CutterStart, player.SectorId);
+        }
+
+        [Fact]
+        public void Reaver_Bait_Decoy_rejects_Rim_and_Firefly_occupied_Border()
+        {
+            var (game, resolver, _) = BorderGameWithCutter(queuedDraws: 1);
+            game.Decks!.Border.PlaceOnTop(game.Decks.Catalog.Get("nav_reaver-bait"));
+            resolver.DrawNext(game);
+
+            Assert.False(resolver.TryResolve(
+                game,
+                0,
+                out _,
+                out var rimError,
+                choice: new NavResolveChoice { ReaverCutterToSectorId = Beaumonde }));
+            Assert.Contains("Border", rimError);
+
+            Assert.False(resolver.TryResolve(
+                game,
+                0,
+                out _,
+                out var fireflyError,
+                choice: new NavResolveChoice { ReaverCutterToSectorId = CutterStart }));
+            Assert.Contains("Firefly", fireflyError);
+        }
+
+        [Fact]
         public void Evade_Nav_outcome_moves_adjacent_and_clears_remaining_draws()
         {
             var (game, resolver, player) = BorderGameWithCutter(queuedDraws: 2);
@@ -230,6 +416,29 @@ namespace Firefly.Core.Tests
             var game = new GameState(map, new[] { player }, tokens, decks);
             for (var i = 0; i < queuedDraws; i++)
                 game.PendingNavDraws.Add(new PendingNavDraw(CutterStart, NavRegion.Border));
+            return (game, new NavResolver(), player);
+        }
+
+        private static (GameState Game, NavResolver Resolver, PlayerState Player) BorderGameNearAlliance()
+        {
+            var map = SectorMap.LoadFromDirectory(GameData.MapDirectory);
+            var decks = NavCatalog.BuildDecks(GameData.NavCardsPath, new SystemRng(3));
+            var player = new PlayerState("p1", "Mal", BorderNearAlliance, fuel: 3);
+            var tokens = new MapTokens(reaverCutterSectorIds: new[] { CutterAdjacentAlt });
+            var game = new GameState(map, new[] { player }, tokens, decks);
+            game.PendingNavDraws.Add(new PendingNavDraw(BorderNearAlliance, NavRegion.Border));
+            return (game, new NavResolver(), player);
+        }
+
+        private static (GameState Game, NavResolver Resolver, PlayerState Player) RimGameWithCutter(int queuedDraws)
+        {
+            var map = SectorMap.LoadFromDirectory(GameData.MapDirectory);
+            var decks = NavCatalog.BuildDecks(GameData.NavCardsPath, new SystemRng(3));
+            var player = new PlayerState("p1", "Mal", RimNearBeaumonde, fuel: 3);
+            var tokens = new MapTokens(reaverCutterSectorIds: new[] { CutterAdjacentAlt });
+            var game = new GameState(map, new[] { player }, tokens, decks);
+            for (var i = 0; i < queuedDraws; i++)
+                game.PendingNavDraws.Add(new PendingNavDraw(RimNearBeaumonde, NavRegion.Rim));
             return (game, new NavResolver(), player);
         }
     }
