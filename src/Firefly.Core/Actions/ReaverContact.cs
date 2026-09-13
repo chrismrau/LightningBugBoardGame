@@ -42,7 +42,8 @@ namespace Firefly.Core.Actions
             IRng rng,
             string evadeToSectorId,
             out ReaverContactResult? result,
-            out string? error)
+            out string? error,
+            KillChoice? killChoice = null)
         {
             result = null;
             error = null;
@@ -56,7 +57,7 @@ namespace Firefly.Core.Actions
             var sector = game.PendingEncounterSectorId ?? player.SectorId;
             player.SectorId = sector;
 
-            if (!TryApply(game, player, rng, evadeToSectorId, out result, out error))
+            if (!TryApply(game, player, rng, evadeToSectorId, out result, out error, killChoice))
                 return false;
 
             game.PendingEncounter = null;
@@ -74,8 +75,9 @@ namespace Firefly.Core.Actions
             IRng rng,
             string evadeToSectorId,
             out ReaverContactResult? result,
-            out string? error) =>
-            TryApply(game, game.CurrentPlayer, rng, evadeToSectorId, out result, out error);
+            out string? error,
+            KillChoice? killChoice = null) =>
+            TryApply(game, game.CurrentPlayer, rng, evadeToSectorId, out result, out error, killChoice);
 
         private static bool TryApply(
             GameState game,
@@ -83,7 +85,8 @@ namespace Firefly.Core.Actions
             IRng rng,
             string evadeToSectorId,
             out ReaverContactResult? result,
-            out string? error)
+            out string? error,
+            KillChoice? killChoice = null)
         {
             result = null;
             error = null;
@@ -99,7 +102,7 @@ namespace Firefly.Core.Actions
             var check = new SkillCheck(Skill.Fight, FightTarget);
             var fight = check.Resolve(player, rng);
             var killCount = fight.Success ? 1 : 2;
-            var crewKilled = player.Roster.KillUpTo(killCount);
+            var crewKilled = CrewKill.KillUpTo(game, player, killCount, rng, killChoice);
 
             if (!FlightEvade.TryMove(game, player, evadeToSectorId, out error))
                 return false;

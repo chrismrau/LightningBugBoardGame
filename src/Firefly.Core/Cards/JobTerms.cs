@@ -84,7 +84,24 @@ namespace Firefly.Core.Cards
         {
             if (string.IsNullOrWhiteSpace(job.Bonus))
                 return 0;
-            var match = Regex.Match(job.Bonus, @"([A-Za-z][A-Za-z ]+)\s*\+(\d+)");
+            // Cash bonuses are "Soldier +300" / "Medic +400". Exclude "Mechanic +1 Part".
+            var match = Regex.Match(job.Bonus, @"^([A-Za-z][A-Za-z ]+)\s*\+(\d+)\s*$");
+            if (!match.Success)
+                return 0;
+            return hasProfession(match.Groups[1].Value.Trim()) ? int.Parse(match.Groups[2].Value) : 0;
+        }
+
+        /// <summary>
+        /// GF9 p.15: profession Bonus Tab once per Job. Parts bonuses are "Mechanic +1 Part".
+        /// </summary>
+        public static int ProfessionPartsBonus(JobCard job, Func<string, bool> hasProfession)
+        {
+            if (string.IsNullOrWhiteSpace(job.Bonus))
+                return 0;
+            var match = Regex.Match(
+                job.Bonus,
+                @"^([A-Za-z][A-Za-z ]+)\s*\+(\d+)\s+Parts?\s*$",
+                RegexOptions.IgnoreCase);
             if (!match.Success)
                 return 0;
             return hasProfession(match.Groups[1].Value.Trim()) ? int.Parse(match.Groups[2].Value) : 0;

@@ -143,6 +143,8 @@ namespace Firefly.Core.Actions
         /// </summary>
         public string? ShipNudgeViaSectorId { get; set; }
         public string? ShipNudgeToSectorId { get; set; }
+        /// <summary>Thin kill / Medic hooks until PendingChoice.</summary>
+        public KillChoice? Kill { get; set; }
     }
 
     /// <summary>
@@ -365,7 +367,13 @@ namespace Firefly.Core.Actions
             if (triggersReaverContact)
             {
                 game.CurrentPlayer.SectorId = drawn.SectorId;
-                if (!ReaverContact.TryApplyImmediate(game, rng!, choice!.EvadeToSectorId!, out reaverContact, out error))
+                if (!ReaverContact.TryApplyImmediate(
+                    game,
+                    rng!,
+                    choice!.EvadeToSectorId!,
+                    out reaverContact,
+                    out error,
+                    choice.Kill))
                 {
                     RollbackTokens();
                     RollbackResources();
@@ -428,6 +436,7 @@ namespace Firefly.Core.Actions
                     player,
                     bandText,
                     choice,
+                    rng ?? new SystemRng(),
                     out crewKilled,
                     out warrantsIssued,
                     out fuelLost,
@@ -1460,6 +1469,7 @@ namespace Firefly.Core.Actions
             PlayerState player,
             string? bandText,
             NavResolveChoice? choice,
+            IRng rng,
             out int crewKilled,
             out int warrantsIssued,
             out int fuelLost,
@@ -1488,7 +1498,7 @@ namespace Firefly.Core.Actions
             if (kill.Success)
             {
                 var count = kill.Groups[1].Success ? int.Parse(kill.Groups[1].Value) : 1;
-                crewKilled = player.Roster.KillUpTo(count);
+                crewKilled = CrewKill.KillUpTo(game, player, count, rng, choice?.Kill);
             }
 
             var fuel = LoseOrDiscardFuel.Match(text);

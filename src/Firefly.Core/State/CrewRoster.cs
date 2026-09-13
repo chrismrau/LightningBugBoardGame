@@ -10,7 +10,9 @@ namespace Firefly.Core.State
         Disgruntled,
         JumpedShip,
         Killed,
-        LeaderFiredCrew
+        LeaderFiredCrew,
+        /// <summary>Medic Check 5–6: crew returned to the ship (GF9 Medic Check).</summary>
+        ReturnedToShip
     }
 
     public sealed class CrewMember
@@ -151,7 +153,8 @@ namespace Firefly.Core.State
         }
 
         /// <summary>
-        /// Leaders are Really Lucky: a kill Disgruntles them instead.
+        /// Finalize a failed (or no-Medic) kill. Prefer <c>CrewKill.Apply</c> from game paths
+        /// so Medic Check runs first. Leaders are Really Lucky: a kill Disgruntles them instead.
         /// A second Disgruntle fires the rest of the crew ("You're all Ruttin' Fired!").
         /// Regular crew Jump Ship on a second Disgruntle.
         /// </summary>

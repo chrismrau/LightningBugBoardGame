@@ -22,6 +22,8 @@ namespace Firefly.Core.Actions
         public string? TargetCrewId { get; set; }
         public string? LoseSolidId { get; set; }
         public int DiscardWarrants { get; set; }
+        /// <summary>Thin kill / Medic hooks until PendingChoice.</summary>
+        public KillChoice? Kill { get; set; }
     }
 
     public sealed class MisbehaveResolution
@@ -201,7 +203,7 @@ namespace Firefly.Core.Actions
             }
 
             var effectText = check == null ? details : bandText;
-            var killed = KillCrew(player, effectText);
+            var killed = KillCrew(game, player, effectText, rng, choice.Kill);
             var loaded = LoadGoods(player, effectText);
             cashDelta += TakeCash(player, effectText);
             ApplyWanted(player, effectText, choice.TargetCrewId);
@@ -448,10 +450,15 @@ namespace Firefly.Core.Actions
             }
         }
 
-        private static int KillCrew(PlayerState player, string text)
+        private static int KillCrew(
+            GameState game,
+            PlayerState player,
+            string text,
+            IRng rng,
+            KillChoice? killChoice)
         {
             if (Contains(text, "Kill all Crew"))
-                return player.Roster.KillAll();
+                return CrewKill.KillAll(game, player, rng, killChoice);
 
             var numbered = Regex.Match(text, @"Kill\s+(\d+)\s+Crew", RegexOptions.IgnoreCase);
             var count = 0;
@@ -462,7 +469,7 @@ namespace Firefly.Core.Actions
 
             if (count <= 0)
                 return 0;
-            return player.Roster.KillUpTo(count);
+            return CrewKill.KillUpTo(game, player, count, rng, killChoice);
         }
 
         private static int LoadGoods(PlayerState player, string details)
