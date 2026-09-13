@@ -1642,6 +1642,7 @@ namespace Firefly.Core.Actions
             if (IsCustomsStashSeize(text)
                 && TryPlanCustomsStashKeep(player, choice, out var keepContra, out var keepFug, out _))
             {
+                // FAQ 4.1 p.14 component class: seize Fugitive Tokens only — not Bound bounty cards.
                 contrabandSeized = player.Contraband - keepContra;
                 fugitivesSeized = player.Fugitives - keepFug;
                 player.Contraband = keepContra;

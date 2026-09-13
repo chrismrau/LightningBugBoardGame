@@ -30,9 +30,10 @@ namespace Firefly.Core.Actions
     }
 
     /// <summary>
-    /// Work a job from hand or the active slot. A job becomes Active only after
-    /// the first site action succeeds. A botched start stays in hand and does
-    /// not consume an active slot.
+    /// Work a job from hand or the active slot.
+    /// FAQ 4.1 p.5: a Job becomes Active when you first use a Work Action on it;
+    /// it stays Active until completed or discarded because a Warrant is Issued
+    /// (botched Misbehave does not return it to hand).
     /// </summary>
     public sealed class WorkAction
     {
@@ -153,8 +154,7 @@ namespace Firefly.Core.Actions
 
             if (!proceed)
             {
-                // Botch spends Work. A start-botch leaves the job in hand;
-                // a later-site botch leaves it Active until a successful complete.
+                // FAQ 4.1 p.5: botched attempt leaves the Job Active until complete / Warrant-discard.
                 var disgruntled = ActiveAlertRules.OnJobBotched(game, player);
                 game.PendingMisbehave = null;
                 game.TryConsumeAction(TurnAction.Work, out _);
@@ -210,16 +210,31 @@ namespace Firefly.Core.Actions
                 return false;
             }
 
+            // FAQ 4.1 p.5: Active on first Work Action — before Misbehave resolves.
+            var becameActive = false;
+            var moral = 0;
+            if (active == null)
+            {
+                if (!TryActivate(player, job, out active, out error))
+                {
+                    result = null;
+                    return false;
+                }
+                becameActive = true;
+                if (job.Immoral)
+                    moral = player.Roster.DisgruntleMoral();
+            }
+
             var misbehave = terms.Misbehave + ActiveAlertRules.ExtraIllegalMisbehave(game, player, job);
             if (misbehave > 0)
             {
                 game.PendingMisbehave = new PendingMisbehave(player.Id, job.Id, site, misbehave);
-                result = new WorkResult(kind, job, true, false, 0, 0);
+                result = new WorkResult(kind, job, true, becameActive, 0, moral);
                 error = null;
                 return true;
             }
 
-            return ApplySite(game, player, job, active, terms, kind, completeAfter, out result, out error);
+            return ApplySite(game, player, job, active, terms, kind, completeAfter, becameActive, moral, out result, out error);
         }
 
         private static bool ApplySite(
@@ -231,11 +246,25 @@ namespace Firefly.Core.Actions
             WorkKind kind,
             bool completeAfter,
             out WorkResult? result,
+            out string? error) =>
+            ApplySite(game, player, job, active, terms, kind, completeAfter, false, 0, out result, out error);
+
+        private static bool ApplySite(
+            GameState game,
+            PlayerState player,
+            JobCard job,
+            ActiveJob? active,
+            JobSiteTerms terms,
+            WorkKind kind,
+            bool completeAfter,
+            bool alreadyBecameActive,
+            int alreadyMoral,
+            out WorkResult? result,
             out string? error)
         {
             result = null;
-            var becameActive = false;
-            var disgruntled = 0;
+            var becameActive = alreadyBecameActive;
+            var disgruntled = alreadyMoral;
 
             if (kind == WorkKind.Pickup || (kind == WorkKind.Complete && (active == null || !active.PickedUp)))
             {
@@ -243,37 +272,15 @@ namespace Firefly.Core.Actions
                     return false;
                 if (active == null)
                 {
-                    if (!completeAfter)
-                    {
-                        if (player.ActiveJobs.Count >= player.ActiveJobLimit)
-                        {
-                            error = $"Already have {player.ActiveJobLimit} active job(s).";
-                            return false;
-                        }
-                        player.JobHand.Remove(job.Id);
-                        active = new ActiveJob(job.Id);
-                        player.ActiveJobs.Add(active);
-                        becameActive = true;
-                        if (job.Immoral)
-                            disgruntled = player.Roster.DisgruntleMoral();
-                    }
-                    else if (job.Immoral)
-                    {
+                    if (!TryActivate(player, job, out active, out error))
+                        return false;
+                    becameActive = true;
+                    if (job.Immoral)
                         disgruntled = player.Roster.DisgruntleMoral();
-                    }
                 }
 
-                if (active != null)
-                {
-                    LoadGoods(player, active, terms);
-                    active.PickedUp = true;
-                }
-                else
-                {
-                    var scratch = new ActiveJob(job.Id);
-                    LoadGoods(player, scratch, terms);
-                    active = scratch;
-                }
+                LoadGoods(player, active, terms);
+                active.PickedUp = true;
             }
 
             if (!completeAfter)
@@ -302,6 +309,30 @@ namespace Firefly.Core.Actions
             game.TryConsumeAction(TurnAction.Work, out _);
             result = new WorkResult(WorkKind.Complete, job, false, false, pay, disgruntled);
             error = null;
+            return true;
+        }
+
+        /// <summary>
+        /// FAQ 4.1 p.5 / Director's Cut: place the Job in the Active Job area on first Work.
+        /// </summary>
+        private static bool TryActivate(PlayerState player, JobCard job, out ActiveJob active, out string? error)
+        {
+            error = null;
+            var existing = player.FindActive(job.Id);
+            if (existing != null)
+            {
+                active = existing;
+                return true;
+            }
+            if (player.ActiveJobs.Count >= player.ActiveJobLimit)
+            {
+                active = null!;
+                error = $"Already have {player.ActiveJobLimit} active job(s).";
+                return false;
+            }
+            player.JobHand.Remove(job.Id);
+            active = new ActiveJob(job.Id);
+            player.ActiveJobs.Add(active);
             return true;
         }
 

@@ -68,7 +68,7 @@ namespace Firefly.Core.Tests
         }
 
         [Fact]
-        public void Failed_negotiate_botches_the_start_and_leaves_the_job_in_hand()
+        public void Failed_negotiate_botches_the_start_and_leaves_the_job_active()
         {
             var game = NewCrimeGame();
             StartCrime(game);
@@ -82,8 +82,8 @@ namespace Firefly.Core.Tests
                 out var resolution, out var error,
                 ScriptedRng.FromDieFaces(1)), error);
             Assert.Equal(MisbehaveOutcome.Botched, resolution!.Outcome);
-            Assert.Contains(Crime, game.CurrentPlayer.JobHand);
-            Assert.Null(game.CurrentPlayer.FindActive(Crime));
+            Assert.DoesNotContain(Crime, game.CurrentPlayer.JobHand);
+            Assert.NotNull(game.CurrentPlayer.FindActive(Crime));
             Assert.Null(game.PendingMisbehave);
             Assert.Equal(TurnAction.Work, game.LastAction);
         }
@@ -107,7 +107,8 @@ namespace Firefly.Core.Tests
             Assert.True(resolution.SkillCheck!.Success);
             Assert.NotNull(game.PendingMisbehave);
             Assert.Equal(2, game.PendingMisbehave!.Remaining);
-            Assert.Contains(Crime, game.CurrentPlayer.JobHand);
+            Assert.DoesNotContain(Crime, game.CurrentPlayer.JobHand);
+            Assert.NotNull(game.CurrentPlayer.FindActive(Crime));
         }
 
         [Fact]

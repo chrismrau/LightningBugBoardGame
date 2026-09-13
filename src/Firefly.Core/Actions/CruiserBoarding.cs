@@ -123,6 +123,7 @@ namespace Firefly.Core.Actions
             player.Warrants = 0;
 
             var contraband = player.Contraband;
+            // FAQ 4.1 p.14: only square Fugitive Tokens are seized — not Bound bounty cards.
             var fugitives = player.Fugitives;
             player.Contraband = 0;
             player.Fugitives = 0;

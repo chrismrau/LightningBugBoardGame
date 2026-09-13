@@ -76,7 +76,8 @@ namespace Firefly.Core.Movement
             HasPermanentReaverAlert(sectorId);
 
         /// <summary>
-        /// FAQ 4.1: Legal Ship = no Contraband, no Fugitives, no Wanted crew, no Warrants.
+        /// FAQ 4.1 p.14 / GF9 p.7: Outlaw = Warrants, Contraband, Fugitive Tokens, or Wanted crew.
+        /// Bound-by-Law bounties are not Fugitive Tokens and do not make Outlaw (FAQ 4.1 p.14).
         /// </summary>
         public static bool IsOutlawShip(State.PlayerState player) =>
             player.Warrants > 0

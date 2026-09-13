@@ -90,7 +90,7 @@ namespace Firefly.Core.Actions
     /// <summary>
     /// Pirates &amp; Bounty Hunters piracy Jobs with pickup "Any Rival".
     /// PBH pp.3–7: same-sector boarding → showdown → steal printed Goods or Inactive Jobs.
-    /// User ruling 2026-09-13: boarding fail leaves the Job in hand (not Active).
+    /// PBH printed p.5: place Active on attempt; boarding fail leaves the Job Active.
     /// </summary>
     public sealed class PiracyAction
     {
@@ -131,7 +131,7 @@ namespace Firefly.Core.Actions
                 error = "That job is not in hand or active.";
                 return false;
             }
-            // PBH p.5: need an Active Job slot to attempt (even if fail returns to hand).
+            // PBH p.5: need an Active Job slot to attempt.
             if (player.FindActive(jobId) == null && player.ActiveJobs.Count >= player.ActiveJobLimit)
             {
                 error = $"Already have {player.ActiveJobLimit} active job(s).";
@@ -157,6 +157,15 @@ namespace Firefly.Core.Actions
 
             var terms = PiracyTerms.FromJob(job);
 
+            if (!BoardingTest.IsAllowedSkill(choice.BoardSkill))
+            {
+                error = "Boarding Test uses Tech or Negotiate only (PBH p.3).";
+                return false;
+            }
+
+            // PBH p.5: place the card in the Active Job area when attempting.
+            ActivatePiracyJob(player, jobId);
+
             // Boarding Test (PBH p.3 / card description).
             if (!BoardingTest.TryResolve(
                     player, choice.BoardSkill, rng,
@@ -165,9 +174,7 @@ namespace Firefly.Core.Actions
 
             if (!boarding.Success)
             {
-                // User ruling 2026-09-13: fail → not Active, remains in hand.
-                // (PBH p.5 print: remains in Active Job area — overridden.)
-                EnsureInHand(player, jobId);
+                // PBH p.5: failed Boarding → Job remains in Active Job area; Work Action over.
                 if (!game.TryConsumeAction(TurnAction.Work, out error))
                     return false;
                 result = new PiracyResult(job, boardingFailed: true, boarding: boarding);
@@ -334,11 +341,12 @@ namespace Firefly.Core.Actions
             return leader != null && leader.Moral;
         }
 
-        private static void EnsureInHand(PlayerState player, string jobId)
+        private static void ActivatePiracyJob(PlayerState player, string jobId)
         {
-            player.RemoveActive(jobId);
-            if (!player.JobHand.Contains(jobId))
-                player.JobHand.Add(jobId);
+            if (player.FindActive(jobId) != null)
+                return;
+            player.JobHand.Remove(jobId);
+            player.ActiveJobs.Add(new ActiveJob(jobId));
         }
 
         private static void DiscardPiracyJob(GameState game, PlayerState player, JobCard job)

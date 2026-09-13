@@ -127,7 +127,8 @@ namespace Firefly.Core.Actions
                 removedId = target.Id;
             }
 
-            // Free rearrange: pack as many Fugitives into Stash as fit; discard the rest.
+            // Free rearrange: pack as many Fugitive Tokens into Stash as fit; discard the rest.
+            // FAQ 4.1 p.14 / Corvette Contact: Fugitive Tokens only — Bound bounty cards stay.
             var stashSlots = System.Math.Max(0, player.StashHold);
             var kept = System.Math.Min(player.Fugitives, stashSlots);
             var discarded = player.Fugitives - kept;
