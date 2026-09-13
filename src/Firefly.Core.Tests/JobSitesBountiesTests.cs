@@ -13,7 +13,30 @@ namespace Firefly.Core.Tests
         private const string Persephone = "alliance-lux-r1-01";
         private const string CorvetteStart = "rim-cortex-relay-2-r1-11";
         private const string WantedChild = "job_bounty_wanted-the-child";
-        private const string CortexBanditsJob = "job_bounty_cortex-alert-bandits";
+
+        private static readonly string[] RemovedPbhDuplicateJobIds =
+        {
+            "job_bounty_cortex-alert-bandits",
+            "job_bounty_cortex-alert-enforcers",
+            "job_bounty_cortex-alert-scrappers",
+            "job_bounty_wanted-billy",
+            "job_bounty_wanted-bree",
+            "job_bounty_wanted-crow",
+            "job_bounty_wanted-dalin",
+            "job_bounty_wanted-grange-brothers",
+            "job_bounty_wanted-helen",
+            "job_bounty_wanted-interrogator",
+            "job_bounty_wanted-jayne",
+            "job_bounty_wanted-jesse",
+            "job_bounty_wanted-river-tam",
+            "job_bounty_wanted-simon-tam",
+            "job_bounty_wanted-stitch",
+            "job_bounty_wanted-the-fixer",
+            "job_bounty_wanted-the-specialist",
+            "job_bounty_wanted-tracey",
+            "job_bounty_wanted-two-fry",
+            "job_bounty_wanted-zoe",
+        };
 
         private static GameState NewGame(string sectorId = Persephone, bool corvette = false)
         {
@@ -89,35 +112,47 @@ namespace Firefly.Core.Tests
         }
 
         [Fact]
-        public void PBH_bounty_jobs_are_excluded_from_contact_decks()
+        public void PBH_Wanted_and_Cortex_duplicates_are_removed_from_Jobs_json()
         {
+            // #19 excluded these from ContactDecks; they are deleted now —
+            // Bounties.json is the only authority for official PBH bounties.
             var jobs = JobCatalog.LoadDefault();
+            Assert.Equal(348, jobs.Cards.Count);
+            foreach (var id in RemovedPbhDuplicateJobIds)
+                Assert.False(jobs.TryGet(id, out _), id);
+
             var bounties = BountyCatalog.LoadDefault();
-            Assert.True(BountyJobAuthority.IsCoveredByBountyDeck(jobs.Get(CortexBanditsJob), bounties));
-            Assert.True(BountyJobAuthority.IsCoveredByBountyDeck(jobs.Get("job_bounty_wanted-jayne"), bounties));
             Assert.False(BountyJobAuthority.IsCoveredByBountyDeck(jobs.Get(WantedChild), bounties));
 
             var decks = new ContactDecks(jobs, new SystemRng(2), bounties);
-            // Playtest / non-PBH bounty rows may remain under contact "Bounty";
-            // official PBH duplicates must not.
             Assert.True(decks.TryGet("Bounty", out var deck));
             var remaining = deck!.DrawConsider(deck.DrawCount);
-            Assert.DoesNotContain(remaining, j => j.Id == CortexBanditsJob);
-            Assert.DoesNotContain(remaining, j => j.Id == "job_bounty_wanted-jayne");
             Assert.Contains(remaining, j => j.Id == WantedChild);
+            Assert.DoesNotContain(remaining, j => j.Name.StartsWith("Wanted: Jayne"));
+            Assert.DoesNotContain(remaining, j => j.Name.StartsWith("Cortex Alert: Bandits"));
         }
 
         [Fact]
-        public void Work_rejects_PBH_bounty_duplicates_and_Various_cortex_jobs()
+        public void Work_rejects_orphan_PBH_name_and_Various_cortex_jobs()
         {
+            // Defensive: a synthetic Wanted row matching Bounties.json still
+            // cannot be Worked as a Contact Job (Most Wanted path only).
+            var orphan = new JobCard(
+                "job_orphan_wanted-jayne", "Wanted: Jayne", "Bounty", null,
+                legal: true, immoral: false,
+                pickupLocation: "Persephone", pickupDetails: null,
+                dropoffLocation: "Ariel", dropoffDetails: null,
+                payBase: 2000, payRaw: "2000", bonus: null, special: null, description: null);
             var game = NewGame();
-            game.CurrentPlayer.JobHand.Add(CortexBanditsJob);
+            game.Jobs = new JobCatalog(new[] { orphan, game.Jobs!.Get(WantedChild) });
+            game.CurrentPlayer.JobHand.Add(orphan.Id);
             var work = new WorkAction();
-            Assert.False(work.TryWork(game, "p1", CortexBanditsJob, out _, out var error));
+            Assert.False(work.TryWork(game, "p1", orphan.Id, out _, out var error));
             Assert.Contains("Most Wanted", error);
 
             // Non-PBH Various job (Kids) still blocked from Work-as-Job site path.
             const string kids = "job_bounty_cortex-alert-kids";
+            game.Jobs = JobCatalog.LoadDefault();
             game.CurrentPlayer.JobHand.Clear();
             game.CurrentPlayer.JobHand.Add(kids);
             Assert.False(work.TryWork(game, "p1", kids, out _, out error));

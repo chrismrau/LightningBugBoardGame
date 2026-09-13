@@ -6,6 +6,10 @@ namespace Firefly.Core.Cards
     /// <summary>
     /// Pirates &amp; Bounty Hunters: the Bounty deck and the 3-card
     /// 'Verse's Most Wanted List.
+    /// PBH p.8: "During Set Up … reveal the top 3 Bounty Cards.
+    /// When a Fugitive is apprehended and their Bounty is claimed,
+    /// reveal a new Bounty Card. There should always be three
+    /// face-up Bounties." Refill stops when the draw pile is empty.
     /// </summary>
     public sealed class BountyDeck
     {
