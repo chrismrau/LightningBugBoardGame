@@ -155,7 +155,10 @@ namespace Firefly.Core.Tests
         [Fact]
         public void Setup_discarded_reshuffle_enters_draw_only_after_first_exhaustion()
         {
-            // GF9 p.4: when the deck is first exhausted, reshuffle discard including RESHUFFLE.
+            // GF9 p.4 / Director's Cut p.12: "When either Nav Deck becomes exhausted for the
+            // first time, reshuffle the discard pile - including the “RESHUFFLE” card."
+            // Mid-game exhaustion always includes RESHUFFLE regardless of player count;
+            // setup merely parks it in discard until that first reshuffle.
             var game = GameSetup.Create(
                 new[]
                 {
@@ -165,19 +168,30 @@ namespace Firefly.Core.Tests
                 },
                 new GameSetupOptions { DealStartingJobs = false, Rng = new SystemRng(24) });
 
-            var alliance = game.Decks!.Alliance;
-            Assert.Equal(1, alliance.DiscardCount);
-            Assert.True(alliance.DiscardPile[0].IsReshuffle);
-            var drawBefore = alliance.DrawCount;
-            for (var i = 0; i < drawBefore; i++)
-                alliance.ResolveIntoDiscard(alliance.Draw());
+            AssertReshufflesStartInDiscard(game);
+            AssertMidgameExhaustionIncludesReshuffle(game.Decks!.Alliance, "nav_alliance-cruiser");
+            AssertMidgameExhaustionIncludesReshuffle(game.Decks.Border, "nav_reaver-cutter");
+            AssertMidgameExhaustionIncludesReshuffle(game.Decks.Rim, "nav_reaver-cutter");
+        }
 
-            Assert.Equal(0, alliance.DrawCount);
-            Assert.True(alliance.DiscardCount > 1);
-            var next = alliance.Draw();
-            Assert.Equal(drawBefore, alliance.DrawCount); // discard (incl. RESHUFFLE) reshuffled in; one drawn
-            Assert.Equal(0, alliance.DiscardCount);
-            Assert.False(string.IsNullOrWhiteSpace(next.Id));
+        [Fact]
+        public void Standard_one_or_two_players_midgame_exhaustion_still_includes_reshuffle()
+        {
+            // 1–2 players: RESHUFFLE starts in the draw pile (GF9 p.4 discard step is 3+ only).
+            // After it is resolved mid-game, later exhaustion of the draw pile still reshuffles
+            // every discard card — including RESHUFFLE — back into the draw pile.
+            var game = GameSetup.Create(
+                new[]
+                {
+                    new PlayerSeat("p1", "Mal", Persephone),
+                    new PlayerSeat("p2", "Zoe", Santo)
+                },
+                new GameSetupOptions { DealStartingJobs = false, Rng = new SystemRng(25) });
+
+            AssertReshufflesStayInDraw(game);
+            AssertMidgameResolveThenExhaustionIncludesReshuffle(game.Decks!.Alliance, "nav_alliance-cruiser");
+            AssertMidgameResolveThenExhaustionIncludesReshuffle(game.Decks.Border, "nav_reaver-cutter");
+            AssertMidgameResolveThenExhaustionIncludesReshuffle(game.Decks.Rim, "nav_reaver-cutter");
         }
 
         private static void AssertReshufflesStayInDraw(GameState game)
@@ -206,6 +220,101 @@ namespace Firefly.Core.Tests
             Assert.False(deck.DrawContainsReshuffle());
             Assert.True(deck.DiscardPile[0].IsReshuffle);
             Assert.Equal(expectedId, deck.DiscardPile[0].Id);
+        }
+
+        /// <summary>
+        /// Drain draw into discard (RESHUFFLE already sitting in discard from Set Up), then
+        /// draw once — empty-draw path must reshuffle discard including RESHUFFLE.
+        /// </summary>
+        private static void AssertMidgameExhaustionIncludesReshuffle(NavDeck deck, string reshuffleId)
+        {
+            Assert.Equal(1, deck.DiscardCount);
+            Assert.True(deck.DiscardPile[0].IsReshuffle);
+            Assert.Equal(reshuffleId, deck.DiscardPile[0].Id);
+            Assert.False(deck.DrawContainsReshuffle());
+
+            var drawBefore = deck.DrawCount;
+            for (var i = 0; i < drawBefore; i++)
+                deck.ResolveIntoDiscard(deck.Draw());
+
+            Assert.Equal(0, deck.DrawCount);
+            Assert.Equal(drawBefore + 1, deck.DiscardCount); // non-RESHUFFLE discards + RESHUFFLE
+            var next = deck.Draw();
+            Assert.Equal(drawBefore, deck.DrawCount); // 60 reshuffled, one drawn → 59
+            Assert.Equal(0, deck.DiscardCount);
+            Assert.False(string.IsNullOrWhiteSpace(next.Id));
+            Assert.True(next.IsReshuffle || deck.DrawContainsReshuffle());
+            Assert.Equal(60, deck.DrawCount + 1); // drawn card + remaining draw = full deck
+        }
+
+        /// <summary>
+        /// 1–2 player path: pull RESHUFFLE to top, resolve (immediate reshuffle), drain the
+        /// new draw pile into discard without drawing RESHUFFLE again by leaving it buried —
+        /// then empty-draw reshuffle must still bring RESHUFFLE back.
+        /// </summary>
+        private static void AssertMidgameResolveThenExhaustionIncludesReshuffle(NavDeck deck, string reshuffleId)
+        {
+            Assert.True(deck.DrawContainsReshuffle());
+            Assert.Equal(0, deck.DiscardCount);
+
+            // Resolve RESHUFFLE mid-game: card enters discard then immediately reshuffles.
+            deck.PlaceOnTop(FindAndRemoveReshuffle(deck, reshuffleId));
+            var reshuffle = deck.Draw();
+            Assert.Equal(reshuffleId, reshuffle.Id);
+            Assert.True(reshuffle.IsReshuffle);
+            deck.ResolveIntoDiscard(reshuffle);
+            Assert.Equal(0, deck.DiscardCount);
+            Assert.True(deck.DrawContainsReshuffle());
+
+            // Park RESHUFFLE in discard without resolving (simulates it already being among
+            // discards when the draw pile later empties — same inclusion rule as GF9 p.4).
+            var parked = FindAndRemoveReshuffle(deck, reshuffleId);
+            // Use ResolveIntoDiscard only for non-reshuffle; parking uses the public discard
+            // path via MoveReshufflesToDiscardForSetup-equivalent: discard via exhaustion
+            // after moving RESHUFFLE aside with PlaceOnTop of a known non-reshuffle drain.
+            ParkReshuffleInDiscardWithoutResolving(deck, parked);
+
+            Assert.False(deck.DrawContainsReshuffle());
+            Assert.Equal(1, deck.DiscardCount);
+            Assert.True(deck.DiscardPile[0].IsReshuffle);
+
+            var drawBefore = deck.DrawCount;
+            for (var i = 0; i < drawBefore; i++)
+                deck.ResolveIntoDiscard(deck.Draw());
+
+            var next = deck.Draw();
+            Assert.Equal(0, deck.DiscardCount);
+            Assert.True(next.IsReshuffle || deck.DrawContainsReshuffle());
+            Assert.Equal(60, deck.DrawCount + 1);
+        }
+
+        private static NavCard FindAndRemoveReshuffle(NavDeck deck, string reshuffleId)
+        {
+            // Draw until we find it, holding others aside, then restore non-matches on top.
+            var held = new List<NavCard>();
+            NavCard? found = null;
+            while (deck.DrawCount > 0)
+            {
+                var card = deck.Draw();
+                if (found == null && card.Id == reshuffleId)
+                {
+                    found = card;
+                    break;
+                }
+                held.Add(card);
+            }
+            Assert.NotNull(found);
+            for (var i = held.Count - 1; i >= 0; i--)
+                deck.PlaceOnTop(held[i]);
+            return found!;
+        }
+
+        private static void ParkReshuffleInDiscardWithoutResolving(NavDeck deck, NavCard reshuffle)
+        {
+            // Mirror Set Up parking: MoveReshufflesToDiscardForSetup puts IsReshuffle in discard
+            // without ResolveIntoDiscard. Re-place then move for an isolated mid-game park.
+            deck.PlaceOnTop(reshuffle);
+            Assert.Equal(1, deck.MoveReshufflesToDiscardForSetup());
         }
 
         private const string Persephone = "alliance-lux-r1-01";
