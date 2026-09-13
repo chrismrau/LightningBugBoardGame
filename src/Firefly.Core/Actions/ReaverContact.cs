@@ -95,7 +95,7 @@ namespace Firefly.Core.Actions
                 return false;
 
             var passengers = player.Passengers;
-            // PBH p.12: if Reavers kill Passenger & Fugitive tokens, Bound Fugitives leave play.
+            // PBH p.12: if Reavers Kill Passenger and Fugitive tokens, Bound Fugitives leave play.
             var fugitives = player.Fugitives + BoundFugitives.RemoveAllFromPlay(game, player);
             player.Passengers = 0;
             player.Fugitives = 0;

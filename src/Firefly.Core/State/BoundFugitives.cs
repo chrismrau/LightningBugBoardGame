@@ -1,11 +1,13 @@
 using System.Collections.Generic;
-using Firefly.Core.Cards;
 
 namespace Firefly.Core.State
 {
     /// <summary>
-    /// PBH p.11–12 / user: Bound-by-Law fugitives are not Crew / Max Crew / hold cargo,
-    /// but count as Fugitives for effects that affect Fugitives (Nav, Alliance, Reavers…).
+    /// PBH p.11–12 / FAQ 4.1 p.14: Bound-by-Law fugitives are not Crew, Max Crew, hold
+    /// cargo, or Fugitive Tokens. They never count toward Active Jobs. They are not
+    /// seized by Alliance Cruiser / Corvette / Customs (tokens only — FAQ 4.1 p.14).
+    /// They do not make an Outlaw ship. The printed exception: Reavers that Kill
+    /// Passenger and Fugitive tokens also remove Bound Fugitives (PBH p.12).
     /// </summary>
     public static class BoundFugitives
     {
@@ -17,16 +19,11 @@ namespace Firefly.Core.State
             return n;
         }
 
-        /// <summary>Token Fugitives plus Bound-by-Law crew.</summary>
-        public static int EffectiveCount(PlayerState player) =>
-            player.Fugitives + Count(player);
-
-        public static bool HasAny(PlayerState player) =>
-            player.Fugitives > 0 || Count(player) > 0;
+        public static bool HasBound(PlayerState player) => Count(player) > 0;
 
         /// <summary>
-        /// PBH p.12: when effects kill/seize/discard Fugitives, Bound Fugitives are
-        /// removed from play (Crew + Bounty leave the game).
+        /// PBH p.12: when Reavers Kill Passenger and Fugitive tokens, Bound Fugitives
+        /// are removed from play (Crew + Bounty leave the game).
         /// </summary>
         public static int RemoveAllFromPlay(GameState game, PlayerState player)
         {

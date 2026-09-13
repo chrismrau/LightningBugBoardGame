@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using Firefly.Core.State;
 
 namespace Firefly.Core.Movement
 {
@@ -77,13 +76,13 @@ namespace Firefly.Core.Movement
             HasPermanentReaverAlert(sectorId);
 
         /// <summary>
-        /// FAQ 4.1: Legal Ship = no Contraband, no Fugitives, no Wanted crew, no Warrants.
-        /// Bound-by-Law count as Fugitives for this check (PBH / user: Fugitive-affecting effects).
+        /// FAQ 4.1 p.14 / GF9 p.7: Outlaw = Warrants, Contraband, Fugitive Tokens, or Wanted crew.
+        /// Bound-by-Law bounties are not Fugitive Tokens and do not make Outlaw (FAQ 4.1 p.14).
         /// </summary>
         public static bool IsOutlawShip(State.PlayerState player) =>
             player.Warrants > 0
             || player.Contraband > 0
-            || BoundFugitives.HasAny(player)
+            || player.Fugitives > 0
             || player.Roster.WantedCount > 0;
 
         public static int EffectiveCount(
