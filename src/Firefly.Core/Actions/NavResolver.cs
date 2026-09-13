@@ -1,3 +1,5 @@
+using System;
+using System.Text.RegularExpressions;
 using Firefly.Core.Cards;
 using Firefly.Core.Map;
 using Firefly.Core.Movement;
@@ -56,11 +58,17 @@ namespace Firefly.Core.Actions
         /// Patrol: chosen by the player to the right. Entanglements: chosen by the drawer.
         /// </summary>
         public string? AllianceCruiserToSectorId { get; set; }
+        /// <summary>
+        /// Crew discarded when an option Requires Discarding 1 Crew (not the Leader).
+        /// </summary>
+        public string? DiscardCrewId { get; set; }
     }
 
     /// <summary>
     /// Resolves queued Full Burn Nav draws in order.
     /// Conditional options run a Fight/Tech/Talk test to pick Keep Flying vs Full Stop.
+    /// Option Requires / Spend costs (Parts, Fuel, Cargo, crew keywords, Solid, Moral Crew, …)
+    /// are enforced before applying flight outcomes; unmet gates fail closed.
     /// Named "Alliance Cruiser" Nav snaps the Cruiser onto the ship and queues Contact.
     /// Cruiser Patrol / Alliance Entanglements move the Cruiser per card text without that snap/Contact.
     /// Reaver Cutter cards move a Cutter; the named "Reaver Cutter" card applies Contact immediately.
@@ -159,6 +167,11 @@ namespace Firefly.Core.Actions
             var tokensBefore = game.Tokens;
             var pendingBefore = game.PendingEncounter;
             var pendingSectorBefore = game.PendingEncounterSectorId;
+            var player = game.CurrentPlayer;
+            var fuelBefore = player.Fuel;
+            var partsBefore = player.Parts;
+            var cargoBefore = player.Cargo;
+            var cashBefore = player.Cash;
 
             if (!ApplyTokenMoves(
                 game,
@@ -175,6 +188,14 @@ namespace Firefly.Core.Actions
                 game.Tokens = tokensBefore;
                 game.PendingEncounter = pendingBefore;
                 game.PendingEncounterSectorId = pendingSectorBefore;
+            }
+
+            void RollbackResources()
+            {
+                player.Fuel = fuelBefore;
+                player.Parts = partsBefore;
+                player.Cargo = cargoBefore;
+                player.Cash = cashBefore;
             }
 
             if (triggersReaverContact || outcome == FlightOutcome.Evade)
@@ -205,15 +226,17 @@ namespace Firefly.Core.Actions
                 return false;
             }
 
-            if (!TryApplyRequiresAndCosts(game, option.Details, out error))
+            if (!TryApplyRequiresAndCosts(game, option.Details, ref outcome, choice, out error))
             {
                 RollbackTokens();
+                RollbackResources();
                 return false;
             }
 
             if (!TryApplyAlertTokenEffects(game, drawn, option.Details, out error))
             {
                 RollbackTokens();
+                RollbackResources();
                 return false;
             }
 
@@ -227,6 +250,7 @@ namespace Firefly.Core.Actions
                 if (!ReaverContact.TryApplyImmediate(game, rng!, choice!.EvadeToSectorId!, out reaverContact, out error))
                 {
                     RollbackTokens();
+                    RollbackResources();
                     return false;
                 }
                 game.PendingNavDraws.Clear();
@@ -243,6 +267,7 @@ namespace Firefly.Core.Actions
                     choice?.CorvetteContact))
                 {
                     RollbackTokens();
+                    RollbackResources();
                     return false;
                 }
                 game.PendingEncounter = null;
@@ -262,6 +287,7 @@ namespace Firefly.Core.Actions
                 if (!FlightEvade.TryMove(game, game.CurrentPlayer, choice!.EvadeToSectorId!, out error))
                 {
                     RollbackTokens();
+                    RollbackResources();
                     return false;
                 }
                 game.PendingNavDraws.Clear();
@@ -345,41 +371,256 @@ namespace Firefly.Core.Actions
             return TryResolve(game, 0, out resolution, out error, rng, choice);
         }
 
-        private static bool TryApplyRequiresAndCosts(GameState game, string details, out string? error)
+        private static readonly Regex RequiresClause = new Regex(
+            @"Requires\s*:?\s*([^.;]+?)(?=\s*(?:--|:|\.|$))",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        private static readonly Regex SpendAmount = new Regex(
+            @"Spend\s+(\d+)\s+(Parts?|Fuel|Cargo)",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        private static readonly Regex LoadingFugitives = new Regex(
+            @"Loading\s+(\d+)\s+Fugitives",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        private static readonly Regex MoralCrewNeed = new Regex(
+            @"(\d+)\s+or more Moral Crew",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        private static bool TryApplyRequiresAndCosts(
+            GameState game,
+            string details,
+            ref FlightOutcome outcome,
+            NavResolveChoice? choice,
+            out string? error)
         {
             error = null;
-            if (Contains(details, "Requires Pilot and Mechanic"))
+            var player = game.CurrentPlayer;
+            var text = details ?? "";
+            var skipGenericFuelSpend = false;
+            var skipGenericPartsSpend = false;
+
+            // Nav Hazard: "If you have Pilot, Keep Flying. Otherwise: Spend 1 Fuel, Keep Flying."
+            if (IsPilotOrSpendFuel(text))
             {
-                if (!MisbehaveResolver.HasTag(game, game.CurrentPlayer, "Pilot")
-                    || !MisbehaveResolver.HasTag(game, game.CurrentPlayer, "Mechanic"))
+                skipGenericFuelSpend = true;
+                if (!MisbehaveResolver.HasTag(game, player, "Pilot"))
+                {
+                    if (player.Fuel < 1)
+                    {
+                        error = "Not enough fuel.";
+                        return false;
+                    }
+                    player.Fuel -= 1;
+                }
+            }
+
+            // "Spend 1 Part to Keep Flying. Otherwise, Full Stop."
+            if (IsSpendPartToKeepFlyingOtherwise(text))
+            {
+                skipGenericPartsSpend = true;
+                if (player.Parts >= 1)
+                {
+                    player.Parts -= 1;
+                    outcome = FlightOutcome.KeepFlying;
+                }
+                else
+                {
+                    outcome = FlightOutcome.FullStop;
+                }
+            }
+
+            if (!TryMeetRequires(game, player, text, choice, out var discardCrewId, out error))
+                return false;
+
+            if (!TryApplySpends(player, text, skipGenericFuelSpend, skipGenericPartsSpend, out error))
+                return false;
+
+            if (discardCrewId != null)
+            {
+                if (!player.Roster.TryDismiss(discardCrewId, out error))
+                    return false;
+            }
+
+            if (Contains(text, "Take $500"))
+                player.Cash += 500;
+
+            // Resource-gated Conditional (no skill check) is resolved above; leftover Conditional → Keep Flying.
+            if (outcome == FlightOutcome.Conditional)
+                outcome = FlightOutcome.KeepFlying;
+
+            return true;
+        }
+
+        private static bool IsPilotOrSpendFuel(string details) =>
+            Contains(details, "If you have Pilot")
+            && Contains(details, "Otherwise")
+            && Contains(details, "Spend 1 Fuel");
+
+        private static bool IsSpendPartToKeepFlyingOtherwise(string details) =>
+            Contains(details, "Spend 1 Part to Keep Flying")
+            && Contains(details, "Otherwise")
+            && Contains(details, "Full Stop");
+
+        private static bool TryMeetRequires(
+            GameState game,
+            PlayerState player,
+            string details,
+            NavResolveChoice? choice,
+            out string? discardCrewId,
+            out string? error)
+        {
+            error = null;
+            discardCrewId = null;
+            var match = RequiresClause.Match(details);
+            if (!match.Success)
+                return true;
+
+            var need = match.Groups[1].Value.Trim();
+
+            if (Contains(need, "Pilot and Mechanic"))
+            {
+                if (!MisbehaveResolver.HasTag(game, player, "Pilot")
+                    || !MisbehaveResolver.HasTag(game, player, "Mechanic"))
                 {
                     error = "Requires Pilot and Mechanic.";
                     return false;
                 }
+                return true;
             }
 
-            if (Contains(details, "Requires Solid Harken"))
+            var moral = MoralCrewNeed.Match(need);
+            if (moral.Success)
             {
-                if (!HasSolidWith(game, game.CurrentPlayer, "Harken"))
+                var n = int.Parse(moral.Groups[1].Value);
+                if (player.Roster.MoralCount < n)
                 {
-                    error = "Requires Solid Harken.";
+                    error = $"Requires {n} or more Moral Crew.";
                     return false;
                 }
+                return true;
             }
 
-            if (Contains(details, "Spend 1 Fuel"))
+            if (Contains(need, "Discarding 1 Crew") || Contains(need, "Discarding one Crew"))
             {
-                if (game.CurrentPlayer.Fuel < 1)
+                if (choice == null || string.IsNullOrWhiteSpace(choice.DiscardCrewId))
                 {
-                    error = "Not enough fuel.";
+                    error = "Requires Discarding 1 Crew.";
                     return false;
                 }
-                game.CurrentPlayer.Fuel -= 1;
+                var member = player.Roster.Find(choice.DiscardCrewId!);
+                if (member == null)
+                {
+                    error = "That crew is not on the ship.";
+                    return false;
+                }
+                if (member.IsLeader)
+                {
+                    error = "Cannot dismiss your Leader.";
+                    return false;
+                }
+                discardCrewId = member.Id;
+                return true;
             }
 
-            if (Contains(details, "Take $500"))
-                game.CurrentPlayer.Cash += 500;
+            var fugitives = LoadingFugitives.Match(need);
+            if (fugitives.Success)
+            {
+                var n = int.Parse(fugitives.Groups[1].Value);
+                if (!HoldSpace.Fits(player, addFugitives: n))
+                {
+                    error = $"Requires Loading {n} Fugitives (not enough hold space).";
+                    return false;
+                }
+                // Actual load is a salvage effect (separate slice). Gate only.
+                return true;
+            }
 
+            if (TryParseSolidNeed(need, out var contactName))
+            {
+                if (!HasSolidWith(game, player, contactName))
+                {
+                    error = $"Requires Solid {contactName}.";
+                    return false;
+                }
+                return true;
+            }
+
+            // Single keyword / profession / gear (Pilot, Mechanic, Soldier, Medic, Fake ID, …)
+            var tag = need.Trim().TrimEnd(':').Trim();
+            if (!MisbehaveResolver.HasTag(game, player, tag))
+            {
+                error = $"Requires {tag}.";
+                return false;
+            }
+            return true;
+        }
+
+        private static bool TryParseSolidNeed(string need, out string contactName)
+        {
+            contactName = "";
+            var with = Regex.Match(need, @"Solid\s+with\s+(.+)$", RegexOptions.IgnoreCase);
+            if (with.Success)
+            {
+                contactName = with.Groups[1].Value.Trim();
+                return contactName.Length > 0;
+            }
+            var harken = Regex.Match(
+                need,
+                @"Solid(?:\s+Rep)?\s+(?:with\s+)?(Harken)\s*(?:Rep)?",
+                RegexOptions.IgnoreCase);
+            if (harken.Success)
+            {
+                contactName = "Harken";
+                return true;
+            }
+            return false;
+        }
+
+        private static bool TryApplySpends(
+            PlayerState player,
+            string details,
+            bool skipFuel,
+            bool skipParts,
+            out string? error)
+        {
+            error = null;
+            foreach (Match match in SpendAmount.Matches(details))
+            {
+                var amount = int.Parse(match.Groups[1].Value);
+                var kind = match.Groups[2].Value;
+                if (kind.StartsWith("Part", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (skipParts)
+                        continue;
+                    if (player.Parts < amount)
+                    {
+                        error = amount == 1 ? "Not enough parts." : $"Need {amount} Parts.";
+                        return false;
+                    }
+                    player.Parts -= amount;
+                }
+                else if (kind.Equals("Fuel", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (skipFuel)
+                        continue;
+                    if (player.Fuel < amount)
+                    {
+                        error = "Not enough fuel.";
+                        return false;
+                    }
+                    player.Fuel -= amount;
+                }
+                else if (kind.Equals("Cargo", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (player.Cargo < amount)
+                    {
+                        error = amount == 1 ? "Not enough cargo." : $"Need {amount} Cargo.";
+                        return false;
+                    }
+                    player.Cargo -= amount;
+                }
+            }
             return true;
         }
 

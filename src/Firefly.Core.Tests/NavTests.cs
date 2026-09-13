@@ -242,10 +242,155 @@ namespace Firefly.Core.Tests
             Assert.Equal(Pelorum, game.Tokens.AllianceCruiserSectorId);
         }
 
+        [Fact]
+        public void Spend_2_Parts_Keep_Flying_deducts_parts()
+        {
+            var (game, resolver, player) = GameWithQueuedDraws(2);
+            player.Parts = 2;
+            game.Decks!.Alliance.PlaceOnTop(game.Decks.Catalog.Get("nav_ifn-the-coil-busts-were-driftin"));
+            resolver.DrawNext(game);
+
+            Assert.True(resolver.TryResolve(game, 1, out var resolution, out var error), error);
+            Assert.Equal(FlightOutcome.KeepFlying, resolution!.Outcome);
+            Assert.False(resolution.Stopped);
+            Assert.Equal(0, player.Parts);
+            Assert.Single(game.PendingNavDraws);
+        }
+
+        [Fact]
+        public void Spend_2_Parts_unavailable_without_enough_parts()
+        {
+            var (game, resolver, player) = GameWithQueuedDraws(1);
+            player.Parts = 1;
+            game.Decks!.Alliance.PlaceOnTop(game.Decks.Catalog.Get("nav_ifn-the-coil-busts-were-driftin"));
+            resolver.DrawNext(game);
+
+            Assert.False(resolver.TryResolve(game, 1, out _, out var error));
+            Assert.Contains("Parts", error);
+            Assert.Equal(1, player.Parts);
+            Assert.NotNull(resolver.FaceUp);
+        }
+
+        [Fact]
+        public void Spend_1_Part_to_Keep_Flying_otherwise_Full_Stop()
+        {
+            var (game, resolver, player) = GameWithQueuedDraws(2);
+            player.Parts = 1;
+            game.Decks!.Alliance.PlaceOnTop(game.Decks.Catalog.Get("nav_first-rule-of-flying"));
+            resolver.DrawNext(game);
+
+            Assert.True(resolver.TryResolve(game, 1, out var kept, out var keepError), keepError);
+            Assert.Equal(FlightOutcome.KeepFlying, kept!.Outcome);
+            Assert.Equal(0, player.Parts);
+            Assert.Single(game.PendingNavDraws);
+
+            game.PendingNavDraws.Add(new PendingNavDraw(Pelorum, NavRegion.Alliance));
+            game.Decks.Alliance.PlaceOnTop(game.Decks.Catalog.Get("nav_first-rule-of-flying"));
+            resolver.DrawNext(game);
+            Assert.True(resolver.TryResolve(game, 1, out var stopped, out var stopError), stopError);
+            Assert.Equal(FlightOutcome.FullStop, stopped!.Outcome);
+            Assert.True(stopped.Stopped);
+            Assert.Equal(0, player.Parts);
+            Assert.Empty(game.PendingNavDraws);
+        }
+
+        [Fact]
+        public void Requires_Mechanic_and_Spend_1_Part()
+        {
+            var (game, resolver, player) = GameWithQueuedDraws(1);
+            player.Parts = 2;
+            game.Decks!.Alliance.PlaceOnTop(game.Decks.Catalog.Get("nav_shes-tore-up-plenty"));
+            resolver.DrawNext(game);
+
+            Assert.False(resolver.TryResolve(game, 1, out _, out var error));
+            Assert.Contains("Mechanic", error);
+            Assert.Equal(2, player.Parts);
+
+            Assert.True(player.Roster.TryHire(CrewCatalog.LoadDefault().Get("crew_kaylee"), out _));
+            Assert.True(resolver.TryResolve(game, 1, out var resolution, out var ok), ok);
+            Assert.Equal(FlightOutcome.KeepFlying, resolution!.Outcome);
+            Assert.Equal(1, player.Parts);
+        }
+
+        [Fact]
+        public void Requires_Solid_with_Badger_gates_option()
+        {
+            var (game, resolver, player) = GameWithQueuedDraws(1);
+            game.Contacts = ContactCatalog.LoadDefault();
+            game.Decks!.Alliance.PlaceOnTop(game.Decks.Catalog.Get("nav_badgers-boys"));
+            resolver.DrawNext(game);
+
+            Assert.False(resolver.TryResolve(game, 0, out _, out var needSolid));
+            Assert.Contains("Badger", needSolid);
+
+            player.BecomeSolid("contact_badger");
+            Assert.True(resolver.TryResolve(game, 0, out var resolution, out var error), error);
+            Assert.Equal(FlightOutcome.KeepFlying, resolution!.Outcome);
+        }
+
+        [Fact]
+        public void Requires_Soldier_gates_without_profession()
+        {
+            var (game, resolver, player) = GameWithQueuedDraws(1);
+            game.Decks!.Alliance.PlaceOnTop(game.Decks.Catalog.Get("nav_failure-to-communicate"));
+            resolver.DrawNext(game);
+
+            Assert.False(resolver.TryResolve(game, 0, out _, out var error));
+            Assert.Contains("Soldier", error);
+
+            Assert.True(player.Roster.TryHire(CrewCatalog.LoadDefault().Get("crew_zoe"), out _));
+            Assert.True(resolver.TryResolve(game, 0, out var resolution, out var ok), ok);
+            Assert.Equal(FlightOutcome.KeepFlying, resolution!.Outcome);
+        }
+
+        [Fact]
+        public void Nav_Hazard_Pilot_keeps_flying_free_else_spends_fuel()
+        {
+            var (game, resolver, player) = GameWithQueuedDraws(2);
+            player.Fuel = 2;
+            game.Decks!.Alliance.PlaceOnTop(game.Decks.Catalog.Get("nav_nav-hazard-asteroid"));
+            resolver.DrawNext(game);
+
+            Assert.True(resolver.TryResolve(game, 0, out var noPilot, out var err1), err1);
+            Assert.Equal(FlightOutcome.KeepFlying, noPilot!.Outcome);
+            Assert.Equal(1, player.Fuel);
+
+            Assert.True(player.Roster.TryHire(CrewCatalog.LoadDefault().Get("crew_wash"), out _));
+            game.PendingNavDraws.Add(new PendingNavDraw(Pelorum, NavRegion.Alliance));
+            game.Decks.Alliance.PlaceOnTop(game.Decks.Catalog.Get("nav_nav-hazard-asteroid"));
+            resolver.DrawNext(game);
+            Assert.True(resolver.TryResolve(game, 0, out var withPilot, out var err2), err2);
+            Assert.Equal(FlightOutcome.KeepFlying, withPilot!.Outcome);
+            Assert.Equal(1, player.Fuel);
+        }
+
+        [Fact]
+        public void Crazy_Ivan_still_requires_Pilot_Mechanic_and_fuel()
+        {
+            var (game, resolver, player) = BorderGameForCrazyIvan();
+            game.Decks!.Border.PlaceOnTop(game.Decks.Catalog.Get("nav_reaver-cutter"));
+            player.Fuel = 1;
+            resolver.DrawNext(game);
+            var choice = new NavResolveChoice { EvadeToSectorId = CutterAdjacent };
+
+            Assert.False(resolver.TryResolve(game, 1, out _, out var needCrew, choice: choice));
+            Assert.Contains("Pilot and Mechanic", needCrew);
+            Assert.Equal(1, player.Fuel);
+
+            var catalog = CrewCatalog.LoadDefault();
+            Assert.True(player.Roster.TryHire(catalog.Get("crew_wash"), out _));
+            Assert.True(player.Roster.TryHire(catalog.Get("crew_kaylee"), out _));
+            Assert.True(resolver.TryResolve(game, 1, out var resolution, out var error, choice: choice), error);
+            Assert.Equal(FlightOutcome.Evade, resolution!.Outcome);
+            Assert.Equal(0, player.Fuel);
+        }
+
         private const string Londinium = "alliance-white-sun-r1-02";
         private const string Bernadette = "alliance-white-sun-r1-01";
         private const string EmptyAllianceNearPelorum = "alliance-white-sun-r3-02";
         private const string BorderNearPersephone = "border-space-r1-04";
+        private const string CutterStart = "border-space-r2-06";
+        private const string CutterAdjacent = "border-space-r2-05";
 
         private static (GameState Game, NavResolver Resolver, PlayerState Player) GameWithQueuedDraws(int draws)
         {
@@ -255,6 +400,17 @@ namespace Firefly.Core.Tests
             var game = new GameState(map, new[] { player }, decks: decks);
             for (var i = 0; i < draws; i++)
                 game.PendingNavDraws.Add(new PendingNavDraw(Pelorum, NavRegion.Alliance));
+            return (game, new NavResolver(), player);
+        }
+
+        private static (GameState Game, NavResolver Resolver, PlayerState Player) BorderGameForCrazyIvan()
+        {
+            var map = SectorMap.LoadFromDirectory(MapDir);
+            var decks = NavCatalog.BuildDecks(NavPath, new SystemRng(3));
+            var player = new PlayerState("p1", "Mal", CutterStart, fuel: 3);
+            var tokens = new MapTokens(reaverCutterSectorIds: new[] { "rim-blue-sun-r3-01" });
+            var game = new GameState(map, new[] { player }, tokens, decks);
+            game.PendingNavDraws.Add(new PendingNavDraw(CutterStart, NavRegion.Border));
             return (game, new NavResolver(), player);
         }
     }
