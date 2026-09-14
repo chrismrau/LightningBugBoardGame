@@ -1,6 +1,6 @@
 {
   "meta": {
-    "description": "Firefly: The Game – Leader cards",
+    "description": "Firefly: The Game \u2013 Leader cards",
     "count": 14,
     "schemaVersion": "1.0"
   },
@@ -31,7 +31,15 @@
       "count": 1,
       "specialAbilityType": null,
       "ability": null,
-      "id": "leader_malcolm_promo"
+      "id": "leader_malcolm_promo",
+      "abilities": [
+        {
+          "type": "misbehaveProceedCash",
+          "amount": 100,
+          "jobOnly": true,
+          "mandatory": true
+        }
+      ]
     },
     {
       "class": "Standard",
@@ -140,7 +148,14 @@
       "count": 1,
       "specialAbilityType": null,
       "ability": null,
-      "id": "leader_jubal-early_piratesbountyhunters"
+      "id": "leader_jubal-early_piratesbountyhunters",
+      "abilities": [
+        {
+          "type": "gearCarryLimit",
+          "amount": 2,
+          "mandatory": true
+        }
+      ]
     },
     {
       "class": "Standard",
@@ -386,7 +401,14 @@
       "count": 1,
       "specialAbilityType": null,
       "ability": null,
-      "id": "leader_zoe_jetwash"
+      "id": "leader_zoe_jetwash",
+      "abilities": [
+        {
+          "type": "gearCarryLimit",
+          "amount": 2,
+          "mandatory": true
+        }
+      ]
     }
   ]
 }

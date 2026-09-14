@@ -1,6 +1,6 @@
 {
   "meta": {
-    "description": "Firefly: The Game – Crew cards",
+    "description": "Firefly: The Game \u2013 Crew cards",
     "count": 71,
     "schemaVersion": "1.0"
   },
@@ -30,7 +30,20 @@
       "count": 1,
       "specialAbilityType": null,
       "ability": null,
-      "id": "crew_jayne_promo"
+      "id": "crew_jayne_promo",
+      "abilities": [
+        {
+          "type": "gearCarryLimit",
+          "amount": 3,
+          "mandatory": true
+        },
+        {
+          "type": "misbehaveProceedCash",
+          "amount": 100,
+          "jobOnly": true,
+          "mandatory": true
+        }
+      ]
     },
     {
       "class": "Promo",
@@ -57,7 +70,15 @@
       "count": 1,
       "specialAbilityType": null,
       "ability": null,
-      "id": "crew_kaylee_promo"
+      "id": "crew_kaylee_promo",
+      "abilities": [
+        {
+          "type": "misbehaveProceedCash",
+          "amount": 100,
+          "jobOnly": true,
+          "mandatory": true
+        }
+      ]
     },
     {
       "class": "Promo",
@@ -84,7 +105,20 @@
       "count": 1,
       "specialAbilityType": null,
       "ability": null,
-      "id": "crew_wash_promo"
+      "id": "crew_wash_promo",
+      "abilities": [
+        {
+          "type": "fullBurnRangeBonus",
+          "amount": 1,
+          "mandatory": true
+        },
+        {
+          "type": "misbehaveProceedCash",
+          "amount": 100,
+          "jobOnly": true,
+          "mandatory": true
+        }
+      ]
     },
     {
       "class": "Promo",
@@ -111,7 +145,15 @@
       "count": 1,
       "specialAbilityType": null,
       "ability": null,
-      "id": "crew_zoe_promo"
+      "id": "crew_zoe_promo",
+      "abilities": [
+        {
+          "type": "misbehaveProceedCash",
+          "amount": 100,
+          "jobOnly": true,
+          "mandatory": true
+        }
+      ]
     },
     {
       "class": "Standard",
@@ -736,7 +778,13 @@
       "count": 1,
       "specialAbilityType": "Downside",
       "ability": "-1",
-      "id": "crew_fendris"
+      "id": "crew_fendris",
+      "abilities": [
+        {
+          "type": "redirectLeaderDisgruntle",
+          "mandatory": true
+        }
+      ]
     },
     {
       "class": "Standard",
@@ -818,7 +866,14 @@
       "count": 1,
       "specialAbilityType": "Extra Gear, Downside",
       "ability": "0",
-      "id": "crew_grange-brothers"
+      "id": "crew_grange-brothers",
+      "abilities": [
+        {
+          "type": "gearCarryLimit",
+          "amount": 2,
+          "mandatory": true
+        }
+      ]
     },
     {
       "class": "Standard",
@@ -1094,7 +1149,14 @@
       "count": 1,
       "specialAbilityType": "Extra Gear",
       "ability": "2",
-      "id": "crew_jayne"
+      "id": "crew_jayne",
+      "abilities": [
+        {
+          "type": "gearCarryLimit",
+          "amount": 3,
+          "mandatory": true
+        }
+      ]
     },
     {
       "class": "Standard",
@@ -1558,7 +1620,20 @@
       "count": 1,
       "specialAbilityType": "Circumstance bonus, +1",
       "ability": "1",
-      "id": "crew_simon-tam"
+      "id": "crew_simon-tam",
+      "abilities": [
+        {
+          "type": "medicCheckBonus",
+          "amount": 2,
+          "mandatory": true
+        },
+        {
+          "type": "giftedRollBonus",
+          "amount": 2,
+          "subject": "River Tam",
+          "mandatory": true
+        }
+      ]
     },
     {
       "class": "Standard",
@@ -1888,7 +1963,14 @@
       "count": 1,
       "specialAbilityType": "Constant bonus",
       "ability": "1",
-      "id": "crew_wash"
+      "id": "crew_wash",
+      "abilities": [
+        {
+          "type": "fullBurnRangeBonus",
+          "amount": 1,
+          "mandatory": true
+        }
+      ]
     },
     {
       "class": "Standard",

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Firefly.Core.Abilities;
 using Firefly.Core.Cards;
 
 namespace Firefly.Core.State
@@ -175,6 +176,11 @@ namespace Firefly.Core.State
 
             if (member.IsLeader)
             {
+                // FAQ 4.1 p.8: Fendris-style redirect is mandatory — Disgruntle the redirect crew instead.
+                var redirect = AbilityDispatcher.FindLeaderDisgruntleRedirect(this);
+                if (redirect != null && Find(redirect.Id) != null)
+                    return Disgruntle(redirect);
+
                 if (member.Disgruntled)
                 {
                     FireAllExceptLeader();

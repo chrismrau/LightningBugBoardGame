@@ -170,11 +170,13 @@ namespace Firefly.Core.Tests
         [Fact]
         public void Work_mud_run_pays_transport_keyword_with_gear()
         {
-            // GF9 p.14: commit carried Gear while Working. Kernel HasTag uses owned gear
-            // until a carriage/Onboard model exists (same as Misbehave Aces).
+            // GF9 p.14: commit carried Gear while Working. Onboard Gear may not be used.
             var game = NewMudRunGame();
             game.Gear = GearIndex.LoadDefault();
+            Assert.True(game.CurrentPlayer.Roster.TryHire(Crew.Get("crew_kaylee"), out _));
             game.CurrentPlayer.Gear.Add("gear_4wd-mule");
+            Assert.True(Firefly.Core.Abilities.GearCarriage.TryAssign(
+                game, game.CurrentPlayer, "gear_4wd-mule", "crew_kaylee", out var err), err);
             CompleteMudRun(game, out var done, out var error);
             Assert.True(error == null, error);
             Assert.Equal(2600, done!.Pay);
@@ -188,6 +190,8 @@ namespace Firefly.Core.Tests
             Assert.True(game.CurrentPlayer.Roster.TryHire(
                 LeaderCatalog.LoadDefault().Get("leader_marco"), out _));
             game.CurrentPlayer.Gear.Add("gear_4wd-mule");
+            Assert.True(Firefly.Core.Abilities.GearCarriage.TryAssign(
+                game, game.CurrentPlayer, "gear_4wd-mule", "leader_marco", out var err), err);
             CompleteMudRun(game, out var done, out var error);
             Assert.True(error == null, error);
             Assert.Equal(2600, done!.Pay); // +200 once, not stacked
