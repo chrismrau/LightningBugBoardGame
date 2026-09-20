@@ -19,6 +19,12 @@ namespace Firefly.Core.Cards
         /// Ignored when a structured band supplies effects after a skill roll.
         /// </summary>
         public IReadOnlyList<MisbehaveEffect> Effects { get; }
+        /// <summary>
+        /// If the player has this tag (crew profession / keyword / carried gear), Proceed
+        /// without rolling — printed "If you have X, Proceed. Otherwise, …" shortcuts
+        /// (e.g. Medic / FANCY DUDS on It Was the Best Day Ever!).
+        /// </summary>
+        public string? ProceedIfTag { get; }
 
         public bool HasStructuredBands => Bands.Count > 0;
         public bool HasStructuredEffects => Effects.Count > 0;
@@ -28,13 +34,15 @@ namespace Firefly.Core.Cards
             string details,
             MisbehaveSkillCheckSpec? skillCheck = null,
             IReadOnlyList<MisbehaveBand>? bands = null,
-            IReadOnlyList<MisbehaveEffect>? effects = null)
+            IReadOnlyList<MisbehaveEffect>? effects = null,
+            string? proceedIfTag = null)
         {
             Name = name ?? "";
             Details = details ?? "";
             SkillCheck = skillCheck;
             Bands = bands ?? Array.Empty<MisbehaveBand>();
             Effects = effects ?? Array.Empty<MisbehaveEffect>();
+            ProceedIfTag = string.IsNullOrWhiteSpace(proceedIfTag) ? null : proceedIfTag.Trim();
         }
     }
 

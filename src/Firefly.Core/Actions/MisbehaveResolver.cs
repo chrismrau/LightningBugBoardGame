@@ -310,6 +310,16 @@ namespace Firefly.Core.Actions
             bribeCash = 0;
             error = null;
 
+            // Printed "If you have X, Proceed. Otherwise, …" — structured proceedIfTag overlay.
+            if (!string.IsNullOrWhiteSpace(option.ProceedIfTag)
+                && HasTag(game, player, option.ProceedIfTag))
+            {
+                structuredEffects = option.HasStructuredEffects
+                    ? option.Effects
+                    : new[] { new MisbehaveEffect(MisbehaveEffectType.Proceed) };
+                return true;
+            }
+
             if (!TryGetSkillCheck(option, card, details, out var skillCheck))
             {
                 if (option.HasStructuredEffects)

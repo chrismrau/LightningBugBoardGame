@@ -55,7 +55,8 @@ namespace Firefly.Core.Cards
             var skill = ParseSkillCheck(option.SkillCheck);
             var bands = ParseBands(option.Bands);
             var effects = ParseEffects(option.Effects);
-            return new MisbehaveOption(option.Name, option.Details, skill, bands, effects);
+            return new MisbehaveOption(
+                option.Name, option.Details, skill, bands, effects, option.ProceedIfTag);
         }
 
         private static MisbehaveSkillThresholds? ParseThresholds(SkillThresholdsDto? dto)
@@ -193,6 +194,7 @@ namespace Firefly.Core.Cards
         {
             public string Name { get; set; } = "";
             public string Details { get; set; } = "";
+            public string? ProceedIfTag { get; set; }
             public SkillCheckDto? SkillCheck { get; set; }
             public List<BandDto>? Bands { get; set; }
             public List<EffectDto>? Effects { get; set; }
