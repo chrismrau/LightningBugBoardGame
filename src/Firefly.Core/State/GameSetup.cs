@@ -136,6 +136,13 @@ namespace Firefly.Core.State
         /// set to false for Setup cards that disable Alert Tokens (e.g. Clearer Skies).
         /// </summary>
         public bool? UseAlertTokens { get; set; }
+
+        /// <summary>
+        /// Any Port / chooseHavens stories: player id → Haven sector id.
+        /// When null and chooseHavens is required, each seat's SectorId is used as that
+        /// player's Haven (ships start at Haven per Blue Sun). Thin PendingChoice stub.
+        /// </summary>
+        public IDictionary<string, string>? HavenChoices { get; set; }
     }
 
     /// <summary>
@@ -312,7 +319,97 @@ namespace Firefly.Core.State
                 game.BeginOpeningTurn();
             }
 
+            // Scenario setup (Any Port chooseHavens / warrants / Alliance Alert Tokens).
+            ApplyScenarioSetup(game, seats, options);
+
             return game;
+        }
+
+        /// <summary>
+        /// ScenarioCards.json Any Port in a Storm (and other chooseHavens stories):
+        /// Choose Havens, starting warrants, Blue Sun Alliance Alert Tokens on non-Haven
+        /// Alliance planets. Tokens are physical Alert Tokens — not the C&amp;P Alert deck.
+        /// </summary>
+        private static void ApplyScenarioSetup(
+            GameState game,
+            IReadOnlyList<PlayerSeat> seats,
+            GameSetupOptions options)
+        {
+            var scenario = game.Scenario;
+            if (scenario == null)
+                return;
+
+            if (scenario.ChooseHavens is { Required: true })
+                ApplyChooseHavens(game, seats, options);
+
+            if (scenario.StartingWarrants > 0)
+            {
+                foreach (var player in game.Players)
+                    player.Warrants = scenario.StartingWarrants;
+            }
+
+            if (scenario.AllianceAlertTokensOnNonHavenAlliancePlanets)
+                PlaceAllianceAlertTokensOnNonHavenAlliancePlanets(game);
+        }
+
+        private static void ApplyChooseHavens(
+            GameState game,
+            IReadOnlyList<PlayerSeat> seats,
+            GameSetupOptions options)
+        {
+            // PlayerState defaults Haven to the seat start sector; clear before validating uniqueness.
+            foreach (var player in game.Players)
+                player.HavenSectorId = "";
+
+            var taken = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var seat in seats)
+            {
+                var player = game.GetPlayer(seat.Id);
+                string? havenId = null;
+                if (options.HavenChoices != null
+                    && options.HavenChoices.TryGetValue(seat.Id, out var chosen)
+                    && !string.IsNullOrWhiteSpace(chosen))
+                {
+                    havenId = chosen;
+                }
+                else
+                {
+                    // Thin hook: seat SectorId is the Haven pick when choices are omitted.
+                    havenId = seat.SectorId;
+                }
+
+                if (!HavenRules.IsEligibleHavenSector(game, havenId!, out var error))
+                    throw new ArgumentException(
+                        $"Haven for '{seat.Id}': {error}",
+                        nameof(options));
+                if (!taken.Add(havenId!))
+                    throw new ArgumentException(
+                        $"Haven sector '{havenId}' is already claimed.",
+                        nameof(options));
+
+                player.HavenSectorId = havenId!;
+                // Blue Sun: unless otherwise noted, ships start at their Haven.
+                player.SectorId = havenId!;
+            }
+        }
+
+        private static void PlaceAllianceAlertTokensOnNonHavenAlliancePlanets(GameState game)
+        {
+            // ScenarioCards.json: Alliance Alert Tokens on non-Haven Alliance planets.
+            // Distinct from the C&P Alliance Alert deck (ActiveAlertRules).
+            game.UseAlertTokens = true;
+            var tokens = game.Tokens;
+            foreach (var sector in game.Map.Sectors.Values)
+            {
+                if (!string.Equals(sector.Region, "Alliance", StringComparison.OrdinalIgnoreCase))
+                    continue;
+                if (!sector.IsPlanetary && string.IsNullOrWhiteSpace(sector.Planet))
+                    continue;
+                if (HavenRules.IsAnyHaven(game, sector.Id))
+                    continue;
+                tokens = tokens.PlaceAlertToken(sector.Id, AlertTokenKind.Alliance, 1);
+            }
+            game.Tokens = tokens;
         }
 
         private static void PrimeSupplyDecks(SupplyDecks? decks, int revealCount)

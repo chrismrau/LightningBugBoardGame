@@ -44,6 +44,24 @@ namespace Firefly.Core.Cards
         }
     }
 
+    /// <summary>
+    /// Story-card Choose Havens constraints (Blue Sun / ScenarioCards.json).
+    /// </summary>
+    public sealed class ChooseHavensSetup
+    {
+        public bool Required { get; }
+        /// <summary>Region name from ScenarioCards.json, e.g. Alliance / Border.</summary>
+        public string? Space { get; }
+        public IReadOnlyList<string> ExcludeLocations { get; }
+
+        public ChooseHavensSetup(bool required, string? space, IReadOnlyList<string>? excludeLocations = null)
+        {
+            Required = required;
+            Space = space;
+            ExcludeLocations = excludeLocations ?? Array.Empty<string>();
+        }
+    }
+
     public sealed class ScenarioCard
     {
         public string Id { get; }
@@ -57,6 +75,19 @@ namespace Firefly.Core.Cards
         public int WinGoalTokens { get; }
         public IReadOnlyList<ScenarioGoal> Goals { get; }
         public bool StartingAlertCard { get; }
+        public int StartingWarrants { get; }
+        public ChooseHavensSetup? ChooseHavens { get; }
+        /// <summary>
+        /// Blue Sun physical Alliance Alert Tokens on non-Haven Alliance planets
+        /// (not the C&amp;P Alliance Alert deck).
+        /// </summary>
+        public bool AllianceAlertTokensOnNonHavenAlliancePlanets { get; }
+        /// <summary>Any Port: Illegal Job completion → Warrant.</summary>
+        public bool IncreasedEnforcement { get; }
+        /// <summary>Any Port: Cruiser may not move onto a Haven.</summary>
+        public bool SafeHarbor { get; }
+        /// <summary>Any Port: Haven Buy may combine Fuel + Shore Leave; own Haven freebies.</summary>
+        public bool FriendsInLowPlaces { get; }
 
         public ScenarioCard(
             string id,
@@ -69,7 +100,13 @@ namespace Firefly.Core.Cards
             int winCount = 0,
             int winGoalTokens = 0,
             IReadOnlyList<ScenarioGoal>? goals = null,
-            bool startingAlertCard = false)
+            bool startingAlertCard = false,
+            int startingWarrants = 0,
+            ChooseHavensSetup? chooseHavens = null,
+            bool allianceAlertTokensOnNonHavenAlliancePlanets = false,
+            bool increasedEnforcement = false,
+            bool safeHarbor = false,
+            bool friendsInLowPlaces = false)
         {
             Id = id;
             Name = name;
@@ -82,6 +119,12 @@ namespace Firefly.Core.Cards
             WinGoalTokens = winGoalTokens;
             Goals = goals ?? Array.Empty<ScenarioGoal>();
             StartingAlertCard = startingAlertCard;
+            StartingWarrants = startingWarrants;
+            ChooseHavens = chooseHavens;
+            AllianceAlertTokensOnNonHavenAlliancePlanets = allianceAlertTokensOnNonHavenAlliancePlanets;
+            IncreasedEnforcement = increasedEnforcement;
+            SafeHarbor = safeHarbor;
+            FriendsInLowPlaces = friendsInLowPlaces;
         }
 
         public ScenarioGoal? Goal(int number)
@@ -163,11 +206,57 @@ namespace Firefly.Core.Cards
                 }
 
                 var startingAlert = false;
-                if (card.TryGetProperty("setup", out var setupEl)
-                    && setupEl.TryGetProperty("startingAlertCard", out var alertEl)
-                    && alertEl.ValueKind == JsonValueKind.True)
+                var startingWarrants = 0;
+                ChooseHavensSetup? chooseHavens = null;
+                var alertTokensOnNonHaven = false;
+                if (card.TryGetProperty("setup", out var setupEl))
                 {
-                    startingAlert = true;
+                    if (setupEl.TryGetProperty("startingAlertCard", out var alertEl)
+                        && alertEl.ValueKind == JsonValueKind.True)
+                        startingAlert = true;
+                    startingWarrants = IntProp(setupEl, "startingWarrants");
+                    if (setupEl.TryGetProperty("allianceAlertTokensOnNonHavenAlliancePlanets", out var tok)
+                        && tok.ValueKind == JsonValueKind.True)
+                        alertTokensOnNonHaven = true;
+                    if (setupEl.TryGetProperty("chooseHavens", out var havensEl)
+                        && havensEl.ValueKind == JsonValueKind.Object)
+                    {
+                        var required = havensEl.TryGetProperty("required", out var req)
+                            && req.ValueKind == JsonValueKind.True;
+                        string? space = havensEl.TryGetProperty("space", out var sp)
+                            ? sp.GetString()
+                            : null;
+                        var excludes = new List<string>();
+                        if (havensEl.TryGetProperty("excludeLocations", out var ex)
+                            && ex.ValueKind == JsonValueKind.Array)
+                        {
+                            foreach (var e in ex.EnumerateArray())
+                            {
+                                var name = e.GetString();
+                                if (!string.IsNullOrWhiteSpace(name))
+                                    excludes.Add(name!);
+                            }
+                        }
+                        chooseHavens = new ChooseHavensSetup(required, space, excludes);
+                    }
+                }
+
+                var increasedEnforcement = false;
+                var safeHarbor = false;
+                var friendsInLowPlaces = false;
+                if (card.TryGetProperty("specialRules", out var rules)
+                    && rules.ValueKind == JsonValueKind.Array)
+                {
+                    foreach (var rule in rules.EnumerateArray())
+                    {
+                        var ruleName = rule.TryGetProperty("name", out var rn) ? rn.GetString() : null;
+                        if (string.Equals(ruleName, "Increased Enforcement", StringComparison.OrdinalIgnoreCase))
+                            increasedEnforcement = true;
+                        else if (string.Equals(ruleName, "Safe Harbor", StringComparison.OrdinalIgnoreCase))
+                            safeHarbor = true;
+                        else if (string.Equals(ruleName, "Friends in Low Places", StringComparison.OrdinalIgnoreCase))
+                            friendsInLowPlaces = true;
+                    }
                 }
 
                 list.Add(new ScenarioCard(
@@ -181,7 +270,13 @@ namespace Firefly.Core.Cards
                     winCount,
                     winTokens,
                     goals,
-                    startingAlert));
+                    startingAlert,
+                    startingWarrants,
+                    chooseHavens,
+                    alertTokensOnNonHaven,
+                    increasedEnforcement,
+                    safeHarbor,
+                    friendsInLowPlaces));
             }
             return new ScenarioCatalog(list);
         }

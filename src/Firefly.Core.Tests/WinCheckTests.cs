@@ -87,6 +87,17 @@ namespace Firefly.Core.Tests
         }
 
         [Fact]
+        public void Any_port_does_not_win_away_from_chosen_haven()
+        {
+            var game = Story("scenario_any-port-in-a-storm", cash: 12000);
+            game.CurrentPlayer.HavenSectorId = "alliance-qin-shi-huang-r1-01"; // Santo
+            // Still at Persephone (start) — not Haven.
+            Assert.Null(WinCheck.Refresh(game));
+            game.CurrentPlayer.SectorId = "alliance-qin-shi-huang-r1-01";
+            Assert.NotNull(WinCheck.Refresh(game));
+        }
+
+        [Fact]
         public void Down_and_out_needs_five_solids()
         {
             var game = Story("scenario_down-and-out");

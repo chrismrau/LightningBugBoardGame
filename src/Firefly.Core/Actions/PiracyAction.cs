@@ -312,6 +312,9 @@ namespace Firefly.Core.Actions
             }
 
             ActiveAlertRules.OnJobCompleted(game, job.ContactName);
+            // ScenarioCards.json Increased Enforcement (Any Port): Illegal Job → Warrant.
+            if (game.Scenario != null && game.Scenario.IncreasedEnforcement && !job.Legal)
+                player.Warrants++;
 
             if (!game.TryConsumeAction(TurnAction.Work, out error))
                 return false;

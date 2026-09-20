@@ -1,6 +1,8 @@
 using Firefly.Core.Actions;
 using Firefly.Core.Cards;
 using Firefly.Core.Data;
+using Firefly.Core.Map;
+using Firefly.Core.Movement;
 using Firefly.Core.State;
 using Xunit;
 
@@ -1047,6 +1049,253 @@ namespace Firefly.Core.Tests
                     ScenarioCardId = scenarioId,
                     DealStartingJobs = false,
                     Rng = new SystemRng(30)
+                });
+        }
+
+        private const string Londinium = "alliance-white-sun-r1-02";
+        private const string Pelorum = "alliance-lux-r1-02";
+        private const string Albion = "alliance-white-sun-r4-11";
+        private const string Osiris = "alliance-white-sun-r3-07";
+
+        [Fact]
+        public void Any_port_catalog_exposes_havens_tokens_warrants_and_specials()
+        {
+            var card = ScenarioCatalog.LoadDefault().Get("scenario_any-port-in-a-storm");
+            Assert.Equal("firstAtHavenWithCash", card.WinType);
+            Assert.Equal(12000, card.WinCash);
+            Assert.Equal(1, card.StartingWarrants);
+            Assert.NotNull(card.ChooseHavens);
+            Assert.True(card.ChooseHavens!.Required);
+            Assert.Equal("Alliance", card.ChooseHavens.Space);
+            Assert.Contains("Londinium", card.ChooseHavens.ExcludeLocations);
+            Assert.True(card.AllianceAlertTokensOnNonHavenAlliancePlanets);
+            Assert.True(card.IncreasedEnforcement);
+            Assert.True(card.SafeHarbor);
+            Assert.True(card.FriendsInLowPlaces);
+        }
+
+        [Fact]
+        public void Any_port_setup_chooses_havens_starts_there_with_warrant_and_alert_tokens()
+        {
+            // ScenarioCards.json Any Port: Alliance Havens (not Londinium); Alliance Alert
+            // Tokens on non-Haven Alliance planets; starting Warrant. Blue Sun tokens ≠ Alert deck.
+            var game = GameSetup.Create(
+                new[]
+                {
+                    new PlayerSeat("p1", "Mal", Bernadette, shipId: "Serenity", leaderId: "Malcolm"),
+                    new PlayerSeat("p2", "Zoe", Santo, shipId: "Bonanza", leaderId: "Zoe")
+                },
+                new GameSetupOptions
+                {
+                    ScenarioCardId = "scenario_any-port-in-a-storm",
+                    DealStartingJobs = false,
+                    UseBlueSun = true,
+                    HavenChoices = new Dictionary<string, string>
+                    {
+                        ["p1"] = Bernadette,
+                        ["p2"] = Pelorum
+                    },
+                    Rng = new SystemRng(40)
+                });
+
+            Assert.Equal(Bernadette, game.Players[0].HavenSectorId);
+            Assert.Equal(Bernadette, game.Players[0].SectorId);
+            Assert.Equal(Pelorum, game.Players[1].HavenSectorId);
+            Assert.Equal(Pelorum, game.Players[1].SectorId);
+            Assert.Equal(1, game.Players[0].Warrants);
+            Assert.Equal(1, game.Players[1].Warrants);
+            Assert.True(game.UseAlertTokens);
+
+            // Non-Haven Alliance planets get Alliance Alert Tokens (incl. Londinium, Osiris).
+            Assert.Equal(1, game.Tokens.RemovableAlertCount(Londinium, AlertTokenKind.Alliance));
+            Assert.Equal(1, game.Tokens.RemovableAlertCount(Osiris, AlertTokenKind.Alliance));
+            Assert.Equal(1, game.Tokens.RemovableAlertCount(Santo, AlertTokenKind.Alliance));
+            // Havens do not.
+            Assert.Equal(0, game.Tokens.RemovableAlertCount(Bernadette, AlertTokenKind.Alliance));
+            Assert.Equal(0, game.Tokens.RemovableAlertCount(Pelorum, AlertTokenKind.Alliance));
+            // Alert deck is separate — still loaded, not auto-drawn by this setup.
+            Assert.NotNull(game.AllianceAlertDeck);
+            Assert.Null(game.AllianceAlertDeck!.Active);
+        }
+
+        [Fact]
+        public void Any_port_rejects_supply_londinium_and_duplicate_havens()
+        {
+            Assert.Throws<ArgumentException>(() => GameSetup.Create(
+                new[] { new PlayerSeat("p1", "Mal", Persephone) },
+                new GameSetupOptions
+                {
+                    ScenarioCardId = "scenario_any-port-in-a-storm",
+                    DealStartingJobs = false,
+                    HavenChoices = new Dictionary<string, string> { ["p1"] = Persephone },
+                    Rng = new SystemRng(41)
+                }));
+
+            Assert.Throws<ArgumentException>(() => GameSetup.Create(
+                new[] { new PlayerSeat("p1", "Mal", Londinium) },
+                new GameSetupOptions
+                {
+                    ScenarioCardId = "scenario_any-port-in-a-storm",
+                    DealStartingJobs = false,
+                    HavenChoices = new Dictionary<string, string> { ["p1"] = Londinium },
+                    Rng = new SystemRng(42)
+                }));
+
+            Assert.Throws<ArgumentException>(() => GameSetup.Create(
+                new[]
+                {
+                    new PlayerSeat("p1", "Mal", Bernadette),
+                    new PlayerSeat("p2", "Zoe", Santo)
+                },
+                new GameSetupOptions
+                {
+                    ScenarioCardId = "scenario_any-port-in-a-storm",
+                    DealStartingJobs = false,
+                    HavenChoices = new Dictionary<string, string>
+                    {
+                        ["p1"] = Bernadette,
+                        ["p2"] = Bernadette
+                    },
+                    Rng = new SystemRng(43)
+                }));
+        }
+
+        [Fact]
+        public void Any_port_does_not_run_when_another_scenario_is_selected()
+        {
+            var game = GameSetup.Create(
+                new[] { new PlayerSeat("p1", "Mal", Persephone) },
+                new GameSetupOptions
+                {
+                    ScenarioCardId = "scenario_first-time-in-the-captains-chair",
+                    DealStartingJobs = false,
+                    HavenChoices = new Dictionary<string, string> { ["p1"] = Bernadette },
+                    Rng = new SystemRng(44)
+                });
+
+            Assert.Equal(Persephone, game.CurrentPlayer.HavenSectorId);
+            Assert.Equal(Persephone, game.CurrentPlayer.SectorId);
+            Assert.Equal(0, game.CurrentPlayer.Warrants);
+            Assert.Equal(0, game.Tokens.RemovableAlertCount(Londinium, AlertTokenKind.Alliance));
+        }
+
+        [Fact]
+        public void Any_port_illegal_job_issues_warrant_legal_does_not()
+        {
+            var game = CreateAnyPortAt(Albion);
+            var player = game.CurrentPlayer;
+            player.Warrants = 0;
+            player.JobHand.Add("job_amnon-duul_feeding-alliance-fat-cats");
+            player.ActiveJobs.Add(new ActiveJob("job_amnon-duul_feeding-alliance-fat-cats")
+            {
+                PickedUp = true,
+                Cargo = 2
+            });
+            player.Cargo = 2;
+            Assert.True(new WorkAction().TryWork(
+                game, "p1", "job_amnon-duul_feeding-alliance-fat-cats", out _, out var legalErr), legalErr);
+            Assert.Equal(0, player.Warrants);
+
+            game.EndTurn();
+            player.SectorId = Santo;
+            player.JobHand.Add("job_badger_badgers-11-casino-caper");
+            var work = new WorkAction();
+            Assert.True(work.TryWork(game, "p1", "job_badger_badgers-11-casino-caper", out _, out var err), err);
+            Assert.True(work.TryProceedMisbehave(game, "p1", true, out _, out _));
+            Assert.True(work.TryProceedMisbehave(game, "p1", true, out _, out _));
+            Assert.True(work.TryProceedMisbehave(game, "p1", true, out var done, out var last), last);
+            Assert.Equal(WorkKind.Complete, done!.Kind);
+            Assert.Equal(1, player.Warrants);
+        }
+
+        [Fact]
+        public void Any_port_safe_harbor_blocks_cruiser_choice_onto_haven()
+        {
+            var game = CreateAnyPortAt(Bernadette);
+            Assert.False(HavenRules.CanChooseCruiserDestination(game, Bernadette, out var error));
+            Assert.Contains("Safe Harbor", error);
+            Assert.True(HavenRules.CanChooseCruiserDestination(game, Londinium, out _));
+        }
+
+        [Fact]
+        public void Any_port_safe_harbor_redirects_forced_cruiser_off_haven()
+        {
+            var game = CreateAnyPortAt(Bernadette);
+            game.Tokens = game.Tokens.WithAllianceCruiser(Londinium);
+            Assert.False(HavenRules.TryPlaceAllianceCruiser(game, Bernadette, null, out var needAdj));
+            Assert.Contains("adjacent", needAdj);
+
+            Assert.True(HavenRules.TryPlaceAllianceCruiser(game, Bernadette, Londinium, out var error), error);
+            Assert.Equal(Londinium, game.Tokens.AllianceCruiserSectorId);
+        }
+
+        [Fact]
+        public void Any_port_safe_harbor_blocks_cruiser_patrol_onto_haven()
+        {
+            var game = CreateAnyPortAt(Bernadette);
+            game.Tokens = game.Tokens.WithAllianceCruiser(Londinium);
+            game.PendingNavDraws.Add(new PendingNavDraw(Londinium, NavRegion.Alliance));
+            var resolver = new NavResolver();
+            game.Decks!.Alliance.PlaceOnTop(game.Decks.Catalog.Get("nav_cruiser-patrol"));
+            Assert.False(resolver.TryAutoResolve(
+                game,
+                out _,
+                out var error,
+                choice: new NavResolveChoice { AllianceCruiserToSectorId = Bernadette }));
+            Assert.Contains("Safe Harbor", error);
+            Assert.Equal(Londinium, game.Tokens.AllianceCruiserSectorId);
+        }
+
+        [Fact]
+        public void Any_port_friends_in_low_places_free_shore_leave_and_fuel_at_own_haven()
+        {
+            var game = CreateAnyPortAt(Bernadette);
+            var player = game.CurrentPlayer;
+            player.Cash = 3000;
+            player.Fuel = 0;
+            player.Roster.Disgruntle(player.Roster.Leader!);
+            var shore = new ShoreLeaveAction();
+            Assert.True(shore.TryHavenFuelAndShoreLeave(
+                game,
+                "p1",
+                new HavenBuyRequest { ShoreLeave = true, Fuel = 4 },
+                out var result,
+                out var error), error);
+            Assert.Equal(0, result!.CashSpent);
+            Assert.Equal(4, result.FuelLoaded);
+            Assert.Equal(1, result.TokensCleared);
+            Assert.Equal(4, player.Fuel);
+            Assert.Equal(3000, player.Cash);
+            Assert.False(player.Roster.Leader!.Disgruntled);
+            Assert.Equal(TurnAction.Buy, game.LastAction);
+        }
+
+        [Fact]
+        public void Any_port_friends_in_low_places_inactive_on_other_scenarios()
+        {
+            var game = GameSetup.Create(
+                new[] { new PlayerSeat("p1", "Mal", Bernadette, shipId: "Serenity", leaderId: "Malcolm") },
+                new GameSetupOptions { DealStartingJobs = false, Rng = new SystemRng(46) });
+            game.CurrentPlayer.HavenSectorId = Bernadette;
+            Assert.False(new ShoreLeaveAction().TryHavenFuelAndShoreLeave(
+                game,
+                "p1",
+                new HavenBuyRequest { ShoreLeave = true, Fuel = 1 },
+                out _,
+                out var error));
+            Assert.Contains("Friends in Low Places", error);
+        }
+
+        private static GameState CreateAnyPortAt(string havenSectorId)
+        {
+            return GameSetup.Create(
+                new[] { new PlayerSeat("p1", "Mal", havenSectorId, shipId: "Serenity", leaderId: "Malcolm") },
+                new GameSetupOptions
+                {
+                    ScenarioCardId = "scenario_any-port-in-a-storm",
+                    DealStartingJobs = false,
+                    UseBlueSun = true,
+                    Rng = new SystemRng(45)
                 });
         }
 
