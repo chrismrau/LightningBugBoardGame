@@ -152,6 +152,19 @@ namespace Firefly.Core.Actions
         /// Requires CountsAsSolidWith Harken (Privilege Suspension blocks).
         /// </summary>
         public bool IgnoreCustomsInspection { get; set; }
+        /// <summary>
+        /// Printed pay-vs-decline (e.g. Spend 1 Part to Keep Flying. Otherwise, Full Stop):
+        /// true = pay and Keep Flying; false = decline → Full Stop.
+        /// Null when affordable suspends via <see cref="PendingChoiceKinds.NavPayOrDecline"/>.
+        /// </summary>
+        public bool? PayNavCost { get; set; }
+    }
+
+    /// <summary>Discrete option ids for <see cref="PendingChoiceKinds.NavPayOrDecline"/>.</summary>
+    public static class NavPayOrDeclineOptions
+    {
+        public const string Pay = "pay";
+        public const string Decline = "decline";
     }
 
     /// <summary>
@@ -167,6 +180,9 @@ namespace Firefly.Core.Actions
     /// printed option (and skill-band discard grabs) via thin <see cref="NavResolveChoice"/> hooks.
     /// Option Requires / Spend costs (Parts, Fuel, Cargo, crew keywords, Solid, Moral Crew, …)
     /// are enforced before applying flight outcomes; unmet gates fail closed.
+    /// Printed pay-vs-decline (Spend … to Keep Flying. Otherwise, Full Stop) suspends via
+    /// <see cref="PendingChoiceKinds.NavPayOrDecline"/> when the cost is affordable unless
+    /// <see cref="NavResolveChoice.PayNavCost"/> is already set; decline → Full Stop.
     /// Named "Alliance Cruiser" Nav snaps the Cruiser onto the ship and queues Contact.
     /// Cruiser Patrol / Alliance Entanglements move the Cruiser per card text without that snap/Contact.
     /// Reaver Cutter cards move a Cutter; the named "Reaver Cutter" card applies Contact immediately.
@@ -176,6 +192,10 @@ namespace Firefly.Core.Actions
     public sealed class NavResolver
     {
         public DrawnNav? FaceUp { get; private set; }
+
+        /// <summary>Option index waiting on <see cref="PendingChoiceKinds.NavPayOrDecline"/>.</summary>
+        private int _pendingNavPayOptionIndex = -1;
+        private NavResolveChoice? _pendingNavPayResolveChoice;
 
         public bool HasPending(GameState game) => game.PendingNavDraws.Count > 0 || FaceUp != null;
 
@@ -232,6 +252,13 @@ namespace Firefly.Core.Actions
             if (FaceUp == null)
             {
                 error = "No Nav card is face up. Draw next first.";
+                return false;
+            }
+
+            // Pay-vs-decline resume clears PendingChoice before re-entering with PayNavCost set.
+            if (game.PendingChoice != null && choice?.PayNavCost == null)
+            {
+                error = "Resolve the pending choice before continuing Nav.";
                 return false;
             }
 
@@ -370,10 +397,22 @@ namespace Firefly.Core.Actions
                 return false;
             }
 
-            if (!TryApplyRequiresAndCosts(game, option.Details, ref outcome, choice, out error))
+            if (!TryApplyRequiresAndCosts(
+                game,
+                option.Details,
+                ref outcome,
+                choice,
+                out var needsPayOrDecline,
+                out error))
             {
                 RollbackTokens();
                 RollbackResources();
+                if (needsPayOrDecline)
+                {
+                    if (!TrySuspendNavPayOrDecline(game, drawn, optionIndex, choice, out error))
+                        return false;
+                    error = "Pay Nav cost or decline to Full Stop.";
+                }
                 return false;
             }
 
@@ -594,6 +633,96 @@ namespace Firefly.Core.Actions
             return TryResolve(game, 0, out resolution, out error, rng, choice);
         }
 
+        /// <summary>
+        /// Resume after <see cref="PendingChoiceKinds.NavPayOrDecline"/>: pay → spend and Keep Flying;
+        /// decline → Full Stop with Parts kept (printed Otherwise).
+        /// </summary>
+        public bool TryResumeNavPayOrDecline(
+            GameState game,
+            ChoiceSubmission submission,
+            out NavResolution? resolution,
+            out string? error,
+            IRng? rng = null)
+        {
+            resolution = null;
+            error = null;
+            if (FaceUp == null)
+            {
+                error = "No Nav card is face up.";
+                return false;
+            }
+            if (game.PendingChoice == null
+                || !string.Equals(
+                    game.PendingChoice.Kind,
+                    PendingChoiceKinds.NavPayOrDecline,
+                    StringComparison.Ordinal))
+            {
+                error = "No Nav pay-or-decline choice is pending.";
+                return false;
+            }
+
+            var optionIndex = _pendingNavPayOptionIndex;
+            if (optionIndex < 0
+                && game.PendingChoice.ContextId != null
+                && TryParseNavPayContext(game.PendingChoice.ContextId, out _, out var fromContext))
+            {
+                optionIndex = fromContext;
+            }
+            if (optionIndex < 0)
+            {
+                error = "Nav pay-or-decline context is missing the option index.";
+                return false;
+            }
+
+            if (!game.TrySubmitChoice(game.CurrentPlayer.Id, submission, out _, out error))
+                return false;
+
+            var pay = string.Equals(
+                submission.SelectedOptionId,
+                NavPayOrDeclineOptions.Pay,
+                StringComparison.Ordinal);
+
+            var choice = _pendingNavPayResolveChoice ?? new NavResolveChoice();
+            choice.PayNavCost = pay;
+            _pendingNavPayOptionIndex = -1;
+            _pendingNavPayResolveChoice = null;
+            return TryResolve(game, optionIndex, out resolution, out error, rng, choice);
+        }
+
+        private bool TrySuspendNavPayOrDecline(
+            GameState game,
+            DrawnNav drawn,
+            int optionIndex,
+            NavResolveChoice? choice,
+            out string? error)
+        {
+            var pending = new PendingChoice(
+                game.CurrentPlayer.Id,
+                PendingChoiceKinds.NavPayOrDecline,
+                contextId: BuildNavPayContext(drawn.Card.Id, optionIndex),
+                options: new[] { NavPayOrDeclineOptions.Pay, NavPayOrDeclineOptions.Decline },
+                prompt: "Spend 1 Part to Keep Flying, or Full Stop?");
+            if (!game.TrySetPendingChoice(pending, out error))
+                return false;
+            _pendingNavPayOptionIndex = optionIndex;
+            _pendingNavPayResolveChoice = choice;
+            return true;
+        }
+
+        private static string BuildNavPayContext(string cardId, int optionIndex) =>
+            $"{cardId}:{optionIndex}";
+
+        private static bool TryParseNavPayContext(string contextId, out string cardId, out int optionIndex)
+        {
+            cardId = "";
+            optionIndex = -1;
+            var split = contextId.LastIndexOf(':');
+            if (split <= 0 || split >= contextId.Length - 1)
+                return false;
+            cardId = contextId.Substring(0, split);
+            return int.TryParse(contextId.Substring(split + 1), out optionIndex);
+        }
+
         private static readonly Regex RequiresClause = new Regex(
             @"Requires\s*:?\s*([^.;]+?)(?=\s*(?:--|:|\.|$))",
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
@@ -615,9 +744,11 @@ namespace Firefly.Core.Actions
             string details,
             ref FlightOutcome outcome,
             NavResolveChoice? choice,
+            out bool needsPayOrDecline,
             out string? error)
         {
             error = null;
+            needsPayOrDecline = false;
             var player = game.CurrentPlayer;
             var text = details ?? "";
             var skipGenericFuelSpend = false;
@@ -639,13 +770,27 @@ namespace Firefly.Core.Actions
             }
 
             // "Spend 1 Part to Keep Flying. Otherwise, Full Stop."
+            // Printed pay-vs-decline: when Parts are available, suspend unless PayNavCost is set.
             if (IsSpendPartToKeepFlyingOtherwise(text))
             {
                 skipGenericPartsSpend = true;
                 if (player.Parts >= 1)
                 {
-                    player.Parts -= 1;
-                    outcome = FlightOutcome.KeepFlying;
+                    if (choice?.PayNavCost == true)
+                    {
+                        player.Parts -= 1;
+                        outcome = FlightOutcome.KeepFlying;
+                    }
+                    else if (choice?.PayNavCost == false)
+                    {
+                        outcome = FlightOutcome.FullStop;
+                    }
+                    else
+                    {
+                        needsPayOrDecline = true;
+                        error = "Pay Nav cost or decline to Full Stop.";
+                        return false;
+                    }
                 }
                 else
                 {

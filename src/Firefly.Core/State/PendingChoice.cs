@@ -61,7 +61,8 @@ namespace Firefly.Core.State
     }
 
     /// <summary>
-    /// Reserved kind ids for future consumer migrations. Not wired yet.
+    /// Reserved kind ids. <see cref="NavPayOrDecline"/> is wired in <c>NavResolver</c>;
+    /// other kinds await consumer migration.
     /// </summary>
     public static class PendingChoiceKinds
     {
