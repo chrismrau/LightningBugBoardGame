@@ -20,10 +20,39 @@ namespace Firefly.Core.Cards
             Discard = new List<SupplyCard>();
         }
 
+        public void Shuffle(IRng rng) => SystemRng.Shuffle(Deck, rng);
+
         public void ShuffleAndDeal(IRng rng)
         {
-            SystemRng.Shuffle(Deck, rng);
+            Shuffle(rng);
             Refill();
+        }
+
+        /// <summary>
+        /// Priming the Pump (GF9 / Director's Cut): reveal the top <paramref name="count"/>
+        /// cards into this planet's discard pile.
+        /// </summary>
+        public void PrimeToDiscard(int count)
+        {
+            for (var i = 0; i < count && Deck.Count > 0; i++)
+            {
+                var next = Deck[0];
+                Deck.RemoveAt(0);
+                Discard.Add(next);
+            }
+        }
+
+        /// <summary>
+        /// Draws the top card of the draw pile (not face-up). Used by Blitz Strip Mining.
+        /// </summary>
+        public bool TryDraw(out SupplyCard card)
+        {
+            card = null!;
+            if (Deck.Count == 0)
+                return false;
+            card = Deck[0];
+            Deck.RemoveAt(0);
+            return true;
         }
 
         public bool TryTake(string cardId, out SupplyCard card)
@@ -175,7 +204,9 @@ namespace Firefly.Core.Cards
             foreach (var kv in grouped)
             {
                 var market = new SupplyMarket(kv.Key, kv.Value);
-                market.ShuffleAndDeal(rng);
+                // Shuffle only — Priming the Pump + FaceUp refill happen in GameSetup
+                // so Strip Mining (The Blitz) can draft from the draw pile first.
+                market.Shuffle(rng);
                 markets.Add(market);
             }
             return new SupplyDecks(markets);

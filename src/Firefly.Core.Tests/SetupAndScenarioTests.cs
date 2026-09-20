@@ -317,6 +317,250 @@ namespace Firefly.Core.Tests
             Assert.Equal(1, deck.MoveReshufflesToDiscardForSetup());
         }
 
+        [Fact]
+        public void Blitz_catalog_exposes_strip_mine_and_double_dip_prime()
+        {
+            var card = SetupCatalog.LoadDefault().Get("setup_the-blitz");
+            Assert.True(card.StripMineOneSupplyDeck);
+            Assert.Equal(6, card.PrimeSupplyReveal);
+            Assert.False(SetupCatalog.LoadDefault().Get("setup_standard").StripMineOneSupplyDeck);
+            Assert.Equal(3, SetupCatalog.LoadDefault().Get("setup_standard").PrimeSupplyReveal);
+        }
+
+        [Fact]
+        public void Blitz_requires_strip_mine_planet()
+        {
+            var ex = Assert.Throws<ArgumentException>(() =>
+                GameSetup.Create(
+                    new[]
+                    {
+                        new PlayerSeat("p1", "Mal", Persephone),
+                        new PlayerSeat("p2", "Zoe", Santo)
+                    },
+                    new GameSetupOptions
+                    {
+                        SetupCardId = "setup_the-blitz",
+                        DealStartingJobs = false,
+                        Rng = new SystemRng(40)
+                    }));
+            Assert.Contains("StripMinePlanet", ex.Message, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void Blitz_strip_mines_one_deck_and_primes_six_into_discard()
+        {
+            // SetupCards.json / printed The Blitz:
+            // "Choose 1 Supply Deck to be Strip Mined… Reveal a number of cards… equal to
+            // the number of players… claiming one revealed Supply Card, at no cost…
+            // Repeat until all players have had the Dinosaur…"
+            // Director's Cut p.47: "Players will start with a number of free Supply Cards
+            // equal to the number of players"
+            // Double Dip: "Reveal the top 6 cards of each Supply deck. Place the revealed
+            // cards in their discard piles."
+            var game = GameSetup.Create(
+                new[]
+                {
+                    new PlayerSeat("p1", "Mal", Persephone, leaderId: "leader_malcolm"),
+                    new PlayerSeat("p2", "Zoe", Santo, leaderId: "leader_zoe_jetwash")
+                },
+                new GameSetupOptions
+                {
+                    SetupCardId = "setup_the-blitz",
+                    StripMinePlanet = "Persephone",
+                    DinosaurStartIndex = 0,
+                    DealStartingJobs = false,
+                    Rng = new SystemRng(41)
+                });
+
+            Assert.Equal("setup_the-blitz", game.Setup!.Id);
+            Assert.Equal(
+                NavReshuffleSetupMode.ShuffleIntoDecksRegardlessOfPlayerCount,
+                game.Setup.NavReshuffleMode);
+
+            // 2 players → 2 rounds × 1 pick each = 2 free cards per player (plus Leader).
+            var p1 = game.GetPlayer("p1");
+            var p2 = game.GetPlayer("p2");
+            Assert.Equal(2, CountStripMineGrants(game, p1));
+            Assert.Equal(2, CountStripMineGrants(game, p2));
+
+            Assert.NotNull(game.SupplyDecks);
+            foreach (var planet in GameSetup.CoreSupplyPlanets)
+            {
+                Assert.True(game.SupplyDecks!.TryGet(planet, out var market), planet);
+                Assert.Equal(6, market.Discard.Count);
+                Assert.Equal(3, market.FaceUp.Count);
+            }
+
+            // 4 free cards claimed from Persephone (shared card-id copies may remain in-market).
+            Assert.Equal(4,
+                CountStripMineGrants(game, p1) + CountStripMineGrants(game, p2));
+        }
+
+        [Fact]
+        public void Blitz_dinosaur_start_index_controls_first_pick()
+        {
+            // Same RNG → same revealed sequence; Dinosaur holder changes who claims first.
+            GameSetupOptions Opts(int dino) => new GameSetupOptions
+            {
+                SetupCardId = "setup_the-blitz",
+                StripMinePlanet = "Persephone",
+                DinosaurStartIndex = dino,
+                DealStartingJobs = false,
+                Rng = new SystemRng(42)
+            };
+
+            var dino0 = GameSetup.Create(
+                new[]
+                {
+                    new PlayerSeat("p1", "Mal", Persephone, leaderId: "Malcolm"),
+                    new PlayerSeat("p2", "Zoe", Santo, leaderId: "Zoe")
+                },
+                Opts(0));
+            var dino1 = GameSetup.Create(
+                new[]
+                {
+                    new PlayerSeat("p1", "Mal", Persephone, leaderId: "Malcolm"),
+                    new PlayerSeat("p2", "Zoe", Santo, leaderId: "Zoe")
+                },
+                Opts(1));
+
+            var p1At0 = StripMineGrantIds(dino0, dino0.GetPlayer("p1"));
+            var p1At1 = StripMineGrantIds(dino1, dino1.GetPlayer("p1"));
+            Assert.Equal(2, p1At0.Count);
+            Assert.Equal(2, p1At1.Count);
+            // Same pool of four cards, redistributed by Dinosaur seating.
+            var pool0 = p1At0.Concat(StripMineGrantIds(dino0, dino0.GetPlayer("p2"))).OrderBy(x => x).ToList();
+            var pool1 = p1At1.Concat(StripMineGrantIds(dino1, dino1.GetPlayer("p2"))).OrderBy(x => x).ToList();
+            Assert.Equal(pool0, pool1);
+            Assert.NotEqual(p1At0.OrderBy(x => x).ToList(), p1At1.OrderBy(x => x).ToList());
+        }
+
+        [Fact]
+        public void Blitz_strip_mine_honors_explicit_claim_order()
+        {
+            // Stack four Persephone gear cards, then claim in draft order:
+            // round1 dino=p1 → pickOrder[0], p2 → [1]; round2 dino=p2 → [2], p1 → [3].
+            var pickOrder = SupplyCatalog.LoadDefault().Cards.Values
+                .Where(c => c.Kind == SupplyKind.Gear && c.CopiesByPlanet.ContainsKey("Persephone"))
+                .Take(4)
+                .Select(c => c.Id)
+                .ToList();
+            Assert.Equal(4, pickOrder.Count);
+
+            var game = GameSetup.Create(
+                new[]
+                {
+                    new PlayerSeat("p1", "Mal", Persephone, leaderId: "Malcolm"),
+                    new PlayerSeat("p2", "Zoe", Santo, leaderId: "Zoe")
+                },
+                new GameSetupOptions
+                {
+                    SetupCardId = "setup_the-blitz",
+                    StripMinePlanet = "Persephone",
+                    DinosaurStartIndex = 0,
+                    StripMineClaims = pickOrder,
+                    DealStartingJobs = false,
+                    Rng = new SystemRng(42),
+                    AfterLeadersHired = g =>
+                    {
+                        Assert.True(g.SupplyDecks!.TryGet("Persephone", out var market));
+                        Assert.NotNull(g.Supply);
+                        foreach (var id in pickOrder)
+                        {
+                            Assert.True(g.Supply.TryGet(id, out var card));
+                            RemoveAllCopies(market.Deck, id);
+                            RemoveAllCopies(market.FaceUp, id);
+                            RemoveAllCopies(market.Discard, id);
+                        }
+                        for (var i = pickOrder.Count - 1; i >= 0; i--)
+                        {
+                            Assert.True(g.Supply.TryGet(pickOrder[i], out var card));
+                            market.Deck.Insert(0, card);
+                        }
+                    }
+                });
+
+            Assert.True(PlayerOwnsSupply(game.GetPlayer("p1"), pickOrder[0]));
+            Assert.True(PlayerOwnsSupply(game.GetPlayer("p2"), pickOrder[1]));
+            Assert.True(PlayerOwnsSupply(game.GetPlayer("p2"), pickOrder[2]));
+            Assert.True(PlayerOwnsSupply(game.GetPlayer("p1"), pickOrder[3]));
+        }
+
+        [Fact]
+        public void Blitz_does_not_run_when_another_setup_is_selected()
+        {
+            var game = GameSetup.Create(
+                new[] { new PlayerSeat("p1", "Mal", Persephone, leaderId: "Malcolm") },
+                new GameSetupOptions
+                {
+                    SetupCardId = "setup_standard",
+                    StripMinePlanet = "Persephone",
+                    DealStartingJobs = false,
+                    Rng = new SystemRng(43)
+                });
+
+            // Leader only — no free strip-mine gear/crew/upgrades beyond the Leader hire.
+            Assert.Equal(1, game.CurrentPlayer.Roster.Count);
+            Assert.Empty(game.CurrentPlayer.Gear);
+            Assert.Empty(game.CurrentPlayer.ShipUpgrades);
+            Assert.True(game.SupplyDecks!.TryGet("Persephone", out var market));
+            Assert.Equal(3, market.Discard.Count);
+        }
+
+        private static int CountStripMineGrants(GameState game, PlayerState player)
+        {
+            return StripMineGrantIds(game, player).Count;
+        }
+
+        private static List<string> StripMineGrantIds(GameState game, PlayerState player)
+        {
+            var ids = new List<string>();
+            ids.AddRange(player.Gear);
+            ids.AddRange(player.ShipUpgrades);
+            foreach (var member in player.Roster.Members)
+            {
+                if (!member.IsLeader)
+                    ids.Add(member.Id);
+            }
+            if (DriveCoreWasReplaced(game, player))
+                ids.Add(player.DriveCoreId!);
+            return ids;
+        }
+
+        private static bool DriveCoreWasReplaced(GameState game, PlayerState player)
+        {
+            if (string.IsNullOrWhiteSpace(player.DriveCoreId) || game.Ships == null)
+                return false;
+            if (!game.Ships.TryResolve(player.ShipId!, out var ship))
+                return false;
+            if (game.DriveCores != null && game.DriveCores.TryResolve(ship.MainDrive, out var start))
+                return !string.Equals(player.DriveCoreId, start.Id, StringComparison.Ordinal);
+            return !string.Equals(player.DriveCoreId, ship.MainDrive, StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool PlayerOwnsSupply(PlayerState player, string cardId)
+        {
+            if (player.Gear.Contains(cardId) || player.ShipUpgrades.Contains(cardId))
+                return true;
+            if (string.Equals(player.DriveCoreId, cardId, StringComparison.Ordinal))
+                return true;
+            foreach (var member in player.Roster.Members)
+            {
+                if (string.Equals(member.Id, cardId, StringComparison.Ordinal))
+                    return true;
+            }
+            return false;
+        }
+
+        private static void RemoveAllCopies(IList<SupplyCard> pile, string cardId)
+        {
+            for (var i = pile.Count - 1; i >= 0; i--)
+            {
+                if (string.Equals(pile[i].Id, cardId, StringComparison.Ordinal))
+                    pile.RemoveAt(i);
+            }
+        }
+
         private const string Persephone = "alliance-lux-r1-01";
         private const string Santo = "alliance-qin-shi-huang-r1-01";
         private const string Bernadette = "alliance-white-sun-r1-01";
@@ -340,6 +584,8 @@ namespace Firefly.Core.Tests
             foreach (var planet in GameSetup.CoreSupplyPlanets)
             {
                 Assert.True(game.SupplyDecks!.TryGet(planet, out var market), planet);
+                // GF9 / Director's Cut Priming the Pump: top 3 into discard, then FaceUp for Buy.
+                Assert.Equal(3, market.Discard.Count);
                 Assert.Equal(3, market.FaceUp.Count);
                 Assert.True(market.Deck.Count > 0, planet);
             }

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Firefly.Core.Actions;
 using Firefly.Core.Cards;
 using Firefly.Core.Data;
 using Firefly.Core.Map;
@@ -31,7 +32,33 @@ namespace Firefly.Core.State
         public string? ScenarioCardId { get; set; }
         public IRng? Rng { get; set; }
         public bool DealStartingJobs { get; set; } = true;
-        public int PrimeSupplyReveal { get; set; } = 3;
+        /// <summary>
+        /// Override Priming the Pump reveal count. Null uses the Setup card
+        /// (<c>primeSupplyReveal</c>, default 3; The Blitz Double Dip uses 6).
+        /// </summary>
+        public int? PrimeSupplyReveal { get; set; }
+        /// <summary>
+        /// The Blitz Strip Mining: which Supply planet deck to draft from.
+        /// Required when the Setup card has <c>stripMineOneSupplyDeck</c>.
+        /// </summary>
+        public string? StripMinePlanet { get; set; }
+        /// <summary>
+        /// Seat index of the player who won the Choose Ships &amp; Leaders roll and
+        /// therefore claims the Dinosaur first (SetupCards.json Strip Mining text).
+        /// Defaults to 0 (first seat).
+        /// </summary>
+        public int DinosaurStartIndex { get; set; }
+        /// <summary>
+        /// Optional thin multiplayer claim order: Supply card ids in draft sequence
+        /// (playerCount rounds × playerCount picks). Null auto-claims the first
+        /// claimable revealed card for each pick.
+        /// </summary>
+        public IList<string>? StripMineClaims { get; set; }
+        /// <summary>
+        /// Optional hook after ships/leaders are seated (and leader crew stripped from
+        /// Supply) but before Strip Mining / Priming. Tests use this to stack draft cards.
+        /// </summary>
+        public Action<GameState>? AfterLeadersHired { get; set; }
         /// <summary>
         /// Blue Sun / Kalidasa: place the Operative's Corvette. Off for core-only setup.
         /// </summary>
@@ -184,7 +211,8 @@ namespace Firefly.Core.State
             // Always load Bounties.json as authority so Jobs.json duplicates stay out of Contact decks.
             game.Bounties = BountyCatalog.LoadDefault();
             game.ContactDecks = new ContactDecks(game.Jobs, rng, game.Bounties);
-            game.SupplyDecks = BuildSupplyDecks(game.Supply, rng, options.PrimeSupplyReveal);
+            // Supply: shuffle only; Strip Mining drafts from the draw pile before Priming the Pump.
+            game.SupplyDecks = SupplyDecks.FromCatalog(game.Supply, rng);
             var misbehave = MisbehaveCatalog.LoadDefault();
             game.MisbehaveCatalog = misbehave;
             game.Misbehave = MisbehaveDeck.FromCatalog(misbehave, rng);
@@ -201,9 +229,19 @@ namespace Firefly.Core.State
 
             AssignStartingShips(game, seats);
             HireStartingLeaders(game, seats);
+            options.AfterLeadersHired?.Invoke(game);
+
+            if (setup.StripMineOneSupplyDeck)
+                ApplyStripMining(game, options);
 
             if (options.DealStartingJobs)
                 DealStartingJobs(game);
+
+            // GF9 / Director's Cut Priming the Pump: reveal top N into discard, then deal FaceUp.
+            // SetupCards.json Blitz: "Reveal the top 6 cards of each Supply deck. Place the
+            // revealed cards in their discard piles."
+            var primeCount = options.PrimeSupplyReveal ?? setup.PrimeSupplyReveal;
+            PrimeSupplyDecks(game.SupplyDecks, primeCount);
 
             if (setup.GameLengthTokenCount is int tokenCount)
             {
@@ -217,28 +255,137 @@ namespace Firefly.Core.State
             return game;
         }
 
-        private static SupplyDecks BuildSupplyDecks(SupplyCatalog catalog, IRng rng, int faceUp)
+        private static void PrimeSupplyDecks(SupplyDecks? decks, int revealCount)
         {
-            var decks = SupplyDecks.FromCatalog(catalog, rng);
-            if (faceUp == SupplyMarket.FaceUpCount)
-                return decks;
-
+            if (decks == null)
+                return;
             foreach (var market in decks.Markets)
             {
-                while (market.FaceUp.Count > faceUp)
-                {
-                    var extra = market.FaceUp[market.FaceUp.Count - 1];
-                    market.FaceUp.RemoveAt(market.FaceUp.Count - 1);
-                    market.Deck.Insert(0, extra);
-                }
-                while (market.FaceUp.Count < faceUp && market.Deck.Count > 0)
-                {
-                    var next = market.Deck[0];
-                    market.Deck.RemoveAt(0);
-                    market.FaceUp.Add(next);
-                }
+                market.PrimeToDiscard(revealCount);
+                market.Refill();
             }
-            return decks;
+        }
+
+        /// <summary>
+        /// The Blitz Strip Mining (SetupCards.json / printed Set Up card):
+        /// Choose 1 Supply Deck. Dinosaur holder starts; each round reveal N cards
+        /// (N = players), claim free leftward; pass Dinosaur; repeat until each player
+        /// has had the Dinosaur first. Director's Cut p.47: free Supply Cards equal
+        /// to the number of players.
+        /// </summary>
+        private static void ApplyStripMining(GameState game, GameSetupOptions options)
+        {
+            if (game.SupplyDecks == null)
+                throw new InvalidOperationException("Supply decks are required for Strip Mining.");
+            if (string.IsNullOrWhiteSpace(options.StripMinePlanet))
+                throw new ArgumentException(
+                    "StripMinePlanet is required when the Setup card strip-mines one Supply deck.",
+                    nameof(options));
+            if (!game.SupplyDecks.TryGet(options.StripMinePlanet, out var market))
+                throw new ArgumentException(
+                    $"Unknown Strip Mine Supply planet '{options.StripMinePlanet}'.",
+                    nameof(options));
+
+            var n = game.Players.Count;
+            var dino = options.DinosaurStartIndex;
+            if (dino < 0 || dino >= n)
+                throw new ArgumentException(
+                    $"DinosaurStartIndex {dino} is out of range for {n} players.",
+                    nameof(options));
+
+            var claimCursor = 0;
+            var claims = options.StripMineClaims;
+
+            // N rounds — each player gets the Dinosaur once (picks first that round).
+            for (var round = 0; round < n; round++)
+            {
+                var revealed = new List<SupplyCard>(n);
+                for (var i = 0; i < n; i++)
+                {
+                    if (!market.TryDraw(out var card))
+                        throw new InvalidOperationException(
+                            $"Strip Mining: Supply deck '{market.Planet}' ran out of cards.");
+                    revealed.Add(card);
+                }
+
+                for (var pick = 0; pick < n; pick++)
+                {
+                    var playerIndex = (dino + pick) % n;
+                    var player = game.Players[playerIndex];
+                    SupplyCard? chosen = null;
+                    if (claims != null)
+                    {
+                        if (claimCursor >= claims.Count)
+                            throw new ArgumentException(
+                                "StripMineClaims does not cover the full draft.",
+                                nameof(options));
+                        var wantId = claims[claimCursor++];
+                        for (var i = 0; i < revealed.Count; i++)
+                        {
+                            if (string.Equals(revealed[i].Id, wantId, StringComparison.Ordinal))
+                            {
+                                chosen = revealed[i];
+                                revealed.RemoveAt(i);
+                                break;
+                            }
+                        }
+                        if (chosen == null)
+                            throw new ArgumentException(
+                                $"StripMineClaims card '{wantId}' is not among the revealed cards.",
+                                nameof(options));
+                    }
+                    else
+                    {
+                        // Auto-pick first claimable card (thin multiplayer / tests).
+                        for (var i = 0; i < revealed.Count; i++)
+                        {
+                            if (CanClaimFree(game, player, revealed[i]))
+                            {
+                                chosen = revealed[i];
+                                revealed.RemoveAt(i);
+                                break;
+                            }
+                        }
+                        if (chosen == null)
+                            throw new InvalidOperationException(
+                                $"Strip Mining: {player.Name} cannot claim any revealed card.");
+                    }
+
+                    if (!BuyAction.TryGiveSupply(game, player, chosen, market.Planet, out var error))
+                        throw new InvalidOperationException(
+                            $"Strip Mining: failed to give '{chosen.Id}' to {player.Name}: {error}");
+                }
+
+                // Pass the Dinosaur to the left.
+                dino = (dino + 1) % n;
+            }
+        }
+
+        private static bool CanClaimFree(GameState game, PlayerState player, SupplyCard card)
+        {
+            switch (card.Kind)
+            {
+                case SupplyKind.Crew:
+                    return game.Crew != null
+                        && game.Crew.TryGet(card.Id, out _)
+                        && player.Roster.Count < player.Roster.MaxCrew;
+                case SupplyKind.DriveCore:
+                    if (game.DriveCores == null)
+                        return false;
+                    if (!game.DriveCores.TryResolve(card.Id, out _)
+                        && game.DriveCores.FindByName(card.Name) == null)
+                        return false;
+                    if (!string.IsNullOrWhiteSpace(player.DriveCoreId)
+                        && game.DriveCores.TryResolve(player.DriveCoreId, out var current)
+                        && current.Locked)
+                        return false;
+                    return true;
+                case SupplyKind.Gear:
+                case SupplyKind.ShipUpgrade:
+                    return true;
+                default:
+                    return false;
+            }
         }
 
         private static void AssignStartingShips(GameState game, IReadOnlyList<PlayerSeat> seats)

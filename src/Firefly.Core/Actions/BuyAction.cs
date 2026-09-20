@@ -157,7 +157,7 @@ namespace Firefly.Core.Actions
                     error = $"'{card.Id}' is not for sale at {planet}.";
                     return false;
                 }
-                if (!GiveCard(game, player, taken, planet, out error))
+                if (!TryGiveSupply(game, player, taken, planet, out error))
                     return false;
                 bought.Add(taken);
             }
@@ -175,6 +175,45 @@ namespace Firefly.Core.Actions
             if (!string.IsNullOrWhiteSpace(sector.Planet))
                 return sector.Planet;
             return sector.DisplayName;
+        }
+
+        /// <summary>
+        /// Grants a Supply card at no cost (Buy path after payment, or Blitz Strip Mining).
+        /// </summary>
+        public static bool TryGiveSupply(
+            GameState game,
+            PlayerState player,
+            SupplyCard card,
+            string planet,
+            out string? error)
+        {
+            error = null;
+            switch (card.Kind)
+            {
+                case SupplyKind.Crew:
+                    if (game.Crew == null || !game.Crew.TryGet(card.Id, out var crew))
+                    {
+                        error = $"Crew card '{card.Id}' is not in the catalog.";
+                        return false;
+                    }
+                    if (!player.Roster.TryHire(crew, out error))
+                        return false;
+                    DeceptiveCrew.AfterHired(game, crew.Name);
+                    if (crew.Wanted)
+                        ActiveAlertRules.OnWantedCrewHired(game, planet);
+                    return true;
+                case SupplyKind.Gear:
+                    player.Gear.Add(card.Id);
+                    return true;
+                case SupplyKind.ShipUpgrade:
+                    player.ShipUpgrades.Add(card.Id);
+                    return true;
+                case SupplyKind.DriveCore:
+                    return InstallDrive(game, player, card, out error);
+                default:
+                    error = $"Unknown supply kind '{card.Kind}'.";
+                    return false;
+            }
         }
 
         private static bool CanHire(GameState game, PlayerState player, SupplyCard card, out string? error)
@@ -232,37 +271,6 @@ namespace Firefly.Core.Actions
             player.ApplyDriveCore(core);
             error = null;
             return true;
-        }
-
-        private static bool GiveCard(GameState game, PlayerState player, SupplyCard card, string planet, out string? error)
-        {
-            error = null;
-            switch (card.Kind)
-            {
-                case SupplyKind.Crew:
-                    if (game.Crew == null || !game.Crew.TryGet(card.Id, out var crew))
-                    {
-                        error = $"Crew card '{card.Id}' is not in the catalog.";
-                        return false;
-                    }
-                    if (!player.Roster.TryHire(crew, out error))
-                        return false;
-                    DeceptiveCrew.AfterHired(game, crew.Name);
-                    if (crew.Wanted)
-                        ActiveAlertRules.OnWantedCrewHired(game, planet);
-                    return true;
-                case SupplyKind.Gear:
-                    player.Gear.Add(card.Id);
-                    return true;
-                case SupplyKind.ShipUpgrade:
-                    player.ShipUpgrades.Add(card.Id);
-                    return true;
-                case SupplyKind.DriveCore:
-                    return InstallDrive(game, player, card, out error);
-                default:
-                    error = $"Unknown supply kind '{card.Kind}'.";
-                    return false;
-            }
         }
     }
 }
