@@ -33,6 +33,11 @@ namespace Firefly.Core.Cards
         /// Standard Set Up: 3.
         /// </summary>
         public int NavReshufflePlayerCountThreshold { get; }
+        /// <summary>
+        /// Time's Not on Our Side: pile of Disgruntled Tokens used as Game Length Tokens
+        /// (SetupCards.json <c>gameLengthTokens.count</c>). Null when the Setup has no timer.
+        /// </summary>
+        public int? GameLengthTokenCount { get; }
 
         public SetupCard(
             string id,
@@ -44,7 +49,8 @@ namespace Firefly.Core.Cards
             int? parts,
             bool startingAlertCard = false,
             NavReshuffleSetupMode navReshuffleMode = NavReshuffleSetupMode.DiscardIfPlayerCountAtLeast,
-            int navReshufflePlayerCountThreshold = 3)
+            int navReshufflePlayerCountThreshold = 3,
+            int? gameLengthTokenCount = null)
         {
             Id = id;
             Name = name;
@@ -56,6 +62,7 @@ namespace Firefly.Core.Cards
             StartingAlertCard = startingAlertCard;
             NavReshuffleMode = navReshuffleMode;
             NavReshufflePlayerCountThreshold = navReshufflePlayerCountThreshold;
+            GameLengthTokenCount = gameLengthTokenCount;
         }
 
         /// <summary>
@@ -107,9 +114,19 @@ namespace Firefly.Core.Cards
                     cash, fuel, parts,
                     startingAlert,
                     reshuffleMode,
-                    reshuffleThreshold));
+                    reshuffleThreshold,
+                    ParseGameLengthTokenCount(card)));
             }
             return new SetupCatalog(list);
+        }
+
+        private static int? ParseGameLengthTokenCount(JsonElement card)
+        {
+            if (!card.TryGetProperty("gameLengthTokens", out var tokens) || tokens.ValueKind != JsonValueKind.Object)
+                return null;
+            if (!tokens.TryGetProperty("count", out var count) || !count.TryGetInt32(out var n) || n <= 0)
+                return null;
+            return n;
         }
 
         private static void ParseNavReshuffle(

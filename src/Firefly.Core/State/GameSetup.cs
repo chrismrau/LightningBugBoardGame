@@ -205,6 +205,15 @@ namespace Firefly.Core.State
             if (options.DealStartingJobs)
                 DealStartingJobs(game);
 
+            if (setup.GameLengthTokenCount is int tokenCount)
+            {
+                // SetupCards.json Time's Not: pile of Disgruntled Tokens as Game Length Tokens,
+                // held by the player taking the first turn.
+                game.GameLengthTokensRemaining = tokenCount;
+                game.FirstPlayerIndex = game.CurrentPlayerIndex;
+                game.BeginOpeningTurn();
+            }
+
             return game;
         }
 

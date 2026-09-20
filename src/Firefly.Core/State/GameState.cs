@@ -106,6 +106,20 @@ namespace Firefly.Core.State
         public string? WinReason { get; set; }
         public bool GameOver => !string.IsNullOrEmpty(WinnerId);
 
+        /// <summary>
+        /// Time's Not on Our Side: Disgruntled Tokens used as Game Length Tokens.
+        /// Null when that Setup is not active. Discarded when the first player begins a turn.
+        /// </summary>
+        public int? GameLengthTokensRemaining { get; set; }
+        /// <summary>
+        /// Seat index of the player who holds / discards Game Length Tokens (first turn seat).
+        /// </summary>
+        public int FirstPlayerIndex { get; set; }
+        /// <summary>
+        /// True after the final Game Length Token is discarded; each player then gets one final turn.
+        /// </summary>
+        public bool GameLengthFinalRound { get; set; }
+
         public bool ActionTaken => ActionsUsedThisTurn > 0;
         public bool TurnComplete => ActionsUsedThisTurn >= ActionsPerTurn;
         public bool HasPendingEvents =>
@@ -208,11 +222,49 @@ namespace Firefly.Core.State
             LastAction = TurnAction.None;
             _used.Clear();
             CurrentPlayerIndex = (CurrentPlayerIndex + 1) % Players.Count;
+            if (GameOver)
+                return;
+
+            // Time's Not: after the last token is discarded, everyone gets one final turn;
+            // when play wraps back to the first player, time has run out.
+            if (GameLengthFinalRound && CurrentPlayerIndex == FirstPlayerIndex)
+            {
+                WinCheck.ClaimMostCreditsTimeExpired(this);
+                return;
+            }
+
+            TryDiscardGameLengthTokenAtTurnStart();
             if (!GameOver)
             {
                 WinCheck.Refresh(this, WinPhase.StartOfTurn);
                 QueueStartOfTurnReaverContact();
             }
+        }
+
+        /// <summary>
+        /// SetupCards.json Time's Not: "Give a pile of 20 Disgruntled Tokens to the player taking
+        /// the first turn… Each time that player takes a turn, discard one…"
+        /// Call once when the game begins (first player's opening turn).
+        /// </summary>
+        public void BeginOpeningTurn()
+        {
+            TryDiscardGameLengthTokenAtTurnStart();
+        }
+
+        /// <summary>
+        /// Discard one Game Length Token when the first player begins a turn.
+        /// When the final token is discarded, <see cref="GameLengthFinalRound"/> starts.
+        /// </summary>
+        internal void TryDiscardGameLengthTokenAtTurnStart()
+        {
+            if (GameLengthTokensRemaining is not int remaining || remaining <= 0)
+                return;
+            if (CurrentPlayerIndex != FirstPlayerIndex)
+                return;
+
+            GameLengthTokensRemaining = remaining - 1;
+            if (GameLengthTokensRemaining == 0)
+                GameLengthFinalRound = true;
         }
 
         /// <summary>

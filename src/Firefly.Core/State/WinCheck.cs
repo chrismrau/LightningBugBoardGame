@@ -87,6 +87,23 @@ namespace Firefly.Core.State
             return true;
         }
 
+        /// <summary>
+        /// Time's Not on Our Side: when Game Length Tokens run out and the Story Card is
+        /// incomplete, "the player with the most credits wins."
+        /// </summary>
+        public static WinResult? ClaimMostCreditsTimeExpired(GameState game)
+        {
+            if (game.GameOver)
+                return Current(game);
+            var result = Richest(game, "most credits (time ran out)");
+            if (result != null)
+            {
+                game.WinnerId = result.PlayerId;
+                game.WinReason = result.Reason;
+            }
+            return result;
+        }
+
         public static WinResult? Evaluate(GameState game, WinPhase phase)
         {
             var scenario = game.Scenario;

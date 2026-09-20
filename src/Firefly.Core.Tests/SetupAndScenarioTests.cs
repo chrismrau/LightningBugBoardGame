@@ -572,6 +572,117 @@ namespace Firefly.Core.Tests
             Assert.Equal("leader_zoe_jetwash", withZoe.CurrentPlayer.LeaderId);
         }
 
+        [Fact]
+        public void Times_not_catalog_exposes_twenty_game_length_tokens()
+        {
+            var card = SetupCatalog.LoadDefault().Get("setup_times-not-on-our-side");
+            Assert.Equal(20, card.GameLengthTokenCount);
+            Assert.Null(SetupCatalog.LoadDefault().Get("setup_standard").GameLengthTokenCount);
+        }
+
+        [Fact]
+        public void Times_not_setup_starts_with_nineteen_after_opening_discard()
+        {
+            // SetupCards.json: "Give a pile of 20 Disgruntled Tokens to the player taking the
+            // first turn… Each time that player takes a turn, discard one…"
+            var game = CreateTimesNotTwoPlayers();
+
+            Assert.Equal(19, game.GameLengthTokensRemaining);
+            Assert.Equal(0, game.FirstPlayerIndex);
+            Assert.False(game.GameLengthFinalRound);
+            Assert.Equal("p1", game.CurrentPlayer.Id);
+        }
+
+        [Fact]
+        public void Standard_setup_does_not_track_game_length_tokens()
+        {
+            var game = GameSetup.Standard(
+                new PlayerSeat("p1", "Mal", Persephone),
+                new PlayerSeat("p2", "Zoe", Santo));
+
+            Assert.Null(game.GameLengthTokensRemaining);
+            Assert.False(game.GameLengthFinalRound);
+            game.EndTurn();
+            Assert.Null(game.GameLengthTokensRemaining);
+        }
+
+        [Fact]
+        public void Times_not_discards_only_when_first_player_begins_a_turn()
+        {
+            var game = CreateTimesNotTwoPlayers();
+            Assert.Equal(19, game.GameLengthTokensRemaining);
+
+            game.EndTurn(); // p2 begins — no discard
+            Assert.Equal("p2", game.CurrentPlayer.Id);
+            Assert.Equal(19, game.GameLengthTokensRemaining);
+
+            game.EndTurn(); // p1 begins — discard
+            Assert.Equal("p1", game.CurrentPlayer.Id);
+            Assert.Equal(18, game.GameLengthTokensRemaining);
+            Assert.False(game.GameLengthFinalRound);
+        }
+
+        [Fact]
+        public void Times_not_final_token_starts_final_round_then_most_credits_wins()
+        {
+            // "When the final token is discarded, everyone gets one final turn, then the game
+            // is over. If time runs out before the Story Card is completed, the player with
+            // the most credits wins."
+            var game = CreateTimesNotTwoPlayers(scenarioId: "scenario_first-time-in-the-captains-chair");
+            game.GameLengthTokensRemaining = 1;
+            game.GetPlayer("p1").Cash = 1000;
+            game.GetPlayer("p2").Cash = 5000;
+
+            Assert.Equal("p1", game.CurrentPlayer.Id);
+            game.GameLengthTokensRemaining = 1;
+            game.BeginOpeningTurn(); // first player begins turn → discard final token
+            Assert.Equal(0, game.GameLengthTokensRemaining);
+            Assert.True(game.GameLengthFinalRound);
+            Assert.False(game.GameOver);
+
+            game.EndTurn(); // p2's final turn
+            Assert.Equal("p2", game.CurrentPlayer.Id);
+            Assert.False(game.GameOver);
+
+            game.EndTurn(); // wrap to p1 → time expired
+            Assert.True(game.GameOver);
+            Assert.Equal("p2", game.WinnerId);
+            Assert.Contains("most credits", game.WinReason!, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public void Times_not_story_win_during_final_round_is_not_overridden()
+        {
+            var game = CreateTimesNotTwoPlayers(scenarioId: "scenario_first-time-in-the-captains-chair");
+            game.GameLengthTokensRemaining = 0;
+            game.GameLengthFinalRound = true;
+            game.GetPlayer("p1").Cash = 100;
+            game.GetPlayer("p2").Cash = 9000;
+
+            Assert.True(WinCheck.TryCompleteGoal(game, game.GetPlayer("p1"), 3, out var error), error);
+            Assert.Equal("p1", game.WinnerId);
+
+            game.EndTurn(); // would wrap toward timer end, but story already won
+            Assert.Equal("p1", game.WinnerId);
+        }
+
+        private static GameState CreateTimesNotTwoPlayers(string? scenarioId = null)
+        {
+            return GameSetup.Create(
+                new[]
+                {
+                    new PlayerSeat("p1", "Mal", Persephone),
+                    new PlayerSeat("p2", "Zoe", Santo)
+                },
+                new GameSetupOptions
+                {
+                    SetupCardId = "setup_times-not-on-our-side",
+                    ScenarioCardId = scenarioId,
+                    DealStartingJobs = false,
+                    Rng = new SystemRng(30)
+                });
+        }
+
         private static int CountCrewNamed(SupplyDecks decks, string name)
         {
             var n = 0;
