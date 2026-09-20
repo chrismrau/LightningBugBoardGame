@@ -1,7 +1,8 @@
 namespace Firefly.Core.Abilities
 {
     /// <summary>
-    /// Thin context for ability evaluation. Full PendingChoice comes later.
+    /// Thin context for ability evaluation (Job vs Goal; Work gear lock).
+    /// Optional <c>may</c> abilities use PendingChoice at their trigger sites.
     /// </summary>
     public sealed class AbilityContext
     {

@@ -12,18 +12,23 @@ namespace Firefly.Core.Cards
     }
 
     /// <summary>
-    /// Skill-test Bribes choice. Null <see cref="BribeDollars"/> means undecided —
-    /// Misbehave / Nav suspend via <see cref="State.PendingChoiceKinds.BribeAmount"/>
-    /// when the player can afford at least $100. 0 = decline; positive = pay.
+    /// Skill-test Bribes / ability re-roll choices. Null means undecided —
+    /// Misbehave / Nav suspend via PendingChoice when required.
     /// </summary>
     public sealed class SkillCheckChoice
     {
         /// <summary>
         /// Dollars to pay as Bribes before rolling. Null = not yet chosen (PendingChoice).
         /// 0 = decline. Positive must be a multiple of 100 and not exceed cash.
-        /// Ignored when the test is not printed Bribes.
+        /// Ignored when the test is not Bribes-allowed.
         /// </summary>
         public int? BribeDollars { get; set; }
+
+        /// <summary>
+        /// Kaylee / Zoe / Inara <c>skillReroll</c> may: null = undecided (PendingChoice),
+        /// true = re-roll once, false = keep the first roll. FAQ 4.1 p.8 — always ask.
+        /// </summary>
+        public bool? AcceptReroll { get; set; }
     }
 
     public sealed class SkillCheck
@@ -107,9 +112,10 @@ namespace Firefly.Core.Cards
         }
 
         /// <summary>
-        /// True when a printed Bribes Negotiate needs the player to pick an amount.
-        /// Unaffordable (&lt; $100) auto-declines (no PendingChoice) — same stance as Nav
-        /// unaffordable pay-vs-decline.
+        /// True when Bribes need a PendingChoice amount.
+        /// Printed Bribes: auto-decline when cash &lt; $100 (PR #34).
+        /// Cortland <c>bribesOnAnyNegotiate</c> may: always suspend (FAQ 4.1 p.8) even if
+        /// unaffordable (only $0 is sensible).
         /// </summary>
         public static bool NeedsBribeChoice(
             PlayerState player,
@@ -120,7 +126,24 @@ namespace Firefly.Core.Cards
                 return false;
             if (choice?.BribeDollars != null)
                 return false;
+            if (Abilities.AbilityDispatcher.HasBribesOnAnyNegotiate(player))
+                return true;
             return player.Cash >= 100;
+        }
+
+        /// <summary>
+        /// Apply Cortland (or future) "any Negotiate" Bribes enablement to a Talk test.
+        /// Showdowns are not SkillCheck paths — excluded by not wiring Showdown.
+        /// </summary>
+        public static SkillCheck WithAbilityBribes(SkillCheck check, PlayerState player)
+        {
+            if (check == null)
+                throw new ArgumentNullException(nameof(check));
+            if (check.Skill != Skill.Talk || check.BribesAllowed)
+                return check;
+            if (!Abilities.AbilityDispatcher.HasBribesOnAnyNegotiate(player))
+                return check;
+            return new SkillCheck(check.Skill, check.Target, check.Kosherized, bribesAllowed: true);
         }
 
         /// <summary>
@@ -142,6 +165,94 @@ namespace Firefly.Core.Cards
                 prompt: prompt
                     ?? $"Pay Bribes before rolling ($0–${(player.Cash / 100) * 100} in $100 increments)?");
             return game.TrySetPendingChoice(pending, out error);
+        }
+
+        /// <summary>
+        /// Suspend with <see cref="State.PendingChoiceKinds.SkillReroll"/> after the first roll.
+        /// Options: keep / reroll. FAQ 4.1 p.8 — always suspend for printed may re-roll.
+        /// </summary>
+        public static bool TrySuspendSkillReroll(
+            GameState game,
+            PlayerState player,
+            string? contextId,
+            out string? error,
+            string? prompt = null)
+        {
+            var pending = new PendingChoice(
+                player.Id,
+                PendingChoiceKinds.SkillReroll,
+                contextId: contextId,
+                options: new[] { SkillRerollOptions.Keep, SkillRerollOptions.Reroll },
+                prompt: prompt ?? "Re-roll this skill test?");
+            return game.TrySetPendingChoice(pending, out error);
+        }
+
+        /// <summary>
+        /// Validate keep/reroll submission into <see cref="SkillCheckChoice.AcceptReroll"/>.
+        /// </summary>
+        public static bool TryMergeSkillRerollSubmission(
+            ChoiceSubmission submission,
+            SkillCheckChoice? existing,
+            out SkillCheckChoice merged,
+            out string? error)
+        {
+            merged = existing ?? new SkillCheckChoice();
+            error = null;
+            if (submission == null)
+            {
+                error = "A choice submission is required.";
+                return false;
+            }
+
+            bool accept;
+            if (submission.Accepted != null)
+                accept = submission.Accepted.Value;
+            else if (!string.IsNullOrWhiteSpace(submission.SelectedOptionId))
+            {
+                if (string.Equals(
+                        submission.SelectedOptionId,
+                        SkillRerollOptions.Reroll,
+                        StringComparison.Ordinal))
+                    accept = true;
+                else if (string.Equals(
+                             submission.SelectedOptionId,
+                             SkillRerollOptions.Keep,
+                             StringComparison.Ordinal))
+                    accept = false;
+                else
+                {
+                    error = $"Unknown skill re-roll option '{submission.SelectedOptionId}'.";
+                    return false;
+                }
+            }
+            else
+            {
+                error = "Accept (re-roll) or decline (keep), or select keep/reroll.";
+                return false;
+            }
+
+            merged.AcceptReroll = accept;
+            return true;
+        }
+
+        /// <summary>
+        /// Re-roll dice only; keep Bribes already paid on the first attempt.
+        /// </summary>
+        public SkillCheckResult RerollKeepingBribes(
+            PlayerState player,
+            IRng rng,
+            SkillCheckResult previous)
+        {
+            if (previous == null)
+                throw new ArgumentNullException(nameof(previous));
+            var roll = Dice.RollD6(DiceCount(player), rng);
+            var total = roll.Sum + previous.BribeBonus;
+            return new SkillCheckResult(
+                this,
+                roll,
+                total >= Target,
+                previous.BribeDollarsPaid,
+                previous.BribeBonus);
         }
 
         /// <summary>

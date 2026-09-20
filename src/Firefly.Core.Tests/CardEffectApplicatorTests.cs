@@ -95,6 +95,7 @@ namespace Firefly.Core.Tests
                 ScriptedRng.FromDieFaces(1),
                 new NavResolveChoice
                 {
+                    SkillCheck = new SkillCheckChoice { AcceptReroll = false },
                     Kill = new KillChoice
                     {
                         VictimCrewIds = new List<string> { "crew_jayne", "crew_kaylee" }

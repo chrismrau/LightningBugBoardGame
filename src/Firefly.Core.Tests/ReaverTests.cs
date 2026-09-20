@@ -150,7 +150,11 @@ namespace Firefly.Core.Tests
             Assert.True(player.Roster.TryHire(catalog.Get("crew_zoe"), out _));
 
             resolver.DrawNext(game);
-            var choice = new NavResolveChoice { EvadeToSectorId = CutterAdjacent };
+            var choice = new NavResolveChoice
+            {
+                EvadeToSectorId = CutterAdjacent,
+                SkillCheck = new SkillCheckChoice { AcceptReroll = false }
+            };
             Assert.True(resolver.TryResolve(
                 game,
                 0,

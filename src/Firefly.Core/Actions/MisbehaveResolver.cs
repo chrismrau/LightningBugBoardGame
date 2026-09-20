@@ -114,6 +114,8 @@ namespace Firefly.Core.Actions
         private int _frozenBribeCash;
         /// <summary>Kill choice held across Med Foam suspend after victim pick.</summary>
         private KillChoice? _pendingKillAfterVictims;
+        /// <summary>First skill roll held while <see cref="PendingChoiceKinds.SkillReroll"/> is pending.</summary>
+        private SkillCheckResult? _pendingRerollResult;
 
         public MisbehaveCard DrawNext(GameState game)
         {
@@ -283,6 +285,55 @@ namespace Firefly.Core.Actions
             var player = game.GetPlayer(playerId);
             if (!SkillCheck.TryMergeBribeSubmission(
                     player, submission, choice.SkillCheck, out var merged, out error))
+                return false;
+            choice.SkillCheck = merged;
+
+            if (!game.TrySubmitChoice(playerId, submission, out _, out error))
+                return false;
+
+            _resumingBribeOrMedFoam = true;
+            try
+            {
+                return TryResolve(game, playerId, choice, out resolution, out error, rng);
+            }
+            finally
+            {
+                _resumingBribeOrMedFoam = false;
+            }
+        }
+
+        /// <summary>
+        /// Resume after <see cref="PendingChoiceKinds.SkillReroll"/>: keep or re-roll the first attempt
+        /// (Kaylee / Zoe / Inara). FAQ 4.1 p.8 — may abilities always suspend.
+        /// </summary>
+        public bool TryResumeSkillReroll(
+            GameState game,
+            string playerId,
+            ChoiceSubmission submission,
+            MisbehaveChoice choice,
+            out MisbehaveResolution? resolution,
+            out string? error,
+            IRng? rng = null)
+        {
+            resolution = null;
+            error = null;
+            if (game.PendingChoice == null
+                || !string.Equals(
+                    game.PendingChoice.Kind,
+                    PendingChoiceKinds.SkillReroll,
+                    StringComparison.Ordinal))
+            {
+                error = "No skill re-roll choice is pending.";
+                return false;
+            }
+            if (_pendingRerollResult == null)
+            {
+                error = "Skill re-roll context is missing the first roll.";
+                return false;
+            }
+
+            if (!SkillCheck.TryMergeSkillRerollSubmission(
+                    submission, choice.SkillCheck, out var merged, out error))
                 return false;
             choice.SkillCheck = merged;
 
@@ -684,14 +735,14 @@ namespace Firefly.Core.Actions
                 return true;
             }
 
-            if (!TryGetSkillCheck(option, card, details, pending, out var skillCheck))
+            if (!TryGetSkillCheck(option, card, details, pending, player, out var skillCheck))
             {
                 if (option.HasStructuredEffects)
                     structuredEffects = option.Effects;
                 return true;
             }
 
-            // GF9 p.6: "Before you roll a dice, you may choose to pay Bribes."
+            // GF9 p.6 / Cortland: "Before you roll a dice, you may choose to pay Bribes."
             if (SkillCheck.NeedsBribeChoice(player, skillCheck, choice.SkillCheck))
             {
                 if (!SkillCheck.TrySuspendBribeChoice(
@@ -704,8 +755,38 @@ namespace Firefly.Core.Actions
                 return false;
             }
 
-            if (!skillCheck.TryResolve(player, rng, out check, out error, choice.SkillCheck))
-                return false;
+            // Resume after skillReroll may: keep first roll or re-roll once.
+            if (_pendingRerollResult != null && choice.SkillCheck?.AcceptReroll is bool acceptReroll)
+            {
+                check = acceptReroll
+                    ? _pendingRerollResult.Check.RerollKeepingBribes(player, rng, _pendingRerollResult)
+                    : _pendingRerollResult;
+                _pendingRerollResult = null;
+            }
+            else
+            {
+                if (!skillCheck.TryResolve(player, rng, out check, out error, choice.SkillCheck))
+                    return false;
+
+                // FAQ 4.1 p.8 may: always suspend take/decline re-roll when skillReroll matches.
+                if (AbilityDispatcher.NeedsSkillRerollChoice(
+                        player, skillCheck.Skill, choice.SkillCheck, AbilityContext.WorkingJob))
+                {
+                    _pendingRerollResult = check;
+                    if (!SkillCheck.TrySuspendSkillReroll(
+                            game,
+                            player,
+                            contextId: $"{card.Id}:{pending.SelectedOptionIndex}:{pending.CurrentStepIndex}",
+                            out error))
+                    {
+                        _pendingRerollResult = null;
+                        return false;
+                    }
+                    error = "Choose whether to re-roll this skill test.";
+                    return false;
+                }
+            }
+
             bribeCash = check.BribeDollarsPaid;
             var sum = check.Total + BonusFromGear(game, player, details) + pending.NextTalkBonus;
             check = check.WithTotal(sum);
@@ -743,6 +824,7 @@ namespace Firefly.Core.Actions
             MisbehaveCard card,
             string details,
             PendingMisbehave pending,
+            PlayerState player,
             out SkillCheck skillCheck)
         {
             if (option.SkillCheck != null)
@@ -752,6 +834,7 @@ namespace Firefly.Core.Actions
                     || (pending.NextFightKosherized && spec.Skill == Skill.Fight);
                 var bribes = (spec.BribesAllowed || card.Bribes) && spec.Skill == Skill.Talk;
                 skillCheck = new SkillCheck(spec.Skill, spec.Target, kosherized, bribes);
+                skillCheck = SkillCheck.WithAbilityBribes(skillCheck, player);
                 return true;
             }
 
@@ -763,6 +846,7 @@ namespace Firefly.Core.Actions
             var bribe = (skillCheck.BribesAllowed || card.Bribes) && skillCheck.Skill == Skill.Talk;
             if (kosher != skillCheck.Kosherized || bribe != skillCheck.BribesAllowed)
                 skillCheck = new SkillCheck(skillCheck.Skill, skillCheck.Target, kosher, bribe);
+            skillCheck = SkillCheck.WithAbilityBribes(skillCheck, player);
             return true;
         }
 
@@ -787,6 +871,7 @@ namespace Firefly.Core.Actions
             _frozenStructuredEffects = null;
             _frozenBribeCash = 0;
             _pendingKillAfterVictims = null;
+            _pendingRerollResult = null;
         }
 
         private static bool NeedsOptionChoice(

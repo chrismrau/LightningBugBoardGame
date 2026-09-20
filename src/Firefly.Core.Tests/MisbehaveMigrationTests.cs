@@ -186,7 +186,11 @@ namespace Firefly.Core.Tests
 
             Assert.True(resolver.TryResolve(
                 game, "p1",
-                new MisbehaveChoice { OptionIndex = 0 },
+                new MisbehaveChoice
+                {
+                    OptionIndex = 0,
+                    SkillCheck = new SkillCheckChoice { AcceptReroll = false }
+                },
                 out var resolution, out var error,
                 ScriptedRng.FromDieFaces(3, 3, 2, 1)), error);
             Assert.True(resolution!.SkillCheck!.Check.Kosherized);
@@ -212,7 +216,11 @@ namespace Firefly.Core.Tests
             // Non-Kosherized Fight 4 (Jayne+Zoe); 3+3+2+1 = 9 Proceed + Disgruntle Moral.
             Assert.True(resolver.TryResolve(
                 game, "p1",
-                new MisbehaveChoice { OptionIndex = 1 },
+                new MisbehaveChoice
+                {
+                    OptionIndex = 1,
+                    SkillCheck = new SkillCheckChoice { AcceptReroll = false }
+                },
                 out var resolution, out var error,
                 ScriptedRng.FromDieFaces(3, 3, 2, 1)), error);
             Assert.Equal(MisbehaveOutcome.Proceed, resolution!.Outcome);
@@ -237,7 +245,11 @@ namespace Firefly.Core.Tests
             // crew Fight 4; dice 2+2+2+2 = 8 → Wanted (first crew) + Proceed
             Assert.True(resolver.TryResolve(
                 game, "p1",
-                new MisbehaveChoice { OptionIndex = 0 },
+                new MisbehaveChoice
+                {
+                    OptionIndex = 0,
+                    SkillCheck = new SkillCheckChoice { AcceptReroll = false }
+                },
                 out var resolution, out var error,
                 ScriptedRng.FromDieFaces(2, 2, 2, 2)), error);
             Assert.True(resolution!.SkillCheck!.Check.Kosherized);

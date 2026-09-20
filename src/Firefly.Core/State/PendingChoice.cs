@@ -63,7 +63,8 @@ namespace Firefly.Core.State
     /// <summary>
     /// Reserved kind ids. Wired: <see cref="NavPayOrDecline"/>, <see cref="KillVictim"/>,
     /// <see cref="BribeAmount"/>, <see cref="MedFoamDiscard"/>, <see cref="MisbehaveOption"/>,
-    /// <see cref="HavenSector"/>, <see cref="RivalPlayer"/>, <see cref="SectorDestination"/>.
+    /// <see cref="HavenSector"/>, <see cref="RivalPlayer"/>, <see cref="SectorDestination"/>,
+    /// <see cref="SkillReroll"/>.
     /// </summary>
     public static class PendingChoiceKinds
     {
@@ -95,6 +96,19 @@ namespace Firefly.Core.State
         /// ContextId discriminates the resume site (see <see cref="SectorDestinationContexts"/>).
         /// </summary>
         public const string SectorDestination = "sector-destination";
+        /// <summary>
+        /// Crew/gear <c>skillReroll</c> may: keep the first roll or re-roll once
+        /// (Kaylee Tech / Zoe Fight / Inara Negotiate). FAQ 4.1 p.8 — always suspend.
+        /// Options: <see cref="SkillRerollOptions"/>.
+        /// </summary>
+        public const string SkillReroll = "skill-reroll";
+    }
+
+    /// <summary>Discrete option ids for <see cref="PendingChoiceKinds.SkillReroll"/>.</summary>
+    public static class SkillRerollOptions
+    {
+        public const string Keep = "keep";
+        public const string Reroll = "reroll";
     }
 
     /// <summary>ContextId prefixes / ids for <see cref="PendingChoiceKinds.SectorDestination"/>.</summary>
