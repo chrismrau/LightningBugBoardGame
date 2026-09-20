@@ -15,14 +15,41 @@ namespace Firefly.Core.Cards
     public sealed class NavOption
     {
         public string? Name { get; }
+        /// <summary>
+        /// Printed prose — display and durable source of truth. Structured fields are an overlay.
+        /// </summary>
         public string Details { get; }
         public FlightOutcome Outcome { get; }
+        /// <summary>Optional structured skill test; preferred over parsing <see cref="Details"/>.</summary>
+        public MisbehaveSkillCheckSpec? SkillCheck { get; }
+        /// <summary>
+        /// Optional structured result bands using the shared <see cref="CardEffect"/> vocabulary.
+        /// Preferred over regex band selection when present.
+        /// </summary>
+        public IReadOnlyList<CardEffectBand> Bands { get; }
+        /// <summary>
+        /// Optional option-level shared effects when there is no skill band
+        /// (e.g. Disgruntle Moral with Keep Flying).
+        /// </summary>
+        public IReadOnlyList<CardEffect> Effects { get; }
 
-        public NavOption(string? name, string details, FlightOutcome outcome)
+        public bool HasStructuredBands => Bands.Count > 0;
+        public bool HasStructuredEffects => Effects.Count > 0;
+
+        public NavOption(
+            string? name,
+            string details,
+            FlightOutcome outcome,
+            MisbehaveSkillCheckSpec? skillCheck = null,
+            IReadOnlyList<CardEffectBand>? bands = null,
+            IReadOnlyList<CardEffect>? effects = null)
         {
             Name = name;
             Details = details ?? "";
             Outcome = outcome;
+            SkillCheck = skillCheck;
+            Bands = bands ?? Array.Empty<CardEffectBand>();
+            Effects = effects ?? Array.Empty<CardEffect>();
         }
     }
 
