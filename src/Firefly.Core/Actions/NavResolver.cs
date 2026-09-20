@@ -85,8 +85,9 @@ namespace Firefly.Core.Actions
         public string? DriveOffReaverToSectorId { get; set; }
         public CorvetteContactChoice? CorvetteContact { get; set; }
         /// <summary>
-        /// Destination for Cruiser Patrol / Alliance Entanglements (not the named Alliance Cruiser snap).
+        /// Destination for Cruiser Patrol / Alliance Entanglements / Safe Harbor redirect.
         /// Patrol: chosen by the player to the right. Entanglements: chosen by the drawer.
+        /// Null → <see cref="PendingChoiceKinds.SectorDestination"/>.
         /// </summary>
         public string? AllianceCruiserToSectorId { get; set; }
         /// <summary>
@@ -139,7 +140,7 @@ namespace Firefly.Core.Actions
         public string? TakeFromDiscardCardId { get; set; }
         /// <summary>
         /// Nav System on the Fritz: player-to-the-right 2-Sector path (via then destination).
-        /// Origin is the Nav draw Sector. Thin hook until PendingChoice.
+        /// Origin is the Nav draw Sector. Null → <see cref="PendingChoiceKinds.SectorDestination"/>.
         /// </summary>
         public string? ShipNudgeViaSectorId { get; set; }
         public string? ShipNudgeToSectorId { get; set; }
@@ -187,6 +188,8 @@ namespace Firefly.Core.Actions
     /// player must pick victims unless <see cref="KillChoice.VictimCrewIds"/> is set.
     /// Marked Negotiate Bribes suspend via <see cref="PendingChoiceKinds.BribeAmount"/>;
     /// optional Med Foam discard via <see cref="PendingChoiceKinds.MedFoamDiscard"/>.
+    /// Cruiser / Reaver / Corvette / ship-nudge / Safe Harbor destinations suspend via
+    /// <see cref="PendingChoiceKinds.SectorDestination"/> when the thin hook is unset.
     /// Named "Alliance Cruiser" Nav snaps the Cruiser onto the ship and queues Contact.
     /// Cruiser Patrol / Alliance Entanglements move the Cruiser per card text without that snap/Contact.
     /// Reaver Cutter cards move a Cutter; the named "Reaver Cutter" card applies Contact immediately.
@@ -204,10 +207,13 @@ namespace Firefly.Core.Actions
         /// <summary>Kill-victim / Med Foam suspend: re-enter resolve with frozen skill band.</summary>
         private bool _resumingKillVictims;
         private bool _resumingBribeOrMedFoam;
+        private bool _resumingSectorDestination;
         private int _pendingKillOptionIndex = -1;
         private NavResolveChoice? _pendingKillResolveChoice;
         private int _pendingBribeOptionIndex = -1;
         private NavResolveChoice? _pendingBribeResolveChoice;
+        private int _pendingSectorOptionIndex = -1;
+        private NavResolveChoice? _pendingSectorResolveChoice;
         private bool _frozenSkillReady;
         private SkillCheckResult? _frozenSkillCheck;
         private string? _frozenBandText;
@@ -271,11 +277,12 @@ namespace Firefly.Core.Actions
                 return false;
             }
 
-            // Pay-vs-decline / kill-victim / bribe / Med Foam resume clears PendingChoice before re-entering.
+            // Pay-vs-decline / kill-victim / bribe / Med Foam / sector-dest resume clears PendingChoice before re-entering.
             if (game.PendingChoice != null
                 && choice?.PayNavCost == null
                 && !_resumingKillVictims
-                && !_resumingBribeOrMedFoam)
+                && !_resumingBribeOrMedFoam
+                && !_resumingSectorDestination)
             {
                 error = "Resolve the pending choice before continuing Nav.";
                 return false;
@@ -420,6 +427,30 @@ namespace Firefly.Core.Actions
                 }
             }
 
+            if (NeedsSectorDestinationChoice(
+                    game,
+                    drawn,
+                    option,
+                    choice,
+                    out var sectorContext,
+                    out var sectorChooserId,
+                    out var sectorOptions,
+                    out var sectorPrompt))
+            {
+                if (!TrySuspendSectorDestination(
+                        game,
+                        sectorChooserId,
+                        sectorContext,
+                        optionIndex,
+                        choice,
+                        sectorOptions,
+                        sectorPrompt,
+                        out error))
+                    return false;
+                error = sectorPrompt;
+                return false;
+            }
+
             if (!ApplyTokenMoves(
                 game,
                 drawn,
@@ -507,6 +538,22 @@ namespace Firefly.Core.Actions
             {
                 RollbackTokens();
                 RollbackResources();
+                return false;
+            }
+
+            if (NeedsShipNudgeChoice(game, drawn, option.Details, choice, out var nudgePrompt))
+            {
+                if (!TrySuspendSectorDestination(
+                        game,
+                        game.PlayerToTheRightOf(game.CurrentPlayer.Id).Id,
+                        SectorDestinationContexts.ShipNudge,
+                        optionIndex,
+                        choice,
+                        options: null,
+                        nudgePrompt,
+                        out error))
+                    return false;
+                error = nudgePrompt;
                 return false;
             }
 
@@ -949,6 +996,232 @@ namespace Firefly.Core.Actions
                 _resumingBribeOrMedFoam = false;
             }
         }
+
+        /// <summary>
+        /// Resume after <see cref="PendingChoiceKinds.SectorDestination"/>: merge sector id(s)
+        /// into <see cref="NavResolveChoice"/> and re-enter <see cref="TryResolve"/>.
+        /// </summary>
+        public bool TryResumeSectorDestination(
+            GameState game,
+            ChoiceSubmission submission,
+            out NavResolution? resolution,
+            out string? error,
+            IRng? rng = null)
+        {
+            resolution = null;
+            error = null;
+            if (FaceUp == null)
+            {
+                error = "No Nav card is face up.";
+                return false;
+            }
+            if (game.PendingChoice == null
+                || !string.Equals(
+                    game.PendingChoice.Kind,
+                    PendingChoiceKinds.SectorDestination,
+                    StringComparison.Ordinal))
+            {
+                error = "No sector destination choice is pending.";
+                return false;
+            }
+
+            var optionIndex = _pendingSectorOptionIndex;
+            var contextId = game.PendingChoice.ContextId ?? "";
+            var chooserId = game.PendingChoice.PlayerId;
+            var choice = _pendingSectorResolveChoice ?? new NavResolveChoice();
+
+            if (!TryMergeSectorDestinationSubmission(contextId, submission, choice, out error))
+                return false;
+
+            if (!game.TrySubmitChoice(chooserId, submission, out _, out error))
+                return false;
+
+            _pendingSectorOptionIndex = -1;
+            _pendingSectorResolveChoice = null;
+            _resumingSectorDestination = true;
+            try
+            {
+                return TryResolve(game, optionIndex, out resolution, out error, rng, choice);
+            }
+            finally
+            {
+                _resumingSectorDestination = false;
+            }
+        }
+
+        private bool TrySuspendSectorDestination(
+            GameState game,
+            string chooserPlayerId,
+            string contextId,
+            int optionIndex,
+            NavResolveChoice? choice,
+            IReadOnlyList<string>? options,
+            string prompt,
+            out string? error)
+        {
+            var pending = new PendingChoice(
+                chooserPlayerId,
+                PendingChoiceKinds.SectorDestination,
+                contextId: contextId,
+                options: options,
+                prompt: prompt);
+            if (!game.TrySetPendingChoice(pending, out error))
+                return false;
+            _pendingSectorOptionIndex = optionIndex;
+            _pendingSectorResolveChoice = choice;
+            return true;
+        }
+
+        private static bool TryMergeSectorDestinationSubmission(
+            string contextId,
+            ChoiceSubmission submission,
+            NavResolveChoice choice,
+            out string? error)
+        {
+            error = null;
+            if (string.Equals(contextId, SectorDestinationContexts.ShipNudge, StringComparison.Ordinal))
+            {
+                if (submission.Values == null || submission.Values.Count < 2
+                    || string.IsNullOrWhiteSpace(submission.Values[0])
+                    || string.IsNullOrWhiteSpace(submission.Values[1]))
+                {
+                    error = "Ship nudge requires Values = [via sector, destination sector].";
+                    return false;
+                }
+                choice.ShipNudgeViaSectorId = submission.Values[0];
+                choice.ShipNudgeToSectorId = submission.Values[1];
+                return true;
+            }
+
+            var sectorId = submission.SelectedOptionId ?? submission.Value;
+            if (string.IsNullOrWhiteSpace(sectorId))
+            {
+                error = "A destination sector id is required.";
+                return false;
+            }
+
+            if (string.Equals(contextId, SectorDestinationContexts.CruiserPatrol, StringComparison.Ordinal)
+                || string.Equals(contextId, SectorDestinationContexts.AllianceEntanglements, StringComparison.Ordinal)
+                || SectorDestinationContexts.TryParseSafeHarbor(contextId, out _))
+            {
+                choice.AllianceCruiserToSectorId = sectorId;
+                return true;
+            }
+
+            if (string.Equals(contextId, SectorDestinationContexts.ReaverCutter, StringComparison.Ordinal))
+            {
+                choice.ReaverCutterToSectorId = sectorId;
+                return true;
+            }
+
+            if (string.Equals(contextId, SectorDestinationContexts.OperativeCorvette, StringComparison.Ordinal))
+            {
+                choice.OperativeCorvetteToSectorId = sectorId;
+                return true;
+            }
+
+            error = $"Unknown sector destination context '{contextId}'.";
+            return false;
+        }
+
+        private static bool NeedsShipNudgeChoice(
+            GameState game,
+            DrawnNav drawn,
+            string? details,
+            NavResolveChoice? choice,
+            out string prompt)
+        {
+            prompt = "Player to the right: choose a two-Sector path (via + destination).";
+            if (!Contains(details ?? "", "move your ship two Sectors"))
+                return false;
+            return choice == null
+                || string.IsNullOrWhiteSpace(choice.ShipNudgeViaSectorId)
+                || string.IsNullOrWhiteSpace(choice.ShipNudgeToSectorId);
+        }
+
+        private static bool NeedsSectorDestinationChoice(
+            GameState game,
+            DrawnNav drawn,
+            NavOption option,
+            NavResolveChoice? choice,
+            out string contextId,
+            out string chooserPlayerId,
+            out IReadOnlyList<string>? options,
+            out string prompt)
+        {
+            contextId = "";
+            chooserPlayerId = game.CurrentPlayer.Id;
+            options = null;
+            prompt = "Choose a destination sector.";
+            var type = drawn.Card.Type ?? "";
+            var name = drawn.Card.Name ?? "";
+            var id = drawn.Card.Id ?? "";
+            var details = option.Details ?? "";
+
+            if (IsNamedAllianceCruiserCard(drawn.Card)
+                && HavenRules.NeedsSafeHarborRedirect(
+                    game, drawn.SectorId, choice?.AllianceCruiserToSectorId))
+            {
+                contextId = SectorDestinationContexts.SafeHarbor(drawn.SectorId);
+                chooserPlayerId = game.PlayerToTheRightOf(game.CurrentPlayer.Id).Id;
+                options = HavenRules.EligibleSafeHarborRedirects(game, drawn.SectorId);
+                prompt = "Safe Harbor: player to the right places the Cruiser in an adjacent Sector.";
+                return true;
+            }
+
+            if (IsCruiserPatrolCard(id, name)
+                && string.IsNullOrWhiteSpace(choice?.AllianceCruiserToSectorId))
+            {
+                contextId = SectorDestinationContexts.CruiserPatrol;
+                chooserPlayerId = game.PlayerToTheRightOf(game.CurrentPlayer.Id).Id;
+                prompt = "Player to the right: move the Alliance Cruiser within Alliance Space.";
+                return true;
+            }
+
+            if (IsAllianceEntanglementsCard(id, name)
+                && string.IsNullOrWhiteSpace(choice?.AllianceCruiserToSectorId))
+            {
+                contextId = SectorDestinationContexts.AllianceEntanglements;
+                chooserPlayerId = game.CurrentPlayer.Id;
+                prompt = "Choose an Alliance Sector for the Cruiser.";
+                return true;
+            }
+
+            if (type.Equals("Operative's Corvette", StringComparison.OrdinalIgnoreCase)
+                && string.IsNullOrWhiteSpace(choice?.OperativeCorvetteToSectorId))
+            {
+                contextId = SectorDestinationContexts.OperativeCorvette;
+                chooserPlayerId = DetailsChoosePlayerToTheRight(details)
+                    ? game.PlayerToTheRightOf(game.CurrentPlayer.Id).Id
+                    : game.CurrentPlayer.Id;
+                prompt = DetailsChoosePlayerToTheRight(details)
+                    ? "Player to the right: choose a Sector for the Operative's Corvette."
+                    : "Choose a Sector for the Operative's Corvette.";
+                return true;
+            }
+
+            if (type.Equals("Reaver Cutter", StringComparison.OrdinalIgnoreCase)
+                && !name.Equals("Reaver Cutter", StringComparison.OrdinalIgnoreCase)
+                && string.IsNullOrWhiteSpace(choice?.ReaverCutterToSectorId)
+                && !MovesCutterToDrawSector(details))
+            {
+                contextId = SectorDestinationContexts.ReaverCutter;
+                chooserPlayerId = DetailsChoosePlayerToTheRight(details)
+                    ? game.PlayerToTheRightOf(game.CurrentPlayer.Id).Id
+                    : game.CurrentPlayer.Id;
+                prompt = DetailsChoosePlayerToTheRight(details)
+                    ? "Player to the right: choose a Sector for the Reaver Cutter."
+                    : "Choose a Sector for the Reaver Cutter.";
+                return true;
+            }
+
+            return false;
+        }
+
+        private static bool DetailsChoosePlayerToTheRight(string details) =>
+            Contains(details, "Player to your right")
+            || Contains(details, "player to your right")
+            || Contains(details, "The player to your right");
 
         private bool TrySuspendNavPayOrDecline(
             GameState game,

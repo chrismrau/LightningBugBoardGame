@@ -159,6 +159,33 @@ namespace Firefly.Core.State
             throw new KeyNotFoundException($"Unknown player '{playerId}'.");
         }
 
+        /// <summary>
+        /// Seat index of <paramref name="playerId"/>, or -1 when unknown.
+        /// </summary>
+        public int IndexOfPlayer(string playerId)
+        {
+            for (var i = 0; i < Players.Count; i++)
+            {
+                if (string.Equals(Players[i].Id, playerId, StringComparison.Ordinal))
+                    return i;
+            }
+            return -1;
+        }
+
+        /// <summary>
+        /// GF9 / card text "player to the right": next seat clockwise in table order
+        /// (index + 1, wrapping). Solo games return the same player.
+        /// </summary>
+        public PlayerState PlayerToTheRightOf(string playerId)
+        {
+            var index = IndexOfPlayer(playerId);
+            if (index < 0)
+                throw new KeyNotFoundException($"Unknown player '{playerId}'.");
+            if (Players.Count == 1)
+                return Players[0];
+            return Players[(index + 1) % Players.Count];
+        }
+
         public void ClearPendingEvents()
         {
             PendingNavDraws.Clear();

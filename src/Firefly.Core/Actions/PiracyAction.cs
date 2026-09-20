@@ -6,11 +6,15 @@ using Firefly.Core.State;
 namespace Firefly.Core.Actions
 {
     /// <summary>
-    /// Thin hooks for Any Rival piracy Work until PendingChoice.
-    /// Rival / skills / steal mix / hand discard / kill victims are caller-supplied.
+    /// Thin hooks for Any Rival piracy Work. Empty <see cref="PiracyChoice.RivalId"/>
+    /// suspends via <see cref="PendingChoiceKinds.RivalPlayer"/> when same-sector rivals exist.
     /// </summary>
     public sealed class PiracyChoice
     {
+        /// <summary>
+        /// Rival player id. Empty → <see cref="PendingChoiceKinds.RivalPlayer"/> when legal
+        /// rivals share the sector; scripted tests set this to skip suspend.
+        /// </summary>
         public string RivalId { get; set; } = "";
         /// <summary>Tech or Negotiate (Talk) only — PBH p.3.</summary>
         public Skill BoardSkill { get; set; } = Skill.Tech;
@@ -91,9 +95,15 @@ namespace Firefly.Core.Actions
     /// Pirates &amp; Bounty Hunters piracy Jobs with pickup "Any Rival".
     /// PBH pp.3–7: same-sector boarding → showdown → steal printed Goods or Inactive Jobs.
     /// PBH printed p.5: place Active on attempt; boarding fail leaves the Job Active.
+    /// Missing rival pick suspends via <see cref="PendingChoiceKinds.RivalPlayer"/>.
     /// </summary>
     public sealed class PiracyAction
     {
+        private bool _resumingRival;
+        private string? _pendingPiracyPlayerId;
+        private string? _pendingPiracyJobId;
+        private PiracyChoice? _pendingPiracyChoice;
+
         public bool TryPirate(
             GameState game,
             string playerId,
@@ -106,7 +116,12 @@ namespace Firefly.Core.Actions
             result = null;
             if (choice == null)
             {
-                error = "Piracy requires a rival choice (thin hook until PendingChoice).";
+                error = "Piracy requires a rival choice.";
+                return false;
+            }
+            if (game.PendingChoice != null && !_resumingRival)
+            {
+                error = "Resolve the pending choice before continuing piracy.";
                 return false;
             }
             if (!CanStart(game, playerId, out var player, out error))
@@ -137,11 +152,21 @@ namespace Firefly.Core.Actions
                 error = $"Already have {player.ActiveJobLimit} active job(s).";
                 return false;
             }
+
             if (string.IsNullOrWhiteSpace(choice.RivalId))
             {
-                error = "Must choose a rival ship in the same sector.";
+                var rivals = SameSectorRivalIds(game, playerId);
+                if (rivals.Count == 0)
+                {
+                    error = "Must choose a rival ship in the same sector.";
+                    return false;
+                }
+                if (!TrySuspendRivalChoice(game, playerId, jobId, choice, rivals, out error))
+                    return false;
+                error = "Choose a rival ship in the same sector.";
                 return false;
             }
+
             if (string.Equals(playerId, choice.RivalId, StringComparison.Ordinal))
             {
                 error = "Cannot pirate your own ship.";
@@ -191,6 +216,106 @@ namespace Firefly.Core.Actions
                 return FinishShowdownLoss(game, player, rival, job, terms, showdown, boarding, choice, rng, out result, out error);
 
             return FinishShowdownWin(game, player, rival, job, terms, showdown, boarding, choice, out result, out error);
+        }
+
+        /// <summary>
+        /// Resume after <see cref="PendingChoiceKinds.RivalPlayer"/>: merge rival id and re-enter
+        /// <see cref="TryPirate"/>.
+        /// </summary>
+        public bool TryResumeRival(
+            GameState game,
+            ChoiceSubmission submission,
+            IRng rng,
+            out PiracyResult? result,
+            out string? error)
+        {
+            result = null;
+            error = null;
+            if (game.PendingChoice == null
+                || !string.Equals(
+                    game.PendingChoice.Kind,
+                    PendingChoiceKinds.RivalPlayer,
+                    StringComparison.Ordinal))
+            {
+                error = "No rival player choice is pending.";
+                return false;
+            }
+            if (string.IsNullOrWhiteSpace(_pendingPiracyPlayerId)
+                || string.IsNullOrWhiteSpace(_pendingPiracyJobId)
+                || _pendingPiracyChoice == null)
+            {
+                error = "Piracy rival resume state is missing.";
+                return false;
+            }
+
+            var rivalId = submission.SelectedOptionId ?? submission.Value;
+            if (string.IsNullOrWhiteSpace(rivalId))
+            {
+                error = "A rival player id is required.";
+                return false;
+            }
+
+            var playerId = _pendingPiracyPlayerId!;
+            if (!game.TrySubmitChoice(playerId, submission, out _, out error))
+                return false;
+
+            var choice = _pendingPiracyChoice;
+            choice.RivalId = rivalId!;
+            var jobId = _pendingPiracyJobId!;
+            ClearPendingPiracy();
+
+            _resumingRival = true;
+            try
+            {
+                return TryPirate(game, playerId, jobId, choice, rng, out result, out error);
+            }
+            finally
+            {
+                _resumingRival = false;
+            }
+        }
+
+        private bool TrySuspendRivalChoice(
+            GameState game,
+            string playerId,
+            string jobId,
+            PiracyChoice choice,
+            IReadOnlyList<string> rivals,
+            out string? error)
+        {
+            var pending = new PendingChoice(
+                playerId,
+                PendingChoiceKinds.RivalPlayer,
+                contextId: jobId,
+                options: rivals,
+                prompt: "Choose a rival ship in the same sector.");
+            if (!game.TrySetPendingChoice(pending, out error))
+                return false;
+            _pendingPiracyPlayerId = playerId;
+            _pendingPiracyJobId = jobId;
+            _pendingPiracyChoice = choice;
+            return true;
+        }
+
+        private void ClearPendingPiracy()
+        {
+            _pendingPiracyPlayerId = null;
+            _pendingPiracyJobId = null;
+            _pendingPiracyChoice = null;
+        }
+
+        public static IReadOnlyList<string> SameSectorRivalIds(GameState game, string playerId)
+        {
+            var player = game.GetPlayer(playerId);
+            var rivals = new List<string>();
+            foreach (var other in game.Players)
+            {
+                if (string.Equals(other.Id, playerId, StringComparison.Ordinal))
+                    continue;
+                if (string.Equals(other.SectorId, player.SectorId, StringComparison.OrdinalIgnoreCase))
+                    rivals.Add(other.Id);
+            }
+            return rivals;
         }
 
         private static bool FinishShowdownLoss(

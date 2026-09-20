@@ -107,13 +107,13 @@ namespace Firefly.Core.Tests
         {
             var game = NewGame();
             Assert.True(game.TrySetPendingChoice(
-                new PendingChoice("p1", PendingChoiceKinds.HavenOrRivalSector), out _));
+                new PendingChoice("p1", PendingChoiceKinds.HavenSector), out _));
 
             game.ClearPendingChoice();
             Assert.Null(game.PendingChoice);
 
             Assert.True(game.TrySetPendingChoice(
-                new PendingChoice("p1", PendingChoiceKinds.HavenOrRivalSector), out _));
+                new PendingChoice("p1", PendingChoiceKinds.SectorDestination), out _));
             game.ClearPendingEvents();
             Assert.Null(game.PendingChoice);
             Assert.False(game.HasPendingEvents);

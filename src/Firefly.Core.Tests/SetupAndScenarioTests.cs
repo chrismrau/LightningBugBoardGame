@@ -1295,6 +1295,7 @@ namespace Firefly.Core.Tests
                     ScenarioCardId = "scenario_any-port-in-a-storm",
                     DealStartingJobs = false,
                     UseBlueSun = true,
+                    HavenChoices = new Dictionary<string, string> { ["p1"] = havenSectorId },
                     Rng = new SystemRng(45)
                 });
         }
