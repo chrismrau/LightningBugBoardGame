@@ -310,6 +310,10 @@ namespace Firefly.Core.Actions
 
             player.JobHand.Remove(job.Id);
             player.RemoveActive(job.Id);
+            // ScenarioCards.json Increased Enforcement (Any Port): Illegal Job → Warrant.
+            // Issued after completion (Job already leaves Active), so FAQ Warrant-discard does not apply.
+            if (game.Scenario != null && game.Scenario.IncreasedEnforcement && !job.Legal)
+                player.Warrants++;
             ActiveAlertRules.OnJobCompleted(game, job.ContactName);
             game.WorkGearLocked = false;
             game.TryConsumeAction(TurnAction.Work, out _);

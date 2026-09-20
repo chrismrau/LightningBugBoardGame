@@ -23,6 +23,12 @@ namespace Firefly.Core.Actions
         /// </summary>
         public string? DriveOffReaverToSectorId { get; set; }
 
+        /// <summary>
+        /// Any Port Safe Harbor: when Alliance Alert would place the Cruiser on a Haven,
+        /// adjacent Sector chosen by the player to the right.
+        /// </summary>
+        public string? AllianceCruiserToSectorId { get; set; }
+
         public CorvetteContactChoice? CorvetteContact { get; set; }
     }
 
@@ -300,7 +306,12 @@ namespace Firefly.Core.Actions
 
             if (selected == TokenKind.AllianceCruiser)
             {
-                game.Tokens = game.Tokens.WithAllianceCruiser(sectorId);
+                if (!HavenRules.TryPlaceAllianceCruiser(
+                    game,
+                    sectorId,
+                    choice?.AllianceCruiserToSectorId,
+                    out error))
+                    return false;
                 ship = TokenKind.AllianceCruiser;
                 return true;
             }

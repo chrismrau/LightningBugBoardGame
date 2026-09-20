@@ -92,6 +92,12 @@ namespace Firefly.Core.Actions
                 return false;
             }
 
+            if (!HavenRules.CanChooseCruiserDestination(game, cruiserToSectorId, out error))
+            {
+                RestoreCryBaby(player);
+                return false;
+            }
+
             // FAQ: Contact is skipped for everyone who would have resolved it in this Sector.
             var restoreNav = game.PendingEncounterDeferredNav
                 && game.PendingEncounter == TokenKind.AllianceCruiser;

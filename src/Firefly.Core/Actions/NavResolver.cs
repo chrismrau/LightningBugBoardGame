@@ -918,8 +918,15 @@ namespace Firefly.Core.Actions
             error = null;
             if (IsNamedAllianceCruiserCard(drawn.Card))
             {
-                game.Tokens = game.Tokens.WithAllianceCruiser(drawn.SectorId);
-                AllianceCruiserContact.SetHead(game, game.CurrentPlayer.Id, drawn.SectorId);
+                // Safe Harbor: if the snap Sector is a Haven, player to the right places adjacent.
+                if (!HavenRules.TryPlaceAllianceCruiser(
+                    game,
+                    drawn.SectorId,
+                    choice?.AllianceCruiserToSectorId,
+                    out error))
+                    return false;
+                var cruiserSector = game.Tokens.AllianceCruiserSectorId!;
+                AllianceCruiserContact.SetHead(game, game.CurrentPlayer.Id, cruiserSector);
                 game.BountyDeck?.CycleWantedList(game.RemovedFromPlay);
                 game.AllianceAlertDeck?.DrawAndActivate();
                 return true;
@@ -997,6 +1004,9 @@ namespace Firefly.Core.Actions
                 return false;
             }
 
+            if (!HavenRules.CanChooseCruiserDestination(game, destination!, out error))
+                return false;
+
             game.Tokens = game.Tokens.WithAllianceCruiser(destination);
             // FAQ 4.1 p.14: Outlaws in the Cruiser's new Sector resolve Contact before the flyer continues.
             AllianceCruiserContact.QueueForOutlawsInSector(game, destination!);
@@ -1035,6 +1045,9 @@ namespace Firefly.Core.Actions
                 error = "Alliance Entanglements destination must have an Outlaw Ship.";
                 return false;
             }
+
+            if (!HavenRules.CanChooseCruiserDestination(game, destination!, out error))
+                return false;
 
             game.Tokens = game.Tokens.WithAllianceCruiser(destination);
             // FAQ 4.1 p.14: moving the Cruiser onto an Outlaw queues Contact (multi-seat interrupt).
