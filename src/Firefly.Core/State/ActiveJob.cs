@@ -30,12 +30,35 @@ namespace Firefly.Core.State
         public int Remaining { get; set; }
         public Cards.MisbehaveCard? FaceUp { get; set; }
 
+        /// <summary>Option chosen for the face-up card (set after option PendingChoice).</summary>
+        public int? SelectedOptionIndex { get; set; }
+        /// <summary>Current FIRST–NEXT step index while the face-up card is in progress.</summary>
+        public int CurrentStepIndex { get; set; }
+        /// <summary>
+        /// True after a FIRST step Continues — waiting on
+        /// <see cref="PendingChoiceKinds.MisbehaveOption"/> for the NEXT step.
+        /// </summary>
+        public bool AwaitingNextStep { get; set; }
+        /// <summary>Printed "next Fight Test is Kosherized" carry from a prior step.</summary>
+        public bool NextFightKosherized { get; set; }
+        /// <summary>Printed "+N Negotiate to next Test" carry from a prior step.</summary>
+        public int NextTalkBonus { get; set; }
+
         public PendingMisbehave(string playerId, string jobId, WorkSite site, int remaining)
         {
             PlayerId = playerId;
             JobId = jobId;
             Site = site;
             Remaining = remaining;
+        }
+
+        public void ClearStepProgress()
+        {
+            SelectedOptionIndex = null;
+            CurrentStepIndex = 0;
+            AwaitingNextStep = false;
+            NextFightKosherized = false;
+            NextTalkBonus = 0;
         }
     }
 }

@@ -25,9 +25,15 @@ namespace Firefly.Core.Cards
         /// (e.g. Medic / FANCY DUDS on It Was the Best Day Ever!).
         /// </summary>
         public string? ProceedIfTag { get; }
+        /// <summary>
+        /// Optional structured FIRST–NEXT steps. Preferred over parsing FIRST/NEXT in
+        /// <see cref="Details"/>. Empty means prose / single-step.
+        /// </summary>
+        public IReadOnlyList<MisbehaveStep> Steps { get; }
 
         public bool HasStructuredBands => Bands.Count > 0;
         public bool HasStructuredEffects => Effects.Count > 0;
+        public bool HasStructuredSteps => Steps.Count > 0;
 
         public MisbehaveOption(
             string name,
@@ -35,7 +41,8 @@ namespace Firefly.Core.Cards
             MisbehaveSkillCheckSpec? skillCheck = null,
             IReadOnlyList<MisbehaveBand>? bands = null,
             IReadOnlyList<MisbehaveEffect>? effects = null,
-            string? proceedIfTag = null)
+            string? proceedIfTag = null,
+            IReadOnlyList<MisbehaveStep>? steps = null)
         {
             Name = name ?? "";
             Details = details ?? "";
@@ -43,6 +50,7 @@ namespace Firefly.Core.Cards
             Bands = bands ?? Array.Empty<MisbehaveBand>();
             Effects = effects ?? Array.Empty<MisbehaveEffect>();
             ProceedIfTag = string.IsNullOrWhiteSpace(proceedIfTag) ? null : proceedIfTag.Trim();
+            Steps = steps ?? Array.Empty<MisbehaveStep>();
         }
     }
 

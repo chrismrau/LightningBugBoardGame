@@ -62,7 +62,8 @@ namespace Firefly.Core.State
 
     /// <summary>
     /// Reserved kind ids. Wired: <see cref="NavPayOrDecline"/>, <see cref="KillVictim"/>,
-    /// <see cref="BribeAmount"/>, <see cref="MedFoamDiscard"/>. Others await migration.
+    /// <see cref="BribeAmount"/>, <see cref="MedFoamDiscard"/>, <see cref="MisbehaveOption"/>.
+    /// Haven / rival / PTR await consumer (e).
     /// </summary>
     public static class PendingChoiceKinds
     {
@@ -72,6 +73,10 @@ namespace Firefly.Core.State
         public const string BribeAmount = "bribe-amount";
         /// <summary>Optional Med Foam discard to succeed a Medic Check (Supplies.tsv / Gear).</summary>
         public const string MedFoamDiscard = "med-foam-discard";
+        /// <summary>
+        /// Misbehave card option and/or FIRST–NEXT step (GF9 p.14; C&amp;P 2-step cards).
+        /// Option ids are <c>0</c>/<c>1</c>/… or <c>step:N</c>.
+        /// </summary>
         public const string MisbehaveOption = "misbehave-option";
         public const string HavenOrRivalSector = "haven-or-rival-sector";
     }

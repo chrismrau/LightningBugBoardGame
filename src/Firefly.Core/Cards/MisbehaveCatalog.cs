@@ -55,8 +55,26 @@ namespace Firefly.Core.Cards
             var skill = ParseSkillCheck(option.SkillCheck);
             var bands = ParseBands(option.Bands);
             var effects = ParseEffects(option.Effects);
+            var steps = ParseSteps(option.Steps);
             return new MisbehaveOption(
-                option.Name, option.Details, skill, bands, effects, option.ProceedIfTag);
+                option.Name, option.Details, skill, bands, effects, option.ProceedIfTag, steps);
+        }
+
+        private static List<MisbehaveStep>? ParseSteps(List<StepDto>? dtos)
+        {
+            if (dtos == null || dtos.Count == 0)
+                return null;
+            var steps = new List<MisbehaveStep>(dtos.Count);
+            foreach (var dto in dtos)
+            {
+                steps.Add(new MisbehaveStep(
+                    dto.Name ?? "",
+                    dto.Details ?? "",
+                    ParseSkillCheck(dto.SkillCheck),
+                    ParseBands(dto.Bands),
+                    ParseEffects(dto.Effects)));
+            }
+            return steps;
         }
 
         private static MisbehaveSkillThresholds? ParseThresholds(SkillThresholdsDto? dto)
@@ -195,6 +213,15 @@ namespace Firefly.Core.Cards
             public string Name { get; set; } = "";
             public string Details { get; set; } = "";
             public string? ProceedIfTag { get; set; }
+            public SkillCheckDto? SkillCheck { get; set; }
+            public List<BandDto>? Bands { get; set; }
+            public List<EffectDto>? Effects { get; set; }
+            public List<StepDto>? Steps { get; set; }
+        }
+        private sealed class StepDto
+        {
+            public string? Name { get; set; }
+            public string? Details { get; set; }
             public SkillCheckDto? SkillCheck { get; set; }
             public List<BandDto>? Bands { get; set; }
             public List<EffectDto>? Effects { get; set; }

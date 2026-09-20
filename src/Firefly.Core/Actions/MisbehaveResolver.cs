@@ -16,7 +16,17 @@ namespace Firefly.Core.Actions
 
     public sealed class MisbehaveChoice
     {
-        public int OptionIndex { get; set; }
+        /// <summary>
+        /// Card option index. Null when the card has multiple options and the player has not
+        /// chosen yet — suspends via <see cref="PendingChoiceKinds.MisbehaveOption"/>
+        /// (GF9 p.14: most Misbehave cards have 2 options; you may attempt either).
+        /// </summary>
+        public int? OptionIndex { get; set; }
+        /// <summary>
+        /// FIRST–NEXT step index. Null means start at step 0, or accept a pending NEXT
+        /// via <see cref="PendingChoiceKinds.MisbehaveOption"/> after a Continue.
+        /// </summary>
+        public int? StepIndex { get; set; }
         public bool UseAce { get; set; }
         public bool PayDisgruntledCuts { get; set; }
         public bool AcceptPay { get; set; } = true;
@@ -95,6 +105,8 @@ namespace Firefly.Core.Actions
         private bool _resumingKillVictims;
         /// <summary>True while bribe / Med Foam resume re-enters <see cref="TryResolve"/>.</summary>
         private bool _resumingBribeOrMedFoam;
+        /// <summary>True while option / FIRST–NEXT step resume re-enters <see cref="TryResolve"/>.</summary>
+        private bool _resumingMisbehaveOption;
         private bool _frozenSkillReady;
         private SkillCheckResult? _frozenSkillCheck;
         private string? _frozenBandText;
@@ -111,7 +123,85 @@ namespace Firefly.Core.Actions
             if (game.Misbehave == null)
                 throw new InvalidOperationException("Misbehave deck is not loaded.");
             pending.FaceUp = game.Misbehave.Draw();
+            pending.ClearStepProgress();
             return pending.FaceUp;
+        }
+
+        /// <summary>
+        /// Resume after <see cref="PendingChoiceKinds.MisbehaveOption"/>: card option (0/1/…)
+        /// or FIRST–NEXT step id (<c>step:N</c>). GF9 p.14 — choose between options.
+        /// </summary>
+        public bool TryResumeMisbehaveOption(
+            GameState game,
+            string playerId,
+            ChoiceSubmission submission,
+            MisbehaveChoice choice,
+            out MisbehaveResolution? resolution,
+            out string? error,
+            IRng? rng = null)
+        {
+            resolution = null;
+            error = null;
+            if (game.PendingChoice == null
+                || !string.Equals(
+                    game.PendingChoice.Kind,
+                    PendingChoiceKinds.MisbehaveOption,
+                    StringComparison.Ordinal))
+            {
+                error = "No Misbehave option choice is pending.";
+                return false;
+            }
+
+            var pending = game.PendingMisbehave;
+            if (pending == null || pending.FaceUp == null)
+            {
+                error = "No Misbehave is pending.";
+                return false;
+            }
+
+            var selected = submission.SelectedOptionId;
+            if (string.IsNullOrWhiteSpace(selected))
+            {
+                error = "Select a Misbehave option or step.";
+                return false;
+            }
+
+            if (MisbehaveSteps.TryParseStepOptionId(selected, out var stepIndex))
+            {
+                choice.StepIndex = stepIndex;
+                if (pending.SelectedOptionIndex != null)
+                    choice.OptionIndex = pending.SelectedOptionIndex;
+                // Fresh bribe / kill hooks for the next skill test.
+                choice.SkillCheck = null;
+                choice.Kill = null;
+                pending.AwaitingNextStep = false;
+                pending.CurrentStepIndex = stepIndex;
+            }
+            else if (int.TryParse(selected, out var optionIndex))
+            {
+                choice.OptionIndex = optionIndex;
+                pending.SelectedOptionIndex = optionIndex;
+                pending.CurrentStepIndex = 0;
+                pending.AwaitingNextStep = false;
+            }
+            else
+            {
+                error = "Unknown Misbehave option id.";
+                return false;
+            }
+
+            if (!game.TrySubmitChoice(playerId, submission, out _, out error))
+                return false;
+
+            _resumingMisbehaveOption = true;
+            try
+            {
+                return TryResolve(game, playerId, choice, out resolution, out error, rng);
+            }
+            finally
+            {
+                _resumingMisbehaveOption = false;
+            }
         }
 
         /// <summary>
@@ -281,7 +371,10 @@ namespace Firefly.Core.Actions
                 error = "This Misbehave belongs to another player.";
                 return false;
             }
-            if (game.PendingChoice != null && !_resumingKillVictims && !_resumingBribeOrMedFoam)
+            if (game.PendingChoice != null
+                && !_resumingKillVictims
+                && !_resumingBribeOrMedFoam
+                && !_resumingMisbehaveOption)
             {
                 error = "Resolve the pending choice before continuing Misbehave.";
                 return false;
@@ -305,20 +398,55 @@ namespace Firefly.Core.Actions
                 var aceCash = AbilityDispatcher.MisbehaveProceedCash(player, AbilityContext.WorkingJob);
                 if (aceCash > 0)
                     player.Cash += aceCash;
+                pending.ClearStepProgress();
                 return Finish(game, playerId, card, null, MisbehaveOutcome.Proceed, null, 0, 0, 0, aceCash, true, out resolution, out error);
             }
 
-            if (choice.OptionIndex < 0 || choice.OptionIndex >= card.Options.Count)
+            // GF9 p.14: "most Misbehave Cards have 2 options on each card. You may attempt either option."
+            if (NeedsOptionChoice(pending, card, choice))
+            {
+                if (!TrySuspendOptionChoice(game, player, card, out error))
+                    return false;
+                error = "Choose a Misbehave option.";
+                return false;
+            }
+
+            var optionIndex = choice.OptionIndex
+                ?? pending.SelectedOptionIndex
+                ?? (card.Options.Count == 1 ? 0 : (int?)null);
+            if (optionIndex == null || optionIndex < 0 || optionIndex >= card.Options.Count)
             {
                 error = "Invalid Misbehave option.";
                 return false;
             }
 
-            var option = card.Options[choice.OptionIndex];
+            pending.SelectedOptionIndex = optionIndex;
+            var option = card.Options[optionIndex.Value];
             if (!MeetsRequirement(game, player, option.Details, out error))
                 return false;
 
-            var details = option.Details ?? "";
+            var steps = MisbehaveSteps.ForOption(option);
+            if (NeedsNextStepChoice(pending, choice, steps))
+            {
+                if (!TrySuspendNextStepChoice(game, player, card, option, steps, pending.CurrentStepIndex, out error))
+                    return false;
+                error = "Choose the next Misbehave step.";
+                return false;
+            }
+
+            var stepIndex = choice.StepIndex ?? pending.CurrentStepIndex;
+            if (stepIndex < 0 || stepIndex >= steps.Count)
+            {
+                error = "Invalid Misbehave step.";
+                return false;
+            }
+
+            pending.CurrentStepIndex = stepIndex;
+            pending.AwaitingNextStep = false;
+            var step = steps[stepIndex];
+            // Prefer structured step overlay; fall back to option-level structured then prose.
+            var stepOption = BuildStepOption(option, step, stepIndex);
+            var details = stepOption.Details ?? "";
             if (IsAllianceAlertUpdate(card, details))
             {
                 CycleAllianceAlert(game);
@@ -326,12 +454,13 @@ namespace Firefly.Core.Actions
                 var alertOutcome = die <= player.Warrants
                     ? MisbehaveOutcome.Botched
                     : MisbehaveOutcome.Proceed;
+                pending.ClearStepProgress();
                 return Finish(game, playerId, card, option, alertOutcome, null, 0, 0, 0, 0, false, out resolution, out error);
             }
 
             // Structured overlay preferred when present; otherwise prose/regex path.
             if (!TryResolveSkillAndBand(
-                game, player, card, option, details, choice, rng,
+                game, player, card, stepOption, details, choice, rng, pending,
                 out var check, out var bandText, out var structuredEffects, out var bribeCash, out error))
                 return false;
 
@@ -340,6 +469,7 @@ namespace Firefly.Core.Actions
                 var extra = Contains(details, "Draw two") || Contains(details, "Draw 2") ? 1 : 0;
                 pending.Remaining += extra;
                 ClearFrozenSkill();
+                pending.ClearStepProgress();
                 return Finish(game, playerId, card, option, MisbehaveOutcome.Replaced, check, 0, 0, 0, 0, false, out resolution, out error);
             }
 
@@ -456,6 +586,7 @@ namespace Firefly.Core.Actions
             }
 
             // GF9 / FAQ: Warrant Issued while Working discards the Job. Niska Pound of Flesh: Kill a Crew.
+            // Mid-card Continue bands that also issue a Warrant still discard (warrant ends the Job).
             if (warrants > 0 && game.PendingMisbehave != null)
             {
                 if (!TryAbandonJobForWarrant(
@@ -463,11 +594,33 @@ namespace Firefly.Core.Actions
                     return false;
                 game.Misbehave?.ResolveIntoDiscard(card);
                 if (game.PendingMisbehave != null)
+                {
                     game.PendingMisbehave.FaceUp = null;
+                    game.PendingMisbehave.ClearStepProgress();
+                }
                 resolution = new MisbehaveResolution(
                     card, option, MisbehaveOutcome.Botched, check, warrants, killed, loaded, cashDelta, false, abandonedWork);
                 error = null;
                 return true;
+            }
+
+            // FIRST–NEXT: Continue / non-final Proceed → suspend for the NEXT step.
+            if (outcome != MisbehaveOutcome.Botched
+                && MisbehaveSteps.IsContinueToNext(effectBand, stepIndex, steps.Count))
+            {
+                ApplyStepCarryForward(pending, effectBand);
+                pending.CurrentStepIndex = stepIndex + 1;
+                pending.AwaitingNextStep = true;
+                choice.SkillCheck = null;
+                choice.Kill = null;
+                if (!TrySuspendNextStepChoice(game, player, card, option, steps, pending.CurrentStepIndex, out error))
+                {
+                    pending.AwaitingNextStep = false;
+                    return false;
+                }
+                error = "Choose the next Misbehave step.";
+                resolution = null;
+                return false;
             }
 
             if (outcome == MisbehaveOutcome.Proceed)
@@ -482,6 +635,7 @@ namespace Firefly.Core.Actions
                 }
             }
 
+            pending.ClearStepProgress();
             return Finish(game, playerId, card, option, outcome, check, warrants, killed, loaded, cashDelta, false, out resolution, out error);
         }
 
@@ -497,6 +651,7 @@ namespace Firefly.Core.Actions
             string details,
             MisbehaveChoice choice,
             IRng rng,
+            PendingMisbehave pending,
             out SkillCheckResult? check,
             out string bandText,
             out IReadOnlyList<MisbehaveEffect>? structuredEffects,
@@ -529,7 +684,7 @@ namespace Firefly.Core.Actions
                 return true;
             }
 
-            if (!TryGetSkillCheck(option, card, details, out var skillCheck))
+            if (!TryGetSkillCheck(option, card, details, pending, out var skillCheck))
             {
                 if (option.HasStructuredEffects)
                     structuredEffects = option.Effects;
@@ -542,7 +697,7 @@ namespace Firefly.Core.Actions
                 if (!SkillCheck.TrySuspendBribeChoice(
                         game,
                         player,
-                        contextId: $"{card.Id}:{choice.OptionIndex}",
+                        contextId: $"{card.Id}:{pending.SelectedOptionIndex}:{pending.CurrentStepIndex}",
                         out error))
                     return false;
                 error = "Choose how many Bribes to pay before rolling.";
@@ -552,8 +707,11 @@ namespace Firefly.Core.Actions
             if (!skillCheck.TryResolve(player, rng, out check, out error, choice.SkillCheck))
                 return false;
             bribeCash = check.BribeDollarsPaid;
-            var sum = check.Total + BonusFromGear(game, player, details);
+            var sum = check.Total + BonusFromGear(game, player, details) + pending.NextTalkBonus;
             check = check.WithTotal(sum);
+            // Next-test talk bonus is consumed by this roll.
+            pending.NextTalkBonus = 0;
+            pending.NextFightKosherized = false;
 
             if (option.HasStructuredBands)
             {
@@ -569,11 +727,42 @@ namespace Firefly.Core.Actions
             }
             else
             {
-                bandText = SkillCheck.BandText(details, sum) ?? details;
+                // When printed bands omit the success line (C&P FIRST steps sometimes list
+                // only the fail band), fall back to the skill-test target: hit → Proceed.
+                bandText = SkillCheck.BandText(details, sum)
+                    ?? (check.Success ? "Proceed" : "Attempt Botched");
                 if (option.HasStructuredEffects)
                     structuredEffects = option.Effects;
             }
 
+            return true;
+        }
+
+        private static bool TryGetSkillCheck(
+            MisbehaveOption option,
+            MisbehaveCard card,
+            string details,
+            PendingMisbehave pending,
+            out SkillCheck skillCheck)
+        {
+            if (option.SkillCheck != null)
+            {
+                var spec = option.SkillCheck;
+                var kosherized = spec.Kosherized || card.Kosherized
+                    || (pending.NextFightKosherized && spec.Skill == Skill.Fight);
+                var bribes = (spec.BribesAllowed || card.Bribes) && spec.Skill == Skill.Talk;
+                skillCheck = new SkillCheck(spec.Skill, spec.Target, kosherized, bribes);
+                return true;
+            }
+
+            if (!SkillCheck.TryParse(details, out skillCheck))
+                return false;
+
+            var kosher = skillCheck.Kosherized || card.Kosherized
+                || (pending.NextFightKosherized && skillCheck.Skill == Skill.Fight);
+            var bribe = (skillCheck.BribesAllowed || card.Bribes) && skillCheck.Skill == Skill.Talk;
+            if (kosher != skillCheck.Kosherized || bribe != skillCheck.BribesAllowed)
+                skillCheck = new SkillCheck(skillCheck.Skill, skillCheck.Target, kosher, bribe);
             return true;
         }
 
@@ -600,35 +789,130 @@ namespace Firefly.Core.Actions
             _pendingKillAfterVictims = null;
         }
 
-        private static bool TryGetSkillCheck(
-            MisbehaveOption option,
+        private static bool NeedsOptionChoice(
+            PendingMisbehave pending,
             MisbehaveCard card,
-            string details,
-            out SkillCheck skillCheck)
+            MisbehaveChoice choice)
         {
-            if (option.SkillCheck != null)
-            {
-                var spec = option.SkillCheck;
-                var kosherized = spec.Kosherized || card.Kosherized;
-                var bribes = (spec.BribesAllowed || card.Bribes) && spec.Skill == Skill.Talk;
-                skillCheck = new SkillCheck(spec.Skill, spec.Target, kosherized, bribes);
-                return true;
-            }
-
-            if (!SkillCheck.TryParse(details, out skillCheck))
+            if (choice.OptionIndex != null || pending.SelectedOptionIndex != null)
                 return false;
+            return card.Options.Count > 1;
+        }
 
-            // Card-level flags overlay prose parses that omitted Bribes/Kosherized wording.
-            if ((card.Kosherized && !skillCheck.Kosherized) || (card.Bribes && !skillCheck.BribesAllowed))
+        private static bool NeedsNextStepChoice(
+            PendingMisbehave pending,
+            MisbehaveChoice choice,
+            IReadOnlyList<MisbehaveStep> steps)
+        {
+            if (steps.Count <= 1)
+                return false;
+            if (choice.StepIndex != null)
+                return false;
+            return pending.AwaitingNextStep;
+        }
+
+        private static MisbehaveOption BuildStepOption(
+            MisbehaveOption parent,
+            MisbehaveStep step,
+            int stepIndex)
+        {
+            // Structured step overlay wins; else inherit parent structured fields only on
+            // single-step options (multi-step prose must not use option-level skill for NEXT).
+            if (step.SkillCheck != null || step.HasStructuredBands || step.HasStructuredEffects)
+                return step.AsOption(stepIndex == 0 ? parent.ProceedIfTag : null);
+
+            if (parent.HasStructuredSteps)
+                return step.AsOption(stepIndex == 0 ? parent.ProceedIfTag : null);
+
+            // Single-step: keep parent structured skill/bands/effects.
+            var steps = MisbehaveSteps.ForOption(parent);
+            if (steps.Count == 1)
             {
-                var bribes = (skillCheck.BribesAllowed || card.Bribes) && skillCheck.Skill == Skill.Talk;
-                skillCheck = new SkillCheck(
-                    skillCheck.Skill,
-                    skillCheck.Target,
-                    skillCheck.Kosherized || card.Kosherized,
-                    bribes);
+                return new MisbehaveOption(
+                    parent.Name,
+                    string.IsNullOrWhiteSpace(step.Details) ? parent.Details : step.Details,
+                    parent.SkillCheck,
+                    parent.Bands,
+                    parent.Effects,
+                    parent.ProceedIfTag);
             }
-            return true;
+
+            // Multi-step prose: resolve against this step's details only.
+            return step.AsOption(stepIndex == 0 ? parent.ProceedIfTag : null);
+        }
+
+        private static bool TrySuspendOptionChoice(
+            GameState game,
+            PlayerState player,
+            MisbehaveCard card,
+            out string? error)
+        {
+            error = null;
+            var legal = new List<string>();
+            for (var i = 0; i < card.Options.Count; i++)
+            {
+                if (MeetsRequirement(game, player, card.Options[i].Details, out _))
+                    legal.Add(i.ToString());
+            }
+
+            if (legal.Count == 0)
+            {
+                error = "No legal Misbehave options.";
+                return false;
+            }
+
+            // One legal option among many still needs a pick? GF9 says choose; if only one
+            // meets Requires, auto-select would skip the prompt — still suspend so the player
+            // confirms (assignment: multiple options → suspend).
+            var pending = new PendingChoice(
+                player.Id,
+                PendingChoiceKinds.MisbehaveOption,
+                contextId: card.Id,
+                options: legal,
+                prompt: "Choose a Misbehave option.");
+            return game.TrySetPendingChoice(pending, out error);
+        }
+
+        private static bool TrySuspendNextStepChoice(
+            GameState game,
+            PlayerState player,
+            MisbehaveCard card,
+            MisbehaveOption option,
+            IReadOnlyList<MisbehaveStep> steps,
+            int stepIndex,
+            out string? error)
+        {
+            error = null;
+            if (stepIndex < 0 || stepIndex >= steps.Count)
+            {
+                error = "Invalid Misbehave step.";
+                return false;
+            }
+
+            var step = steps[stepIndex];
+            var id = MisbehaveSteps.StepOptionId(stepIndex);
+            var pending = new PendingChoice(
+                player.Id,
+                PendingChoiceKinds.MisbehaveOption,
+                contextId: $"{card.Id}:step:{stepIndex}",
+                options: new[] { id },
+                prompt: string.IsNullOrWhiteSpace(step.Name)
+                    ? "Continue to the next Misbehave step."
+                    : $"Continue: {step.Name}");
+            return game.TrySetPendingChoice(pending, out error);
+        }
+
+        private static void ApplyStepCarryForward(PendingMisbehave pending, string effectBand)
+        {
+            if (Contains(effectBand, "next Fight Test is Kosherized"))
+                pending.NextFightKosherized = true;
+
+            var bonus = Regex.Match(
+                effectBand,
+                @"\+(\d+)\s+Negotiate\s+to\s+next\s+Test",
+                RegexOptions.IgnoreCase);
+            if (bonus.Success)
+                pending.NextTalkBonus += int.Parse(bonus.Groups[1].Value);
         }
 
         private static bool TryApplyStructuredEffects(
