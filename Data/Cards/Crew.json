@@ -1,6 +1,6 @@
 {
   "meta": {
-    "description": "Firefly: The Game – Crew cards",
+    "description": "Firefly: The Game \u2013 Crew cards",
     "count": 71,
     "schemaVersion": "1.0"
   },
@@ -473,9 +473,15 @@
         "Silverhold": 1
       },
       "count": 1,
-      "specialAbilityType": "Circumstance bonus",
+      "specialAbilityType": "showdownForceRivalReroll",
       "ability": "0",
-      "id": "crew_chari_piratesbountyhunters"
+      "id": "crew_chari_piratesbountyhunters",
+      "abilities": [
+        {
+          "type": "showdownForceRivalReroll",
+          "mandatory": false
+        }
+      ]
     },
     {
       "class": "Standard",
@@ -695,9 +701,16 @@
         "Persephone": 1
       },
       "count": 1,
-      "specialAbilityType": "Morale Booster",
+      "specialAbilityType": "moraleBooster",
       "ability": "0",
-      "id": "crew_emma"
+      "id": "crew_emma",
+      "abilities": [
+        {
+          "type": "moraleBooster",
+          "mandatory": false,
+          "subject": "Emma"
+        }
+      ]
     },
     {
       "class": "Standard",
@@ -1011,9 +1024,16 @@
         "Space Bazaar": 1
       },
       "count": 1,
-      "specialAbilityType": "Morale Booster",
+      "specialAbilityType": "moraleBooster",
       "ability": "0",
-      "id": "crew_helen"
+      "id": "crew_helen",
+      "abilities": [
+        {
+          "type": "moraleBooster",
+          "mandatory": false,
+          "subject": "Helen"
+        }
+      ]
     },
     {
       "class": "Standard",
@@ -1277,9 +1297,16 @@
         "Regina": 1
       },
       "count": 1,
-      "specialAbilityType": "Morale Booster",
+      "specialAbilityType": "moraleBooster",
       "ability": "0",
-      "id": "crew_lucy"
+      "id": "crew_lucy",
+      "abilities": [
+        {
+          "type": "moraleBooster",
+          "mandatory": false,
+          "subject": "Lucy"
+        }
+      ]
     },
     {
       "class": "Standard",
@@ -1811,9 +1838,15 @@
         "Osiris": 1
       },
       "count": 1,
-      "specialAbilityType": "Circumstance bonus",
+      "specialAbilityType": "showdownReroll",
       "ability": "0",
-      "id": "crew_the-guardian_piratesbountyhunters"
+      "id": "crew_the-guardian_piratesbountyhunters",
+      "abilities": [
+        {
+          "type": "showdownReroll",
+          "mandatory": false
+        }
+      ]
     },
     {
       "class": "Standard",

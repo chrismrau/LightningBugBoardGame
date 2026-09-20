@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Firefly.Core.Abilities;
 using Firefly.Core.Cards;
 using Firefly.Core.Map;
 using Firefly.Core.State;
@@ -128,7 +129,12 @@ namespace Firefly.Core.Actions
 
             var cost = request.Fuel * FuelPrice + request.Parts * PartsPrice;
             foreach (var card in wanted)
+            {
+                if (card.Kind == SupplyKind.Crew
+                    && AbilityDispatcher.HasFreeHireCrew(player))
+                    continue; // Nandi Heart of Gold: May Hire Crew at no cost.
                 cost += card.Cost;
+            }
             if (player.Cash < cost)
             {
                 error = $"Need ${cost}, have ${player.Cash}.";

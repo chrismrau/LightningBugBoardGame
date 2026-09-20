@@ -8,6 +8,7 @@ namespace Firefly.Core.Actions
     /// "The player may choose to use either TECH or NEGOTIATE skill."
     /// FAQ 4.1 p.9: Boarding is a prerequisite — not convertible to Fight (Stitch).
     /// Printed piracy cards: Tech 6 or Negotiate 6 (Skill Test, N dice).
+    /// Cortland: Negotiate Boarding is a Negotiate Test (not a Showdown) — Bribes apply.
     /// </summary>
     public static class BoardingTest
     {
@@ -18,6 +19,8 @@ namespace Firefly.Core.Actions
 
         /// <summary>
         /// Resolve a Boarding Test. Fails closed if Fight (or other) is chosen.
+        /// Applies Cortland <c>bribesOnAnyNegotiate</c> on Talk. Callers must suspend
+        /// via <see cref="SkillCheck.NeedsBribeChoice"/> before resolving when needed.
         /// </summary>
         public static bool TryResolve(
             PlayerState player,
@@ -25,7 +28,8 @@ namespace Firefly.Core.Actions
             IRng rng,
             out SkillCheckResult result,
             out string? error,
-            int target = DefaultTarget)
+            int target = DefaultTarget,
+            SkillCheckChoice? choice = null)
         {
             result = null!;
             if (!IsAllowedSkill(skill))
@@ -37,8 +41,18 @@ namespace Firefly.Core.Actions
             if (target < 1)
                 target = DefaultTarget;
 
-            var check = new SkillCheck(skill, target);
-            return check.TryResolve(player, rng, out result, out error);
+            var check = SkillCheck.WithAbilityBribes(new SkillCheck(skill, target), player);
+            return check.TryResolve(player, rng, out result, out error, choice);
+        }
+
+        /// <summary>
+        /// Build the Boarding SkillCheck with Cortland Bribes enablement (no roll yet).
+        /// </summary>
+        public static SkillCheck BuildCheck(PlayerState player, Skill skill, int target = DefaultTarget)
+        {
+            if (target < 1)
+                target = DefaultTarget;
+            return SkillCheck.WithAbilityBribes(new SkillCheck(skill, target), player);
         }
 
         /// <summary>

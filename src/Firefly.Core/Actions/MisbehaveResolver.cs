@@ -352,6 +352,56 @@ namespace Firefly.Core.Actions
         }
 
         /// <summary>
+        /// Resume after <see cref="PendingChoiceKinds.DiscardToReroll"/>: discard gear + re-roll
+        /// or decline (Extra Ammo Clips / Yolonda's Pistol).
+        /// </summary>
+        public bool TryResumeDiscardToReroll(
+            GameState game,
+            string playerId,
+            ChoiceSubmission submission,
+            MisbehaveChoice choice,
+            out MisbehaveResolution? resolution,
+            out string? error,
+            IRng? rng = null)
+        {
+            resolution = null;
+            error = null;
+            if (game.PendingChoice == null
+                || !string.Equals(
+                    game.PendingChoice.Kind,
+                    PendingChoiceKinds.DiscardToReroll,
+                    StringComparison.Ordinal))
+            {
+                error = "No discard-to-reroll choice is pending.";
+                return false;
+            }
+            if (_pendingRerollResult == null)
+            {
+                error = "Discard-to-reroll context is missing the first roll.";
+                return false;
+            }
+
+            var gearId = game.PendingChoice.ContextId;
+            if (!SkillCheck.TryMergeDiscardToRerollSubmission(
+                    submission, gearId, choice.SkillCheck, out var merged, out error))
+                return false;
+            choice.SkillCheck = merged;
+
+            if (!game.TrySubmitChoice(playerId, submission, out _, out error))
+                return false;
+
+            _resumingBribeOrMedFoam = true;
+            try
+            {
+                return TryResolve(game, playerId, choice, out resolution, out error, rng);
+            }
+            finally
+            {
+                _resumingBribeOrMedFoam = false;
+            }
+        }
+
+        /// <summary>
         /// Resume after <see cref="PendingChoiceKinds.MedFoamDiscard"/>: merge discard/decline
         /// and re-enter with the frozen skill band.
         /// </summary>
@@ -755,13 +805,50 @@ namespace Firefly.Core.Actions
                 return false;
             }
 
-            // Resume after skillReroll may: keep first roll or re-roll once.
-            if (_pendingRerollResult != null && choice.SkillCheck?.AcceptReroll is bool acceptReroll)
+            // Resume after discard-to-reroll may, or skillReroll may.
+            if (_pendingRerollResult != null
+                && choice.SkillCheck?.AcceptDiscardReroll is bool acceptDiscard)
+            {
+                if (acceptDiscard)
+                {
+                    var gearId = choice.SkillCheck.DiscardRerollGearId
+                        ?? AbilityDispatcher.FindDiscardToRerollGear(
+                            game, player, _pendingRerollResult.Check.Skill, AbilityContext.WorkingJob);
+                    if (gearId == null
+                        || !GearCarriage.TryDiscardGear(player, gearId, out error))
+                    {
+                        _pendingRerollResult = null;
+                        return false;
+                    }
+                    check = _pendingRerollResult.Check.RerollKeepingBribes(
+                        player, rng, _pendingRerollResult);
+                }
+                else
+                    check = _pendingRerollResult;
+                _pendingRerollResult = null;
+            }
+            else if (_pendingRerollResult != null && choice.SkillCheck?.AcceptReroll is bool acceptReroll)
             {
                 check = acceptReroll
                     ? _pendingRerollResult.Check.RerollKeepingBribes(player, rng, _pendingRerollResult)
                     : _pendingRerollResult;
                 _pendingRerollResult = null;
+
+                // After crew skillReroll, discard-to-reroll gear may still apply.
+                if (AbilityDispatcher.NeedsDiscardToRerollChoice(
+                        game, player, check.Check.Skill, choice.SkillCheck, AbilityContext.WorkingJob))
+                {
+                    var gearId = AbilityDispatcher.FindDiscardToRerollGear(
+                        game, player, check.Check.Skill, AbilityContext.WorkingJob)!;
+                    _pendingRerollResult = check;
+                    if (!SkillCheck.TrySuspendDiscardToReroll(game, player, gearId, out error))
+                    {
+                        _pendingRerollResult = null;
+                        return false;
+                    }
+                    error = "Choose whether to discard gear to re-roll this Fight test.";
+                    return false;
+                }
             }
             else
             {
@@ -783,6 +870,21 @@ namespace Firefly.Core.Actions
                         return false;
                     }
                     error = "Choose whether to re-roll this skill test.";
+                    return false;
+                }
+
+                if (AbilityDispatcher.NeedsDiscardToRerollChoice(
+                        game, player, skillCheck.Skill, choice.SkillCheck, AbilityContext.WorkingJob))
+                {
+                    var gearId = AbilityDispatcher.FindDiscardToRerollGear(
+                        game, player, skillCheck.Skill, AbilityContext.WorkingJob)!;
+                    _pendingRerollResult = check;
+                    if (!SkillCheck.TrySuspendDiscardToReroll(game, player, gearId, out error))
+                    {
+                        _pendingRerollResult = null;
+                        return false;
+                    }
+                    error = "Choose whether to discard gear to re-roll this Fight test.";
                     return false;
                 }
             }

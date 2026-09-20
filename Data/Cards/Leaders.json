@@ -291,9 +291,15 @@
         "YCTtS": 1
       },
       "count": 1,
-      "specialAbilityType": null,
+      "specialAbilityType": "freeHireCrew",
       "ability": null,
-      "id": "leader_nandi"
+      "id": "leader_nandi",
+      "abilities": [
+        {
+          "type": "freeHireCrew",
+          "mandatory": false
+        }
+      ]
     },
     {
       "class": "Standard",

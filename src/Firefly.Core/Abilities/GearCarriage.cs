@@ -42,6 +42,36 @@ namespace Firefly.Core.Abilities
             return n;
         }
 
+        public static bool TryDiscardGear(
+            PlayerState player,
+            string gearId,
+            out string? error)
+        {
+            error = null;
+            if (string.IsNullOrWhiteSpace(gearId))
+            {
+                error = "A gear id is required to discard.";
+                return false;
+            }
+            var removed = false;
+            for (var i = 0; i < player.Gear.Count; i++)
+            {
+                if (string.Equals(player.Gear[i], gearId, StringComparison.OrdinalIgnoreCase))
+                {
+                    player.Gear.RemoveAt(i);
+                    removed = true;
+                    break;
+                }
+            }
+            if (!removed)
+            {
+                error = $"Gear '{gearId}' is not on the ship.";
+                return false;
+            }
+            player.GearCarriers.Remove(gearId);
+            return true;
+        }
+
         public static bool TryAssign(
             GameState game,
             PlayerState player,
