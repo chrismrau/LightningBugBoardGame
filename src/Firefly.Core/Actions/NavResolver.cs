@@ -217,6 +217,7 @@ namespace Firefly.Core.Actions
         private bool _frozenSkillReady;
         private SkillCheckResult? _frozenSkillCheck;
         private string? _frozenBandText;
+        private IReadOnlyList<CardEffect>? _frozenBandEffects;
         private FlightOutcome _frozenOutcome;
 
         public bool HasPending(GameState game) => game.PendingNavDraws.Count > 0 || FaceUp != null;
@@ -353,50 +354,41 @@ namespace Firefly.Core.Actions
 
             SkillCheckResult? check = null;
             string? bandText = null;
+            IReadOnlyList<CardEffect>? bandEffects = null;
             if (_frozenSkillReady)
             {
                 check = _frozenSkillCheck;
                 bandText = _frozenBandText;
+                bandEffects = _frozenBandEffects;
                 outcome = _frozenOutcome;
             }
-            else if (SkillCheck.TryParse(option.Details, out var skillCheck))
+            else if (!TryResolveOptionSkillCheck(
+                game,
+                drawn,
+                option,
+                optionIndex,
+                player,
+                choice,
+                rng,
+                ref outcome,
+                out check,
+                out bandText,
+                out bandEffects,
+                out error))
             {
-                // GF9 p.6: choose Bribes before rolling when the test is marked Bribes.
-                if (SkillCheck.NeedsBribeChoice(player, skillCheck, choice?.SkillCheck))
-                {
-                    if (!SkillCheck.TrySuspendBribeChoice(
-                            game,
-                            player,
-                            contextId: BuildNavPayContext(drawn.Card.Id, optionIndex),
-                            out error))
-                        return false;
-                    _pendingBribeOptionIndex = optionIndex;
-                    _pendingBribeResolveChoice = choice;
-                    error = "Choose how many Bribes to pay before rolling.";
-                    return false;
-                }
-
-                if (!skillCheck.TryResolve(
-                    player,
-                    rng ?? new SystemRng(),
-                    out check,
-                    out error,
-                    choice?.SkillCheck))
-                    return false;
-                if (outcome == FlightOutcome.Conditional)
-                    outcome = SkillCheck.OutcomeFor(option.Details, check.Success);
-                bandText = SkillCheck.BandText(option.Details, check.Total);
+                return false;
             }
 
             // Suspend Kill N victim / Med Foam before token moves / costs (skill already frozen).
             if (check != null)
             {
-                var plannedKill = PlannedSkillBandKillCount(bandText);
+                var plannedKill = PlannedSkillBandKillCount(bandText, bandEffects);
                 if (CrewKill.NeedsVictimChoice(player, plannedKill, choice?.Kill))
                 {
                     _frozenSkillReady = true;
                     _frozenSkillCheck = check;
                     _frozenBandText = bandText;
+                    _frozenBandEffects = bandEffects;
                     _frozenOutcome = outcome;
                     _pendingKillOptionIndex = optionIndex;
                     _pendingKillResolveChoice = choice;
@@ -414,6 +406,7 @@ namespace Firefly.Core.Actions
                     _frozenSkillReady = true;
                     _frozenSkillCheck = check;
                     _frozenBandText = bandText;
+                    _frozenBandEffects = bandEffects;
                     _frozenOutcome = outcome;
                     _pendingKillOptionIndex = optionIndex;
                     _pendingKillResolveChoice = choice;
@@ -534,7 +527,7 @@ namespace Firefly.Core.Actions
             }
 
             if (check != null
-                && !CanApplySkillBandEffects(game, player, bandText, choice, out error))
+                && !CanApplySkillBandEffects(game, player, bandText, bandEffects, choice, out error))
             {
                 RollbackTokens();
                 RollbackResources();
@@ -557,7 +550,8 @@ namespace Firefly.Core.Actions
                 return false;
             }
 
-            if (!CanApplyOptionMicroEffects(game, drawn, player, option.Details, choice, check != null, out error))
+            if (!CanApplyOptionMicroEffects(
+                game, drawn, player, option, choice, check != null, out error))
             {
                 RollbackTokens();
                 RollbackResources();
@@ -635,10 +629,11 @@ namespace Firefly.Core.Actions
             var goodsSeized = 0;
             if (check != null)
             {
-                ApplySkillBandEffects(
+                if (!TryApplySkillBandEffects(
                     game,
                     player,
                     bandText,
+                    bandEffects,
                     choice,
                     rng ?? new SystemRng(),
                     out crewKilled,
@@ -646,14 +641,20 @@ namespace Firefly.Core.Actions
                     out fuelLost,
                     out cashGained,
                     out goodsLoaded,
-                    out goodsSeized);
+                    out goodsSeized,
+                    out error))
+                {
+                    RollbackTokens();
+                    RollbackResources();
+                    return false;
+                }
             }
 
-            ApplyOptionMicroEffects(
+            if (!TryApplyOptionMicroEffects(
                 game,
                 drawn,
                 player,
-                option.Details,
+                option,
                 choice,
                 skillCheckPresent: check != null,
                 ref warrantsIssued,
@@ -661,7 +662,13 @@ namespace Firefly.Core.Actions
                 out disgruntledCleared,
                 out contrabandSeized,
                 out fugitivesSeized,
-                out var optionGoodsLoaded);
+                out var optionGoodsLoaded,
+                out error))
+            {
+                RollbackTokens();
+                RollbackResources();
+                return false;
+            }
             if (check == null)
                 goodsLoaded = optionGoodsLoaded;
 
@@ -1248,13 +1255,90 @@ namespace Firefly.Core.Actions
             _frozenSkillReady = false;
             _frozenSkillCheck = null;
             _frozenBandText = null;
+            _frozenBandEffects = null;
             _frozenOutcome = FlightOutcome.KeepFlying;
             _pendingKillOptionIndex = -1;
             _pendingKillResolveChoice = null;
         }
 
-        private static int PlannedSkillBandKillCount(string? bandText)
+        /// <summary>
+        /// Structured skillCheck/bands preferred; else prose SkillCheck.TryParse (GF9 p.6 / Director's Cut p.14).
+        /// </summary>
+        private bool TryResolveOptionSkillCheck(
+            GameState game,
+            DrawnNav drawn,
+            NavOption option,
+            int optionIndex,
+            PlayerState player,
+            NavResolveChoice? choice,
+            IRng? rng,
+            ref FlightOutcome outcome,
+            out SkillCheckResult? check,
+            out string? bandText,
+            out IReadOnlyList<CardEffect>? bandEffects,
+            out string? error)
         {
+            check = null;
+            bandText = null;
+            bandEffects = null;
+            error = null;
+
+            SkillCheck? skillCheck = null;
+            if (option.SkillCheck != null)
+                skillCheck = option.SkillCheck.ToSkillCheck();
+            else if (!SkillCheck.TryParse(option.Details, out skillCheck))
+                return true;
+
+            // GF9 p.6: choose Bribes before rolling when the test is marked Bribes.
+            if (SkillCheck.NeedsBribeChoice(player, skillCheck, choice?.SkillCheck))
+            {
+                if (!SkillCheck.TrySuspendBribeChoice(
+                        game,
+                        player,
+                        contextId: BuildNavPayContext(drawn.Card.Id, optionIndex),
+                        out error))
+                    return false;
+                _pendingBribeOptionIndex = optionIndex;
+                _pendingBribeResolveChoice = choice;
+                error = "Choose how many Bribes to pay before rolling.";
+                return false;
+            }
+
+            if (!skillCheck.TryResolve(
+                player,
+                rng ?? new SystemRng(),
+                out check,
+                out error,
+                choice?.SkillCheck))
+                return false;
+
+            if (outcome == FlightOutcome.Conditional)
+                outcome = SkillCheck.OutcomeFor(option.Details, check!.Success);
+
+            if (option.HasStructuredBands)
+            {
+                var band = CardEffectBand.Pick(option.Bands, check!.Total);
+                bandEffects = band?.Effects;
+                bandText = !string.IsNullOrWhiteSpace(band?.Text)
+                    ? band!.Text
+                    : SkillCheck.BandText(option.Details, check.Total);
+            }
+            else
+            {
+                bandText = SkillCheck.BandText(option.Details, check!.Total);
+                bandEffects = ParseSharedEffectsFromText(bandText);
+            }
+
+            return true;
+        }
+
+        private static int PlannedSkillBandKillCount(
+            string? bandText,
+            IReadOnlyList<CardEffect>? bandEffects)
+        {
+            var structured = CardEffectApplicator.PlannedKillCount(bandEffects);
+            if (structured > 0)
+                return structured;
             if (string.IsNullOrWhiteSpace(bandText) || IsNestedSkillTreeStub(bandText))
                 return 0;
             var kill = KillCrewCount.Match(bandText);
@@ -2169,15 +2253,24 @@ namespace Firefly.Core.Actions
             GameState game,
             PlayerState player,
             string? bandText,
+            IReadOnlyList<CardEffect>? bandEffects,
             NavResolveChoice? choice,
             out string? error)
         {
             error = null;
-            if (string.IsNullOrWhiteSpace(bandText) || IsNestedSkillTreeStub(bandText))
+            if (string.IsNullOrWhiteSpace(bandText) && (bandEffects == null || bandEffects.Count == 0))
+                return true;
+            if (!string.IsNullOrWhiteSpace(bandText) && IsNestedSkillTreeStub(bandText))
                 return true;
 
-            var text = bandText!;
-            if (!TryPlanGoodsLoad(player, text, choice, out _, out _, out _, out _, out _, out error))
+            var shared = ResolveSharedBandEffects(bandText, bandEffects);
+            var context = new CardEffectContext(CardEffectSource.Nav, choice?.Kill, enforceHoldSpace: true);
+            if (!CardEffectApplicator.CanApply(player, shared, context, out error))
+                return false;
+
+            var text = bandText ?? "";
+            if (!HasTypedSharedLoad(shared)
+                && !TryPlanGoodsLoad(player, text, choice, out _, out _, out _, out _, out _, out error))
                 return false;
 
             var parts = PlannedTakeParts(text);
@@ -2200,19 +2293,27 @@ namespace Firefly.Core.Actions
             GameState game,
             DrawnNav drawn,
             PlayerState player,
-            string details,
+            NavOption option,
             NavResolveChoice? choice,
             bool skillCheckPresent,
             out string? error)
         {
             error = null;
-            var text = details ?? "";
+            var text = option.Details ?? "";
             if (IsCustomsStashSeize(text)
                 && !TryPlanCustomsStashKeep(player, choice, out _, out _, out error))
                 return false;
 
+            var shared = option.HasStructuredEffects
+                ? FilterOptionSharedEffects(option.Effects, skillCheckPresent)
+                : ParseSharedOptionMicroEffects(text, skillCheckPresent, player);
+            var context = new CardEffectContext(CardEffectSource.Nav, choice?.Kill, enforceHoldSpace: true);
+            if (!CardEffectApplicator.CanApply(player, shared, context, out error))
+                return false;
+
             // Skill-band Loads are validated in CanApplySkillBandEffects; avoid double-parse.
             if (!skillCheckPresent
+                && !HasTypedSharedLoad(shared)
                 && !TryPlanGoodsLoad(player, text, choice, out _, out _, out _, out _, out _, out error))
                 return false;
 
@@ -2232,10 +2333,11 @@ namespace Firefly.Core.Actions
             return true;
         }
 
-        private static void ApplySkillBandEffects(
+        private static bool TryApplySkillBandEffects(
             GameState game,
             PlayerState player,
             string? bandText,
+            IReadOnlyList<CardEffect>? bandEffects,
             NavResolveChoice? choice,
             IRng rng,
             out int crewKilled,
@@ -2243,7 +2345,8 @@ namespace Firefly.Core.Actions
             out int fuelLost,
             out int cashGained,
             out int goodsLoaded,
-            out int goodsSeized)
+            out int goodsSeized,
+            out string? error)
         {
             crewKilled = 0;
             warrantsIssued = 0;
@@ -2251,30 +2354,25 @@ namespace Firefly.Core.Actions
             cashGained = 0;
             goodsLoaded = 0;
             goodsSeized = 0;
-            if (string.IsNullOrWhiteSpace(bandText) || IsNestedSkillTreeStub(bandText))
-                return;
+            error = null;
+            if (string.IsNullOrWhiteSpace(bandText) && (bandEffects == null || bandEffects.Count == 0))
+                return true;
+            if (!string.IsNullOrWhiteSpace(bandText) && IsNestedSkillTreeStub(bandText))
+                return true;
 
-            var text = bandText!;
+            var text = bandText ?? "";
+            var shared = ResolveSharedBandEffects(bandText, bandEffects);
+            var context = new CardEffectContext(CardEffectSource.Nav, choice?.Kill, enforceHoldSpace: true);
+            if (!CardEffectApplicator.TryApply(
+                    game, player, shared, rng, context, out var sharedResult, out error))
+                return false;
 
-            if (Contains(text, "Warrant Issued"))
-            {
-                player.Warrants++;
-                warrantsIssued = 1;
-            }
+            crewKilled = sharedResult.CrewKilled;
+            warrantsIssued = sharedResult.WarrantsIssued;
+            cashGained = sharedResult.CashGained;
+            goodsLoaded = sharedResult.GoodsLoaded;
 
-            var kill = KillCrewCount.Match(text);
-            if (kill.Success)
-            {
-                var count = kill.Groups[1].Success ? int.Parse(kill.Groups[1].Value) : 1;
-                if (!CrewKill.TryKillUpTo(
-                        game, player, count, rng, out crewKilled, out var killError, choice?.Kill))
-                {
-                    // Prefight should have suspended; surface unexpected mid-band suspend.
-                    throw new System.InvalidOperationException(
-                        killError ?? "Kill / Med Foam choice required mid skill-band apply.");
-                }
-            }
-
+            // Nav-only adapters: fuel lose, Parts take, Goods mix load/seize, discard grab.
             var fuel = LoseOrDiscardFuel.Match(text);
             if (fuel.Success)
             {
@@ -2283,33 +2381,28 @@ namespace Firefly.Core.Actions
                 player.Fuel -= fuelLost;
             }
 
-            var cash = TakeCash.Match(text);
-            if (cash.Success)
-            {
-                cashGained = int.Parse(cash.Groups[1].Value);
-                player.Cash += cashGained;
-            }
-
             var parts = PlannedTakeParts(text);
             if (parts > 0 && HoldSpace.Fits(player, addParts: parts))
                 player.Parts += parts;
 
-            if (TryPlanGoodsLoad(
-                player,
-                text,
-                choice,
-                out var addFuel,
-                out var addParts,
-                out var addCargo,
-                out var addContra,
-                out var loaded,
-                out _))
+            // Typed Load Cargo/Contraband already applied via shared; Goods mix remains Nav-local.
+            if (!HasTypedSharedLoad(shared)
+                && TryPlanGoodsLoad(
+                    player,
+                    text,
+                    choice,
+                    out var addFuel,
+                    out var addParts,
+                    out var addCargo,
+                    out var addContra,
+                    out var loaded,
+                    out _))
             {
                 player.Fuel += addFuel;
                 player.Parts += addParts;
                 player.Cargo += addCargo;
                 player.Contraband += addContra;
-                goodsLoaded = loaded;
+                goodsLoaded += loaded;
             }
 
             if (TryPlanGoodsSeize(
@@ -2331,6 +2424,7 @@ namespace Firefly.Core.Actions
             }
 
             TryApplyDiscardGrab(game, player, text, choice, optional: false);
+            return true;
         }
 
         /// <summary>
@@ -2339,11 +2433,11 @@ namespace Firefly.Core.Actions
         /// (not skill-band text). When a skill check is present, Warrant Issued and Load are
         /// band-only to avoid double-issue / double-load.
         /// </summary>
-        private static void ApplyOptionMicroEffects(
+        private static bool TryApplyOptionMicroEffects(
             GameState game,
             DrawnNav drawn,
             PlayerState player,
-            string details,
+            NavOption option,
             NavResolveChoice? choice,
             bool skillCheckPresent,
             ref int warrantsIssued,
@@ -2351,27 +2445,44 @@ namespace Firefly.Core.Actions
             out int disgruntledCleared,
             out int contrabandSeized,
             out int fugitivesSeized,
-            out int goodsLoaded)
+            out int goodsLoaded,
+            out string? error)
         {
             moralDisgruntled = 0;
             disgruntledCleared = 0;
             contrabandSeized = 0;
             fugitivesSeized = 0;
             goodsLoaded = 0;
-            var text = details ?? "";
+            error = null;
+            var text = option.Details ?? "";
 
-            if (IsDisgruntleMoral(text))
-                moralDisgruntled = player.Roster.DisgruntleMoral();
-
-            if (Contains(text, "Remove Disgruntled from all Moral Crew"))
-                disgruntledCleared = player.Roster.ClearDisgruntledMoral();
-            else if (Contains(text, "Remove Disgruntled from all Crew"))
-                disgruntledCleared = player.Roster.ClearDisgruntled();
-
-            if (!skillCheckPresent && ShouldIssueWarrant(text, player))
+            var shared = option.HasStructuredEffects
+                ? FilterOptionSharedEffects(option.Effects, skillCheckPresent)
+                : ParseSharedOptionMicroEffects(text, skillCheckPresent, player);
+            if (shared.Count > 0)
             {
-                player.Warrants++;
-                warrantsIssued += 1;
+                var context = new CardEffectContext(CardEffectSource.Nav, choice?.Kill, enforceHoldSpace: true);
+                if (!CardEffectApplicator.TryApply(
+                        game,
+                        player,
+                        shared,
+                        rng: new SystemRng(),
+                        context,
+                        out var sharedResult,
+                        out error))
+                    return false;
+                warrantsIssued += sharedResult.WarrantsIssued;
+                moralDisgruntled += sharedResult.MoralDisgruntled;
+                disgruntledCleared += sharedResult.DisgruntledCleared;
+                goodsLoaded += sharedResult.GoodsLoaded;
+            }
+
+            // Nav-only: clear Moral Disgruntled only (shared ClearDisgruntled = all Crew).
+            if (!option.HasStructuredEffects
+                && Contains(text, "Remove Disgruntled from all Moral Crew")
+                && !Contains(text, "Remove Disgruntled from all Crew"))
+            {
+                disgruntledCleared += player.Roster.ClearDisgruntledMoral();
             }
 
             if (IsCustomsStashSeize(text)
@@ -2385,6 +2496,7 @@ namespace Firefly.Core.Actions
             }
 
             if (!skillCheckPresent
+                && !HasTypedSharedLoad(shared)
                 && TryPlanGoodsLoad(
                     player,
                     text,
@@ -2400,18 +2512,121 @@ namespace Firefly.Core.Actions
                 player.Parts += addParts;
                 player.Cargo += addCargo;
                 player.Contraband += addContra;
-                goodsLoaded = loaded;
+                goodsLoaded += loaded;
             }
 
             TryApplyBuyOnTheGo(player, text, choice);
             TryApplySellParts(player, text, choice);
-
             if (!skillCheckPresent)
                 TryApplyDiscardGrab(game, player, text, choice, optional: true);
-
             TryApplyRangeBonus(game, drawn, player, text);
             TryApplyFuelCoupling(game, player, text);
             TryApplyShipNudge(game, drawn, text, choice);
+            return true;
+        }
+
+        private static IReadOnlyList<CardEffect> ResolveSharedBandEffects(
+            string? bandText,
+            IReadOnlyList<CardEffect>? bandEffects)
+        {
+            if (bandEffects != null && bandEffects.Count > 0)
+                return bandEffects;
+            return ParseSharedEffectsFromText(bandText);
+        }
+
+        private static bool HasTypedSharedLoad(IReadOnlyList<CardEffect> effects)
+        {
+            foreach (var effect in effects)
+            {
+                if (effect.Type == CardEffectType.LoadCargo || effect.Type == CardEffectType.LoadContraband)
+                    return true;
+            }
+            return false;
+        }
+
+        private static IReadOnlyList<CardEffect> FilterOptionSharedEffects(
+            IReadOnlyList<CardEffect> effects,
+            bool skillCheckPresent)
+        {
+            if (!skillCheckPresent)
+                return effects;
+            // When a skill check is present, Warrant / typed Load / Kill / TakeCash are band-only.
+            var filtered = new List<CardEffect>();
+            foreach (var effect in effects)
+            {
+                if (effect.Type == CardEffectType.WarrantIssued
+                    || effect.Type == CardEffectType.LoadCargo
+                    || effect.Type == CardEffectType.LoadContraband
+                    || effect.Type == CardEffectType.TakeCash
+                    || effect.Type == CardEffectType.KillCrew)
+                    continue;
+                filtered.Add(effect);
+            }
+            return filtered;
+        }
+
+        /// <summary>
+        /// Intersection effects both Nav and Misbehave apply — parsed from band / option prose
+        /// when structured overlays are absent.
+        /// </summary>
+        private static IReadOnlyList<CardEffect> ParseSharedEffectsFromText(string? text)
+        {
+            var effects = new List<CardEffect>();
+            if (string.IsNullOrWhiteSpace(text) || IsNestedSkillTreeStub(text))
+                return effects;
+
+            if (Contains(text!, "Warrant Issued"))
+                effects.Add(new CardEffect(CardEffectType.WarrantIssued));
+
+            var kill = KillCrewCount.Match(text!);
+            if (kill.Success)
+            {
+                var count = kill.Groups[1].Success ? int.Parse(kill.Groups[1].Value) : 1;
+                effects.Add(new CardEffect(CardEffectType.KillCrew, count));
+            }
+
+            var cash = TakeCash.Match(text!);
+            if (cash.Success)
+                effects.Add(new CardEffect(CardEffectType.TakeCash, int.Parse(cash.Groups[1].Value)));
+
+            // Typed Load only (Goods mix stays Nav-local).
+            foreach (System.Text.RegularExpressions.Match m in LoadTypedGoods.Matches(text!))
+            {
+                var n = int.Parse(m.Groups[1].Value);
+                var kind = m.Groups[2].Value;
+                if (kind.Equals("Cargo", System.StringComparison.OrdinalIgnoreCase))
+                    effects.Add(new CardEffect(CardEffectType.LoadCargo, n));
+                else if (kind.Equals("Contraband", System.StringComparison.OrdinalIgnoreCase))
+                    effects.Add(new CardEffect(CardEffectType.LoadContraband, n));
+            }
+
+            if (IsDisgruntleMoral(text!))
+                effects.Add(new CardEffect(CardEffectType.DisgruntleMoral));
+
+            if (Contains(text!, "Remove Disgruntled from all Crew")
+                && !Contains(text!, "Remove Disgruntled from all Moral Crew"))
+                effects.Add(new CardEffect(CardEffectType.ClearDisgruntled));
+
+            return effects;
+        }
+
+        private static IReadOnlyList<CardEffect> ParseSharedOptionMicroEffects(
+            string text,
+            bool skillCheckPresent,
+            PlayerState player)
+        {
+            var effects = new List<CardEffect>();
+            if (IsDisgruntleMoral(text))
+                effects.Add(new CardEffect(CardEffectType.DisgruntleMoral));
+
+            if (Contains(text, "Remove Disgruntled from all Crew")
+                && !Contains(text, "Remove Disgruntled from all Moral Crew"))
+                effects.Add(new CardEffect(CardEffectType.ClearDisgruntled));
+
+            if (!skillCheckPresent && ShouldIssueWarrant(text, player))
+                effects.Add(new CardEffect(CardEffectType.WarrantIssued));
+
+            return effects;
         }
 
         private static bool IsDisgruntleMoral(string text) =>

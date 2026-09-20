@@ -153,17 +153,23 @@ namespace Firefly.Core.Cards
             {
                 if (string.IsNullOrWhiteSpace(dto.Type))
                     throw new InvalidDataException("Misbehave effect.type is required.");
-                if (!TryParseEffectType(dto.Type, out var type))
+                var count = dto.Count ?? dto.Amount ?? 0;
+                if (CardEffectParsing.TryParseType(dto.Type, out var shared))
+                {
+                    effects.Add(MisbehaveEffect.Of(shared, count));
+                    continue;
+                }
+                if (!TryParseLocalEffectType(dto.Type, out var local))
                     throw new InvalidDataException($"Unknown Misbehave effect.type '{dto.Type}'.");
-                effects.Add(new MisbehaveEffect(type, dto.Count ?? dto.Amount ?? 0));
+                effects.Add(MisbehaveEffect.Of(local, count));
             }
             return effects;
         }
 
-        private static bool TryParseEffectType(string raw, out MisbehaveEffectType type)
+        private static bool TryParseLocalEffectType(string raw, out MisbehaveLocalEffectType type)
         {
-            var key = raw.Trim().Replace("_", "").Replace("-", "");
-            foreach (MisbehaveEffectType candidate in Enum.GetValues(typeof(MisbehaveEffectType)))
+            var key = CardEffectParsing.Normalize(raw);
+            foreach (MisbehaveLocalEffectType candidate in Enum.GetValues(typeof(MisbehaveLocalEffectType)))
             {
                 if (candidate.ToString().Equals(key, StringComparison.OrdinalIgnoreCase))
                 {
@@ -175,12 +181,7 @@ namespace Firefly.Core.Cards
             if (key.Equals("attemptBotched", StringComparison.OrdinalIgnoreCase)
                 || key.Equals("botch", StringComparison.OrdinalIgnoreCase))
             {
-                type = MisbehaveEffectType.Botched;
-                return true;
-            }
-            if (key.Equals("warrant", StringComparison.OrdinalIgnoreCase))
-            {
-                type = MisbehaveEffectType.WarrantIssued;
+                type = MisbehaveLocalEffectType.Botched;
                 return true;
             }
             type = default;

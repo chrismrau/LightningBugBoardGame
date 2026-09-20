@@ -55,8 +55,8 @@ namespace Firefly.Core.Tests
                 Assert.True(option.SkillCheck.BribesAllowed);
                 Assert.True(option.HasStructuredBands);
                 Assert.Equal(2, option.Bands.Count);
-                Assert.Equal(MisbehaveEffectType.Botched, option.Bands[0].Effects[0].Type);
-                Assert.Equal(MisbehaveEffectType.Proceed, option.Bands[1].Effects[0].Type);
+                Assert.Equal(MisbehaveLocalEffectType.Botched, option.Bands[0].Effects[0].Local);
+                Assert.Equal(MisbehaveLocalEffectType.Proceed, option.Bands[1].Effects[0].Local);
                 Assert.Equal("1-5 Attempt Botched", option.Bands[0].Text);
             }
             finally
@@ -86,11 +86,11 @@ namespace Firefly.Core.Tests
                         {
                             new MisbehaveBand(1, 2, "1-2 Attempt Botched", new[]
                             {
-                                new MisbehaveEffect(MisbehaveEffectType.Botched)
+                                MisbehaveEffect.Of(MisbehaveLocalEffectType.Botched)
                             }),
                             new MisbehaveBand(3, null, "3+ Proceed", new[]
                             {
-                                new MisbehaveEffect(MisbehaveEffectType.Proceed)
+                                MisbehaveEffect.Of(MisbehaveLocalEffectType.Proceed)
                             })
                         })
                 });
@@ -154,13 +154,13 @@ namespace Firefly.Core.Tests
                         {
                             new MisbehaveBand(1, 7, null, new[]
                             {
-                                new MisbehaveEffect(MisbehaveEffectType.KillCrew, 1),
-                                new MisbehaveEffect(MisbehaveEffectType.WarrantIssued),
-                                new MisbehaveEffect(MisbehaveEffectType.Botched)
+                                MisbehaveEffect.Of(CardEffectType.KillCrew, 1),
+                                MisbehaveEffect.Of(CardEffectType.WarrantIssued),
+                                MisbehaveEffect.Of(MisbehaveLocalEffectType.Botched)
                             }),
                             new MisbehaveBand(8, null, null, new[]
                             {
-                                new MisbehaveEffect(MisbehaveEffectType.Proceed)
+                                MisbehaveEffect.Of(MisbehaveLocalEffectType.Proceed)
                             })
                         })
                 });
@@ -202,8 +202,8 @@ namespace Firefly.Core.Tests
                         new MisbehaveSkillCheckSpec(Skill.Talk, 6),
                         new[]
                         {
-                            new MisbehaveBand(1, 5, null, new[] { new MisbehaveEffect(MisbehaveEffectType.Botched) }),
-                            new MisbehaveBand(6, null, null, new[] { new MisbehaveEffect(MisbehaveEffectType.Proceed) })
+                            new MisbehaveBand(1, 5, null, new[] { MisbehaveEffect.Of(MisbehaveLocalEffectType.Botched) }),
+                            new MisbehaveBand(6, null, null, new[] { MisbehaveEffect.Of(MisbehaveLocalEffectType.Proceed) })
                         })
                 },
                 other: "Bribes");
@@ -236,8 +236,8 @@ namespace Firefly.Core.Tests
         {
             var bands = new List<MisbehaveBand>
             {
-                new MisbehaveBand(1, 5, "fail", new[] { new MisbehaveEffect(MisbehaveEffectType.Botched) }),
-                new MisbehaveBand(6, null, "ok", new[] { new MisbehaveEffect(MisbehaveEffectType.Proceed) })
+                new MisbehaveBand(1, 5, "fail", new[] { MisbehaveEffect.Of(MisbehaveLocalEffectType.Botched) }),
+                new MisbehaveBand(6, null, "ok", new[] { MisbehaveEffect.Of(MisbehaveLocalEffectType.Proceed) })
             };
             Assert.Equal("fail", MisbehaveBand.Pick(bands, 5)!.Text);
             Assert.Equal("ok", MisbehaveBand.Pick(bands, 6)!.Text);

@@ -464,7 +464,7 @@ namespace Firefly.Core.Actions
                 out var check, out var bandText, out var structuredEffects, out var bribeCash, out error))
                 return false;
 
-            if (HasEffect(structuredEffects, MisbehaveEffectType.ReplaceCard) || IsReplaceCard(details))
+            if (HasLocalEffect(structuredEffects, MisbehaveLocalEffectType.ReplaceCard) || IsReplaceCard(details))
             {
                 var extra = Contains(details, "Draw two") || Contains(details, "Draw 2") ? 1 : 0;
                 pending.Remaining += extra;
@@ -525,7 +525,7 @@ namespace Firefly.Core.Actions
             // Validate Solid-loss discard hooks before mutating crew / warrants.
             if (WouldLoseSolid(details)
                 || WouldLoseSolid(effectBand)
-                || (useStructured && HasEffect(structuredEffects, MisbehaveEffectType.LoseSolid)))
+                || (useStructured && HasLocalEffect(structuredEffects, MisbehaveLocalEffectType.LoseSolid)))
             {
                 var lostId = ResolveLoseSolidId(player, choice.LoseSolidId);
                 if (lostId == null)
@@ -680,7 +680,7 @@ namespace Firefly.Core.Actions
             {
                 structuredEffects = option.HasStructuredEffects
                     ? option.Effects
-                    : new[] { new MisbehaveEffect(MisbehaveEffectType.Proceed) };
+                    : new[] { MisbehaveEffect.Of(MisbehaveLocalEffectType.Proceed) };
                 return true;
             }
 
@@ -934,65 +934,54 @@ namespace Firefly.Core.Actions
             outcome = MisbehaveOutcome.Proceed;
             error = null;
 
+            var context = new CardEffectContext(CardEffectSource.Misbehave, choice.Kill);
+
             foreach (var effect in effects)
             {
-                switch (effect.Type)
+                if (effect.Shared != null)
                 {
-                    case MisbehaveEffectType.Proceed:
+                    if (!CardEffectApplicator.TryApply(
+                            game,
+                            player,
+                            new[] { effect.Shared },
+                            rng,
+                            context,
+                            out var sharedResult,
+                            out error))
+                        return false;
+                    warrants += sharedResult.WarrantsIssued;
+                    killed += sharedResult.CrewKilled;
+                    loaded += sharedResult.GoodsLoaded;
+                    cashDelta += sharedResult.CashGained;
+                    continue;
+                }
+
+                if (effect.Local == null)
+                    continue;
+                switch (effect.Local.Value)
+                {
+                    case MisbehaveLocalEffectType.Proceed:
                         outcome = MisbehaveOutcome.Proceed;
                         break;
-                    case MisbehaveEffectType.Botched:
+                    case MisbehaveLocalEffectType.Botched:
                         outcome = MisbehaveOutcome.Botched;
                         break;
-                    case MisbehaveEffectType.WarrantIssued:
-                        player.Warrants++;
-                        warrants++;
-                        break;
-                    case MisbehaveEffectType.KillAllCrew:
+                    case MisbehaveLocalEffectType.KillAllCrew:
                         killed += CrewKill.KillAll(game, player, rng, choice.Kill);
                         break;
-                    case MisbehaveEffectType.KillCrew:
-                        var killCount = effect.Count > 0 ? effect.Count : 1;
-                        if (!CrewKill.TryKillUpTo(
-                                game, player, killCount, rng, out var killedNow, out error, choice.Kill))
-                            return false;
-                        killed += killedNow;
-                        break;
-                    case MisbehaveEffectType.LoadCargo:
-                        var cargo = effect.Count > 0 ? effect.Count : 1;
-                        player.Cargo += cargo;
-                        loaded += cargo;
-                        break;
-                    case MisbehaveEffectType.LoadContraband:
-                        var contra = effect.Count > 0 ? effect.Count : 1;
-                        player.Contraband += contra;
-                        loaded += contra;
-                        break;
-                    case MisbehaveEffectType.TakeCash:
-                        var cash = effect.Count;
-                        player.Cash += cash;
-                        cashDelta += cash;
-                        break;
-                    case MisbehaveEffectType.Wanted:
+                    case MisbehaveLocalEffectType.Wanted:
                         ApplyWanted(player, "Wanted", choice.TargetCrewId);
                         break;
-                    case MisbehaveEffectType.DisgruntleMoral:
-                        player.Roster.DisgruntleMoral();
-                        break;
-                    case MisbehaveEffectType.DisgruntleMercs:
+                    case MisbehaveLocalEffectType.DisgruntleMercs:
                         player.Roster.DisgruntleWhere(
                             m => m.Card.HasProfession("Merc") || m.Card.HasProfession("Soldier"));
                         break;
-                    case MisbehaveEffectType.DisgruntleTech:
+                    case MisbehaveLocalEffectType.DisgruntleTech:
                         player.Roster.DisgruntleWhere(m => m.Card.Tech > 0);
                         break;
-                    case MisbehaveEffectType.ClearDisgruntled:
-                        foreach (var member in player.Roster.Members)
-                            member.Disgruntled = false;
+                    case MisbehaveLocalEffectType.LoseSolid:
                         break;
-                    case MisbehaveEffectType.LoseSolid:
-                        break;
-                    case MisbehaveEffectType.DiscardWarrants:
+                    case MisbehaveLocalEffectType.DiscardWarrants:
                         var discard = effect.Count > 0 ? effect.Count : choice.DiscardWarrants;
                         if (discard <= 0)
                             discard = 1;
@@ -1000,12 +989,12 @@ namespace Firefly.Core.Actions
                             discard = player.Warrants;
                         player.Warrants -= discard;
                         break;
-                    case MisbehaveEffectType.ReplaceCard:
+                    case MisbehaveLocalEffectType.ReplaceCard:
                         break;
                 }
             }
 
-            if (HasEffect(effects, MisbehaveEffectType.LoseSolid))
+            if (HasLocalEffect(effects, MisbehaveLocalEffectType.LoseSolid))
             {
                 var solidChoice = choice.SolidRep ?? new SolidRepChoice();
                 if (solidChoice.Kill == null && choice.Kill != null)
@@ -1017,13 +1006,15 @@ namespace Firefly.Core.Actions
             return true;
         }
 
-        private static bool HasEffect(IReadOnlyList<MisbehaveEffect>? effects, MisbehaveEffectType type)
+        private static bool HasLocalEffect(
+            IReadOnlyList<MisbehaveEffect>? effects,
+            MisbehaveLocalEffectType type)
         {
             if (effects == null)
                 return false;
             foreach (var effect in effects)
             {
-                if (effect.Type == type)
+                if (effect.Is(type))
                     return true;
             }
             return false;
@@ -1284,9 +1275,9 @@ namespace Firefly.Core.Actions
             {
                 foreach (var effect in structuredEffects)
                 {
-                    if (effect.Type == MisbehaveEffectType.KillAllCrew)
+                    if (effect.Is(MisbehaveLocalEffectType.KillAllCrew))
                         return int.MaxValue;
-                    if (effect.Type == MisbehaveEffectType.KillCrew)
+                    if (effect.Is(CardEffectType.KillCrew))
                         return effect.Count > 0 ? effect.Count : 1;
                 }
                 return 0;
