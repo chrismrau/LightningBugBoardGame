@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Firefly.Core.Actions;
 using Firefly.Core.Cards;
 using Firefly.Core.Data;
@@ -649,13 +650,59 @@ namespace Firefly.Core.Tests
             game.Decks!.Alliance.PlaceOnTop(game.Decks.Catalog.Get("nav_ghost-ship"));
             resolver.DrawNext(game);
 
-            Assert.True(resolver.TryResolve(game, 1, out var resolution, out var error, ScriptedRng.FromDieFaces(1)), error);
+            Assert.False(resolver.TryResolve(game, 1, out _, out var suspendError, ScriptedRng.FromDieFaces(1)));
+            Assert.Contains("Choose which crew", suspendError);
+            Assert.Equal(PendingChoiceKinds.KillVictim, game.PendingChoice!.Kind);
+            Assert.Equal("2", game.PendingChoice.ContextId);
+            Assert.NotNull(resolver.FaceUp);
+
+            Assert.True(resolver.TryResumeKillVictims(
+                game,
+                new ChoiceSubmission
+                {
+                    Values = new List<string> { "crew_kaylee", "crew_zoe" }
+                },
+                out var resolution,
+                out var error), error);
             Assert.False(resolution!.SkillCheck!.Success);
             Assert.Equal(FlightOutcome.FullStop, resolution.Outcome);
             Assert.Equal(2, resolution.CrewKilled);
             Assert.Equal(1, player.Roster.Count);
             Assert.Equal(0, resolution.CashGained);
             Assert.Equal(0, player.Cash);
+            Assert.Null(game.PendingChoice);
+            Assert.Null(resolver.FaceUp);
+        }
+
+        [Fact]
+        public void Ghost_Ship_VictimCrewIds_skips_PendingChoice()
+        {
+            var (game, resolver, player) = GameWithQueuedDraws(1);
+            var catalog = CrewCatalog.LoadDefault();
+            Assert.True(player.Roster.TryHire(catalog.Get("crew_jayne"), out _));
+            Assert.True(player.Roster.TryHire(catalog.Get("crew_zoe"), out _));
+            Assert.True(player.Roster.TryHire(catalog.Get("crew_kaylee"), out _));
+            player.FightBonus = 0;
+            game.Decks!.Alliance.PlaceOnTop(game.Decks.Catalog.Get("nav_ghost-ship"));
+            resolver.DrawNext(game);
+
+            Assert.True(resolver.TryResolve(
+                game,
+                1,
+                out var resolution,
+                out var error,
+                ScriptedRng.FromDieFaces(1),
+                new NavResolveChoice
+                {
+                    Kill = new KillChoice
+                    {
+                        VictimCrewIds = new List<string> { "crew_jayne", "crew_kaylee" }
+                    }
+                }), error);
+            Assert.Null(game.PendingChoice);
+            Assert.Equal(2, resolution!.CrewKilled);
+            Assert.NotNull(player.Roster.Find("crew_zoe"));
+            Assert.Null(player.Roster.Find("crew_jayne"));
         }
 
         [Fact]

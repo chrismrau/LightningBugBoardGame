@@ -23,7 +23,9 @@ namespace Firefly.Core.Actions
         public string? TargetCrewId { get; set; }
         public string? LoseSolidId { get; set; }
         public int DiscardWarrants { get; set; }
-        /// <summary>Thin kill / Medic hooks until PendingChoice.</summary>
+        /// <summary>
+        /// Kill / Medic hooks. Victim ids come from PendingChoice resume or tests.
+        /// </summary>
         public KillChoice? Kill { get; set; }
         /// <summary>Thin skill-test Bribes hook until PendingChoice.</summary>
         public SkillCheckChoice? SkillCheck { get; set; }
@@ -89,6 +91,14 @@ namespace Firefly.Core.Actions
 
         private readonly WorkAction _work = new WorkAction();
 
+        /// <summary>True while <see cref="TryResumeKillVictims"/> re-enters <see cref="TryResolve"/>.</summary>
+        private bool _resumingKillVictims;
+        private bool _frozenSkillReady;
+        private SkillCheckResult? _frozenSkillCheck;
+        private string? _frozenBandText;
+        private IReadOnlyList<MisbehaveEffect>? _frozenStructuredEffects;
+        private int _frozenBribeCash;
+
         public MisbehaveCard DrawNext(GameState game)
         {
             var pending = game.PendingMisbehave ?? throw new InvalidOperationException("No Misbehave is pending.");
@@ -98,6 +108,56 @@ namespace Firefly.Core.Actions
                 throw new InvalidOperationException("Misbehave deck is not loaded.");
             pending.FaceUp = game.Misbehave.Draw();
             return pending.FaceUp;
+        }
+
+        /// <summary>
+        /// Resume after <see cref="PendingChoiceKinds.KillVictim"/>: merge victim ids into
+        /// <paramref name="choice"/> and re-enter resolve with the frozen skill band.
+        /// </summary>
+        public bool TryResumeKillVictims(
+            GameState game,
+            string playerId,
+            ChoiceSubmission submission,
+            MisbehaveChoice choice,
+            out MisbehaveResolution? resolution,
+            out string? error,
+            IRng? rng = null)
+        {
+            resolution = null;
+            error = null;
+            if (game.PendingChoice == null
+                || !string.Equals(
+                    game.PendingChoice.Kind,
+                    PendingChoiceKinds.KillVictim,
+                    StringComparison.Ordinal))
+            {
+                error = "No kill-victim choice is pending.";
+                return false;
+            }
+            if (!CrewKill.TryParseKillCount(game.PendingChoice.ContextId, out var count))
+            {
+                error = "Kill-victim context is missing the kill count.";
+                return false;
+            }
+
+            var player = game.GetPlayer(playerId);
+            if (!CrewKill.TryMergeVictimSubmission(
+                    player, count, submission, choice.Kill, out var merged, out error))
+                return false;
+            choice.Kill = merged;
+
+            if (!game.TrySubmitChoice(playerId, submission, out _, out error))
+                return false;
+
+            _resumingKillVictims = true;
+            try
+            {
+                return TryResolve(game, playerId, choice, out resolution, out error, rng);
+            }
+            finally
+            {
+                _resumingKillVictims = false;
+            }
         }
 
         public bool TryResolve(
@@ -118,6 +178,11 @@ namespace Firefly.Core.Actions
             if (pending.PlayerId != playerId)
             {
                 error = "This Misbehave belongs to another player.";
+                return false;
+            }
+            if (game.PendingChoice != null && !_resumingKillVictims)
+            {
+                error = "Resolve the pending choice before continuing Misbehave.";
                 return false;
             }
 
@@ -173,6 +238,7 @@ namespace Firefly.Core.Actions
             {
                 var extra = Contains(details, "Draw two") || Contains(details, "Draw 2") ? 1 : 0;
                 pending.Remaining += extra;
+                ClearFrozenSkill();
                 return Finish(game, playerId, card, option, MisbehaveOutcome.Replaced, check, 0, 0, 0, 0, false, out resolution, out error);
             }
 
@@ -188,6 +254,29 @@ namespace Firefly.Core.Actions
             var useStructured = structuredEffects != null && structuredEffects.Count > 0;
             var effectBand = bandText ?? details;
             var effectText = check == null ? details : effectBand;
+
+            if (optionalPay && !paying)
+            {
+                effectBand = "Attempt Botched";
+                effectText = effectBand;
+                useStructured = false;
+            }
+
+            // Suspend for Kill N victim pick before mutating cash / warrants / crew.
+            var plannedKill = PlannedKillCount(
+                useStructured ? structuredEffects : null,
+                effectText);
+            if (CrewKill.NeedsVictimChoice(player, plannedKill, choice.Kill))
+            {
+                FreezeSkill(check, bandText, structuredEffects, bribeCash);
+                if (!CrewKill.TrySuspendVictimChoice(game, player, plannedKill, out error))
+                {
+                    ClearFrozenSkill();
+                    return false;
+                }
+                error = "Choose which crew are killed.";
+                return false;
+            }
 
             // Validate Solid-loss discard hooks before mutating crew / warrants.
             if (WouldLoseSolid(details)
@@ -215,12 +304,7 @@ namespace Firefly.Core.Actions
             if (Contains(details, "Pay each Disgruntled") && !choice.PayDisgruntledCuts)
                 DiscardDisgruntled(player);
 
-            if (optionalPay && !paying)
-            {
-                effectBand = "Attempt Botched";
-                effectText = effectBand;
-                useStructured = false;
-            }
+            ClearFrozenSkill();
 
             int warrants;
             int killed;
@@ -242,7 +326,8 @@ namespace Firefly.Core.Actions
                     warrants = 1;
                 }
 
-                killed = KillCrew(game, player, effectText, rng, choice.Kill);
+                if (!TryKillCrew(game, player, effectText, rng, choice.Kill, out killed, out error))
+                    return false;
                 loaded = LoadGoods(player, effectText);
                 cashDelta += TakeCash(player, effectText);
                 ApplyWanted(player, effectText, choice.TargetCrewId);
@@ -290,7 +375,7 @@ namespace Firefly.Core.Actions
         /// Prefer option.SkillCheck / option.Bands when present; else SkillCheck.TryParse + BandText.
         /// Card-level Bribes/Kosherized flags fill structured specs that omitted them.
         /// </summary>
-        private static bool TryResolveSkillAndBand(
+        private bool TryResolveSkillAndBand(
             GameState game,
             PlayerState player,
             MisbehaveCard card,
@@ -309,6 +394,16 @@ namespace Firefly.Core.Actions
             structuredEffects = null;
             bribeCash = 0;
             error = null;
+
+            // Resume after kill-victim PendingChoice: reuse the already-rolled skill band.
+            if (_frozenSkillReady)
+            {
+                check = _frozenSkillCheck;
+                bandText = _frozenBandText ?? details;
+                structuredEffects = _frozenStructuredEffects;
+                bribeCash = _frozenBribeCash;
+                return true;
+            }
 
             // Printed "If you have X, Proceed. Otherwise, …" — structured proceedIfTag overlay.
             if (!string.IsNullOrWhiteSpace(option.ProceedIfTag)
@@ -353,6 +448,28 @@ namespace Firefly.Core.Actions
             }
 
             return true;
+        }
+
+        private void FreezeSkill(
+            SkillCheckResult? check,
+            string? bandText,
+            IReadOnlyList<MisbehaveEffect>? structuredEffects,
+            int bribeCash)
+        {
+            _frozenSkillReady = true;
+            _frozenSkillCheck = check;
+            _frozenBandText = bandText;
+            _frozenStructuredEffects = structuredEffects;
+            _frozenBribeCash = bribeCash;
+        }
+
+        private void ClearFrozenSkill()
+        {
+            _frozenSkillReady = false;
+            _frozenSkillCheck = null;
+            _frozenBandText = null;
+            _frozenStructuredEffects = null;
+            _frozenBribeCash = 0;
         }
 
         private static bool TryGetSkillCheck(
@@ -424,7 +541,10 @@ namespace Firefly.Core.Actions
                         break;
                     case MisbehaveEffectType.KillCrew:
                         var killCount = effect.Count > 0 ? effect.Count : 1;
-                        killed += CrewKill.KillUpTo(game, player, killCount, rng, choice.Kill);
+                        if (!CrewKill.TryKillUpTo(
+                                game, player, killCount, rng, out var killedNow, out error, choice.Kill))
+                            return false;
+                        killed += killedNow;
                         break;
                     case MisbehaveEffectType.LoadCargo:
                         var cargo = effect.Count > 0 ? effect.Count : 1;
@@ -706,26 +826,60 @@ namespace Firefly.Core.Actions
             }
         }
 
-        private static int KillCrew(
+        private static bool TryKillCrew(
             GameState game,
             PlayerState player,
             string text,
             IRng rng,
-            KillChoice? killChoice)
+            KillChoice? killChoice,
+            out int killed,
+            out string? error)
+        {
+            killed = 0;
+            error = null;
+            if (Contains(text, "Kill all Crew"))
+            {
+                killed = CrewKill.KillAll(game, player, rng, killChoice);
+                return true;
+            }
+
+            var count = ParseKillCrewCount(text);
+            if (count <= 0)
+                return true;
+            return CrewKill.TryKillUpTo(game, player, count, rng, out killed, out error, killChoice);
+        }
+
+        private static int ParseKillCrewCount(string text)
         {
             if (Contains(text, "Kill all Crew"))
-                return CrewKill.KillAll(game, player, rng, killChoice);
-
+                return int.MaxValue;
             var numbered = Regex.Match(text, @"Kill\s+(\d+)\s+Crew", RegexOptions.IgnoreCase);
-            var count = 0;
             if (numbered.Success)
-                count = int.Parse(numbered.Groups[1].Value);
-            else if (Regex.IsMatch(text, @"Kill\s+(a|1)\s+Crew", RegexOptions.IgnoreCase))
-                count = 1;
+                return int.Parse(numbered.Groups[1].Value);
+            if (Regex.IsMatch(text, @"Kill\s+(a|1)\s+Crew", RegexOptions.IgnoreCase))
+                return 1;
+            return 0;
+        }
 
-            if (count <= 0)
+        /// <summary>
+        /// Kill N from structured effects or prose band (Kill all → no victim choice).
+        /// </summary>
+        private static int PlannedKillCount(
+            IReadOnlyList<MisbehaveEffect>? structuredEffects,
+            string effectText)
+        {
+            if (structuredEffects != null && structuredEffects.Count > 0)
+            {
+                foreach (var effect in structuredEffects)
+                {
+                    if (effect.Type == MisbehaveEffectType.KillAllCrew)
+                        return int.MaxValue;
+                    if (effect.Type == MisbehaveEffectType.KillCrew)
+                        return effect.Count > 0 ? effect.Count : 1;
+                }
                 return 0;
-            return CrewKill.KillUpTo(game, player, count, rng, killChoice);
+            }
+            return ParseKillCrewCount(effectText);
         }
 
         private static int LoadGoods(PlayerState player, string details)
@@ -841,13 +995,26 @@ namespace Firefly.Core.Actions
                 return false;
             }
 
+            if (ContactSolidBenefits.IsNiskaJob(job))
+            {
+                // Prefer KillChoice.VictimCrewIds before abandoning — PendingChoice mid-abandon
+                // would leave the Job already discarded.
+                if (CrewKill.NeedsVictimChoice(player, 1, killChoice))
+                {
+                    error =
+                        "Niska Pound of Flesh requires KillChoice.VictimCrewIds (or choose victims before the Warrant resolves).";
+                    return false;
+                }
+                if (!CrewKill.TryKillUpTo(
+                        game, player, 1, rng ?? new SystemRng(), out var niskaKilled, out error, killChoice))
+                    return false;
+                killed += niskaKilled;
+            }
+
             player.JobHand.Remove(job.Id);
             player.RemoveActive(job.Id);
             if (game.ContactDecks != null && game.ContactDecks.TryGet(job.ContactName, out var deck))
                 deck.MoveToDiscard(job);
-
-            if (ContactSolidBenefits.IsNiskaJob(job))
-                killed += CrewKill.KillUpTo(game, player, 1, rng ?? new SystemRng(), killChoice);
 
             game.PendingMisbehave = null;
             game.WorkGearLocked = false;

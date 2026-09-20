@@ -143,7 +143,7 @@ namespace Firefly.Core.Actions
         /// </summary>
         public string? ShipNudgeViaSectorId { get; set; }
         public string? ShipNudgeToSectorId { get; set; }
-        /// <summary>Thin kill / Medic hooks until PendingChoice.</summary>
+        /// <summary>Kill / Medic hooks. Victim ids from PendingChoice resume or tests.</summary>
         public KillChoice? Kill { get; set; }
         /// <summary>Thin skill-test Bribes hook until PendingChoice.</summary>
         public SkillCheckChoice? SkillCheck { get; set; }
@@ -183,6 +183,8 @@ namespace Firefly.Core.Actions
     /// Printed pay-vs-decline (Spend … to Keep Flying. Otherwise, Full Stop) suspends via
     /// <see cref="PendingChoiceKinds.NavPayOrDecline"/> when the cost is affordable unless
     /// <see cref="NavResolveChoice.PayNavCost"/> is already set; decline → Full Stop.
+    /// Skill-band Kill N suspends via <see cref="PendingChoiceKinds.KillVictim"/> when the
+    /// player must pick victims unless <see cref="KillChoice.VictimCrewIds"/> is set.
     /// Named "Alliance Cruiser" Nav snaps the Cruiser onto the ship and queues Contact.
     /// Cruiser Patrol / Alliance Entanglements move the Cruiser per card text without that snap/Contact.
     /// Reaver Cutter cards move a Cutter; the named "Reaver Cutter" card applies Contact immediately.
@@ -196,6 +198,15 @@ namespace Firefly.Core.Actions
         /// <summary>Option index waiting on <see cref="PendingChoiceKinds.NavPayOrDecline"/>.</summary>
         private int _pendingNavPayOptionIndex = -1;
         private NavResolveChoice? _pendingNavPayResolveChoice;
+
+        /// <summary>Kill-victim suspend: re-enter resolve with frozen skill band.</summary>
+        private bool _resumingKillVictims;
+        private int _pendingKillOptionIndex = -1;
+        private NavResolveChoice? _pendingKillResolveChoice;
+        private bool _frozenSkillReady;
+        private SkillCheckResult? _frozenSkillCheck;
+        private string? _frozenBandText;
+        private FlightOutcome _frozenOutcome;
 
         public bool HasPending(GameState game) => game.PendingNavDraws.Count > 0 || FaceUp != null;
 
@@ -255,8 +266,10 @@ namespace Firefly.Core.Actions
                 return false;
             }
 
-            // Pay-vs-decline resume clears PendingChoice before re-entering with PayNavCost set.
-            if (game.PendingChoice != null && choice?.PayNavCost == null)
+            // Pay-vs-decline / kill-victim resume clears PendingChoice before re-entering.
+            if (game.PendingChoice != null
+                && choice?.PayNavCost == null
+                && !_resumingKillVictims)
             {
                 error = "Resolve the pending choice before continuing Nav.";
                 return false;
@@ -327,7 +340,13 @@ namespace Firefly.Core.Actions
 
             SkillCheckResult? check = null;
             string? bandText = null;
-            if (SkillCheck.TryParse(option.Details, out var skillCheck))
+            if (_frozenSkillReady)
+            {
+                check = _frozenSkillCheck;
+                bandText = _frozenBandText;
+                outcome = _frozenOutcome;
+            }
+            else if (SkillCheck.TryParse(option.Details, out var skillCheck))
             {
                 if (!skillCheck.TryResolve(
                     player,
@@ -339,6 +358,28 @@ namespace Firefly.Core.Actions
                 if (outcome == FlightOutcome.Conditional)
                     outcome = SkillCheck.OutcomeFor(option.Details, check.Success);
                 bandText = SkillCheck.BandText(option.Details, check.Total);
+            }
+
+            // Suspend Kill N victim pick before token moves / costs (skill already frozen).
+            if (check != null)
+            {
+                var plannedKill = PlannedSkillBandKillCount(bandText);
+                if (CrewKill.NeedsVictimChoice(player, plannedKill, choice?.Kill))
+                {
+                    _frozenSkillReady = true;
+                    _frozenSkillCheck = check;
+                    _frozenBandText = bandText;
+                    _frozenOutcome = outcome;
+                    _pendingKillOptionIndex = optionIndex;
+                    _pendingKillResolveChoice = choice;
+                    if (!CrewKill.TrySuspendVictimChoice(game, player, plannedKill, out error))
+                    {
+                        ClearFrozenKillSkill();
+                        return false;
+                    }
+                    error = "Choose which crew are killed.";
+                    return false;
+                }
             }
 
             if (!ApplyTokenMoves(
@@ -541,6 +582,7 @@ namespace Firefly.Core.Actions
 
             game.Decks!.For(drawn.Region).ResolveIntoDiscard(drawn.Card);
             FaceUp = null;
+            ClearFrozenKillSkill();
             resolution = new NavResolution(
                 drawn,
                 option,
@@ -689,6 +731,68 @@ namespace Firefly.Core.Actions
             return TryResolve(game, optionIndex, out resolution, out error, rng, choice);
         }
 
+        /// <summary>
+        /// Resume after <see cref="PendingChoiceKinds.KillVictim"/> on a Nav skill-band Kill N.
+        /// Merges victim ids and re-enters resolve with the frozen skill band.
+        /// </summary>
+        public bool TryResumeKillVictims(
+            GameState game,
+            ChoiceSubmission submission,
+            out NavResolution? resolution,
+            out string? error,
+            IRng? rng = null)
+        {
+            resolution = null;
+            error = null;
+            if (FaceUp == null)
+            {
+                error = "No Nav card is face up.";
+                return false;
+            }
+            if (game.PendingChoice == null
+                || !string.Equals(
+                    game.PendingChoice.Kind,
+                    PendingChoiceKinds.KillVictim,
+                    StringComparison.Ordinal))
+            {
+                error = "No kill-victim choice is pending.";
+                return false;
+            }
+            if (!CrewKill.TryParseKillCount(game.PendingChoice.ContextId, out var count))
+            {
+                error = "Kill-victim context is missing the kill count.";
+                return false;
+            }
+
+            var optionIndex = _pendingKillOptionIndex;
+            if (optionIndex < 0)
+            {
+                error = "Nav kill-victim context is missing the option index.";
+                return false;
+            }
+
+            var choice = _pendingKillResolveChoice ?? new NavResolveChoice();
+            if (!CrewKill.TryMergeVictimSubmission(
+                    game.CurrentPlayer, count, submission, choice.Kill, out var merged, out error))
+                return false;
+            choice.Kill = merged;
+
+            if (!game.TrySubmitChoice(game.CurrentPlayer.Id, submission, out _, out error))
+                return false;
+
+            _pendingKillOptionIndex = -1;
+            _pendingKillResolveChoice = null;
+            _resumingKillVictims = true;
+            try
+            {
+                return TryResolve(game, optionIndex, out resolution, out error, rng, choice);
+            }
+            finally
+            {
+                _resumingKillVictims = false;
+            }
+        }
+
         private bool TrySuspendNavPayOrDecline(
             GameState game,
             DrawnNav drawn,
@@ -707,6 +811,26 @@ namespace Firefly.Core.Actions
             _pendingNavPayOptionIndex = optionIndex;
             _pendingNavPayResolveChoice = choice;
             return true;
+        }
+
+        private void ClearFrozenKillSkill()
+        {
+            _frozenSkillReady = false;
+            _frozenSkillCheck = null;
+            _frozenBandText = null;
+            _frozenOutcome = FlightOutcome.KeepFlying;
+            _pendingKillOptionIndex = -1;
+            _pendingKillResolveChoice = null;
+        }
+
+        private static int PlannedSkillBandKillCount(string? bandText)
+        {
+            if (string.IsNullOrWhiteSpace(bandText) || IsNestedSkillTreeStub(bandText))
+                return 0;
+            var kill = KillCrewCount.Match(bandText);
+            if (!kill.Success)
+                return 0;
+            return kill.Groups[1].Success ? int.Parse(kill.Groups[1].Value) : 1;
         }
 
         private static string BuildNavPayContext(string cardId, int optionIndex) =>
@@ -1712,7 +1836,13 @@ namespace Firefly.Core.Actions
             if (kill.Success)
             {
                 var count = kill.Groups[1].Success ? int.Parse(kill.Groups[1].Value) : 1;
-                crewKilled = CrewKill.KillUpTo(game, player, count, rng, choice?.Kill);
+                if (!CrewKill.TryKillUpTo(
+                        game, player, count, rng, out crewKilled, out var killError, choice?.Kill))
+                {
+                    // Prefight should have suspended; surface unexpected mid-band suspend.
+                    throw new System.InvalidOperationException(
+                        killError ?? "Kill victim choice required mid skill-band apply.");
+                }
             }
 
             var fuel = LoseOrDiscardFuel.Match(text);

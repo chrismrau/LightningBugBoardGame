@@ -440,8 +440,16 @@ namespace Firefly.Core.Actions
             PlayerState player,
             BountyCard bounty,
             IRng rng,
-            KillChoice? killChoice = null) =>
-            CrewKill.KillUpTo(game, player, bounty.BotchKill, rng, killChoice);
+            KillChoice? killChoice = null)
+        {
+            if (!CrewKill.TryKillUpTo(
+                    game, player, bounty.BotchKill, rng, out var killed, out var error, killChoice))
+            {
+                throw new System.InvalidOperationException(
+                    error ?? "Bounty botch Kill N requires KillChoice.VictimCrewIds or PendingChoice.");
+            }
+            return killed;
+        }
 
         private static bool AtPlanet(GameState game, PlayerState player, string planet)
         {
