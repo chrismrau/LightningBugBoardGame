@@ -157,7 +157,11 @@ namespace Firefly.Core.Tests
 
             Assert.True(resolver.TryResolve(
                 game, "p1",
-                new MisbehaveChoice { OptionIndex = 0 },
+                new MisbehaveChoice
+                {
+                    OptionIndex = 0,
+                    SkillCheck = new SkillCheckChoice { BribeDollars = 0 }
+                },
                 out var resolution, out var error,
                 ScriptedRng.FromDieFaces(2)), error);
             Assert.Equal(MisbehaveOutcome.Botched, resolution!.Outcome);

@@ -161,6 +161,70 @@ namespace Firefly.Core.Actions
             if (!game.TrySubmitChoice(player.Id, submission, out _, out error))
                 return false;
 
+            _pendingKillChoice = merged;
+
+            // Optional Med Foam before mutating passengers / crew.
+            if (CrewKill.NeedsMedFoamChoice(game, player, _pendingKillCount, merged))
+            {
+                if (!CrewKill.TrySuspendMedFoamChoice(game, player, _pendingKillCount, out error))
+                {
+                    ClearPendingResume();
+                    return false;
+                }
+                error = "Choose whether to discard Med Foam for a successful Medic Check.";
+                return false;
+            }
+
+            return FinishPendingContact(game, player, rng, merged, out result, out error);
+        }
+
+        /// <summary>
+        /// Resume after <see cref="PendingChoiceKinds.MedFoamDiscard"/> during Reaver Contact.
+        /// </summary>
+        public static bool TryResumeMedFoam(
+            GameState game,
+            ChoiceSubmission submission,
+            IRng rng,
+            out ReaverContactResult? result,
+            out string? error)
+        {
+            result = null;
+            error = null;
+            if (game.PendingChoice == null
+                || !string.Equals(
+                    game.PendingChoice.Kind,
+                    PendingChoiceKinds.MedFoamDiscard,
+                    System.StringComparison.Ordinal))
+            {
+                error = "No Med Foam choice is pending.";
+                return false;
+            }
+            if (_pendingFight == null || string.IsNullOrWhiteSpace(_pendingEvadeToSectorId))
+            {
+                error = "No Reaver Contact Med Foam resume state is stored.";
+                return false;
+            }
+
+            var player = game.GetPlayer(game.PendingChoice.PlayerId);
+            if (!CrewKill.TryMergeMedFoamSubmission(
+                    submission, _pendingKillChoice, out var merged, out error))
+                return false;
+
+            if (!game.TrySubmitChoice(player.Id, submission, out _, out error))
+                return false;
+
+            return FinishPendingContact(game, player, rng, merged, out result, out error);
+        }
+
+        private static bool FinishPendingContact(
+            GameState game,
+            PlayerState player,
+            IRng rng,
+            KillChoice merged,
+            out ReaverContactResult? result,
+            out string? error)
+        {
+            result = null;
             var evadeTo = _pendingEvadeToSectorId!;
             var fight = _pendingFight!;
             var killCount = _pendingKillCount;
@@ -172,7 +236,6 @@ namespace Firefly.Core.Actions
             _resumingKillVictims = true;
             try
             {
-                // PBH p.12: Bound Fugitives leave play with Passenger & Fugitive tokens.
                 BoundFugitives.RemoveAllFromPlay(game, player);
                 player.Passengers = 0;
                 player.Fugitives = 0;
@@ -243,6 +306,31 @@ namespace Firefly.Core.Actions
                     return false;
                 }
                 error = "Choose which crew are killed.";
+                return false;
+            }
+
+            if (CrewKill.NeedsMedFoamChoice(game, player, killCount, killChoice))
+            {
+                if (!allowSuspend)
+                {
+                    error =
+                        "Reaver Contact Med Foam requires KillChoice.UseMedFoam when resolved mid-Nav.";
+                    return false;
+                }
+
+                _pendingEvadeToSectorId = evadeToSectorId;
+                _pendingFight = fight;
+                _pendingKillCount = killCount;
+                _pendingPassengers = player.Passengers;
+                _pendingFugitives = player.Fugitives + BoundFugitives.Count(player);
+                _pendingKillChoice = killChoice;
+                _pendingIsEncounterResolve = isEncounterResolve;
+                if (!CrewKill.TrySuspendMedFoamChoice(game, player, killCount, out error))
+                {
+                    ClearPendingResume();
+                    return false;
+                }
+                error = "Choose whether to discard Med Foam for a successful Medic Check.";
                 return false;
             }
 

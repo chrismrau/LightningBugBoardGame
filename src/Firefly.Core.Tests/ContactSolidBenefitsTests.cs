@@ -344,6 +344,7 @@ namespace Firefly.Core.Tests
                 new MisbehaveChoice
                 {
                     OptionIndex = 1,
+                    SkillCheck = new SkillCheckChoice { BribeDollars = 0 },
                     Kill = new KillChoice { VictimCrewIds = new List<string> { "crew_kaylee" } }
                 },
                 out var resolution, out var error,
