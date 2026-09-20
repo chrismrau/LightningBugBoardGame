@@ -39,6 +39,18 @@ namespace Firefly.Core.Actions
         /// foam and roll Medic Checks normally.
         /// </summary>
         public bool? UseMedFoam { get; set; }
+
+        /// <summary>
+        /// Fully Equipped Med Bay may: null = undecided (PendingChoice), true = re-roll the
+        /// current Medic Check die once, false = keep the first die.
+        /// </summary>
+        public bool? AcceptMedicReroll { get; set; }
+
+        /// <summary>First Medic die while awaiting Med Bay re-roll PendingChoice.</summary>
+        public int? MedicFirstDie { get; set; }
+
+        /// <summary>Victim id whose Medic Check is awaiting Med Bay re-roll.</summary>
+        public string? MedicPendingVictimId { get; set; }
     }
 
     public sealed class KillResult
@@ -450,7 +462,24 @@ namespace Firefly.Core.Actions
                 }
                 else
                 {
-                    die = Dice.D6(rng);
+                    if (choice?.MedicFirstDie is int first
+                        && string.Equals(
+                            choice.MedicPendingVictimId, member.Id, StringComparison.Ordinal))
+                    {
+                        die = first;
+                        if (choice.AcceptMedicReroll == true)
+                            die = Dice.D6(rng);
+                    }
+                    else
+                    {
+                        die = Dice.D6(rng);
+                        // Med Bay may: when undecided, callers must suspend via TryKillUpTo.
+                        // Direct Apply with null AcceptMedicReroll keeps the first die (decline).
+                        if (AbilityDispatcher.HasMedicCheckReroll(game, player)
+                            && choice?.AcceptMedicReroll == true)
+                            die = Dice.D6(rng);
+                    }
+
                     total = die + MedicBonus(player);
                     saved = total >= MedicSaveTarget;
                 }
@@ -466,11 +495,94 @@ namespace Firefly.Core.Actions
         }
 
         /// <summary>
+        /// FAQ 4.1 p.8 may: after the first Medic die, always suspend when Med Bay is present.
+        /// </summary>
+        public static bool NeedsMedicRerollChoice(
+            GameState game,
+            PlayerState player,
+            KillChoice? choice = null)
+        {
+            if (choice?.AcceptMedicReroll != null)
+                return false;
+            if (choice?.CountAsSuccessfulMedicCheck == true)
+                return false;
+            if (choice?.AttemptMedicCheck == false)
+                return false;
+            if (!HasMedic(player))
+                return false;
+            return AbilityDispatcher.HasMedicCheckReroll(game, player);
+        }
+
+        public static bool TrySuspendMedicRerollChoice(
+            GameState game,
+            PlayerState player,
+            int count,
+            out string? error,
+            string? prompt = null)
+        {
+            error = null;
+            var pending = new PendingChoice(
+                player.Id,
+                PendingChoiceKinds.MedicReroll,
+                contextId: count.ToString(),
+                options: new[] { SkillRerollOptions.Keep, SkillRerollOptions.Reroll },
+                prompt: prompt ?? "Re-roll this Medic Check?");
+            return game.TrySetPendingChoice(pending, out error);
+        }
+
+        public static bool TryMergeMedicRerollSubmission(
+            ChoiceSubmission submission,
+            KillChoice? choice,
+            out KillChoice merged,
+            out string? error)
+        {
+            merged = CloneKillChoice(choice);
+            error = null;
+            if (submission == null)
+            {
+                error = "A choice submission is required.";
+                return false;
+            }
+
+            bool accept;
+            if (submission.Accepted != null)
+                accept = submission.Accepted.Value;
+            else if (!string.IsNullOrWhiteSpace(submission.SelectedOptionId))
+            {
+                if (string.Equals(
+                        submission.SelectedOptionId,
+                        SkillRerollOptions.Reroll,
+                        StringComparison.Ordinal))
+                    accept = true;
+                else if (string.Equals(
+                             submission.SelectedOptionId,
+                             SkillRerollOptions.Keep,
+                             StringComparison.Ordinal))
+                    accept = false;
+                else
+                {
+                    error = $"Unknown Medic re-roll option '{submission.SelectedOptionId}'.";
+                    return false;
+                }
+            }
+            else
+            {
+                error = "Accept (re-roll) or decline (keep), or select keep/reroll.";
+                return false;
+            }
+
+            merged.AcceptMedicReroll = accept;
+            return true;
+        }
+
+        /// <summary>
         /// Subject up to <paramref name="count"/> crew to kill events.
         /// When victim selection is required and <see cref="KillChoice.VictimCrewIds"/> is
         /// unset, suspends via PendingChoice and returns false (killed = 0).
         /// When Med Foam is usable and undecided, suspends via
         /// <see cref="PendingChoiceKinds.MedFoamDiscard"/>.
+        /// When Med Bay may re-roll is undecided, rolls the first Medic die then suspends
+        /// via <see cref="PendingChoiceKinds.MedicReroll"/>.
         /// </summary>
         public static bool TryKillUpTo(
             GameState game,
@@ -502,13 +614,101 @@ namespace Firefly.Core.Actions
                 return false;
             }
 
+            // Med Bay: roll first Medic die for the pending/first victim, then always suspend.
+            if (NeedsMedicRerollChoice(game, player, choice)
+                && (choice?.MedicFirstDie == null || choice.AcceptMedicReroll == null))
+            {
+                var working = CloneKillChoice(choice);
+                if (working.MedicFirstDie == null)
+                {
+                    var victims = SelectVictims(player, count, working);
+                    CrewMember? medicVictim = null;
+                    foreach (var v in victims)
+                    {
+                        if (player.Roster.Find(v.Id) != null)
+                        {
+                            medicVictim = v;
+                            break;
+                        }
+                    }
+                    if (medicVictim == null)
+                    {
+                        killed = ApplyKillUpTo(game, player, count, rng, working);
+                        return true;
+                    }
+
+                    working.MedicFirstDie = Dice.D6(rng);
+                    working.MedicPendingVictimId = medicVictim.Id;
+                    // Copy back so resume can merge onto the same choice object when provided.
+                    if (choice != null)
+                    {
+                        choice.MedicFirstDie = working.MedicFirstDie;
+                        choice.MedicPendingVictimId = working.MedicPendingVictimId;
+                    }
+                }
+
+                if (!TrySuspendMedicRerollChoice(game, player, count, out error))
+                    return false;
+                error = "Choose whether to re-roll this Medic Check.";
+                return false;
+            }
+
             killed = ApplyKillUpTo(game, player, count, rng, choice);
             return true;
         }
 
         /// <summary>
+        /// Resume after <see cref="PendingChoiceKinds.MedicReroll"/>.
+        /// </summary>
+        public static bool TryResumeMedicRerollKillUpTo(
+            GameState game,
+            ChoiceSubmission submission,
+            IRng rng,
+            out int killed,
+            out string? error,
+            KillChoice? baseChoice = null)
+        {
+            killed = 0;
+            error = null;
+            if (game.PendingChoice == null
+                || !string.Equals(
+                    game.PendingChoice.Kind,
+                    PendingChoiceKinds.MedicReroll,
+                    StringComparison.Ordinal))
+            {
+                error = "No Medic re-roll choice is pending.";
+                return false;
+            }
+
+            var player = game.GetPlayer(game.PendingChoice.PlayerId);
+            if (!TryParseKillCount(game.PendingChoice.ContextId, out var count))
+            {
+                error = "Medic re-roll context is missing the kill count.";
+                return false;
+            }
+
+            if (!TryMergeMedicRerollSubmission(submission, baseChoice, out var merged, out error))
+                return false;
+
+            if (!game.TrySubmitChoice(player.Id, submission, out _, out error))
+                return false;
+
+            // Preserve first-die / victim from the pre-suspend roll on baseChoice.
+            if (baseChoice != null)
+            {
+                merged.MedicFirstDie ??= baseChoice.MedicFirstDie;
+                merged.MedicPendingVictimId ??= baseChoice.MedicPendingVictimId;
+                if (baseChoice.VictimCrewIds != null && merged.VictimCrewIds == null)
+                    merged.VictimCrewIds = baseChoice.VictimCrewIds;
+            }
+
+            killed = ApplyKillUpTo(game, player, count, rng, merged);
+            return true;
+        }
+
+        /// <summary>
         /// Apply Kill N when victims are already chosen or no choice is required.
-        /// Throws if a PendingChoice victim / Med Foam pick is still required — use
+        /// Throws if a PendingChoice victim / Med Foam / Med Bay pick is still required — use
         /// <see cref="TryKillUpTo"/>.
         /// </summary>
         public static int KillUpTo(
@@ -527,6 +727,12 @@ namespace Firefly.Core.Actions
             {
                 throw new InvalidOperationException(
                     "Med Foam discard requires PendingChoice or KillChoice.UseMedFoam.");
+            }
+            if (NeedsMedicRerollChoice(game, player, choice)
+                && choice?.AcceptMedicReroll == null)
+            {
+                throw new InvalidOperationException(
+                    "Med Bay Medic re-roll requires PendingChoice or KillChoice.AcceptMedicReroll.");
             }
             return ApplyKillUpTo(game, player, count, rng, choice);
         }
@@ -599,6 +805,25 @@ namespace Firefly.Core.Actions
                     applyChoice.UseMedFoam = false;
                     firstMedicDone = true;
                 }
+                else if (choice != null
+                         && string.Equals(
+                             choice.MedicPendingVictimId, member.Id, StringComparison.Ordinal)
+                         && choice.AcceptMedicReroll != null)
+                {
+                    applyChoice = CloneKillChoice(choice);
+                }
+                else if (choice != null
+                         && !string.IsNullOrEmpty(choice.MedicPendingVictimId)
+                         && !string.Equals(
+                             choice.MedicPendingVictimId, member.Id, StringComparison.Ordinal))
+                {
+                    // Later victims in the same batch: Med Bay may already consumed for the
+                    // pending victim — subsequent Medic Checks keep first die (no second suspend).
+                    applyChoice = CloneKillChoice(choice);
+                    applyChoice.AcceptMedicReroll = false;
+                    applyChoice.MedicFirstDie = null;
+                    applyChoice.MedicPendingVictimId = null;
+                }
 
                 var result = Apply(game, player, member, rng, applyChoice);
                 if (result.Outcome == CrewOutcome.Killed)
@@ -616,7 +841,10 @@ namespace Firefly.Core.Actions
                 VictimCrewIds = source.VictimCrewIds,
                 AttemptMedicCheck = source.AttemptMedicCheck,
                 CountAsSuccessfulMedicCheck = source.CountAsSuccessfulMedicCheck,
-                UseMedFoam = source.UseMedFoam
+                UseMedFoam = source.UseMedFoam,
+                AcceptMedicReroll = source.AcceptMedicReroll,
+                MedicFirstDie = source.MedicFirstDie,
+                MedicPendingVictimId = source.MedicPendingVictimId
             };
         }
 

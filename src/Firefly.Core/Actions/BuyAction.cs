@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Firefly.Core.Abilities;
 using Firefly.Core.Cards;
@@ -11,6 +12,16 @@ namespace Firefly.Core.Actions
         public int Fuel { get; set; }
         public int Parts { get; set; }
         public IList<string> SupplyCardIds { get; set; } = new List<string>();
+        /// <summary>
+        /// Labor Contract: hire this crew id from the named Supply discard (any sector).
+        /// </summary>
+        public string? HireFromDiscardId { get; set; }
+        /// <summary>Planet whose discard pile supplies <see cref="HireFromDiscardId"/>.</summary>
+        public string? HireFromDiscardPlanet { get; set; }
+        /// <summary>
+        /// The Salesman: purchase this Upgrade/Drive id from any Supply discard at half price.
+        /// </summary>
+        public string? SalesmanPurchaseFromDiscardId { get; set; }
     }
 
     public sealed class BuyResult
@@ -75,23 +86,57 @@ namespace Firefly.Core.Actions
                 return false;
             }
 
+            var hireDiscardId = request.HireFromDiscardId;
+            var salesmanId = request.SalesmanPurchaseFromDiscardId;
+            var remoteSpecial = !string.IsNullOrWhiteSpace(hireDiscardId)
+                || !string.IsNullOrWhiteSpace(salesmanId);
+
             var planet = ShopPlanet(sector);
-            if (string.IsNullOrWhiteSpace(planet) || game.SupplyDecks == null || !game.SupplyDecks.TryGet(planet, out var market))
+            SupplyMarket? market = null;
+            if (!string.IsNullOrWhiteSpace(planet)
+                && game.SupplyDecks != null
+                && game.SupplyDecks.TryGet(planet, out market))
+            {
+                // local supply buy
+            }
+            else if (!remoteSpecial)
             {
                 error = "Must be at a Supply planet to Buy.";
                 return false;
             }
-            var buyBlock = ActiveAlertRules.BuyBlockReason(game, player, planet);
-            if (buyBlock != null)
+
+            if (market != null)
             {
-                error = buyBlock;
-                return false;
+                var buyBlock = ActiveAlertRules.BuyBlockReason(game, player, planet!);
+                if (buyBlock != null)
+                {
+                    error = buyBlock;
+                    return false;
+                }
             }
 
             var cardIds = request.SupplyCardIds ?? new List<string>();
-            if (request.Fuel == 0 && request.Parts == 0 && cardIds.Count == 0)
+            if (request.Fuel == 0 && request.Parts == 0 && cardIds.Count == 0
+                && string.IsNullOrWhiteSpace(hireDiscardId)
+                && string.IsNullOrWhiteSpace(salesmanId))
             {
                 error = "Buy must purchase at least one item.";
+                return false;
+            }
+
+            if (!string.IsNullOrWhiteSpace(hireDiscardId))
+            {
+                return TryHireFromDiscard(game, player, request, out result, out error);
+            }
+
+            if (!string.IsNullOrWhiteSpace(salesmanId))
+            {
+                return TrySalesmanPurchase(game, player, request, out result, out error);
+            }
+
+            if (market == null)
+            {
+                error = "Must be at a Supply planet to Buy.";
                 return false;
             }
 
@@ -133,7 +178,7 @@ namespace Firefly.Core.Actions
                 if (card.Kind == SupplyKind.Crew
                     && AbilityDispatcher.HasFreeHireCrew(player))
                     continue; // Nandi Heart of Gold: May Hire Crew at no cost.
-                cost += card.Cost;
+                cost += CardBuyCost(game, player, card);
             }
             if (player.Cash < cost)
             {
@@ -163,7 +208,7 @@ namespace Firefly.Core.Actions
                     error = $"'{card.Id}' is not for sale at {planet}.";
                     return false;
                 }
-                if (!TryGiveSupply(game, player, taken, planet, out error))
+                if (!TryGiveSupply(game, player, taken, planet!, out error))
                     return false;
                 bought.Add(taken);
             }
@@ -172,8 +217,144 @@ namespace Firefly.Core.Actions
             if (!game.TryConsumeAction(TurnAction.Buy, out error))
                 return false;
 
-            result = new BuyResult(planet, request.Fuel, request.Parts, cost, bought);
+            result = new BuyResult(planet!, request.Fuel, request.Parts, cost, bought);
             return true;
+        }
+
+        /// <summary>
+        /// Labor Contract: Hire 1 Crew from a named Supply discard for free, any sector.
+        /// </summary>
+        private static bool TryHireFromDiscard(
+            GameState game,
+            PlayerState player,
+            BuyRequest request,
+            out BuyResult? result,
+            out string? error)
+        {
+            result = null;
+            var planet = request.HireFromDiscardPlanet;
+            var crewId = request.HireFromDiscardId!;
+            if (string.IsNullOrWhiteSpace(planet))
+            {
+                error = "Hire-from-discard requires a Supply planet name.";
+                return false;
+            }
+            if (!AbilityDispatcher.HasHireFromSupplyDiscard(game, player, planet!))
+            {
+                error = $"No Labor Contract for {planet} discard hire.";
+                return false;
+            }
+            if (game.SupplyDecks == null || !game.SupplyDecks.TryGet(planet!, out var market))
+            {
+                error = $"Unknown Supply planet '{planet}'.";
+                return false;
+            }
+            if (!market.TryFindInDiscard(crewId, out var card) || card.Kind != SupplyKind.Crew)
+            {
+                error = $"Crew '{crewId}' is not in the {planet} discard pile.";
+                return false;
+            }
+            if (!CanHire(game, player, card, out error))
+                return false;
+            if (!market.TryTakeFromDiscard(crewId, out var taken))
+            {
+                error = $"Could not take '{crewId}' from {planet} discard.";
+                return false;
+            }
+            if (!TryGiveSupply(game, player, taken, planet!, out error))
+                return false;
+            if (!game.TryConsumeAction(TurnAction.Buy, out error))
+                return false;
+            result = new BuyResult(planet!, 0, 0, 0, new[] { taken });
+            return true;
+        }
+
+        /// <summary>
+        /// The Salesman: discard self to buy Upgrade/Drive from any discard at half price.
+        /// </summary>
+        private static bool TrySalesmanPurchase(
+            GameState game,
+            PlayerState player,
+            BuyRequest request,
+            out BuyResult? result,
+            out string? error)
+        {
+            result = null;
+            var salesman = AbilityDispatcher.FindDiscardBuyUpgradeHalf(player);
+            if (salesman == null)
+            {
+                error = "The Salesman is not on the ship.";
+                return false;
+            }
+            var cardId = request.SalesmanPurchaseFromDiscardId!;
+            if (game.SupplyDecks == null
+                || !game.SupplyDecks.TryFindInAnyDiscard(cardId, out var market, out var card))
+            {
+                error = $"'{cardId}' is not in any Supply discard pile.";
+                return false;
+            }
+            if (card.Kind != SupplyKind.ShipUpgrade && card.Kind != SupplyKind.DriveCore)
+            {
+                error = "Salesman Wholesaler buys Ship Upgrades or Drive Cores only.";
+                return false;
+            }
+            if (card.Kind == SupplyKind.DriveCore && !CanInstallDrive(game, player, card, out error))
+                return false;
+
+            var cost = HalfPrice(card.Cost);
+            if (player.Cash < cost)
+            {
+                error = $"Need ${cost}, have ${player.Cash}.";
+                return false;
+            }
+            if (!player.Roster.TryDismiss(salesman.Id, out error))
+                return false;
+            game.RemovedFromPlay.Add(salesman.Id);
+
+            if (!market.TryTakeFromDiscard(cardId, out var taken))
+            {
+                error = $"Could not take '{cardId}' from discard.";
+                return false;
+            }
+            player.Cash -= cost;
+            var planet = market.Planet;
+            if (!TryGiveSupply(game, player, taken, planet, out error))
+                return false;
+            if (!game.TryConsumeAction(TurnAction.Buy, out error))
+                return false;
+            result = new BuyResult(planet, 0, 0, cost, new[] { taken });
+            return true;
+        }
+
+        public static int CardBuyCost(GameState game, PlayerState player, SupplyCard card)
+        {
+            var cost = card.Cost;
+            if (card.Kind == SupplyKind.ShipUpgrade || card.Kind == SupplyKind.DriveCore)
+            {
+                if (AbilityDispatcher.HasHalfPriceDriveAndUpgrade(player))
+                    return HalfPrice(cost);
+            }
+            if (card.Kind == SupplyKind.Gear
+                && AbilityDispatcher.HasHalfPriceExplosiveFirearmGear(player)
+                && game.Gear != null
+                && game.Gear.TryGet(card.Id, out var gear)
+                && (HasKeyword(gear, "Explosives") || HasKeyword(gear, "Firearm")))
+            {
+                return HalfPrice(cost);
+            }
+            return cost;
+        }
+
+        private static int HalfPrice(int cost) => cost / 2;
+
+        private static bool HasKeyword(GearEntry gear, string keyword)
+        {
+            foreach (var k in gear.Keywords)
+            {
+                if (string.Equals(k, keyword, StringComparison.OrdinalIgnoreCase))
+                    return true;
+            }
+            return false;
         }
 
         public static string? ShopPlanet(Sector sector)

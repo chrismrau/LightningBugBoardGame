@@ -20,6 +20,11 @@ namespace Firefly.Core.Abilities
         /// <summary>Target crew name for subject-scoped abilities (e.g. River Tam).</summary>
         public string? Subject { get; }
         /// <summary>
+        /// Supply planet / when-context (Labor Contract planet; rerollOnes Flying/Misbehaving).
+        /// Do not overload <see cref="Subject"/> (crew names).
+        /// </summary>
+        public string? Location { get; }
+        /// <summary>
         /// GF9 / Director's Cut: Job-only abilities do not apply while Working Goals.
         /// Kernel has no Goal Work path yet — flag is reserved for that hook.
         /// </summary>
@@ -31,7 +36,8 @@ namespace Firefly.Core.Abilities
             int amount = 0,
             string? skill = null,
             string? subject = null,
-            bool jobOnly = false)
+            bool jobOnly = false,
+            string? location = null)
         {
             Type = type ?? throw new ArgumentNullException(nameof(type));
             Mandatory = mandatory;
@@ -39,6 +45,7 @@ namespace Firefly.Core.Abilities
             Skill = skill;
             Subject = subject;
             JobOnly = jobOnly;
+            Location = location;
         }
 
         public bool MatchesType(string type) =>

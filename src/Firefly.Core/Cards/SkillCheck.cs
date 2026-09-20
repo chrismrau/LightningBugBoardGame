@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.Text.RegularExpressions;
+using Firefly.Core.Abilities;
 using Firefly.Core.State;
 
 namespace Firefly.Core.Cards
@@ -320,11 +322,14 @@ namespace Firefly.Core.Cards
         public SkillCheckResult RerollKeepingBribes(
             PlayerState player,
             IRng rng,
-            SkillCheckResult previous)
+            SkillCheckResult previous,
+            GameState? game = null,
+            AbilityContext? abilityContext = null)
         {
             if (previous == null)
                 throw new ArgumentNullException(nameof(previous));
             var roll = Dice.RollD6(DiceCount(player), rng);
+            roll = ApplyRerollOnes(game, player, Skill, roll, rng, abilityContext);
             var total = roll.Sum + previous.BribeBonus;
             return new SkillCheckResult(
                 this,
@@ -332,6 +337,37 @@ namespace Firefly.Core.Cards
                 total >= Target,
                 previous.BribeDollarsPaid,
                 previous.BribeBonus);
+        }
+
+        /// <summary>
+        /// Mandatory re-roll faces of 1 when carried <c>rerollOnes</c> gear applies.
+        /// FAQ 4.1 p.8: no “may” on these cards — always re-roll ones.
+        /// </summary>
+        public static DiceRoll ApplyRerollOnes(
+            GameState? game,
+            PlayerState player,
+            Skill skill,
+            DiceRoll roll,
+            IRng rng,
+            AbilityContext? abilityContext = null)
+        {
+            if (game == null || roll == null || roll.Faces.Count == 0)
+                return roll;
+            if (!AbilityDispatcher.HasRerollOnes(game, player, skill, abilityContext))
+                return roll;
+
+            var faces = new int[roll.Faces.Count];
+            var changed = false;
+            for (var i = 0; i < roll.Faces.Count; i++)
+            {
+                faces[i] = roll.Faces[i];
+                if (faces[i] == 1)
+                {
+                    faces[i] = Dice.D6(rng);
+                    changed = true;
+                }
+            }
+            return changed ? new DiceRoll(faces) : roll;
         }
 
         /// <summary>
@@ -384,13 +420,16 @@ namespace Firefly.Core.Cards
         /// before rolling ($100 = +1). Null / unset bribe dollars are treated as decline ($0) —
         /// callers that need PendingChoice must suspend first via <see cref="NeedsBribeChoice"/>.
         /// Fails closed if the bribe amount is invalid.
+        /// Optional <paramref name="game"/> enables mandatory <c>rerollOnes</c> gear.
         /// </summary>
         public bool TryResolve(
             PlayerState player,
             IRng rng,
             out SkillCheckResult result,
             out string? error,
-            SkillCheckChoice? choice = null)
+            SkillCheckChoice? choice = null,
+            GameState? game = null,
+            AbilityContext? abilityContext = null)
         {
             result = null!;
             error = null;
@@ -420,15 +459,21 @@ namespace Firefly.Core.Cards
             }
 
             var roll = Dice.RollD6(DiceCount(player), rng);
+            roll = ApplyRerollOnes(game, player, Skill, roll, rng, abilityContext);
             var total = roll.Sum + bribeBonus;
             var success = total >= Target;
             result = new SkillCheckResult(this, roll, success, bribeDollars, bribeBonus);
             return true;
         }
 
-        public SkillCheckResult Resolve(PlayerState player, IRng rng, SkillCheckChoice? choice = null)
+        public SkillCheckResult Resolve(
+            PlayerState player,
+            IRng rng,
+            SkillCheckChoice? choice = null,
+            GameState? game = null,
+            AbilityContext? abilityContext = null)
         {
-            if (!TryResolve(player, rng, out var result, out var error, choice))
+            if (!TryResolve(player, rng, out var result, out var error, choice, game, abilityContext))
                 throw new InvalidOperationException(error ?? "Skill check failed.");
             return result;
         }

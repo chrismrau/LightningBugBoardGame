@@ -43,6 +43,12 @@ namespace Firefly.Core.State
         public bool NextFightKosherized { get; set; }
         /// <summary>Printed "+N Negotiate to next Test" carry from a prior step.</summary>
         public int NextTalkBonus { get; set; }
+        /// <summary>
+        /// Dalin Intel Broker: once per Work Action may pay to discard/redraw Misbehave.
+        /// </summary>
+        public bool DalinUsedThisWork { get; set; }
+        /// <summary>Null = undecided Dalin may; true = pay+redraw; false = decline.</summary>
+        public bool? AcceptDalinRedraw { get; set; }
 
         public PendingMisbehave(string playerId, string jobId, WorkSite site, int remaining)
         {

@@ -107,6 +107,8 @@ namespace Firefly.Core.Actions
         private bool _resumingBribeOrMedFoam;
         /// <summary>True while option / FIRST–NEXT step resume re-enters <see cref="TryResolve"/>.</summary>
         private bool _resumingMisbehaveOption;
+        /// <summary>True while Dalin redraw resume re-enters <see cref="TryResolve"/>.</summary>
+        private bool _resumingDalin;
         private bool _frozenSkillReady;
         private SkillCheckResult? _frozenSkillCheck;
         private string? _frozenBandText;
@@ -126,7 +128,145 @@ namespace Firefly.Core.Actions
                 throw new InvalidOperationException("Misbehave deck is not loaded.");
             pending.FaceUp = game.Misbehave.Draw();
             pending.ClearStepProgress();
+            pending.AcceptDalinRedraw = null;
             return pending.FaceUp;
+        }
+
+        /// <summary>
+        /// Resume Dalin Intel Broker pay/redraw PendingChoice.
+        /// </summary>
+        public bool TryResumeDalinRedraw(
+            GameState game,
+            string playerId,
+            ChoiceSubmission submission,
+            MisbehaveChoice choice,
+            out MisbehaveResolution? resolution,
+            out string? error,
+            IRng? rng = null)
+        {
+            resolution = null;
+            error = null;
+            if (game.PendingChoice == null
+                || !string.Equals(
+                    game.PendingChoice.Kind,
+                    PendingChoiceKinds.MisbehaveDiscardRedraw,
+                    StringComparison.Ordinal))
+            {
+                error = "No Dalin redraw choice is pending.";
+                return false;
+            }
+
+            var pending = game.PendingMisbehave;
+            if (pending == null)
+            {
+                error = "No Misbehave is pending.";
+                return false;
+            }
+
+            bool accept;
+            if (submission.Accepted != null)
+                accept = submission.Accepted.Value;
+            else if (!string.IsNullOrWhiteSpace(submission.SelectedOptionId))
+            {
+                if (string.Equals(
+                        submission.SelectedOptionId,
+                        DalinRedrawOptions.PayRedraw,
+                        StringComparison.Ordinal))
+                    accept = true;
+                else if (string.Equals(
+                             submission.SelectedOptionId,
+                             DalinRedrawOptions.Decline,
+                             StringComparison.Ordinal))
+                    accept = false;
+                else
+                {
+                    error = $"Unknown Dalin option '{submission.SelectedOptionId}'.";
+                    return false;
+                }
+            }
+            else
+            {
+                error = "Choose pay-redraw or decline.";
+                return false;
+            }
+
+            if (!game.TrySubmitChoice(playerId, submission, out _, out error))
+                return false;
+
+            pending.AcceptDalinRedraw = accept;
+            _resumingDalin = true;
+            try
+            {
+                return TryResolve(game, playerId, choice, out resolution, out error, rng);
+            }
+            finally
+            {
+                _resumingDalin = false;
+            }
+        }
+
+        /// <summary>
+        /// Returns true when a redraw was applied (caller continues with new FaceUp).
+        /// Returns false with error set when suspended or failed; false with error null when no-op.
+        /// </summary>
+        private static bool TryOfferOrApplyDalin(
+            GameState game,
+            PlayerState player,
+            PendingMisbehave pending,
+            out string? error)
+        {
+            error = null;
+            if (!AbilityDispatcher.HasMisbehaveDiscardRedraw(player, AbilityContext.WorkingJob))
+                return false;
+            if (pending.DalinUsedThisWork)
+                return false;
+            if (pending.FaceUp == null)
+                return false;
+
+            var cost = AbilityDispatcher.MisbehaveDiscardRedrawCost(player, AbilityContext.WorkingJob);
+
+            if (pending.AcceptDalinRedraw == true)
+            {
+                if (player.Cash < cost)
+                {
+                    error = $"Need ${cost} for Dalin's Intel Broker redraw.";
+                    return false;
+                }
+                player.Cash -= cost;
+                game.Misbehave?.ResolveIntoDiscard(pending.FaceUp);
+                pending.FaceUp = null;
+                pending.DalinUsedThisWork = true;
+                pending.AcceptDalinRedraw = null;
+                if (game.Misbehave == null)
+                {
+                    error = "Misbehave deck is not loaded.";
+                    return false;
+                }
+                pending.FaceUp = game.Misbehave.Draw();
+                pending.ClearStepProgress();
+                return true;
+            }
+
+            if (pending.AcceptDalinRedraw == false)
+            {
+                pending.DalinUsedThisWork = true;
+                return false;
+            }
+
+            // Undecided: always suspend when affordable (FAQ 4.1 p.8 may).
+            if (player.Cash < cost)
+                return false;
+
+            var pendingChoice = new PendingChoice(
+                player.Id,
+                PendingChoiceKinds.MisbehaveDiscardRedraw,
+                contextId: pending.JobId,
+                options: new[] { DalinRedrawOptions.PayRedraw, DalinRedrawOptions.Decline },
+                prompt: $"Pay ${cost} to discard and re-draw this Misbehave?");
+            if (!game.TrySetPendingChoice(pendingChoice, out error))
+                return false;
+            error = "Choose whether to pay for Dalin's Misbehave redraw.";
+            return false;
         }
 
         /// <summary>
@@ -475,7 +615,8 @@ namespace Firefly.Core.Actions
             if (game.PendingChoice != null
                 && !_resumingKillVictims
                 && !_resumingBribeOrMedFoam
-                && !_resumingMisbehaveOption)
+                && !_resumingMisbehaveOption
+                && !_resumingDalin)
             {
                 error = "Resolve the pending choice before continuing Misbehave.";
                 return false;
@@ -484,6 +625,17 @@ namespace Firefly.Core.Actions
             var player = game.GetPlayer(playerId);
             if (pending.FaceUp == null)
                 DrawNext(game);
+
+            // Dalin: once per Work, may pay $200 to discard and re-draw (Supplies.tsv).
+            if (TryOfferOrApplyDalin(game, player, pending, out error))
+            {
+                // Applied redraw — FaceUp is the new card; continue.
+            }
+            else if (error != null)
+            {
+                return false;
+            }
+
             var card = pending.FaceUp!;
             rng ??= new SystemRng();
 
@@ -821,7 +973,7 @@ namespace Firefly.Core.Actions
                         return false;
                     }
                     check = _pendingRerollResult.Check.RerollKeepingBribes(
-                        player, rng, _pendingRerollResult);
+                        player, rng, _pendingRerollResult, game, AbilityContext.Misbehaving);
                 }
                 else
                     check = _pendingRerollResult;
@@ -830,7 +982,8 @@ namespace Firefly.Core.Actions
             else if (_pendingRerollResult != null && choice.SkillCheck?.AcceptReroll is bool acceptReroll)
             {
                 check = acceptReroll
-                    ? _pendingRerollResult.Check.RerollKeepingBribes(player, rng, _pendingRerollResult)
+                    ? _pendingRerollResult.Check.RerollKeepingBribes(
+                        player, rng, _pendingRerollResult, game, AbilityContext.Misbehaving)
                     : _pendingRerollResult;
                 _pendingRerollResult = null;
 
@@ -852,7 +1005,9 @@ namespace Firefly.Core.Actions
             }
             else
             {
-                if (!skillCheck.TryResolve(player, rng, out check, out error, choice.SkillCheck))
+                if (!skillCheck.TryResolve(
+                        player, rng, out check, out error, choice.SkillCheck,
+                        game, AbilityContext.Misbehaving))
                     return false;
 
                 // FAQ 4.1 p.8 may: always suspend take/decline re-roll when skillReroll matches.
