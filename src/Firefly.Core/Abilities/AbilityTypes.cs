@@ -46,5 +46,45 @@ namespace Firefly.Core.Abilities
         /// Barkeep: Shore Leave at Supply Planets is free (printed; no “may” — always-on cost).
         /// </summary>
         public const string FreeShoreLeaveAtSupply = "freeShoreLeaveAtSupply";
+
+        /// <summary>
+        /// Nandi Heart of Gold: Hire Crew at no cost (permission — always-on Buy cost when present).
+        /// </summary>
+        public const string FreeHireCrew = "freeHireCrew";
+
+        /// <summary>
+        /// Emma / Helen / Lucy: use a Crew Action to clear Disgruntled from one other crew.
+        /// Optional — target pick always suspends when unset.
+        /// </summary>
+        public const string MoraleBooster = "moraleBooster";
+
+        /// <summary>
+        /// Love Bot: use a Crew Action to clear Disgruntled from any one crew (carried gear).
+        /// Optional — target pick always suspends when unset.
+        /// </summary>
+        public const string ClearDisgruntledAction = "clearDisgruntledAction";
+
+        /// <summary>
+        /// Board Game Collection: Buy Action Shore Leave in any Sector (permission — planet not required).
+        /// </summary>
+        public const string ShoreLeaveAnySector = "shoreLeaveAnySector";
+
+        /// <summary>
+        /// Extra Ammo Clips / Yolonda's Pistol: discard carried gear to re-roll a Fight test.
+        /// Optional — always suspends after the Fight roll when carried.
+        /// </summary>
+        public const string DiscardToReroll = "discardToReroll";
+
+        /// <summary>
+        /// The Guardian: may re-roll your own SHOWDOWN die.
+        /// Optional — always suspends after the Showdown roll.
+        /// </summary>
+        public const string ShowdownReroll = "showdownReroll";
+
+        /// <summary>
+        /// Chari: in a SHOWDOWN, may force a Rival to re-roll.
+        /// Optional — always suspends after the Showdown roll.
+        /// </summary>
+        public const string ShowdownForceRivalReroll = "showdownForceRivalReroll";
     }
 }

@@ -64,7 +64,8 @@ namespace Firefly.Core.State
     /// Reserved kind ids. Wired: <see cref="NavPayOrDecline"/>, <see cref="KillVictim"/>,
     /// <see cref="BribeAmount"/>, <see cref="MedFoamDiscard"/>, <see cref="MisbehaveOption"/>,
     /// <see cref="HavenSector"/>, <see cref="RivalPlayer"/>, <see cref="SectorDestination"/>,
-    /// <see cref="SkillReroll"/>.
+    /// <see cref="SkillReroll"/>, <see cref="DiscardToReroll"/>, <see cref="MoraleBoosterTarget"/>,
+    /// <see cref="ShowdownReroll"/>, <see cref="HavenFuelAmount"/>.
     /// </summary>
     public static class PendingChoiceKinds
     {
@@ -102,6 +103,43 @@ namespace Firefly.Core.State
         /// Options: <see cref="SkillRerollOptions"/>.
         /// </summary>
         public const string SkillReroll = "skill-reroll";
+        /// <summary>
+        /// Discard carried gear to re-roll a Fight test (Extra Ammo Clips / Yolonda's Pistol).
+        /// Options: <see cref="DiscardToRerollOptions"/>. ContextId = gear id.
+        /// </summary>
+        public const string DiscardToReroll = "discard-to-reroll";
+        /// <summary>
+        /// Morale Booster / Love Bot: pick which Disgruntled crew to clear.
+        /// Options = legal crew ids. <see cref="ChoiceSubmission.SelectedOptionId"/> or Value.
+        /// </summary>
+        public const string MoraleBoosterTarget = "morale-booster-target";
+        /// <summary>
+        /// Showdown may re-roll (Guardian own die / Chari force rival).
+        /// Options: <see cref="SkillRerollOptions"/>. ContextId discriminates side
+        /// (see <see cref="ShowdownRerollContexts"/>).
+        /// </summary>
+        public const string ShowdownReroll = "showdown-reroll";
+        /// <summary>
+        /// Any Port Friends in Low Places: choose how many free Fuel to Load (0–4) at own Haven.
+        /// <see cref="ChoiceSubmission.Amount"/> = fuel count.
+        /// </summary>
+        public const string HavenFuelAmount = "haven-fuel-amount";
+    }
+
+    /// <summary>Discrete option ids for <see cref="PendingChoiceKinds.DiscardToReroll"/>.</summary>
+    public static class DiscardToRerollOptions
+    {
+        public const string Discard = "discard";
+        public const string Decline = "decline";
+    }
+
+    /// <summary>ContextId values for <see cref="PendingChoiceKinds.ShowdownReroll"/>.</summary>
+    public static class ShowdownRerollContexts
+    {
+        public const string AttackerOwn = "attacker-own";
+        public const string DefenderOwn = "defender-own";
+        public const string AttackerForceRival = "attacker-force-rival";
+        public const string DefenderForceRival = "defender-force-rival";
     }
 
     /// <summary>Discrete option ids for <see cref="PendingChoiceKinds.SkillReroll"/>.</summary>

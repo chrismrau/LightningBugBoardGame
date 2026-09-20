@@ -12,7 +12,12 @@ namespace Firefly.Core.State
         Fly,
         Deal,
         Work,
-        Buy
+        Buy,
+        /// <summary>
+        /// Crew-ability actions (Morale Booster / Love Bot). Counts as one of the two
+        /// turn actions; may not repeat the same action type (GF9 two-action turn).
+        /// </summary>
+        Crew
     }
 
     public sealed class PendingNavDraw
@@ -89,6 +94,7 @@ namespace Firefly.Core.State
         public MisbehaveDeck? Misbehave { get; set; }
         public MisbehaveCatalog? MisbehaveCatalog { get; set; }
         public GearIndex? Gear { get; set; }
+        public ShipUpgradeIndex? ShipUpgradeCatalog { get; set; }
         public SetupCard? Setup { get; set; }
         public ScenarioCard? Scenario { get; set; }
         public PendingMisbehave? PendingMisbehave { get; set; }

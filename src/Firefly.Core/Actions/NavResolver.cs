@@ -1015,6 +1015,68 @@ namespace Firefly.Core.Actions
         }
 
         /// <summary>
+        /// Resume after <see cref="PendingChoiceKinds.DiscardToReroll"/> on a Nav Fight test.
+        /// </summary>
+        public bool TryResumeDiscardToReroll(
+            GameState game,
+            ChoiceSubmission submission,
+            out NavResolution? resolution,
+            out string? error,
+            IRng? rng = null)
+        {
+            resolution = null;
+            error = null;
+            if (FaceUp == null)
+            {
+                error = "No Nav card is face up.";
+                return false;
+            }
+            if (game.PendingChoice == null
+                || !string.Equals(
+                    game.PendingChoice.Kind,
+                    PendingChoiceKinds.DiscardToReroll,
+                    StringComparison.Ordinal))
+            {
+                error = "No discard-to-reroll choice is pending.";
+                return false;
+            }
+            if (_pendingRerollResult == null)
+            {
+                error = "Discard-to-reroll context is missing the first roll.";
+                return false;
+            }
+
+            var optionIndex = _pendingRerollOptionIndex;
+            if (optionIndex < 0)
+            {
+                error = "Nav discard-to-reroll context is missing the option index.";
+                return false;
+            }
+
+            var choice = _pendingRerollResolveChoice ?? new NavResolveChoice();
+            var gearId = game.PendingChoice.ContextId;
+            if (!SkillCheck.TryMergeDiscardToRerollSubmission(
+                    submission, gearId, choice.SkillCheck, out var merged, out error))
+                return false;
+            choice.SkillCheck = merged;
+
+            if (!game.TrySubmitChoice(game.CurrentPlayer.Id, submission, out _, out error))
+                return false;
+
+            _pendingRerollOptionIndex = -1;
+            _pendingRerollResolveChoice = null;
+            _resumingBribeOrMedFoam = true;
+            try
+            {
+                return TryResolve(game, optionIndex, out resolution, out error, rng, choice);
+            }
+            finally
+            {
+                _resumingBribeOrMedFoam = false;
+            }
+        }
+
+        /// <summary>
         /// Resume after <see cref="PendingChoiceKinds.MedFoamDiscard"/> on a Nav skill-band Kill N.
         /// </summary>
         public bool TryResumeMedFoam(
@@ -1375,13 +1437,57 @@ namespace Firefly.Core.Actions
                 return false;
             }
 
-            if (_pendingRerollResult != null && choice?.SkillCheck?.AcceptReroll is bool acceptReroll)
+            if (_pendingRerollResult != null
+                && choice?.SkillCheck?.AcceptDiscardReroll is bool acceptDiscard)
+            {
+                if (acceptDiscard)
+                {
+                    var gearId = choice.SkillCheck.DiscardRerollGearId
+                        ?? AbilityDispatcher.FindDiscardToRerollGear(
+                            game, player, _pendingRerollResult.Check.Skill);
+                    if (gearId == null
+                        || !GearCarriage.TryDiscardGear(player, gearId, out error))
+                    {
+                        _pendingRerollResult = null;
+                        _pendingRerollOptionIndex = -1;
+                        _pendingRerollResolveChoice = null;
+                        return false;
+                    }
+                    check = _pendingRerollResult.Check.RerollKeepingBribes(
+                        player, rng ?? new SystemRng(), _pendingRerollResult);
+                }
+                else
+                    check = _pendingRerollResult;
+                _pendingRerollResult = null;
+                _pendingRerollOptionIndex = -1;
+                _pendingRerollResolveChoice = null;
+            }
+            else if (_pendingRerollResult != null && choice?.SkillCheck?.AcceptReroll is bool acceptReroll)
             {
                 check = acceptReroll
                     ? _pendingRerollResult.Check.RerollKeepingBribes(
                         player, rng ?? new SystemRng(), _pendingRerollResult)
                     : _pendingRerollResult;
                 _pendingRerollResult = null;
+
+                if (AbilityDispatcher.NeedsDiscardToRerollChoice(
+                        game, player, check.Check.Skill, choice?.SkillCheck))
+                {
+                    var gearId = AbilityDispatcher.FindDiscardToRerollGear(
+                        game, player, check.Check.Skill)!;
+                    _pendingRerollResult = check;
+                    _pendingRerollOptionIndex = optionIndex;
+                    _pendingRerollResolveChoice = choice;
+                    if (!SkillCheck.TrySuspendDiscardToReroll(game, player, gearId, out error))
+                    {
+                        _pendingRerollResult = null;
+                        _pendingRerollOptionIndex = -1;
+                        _pendingRerollResolveChoice = null;
+                        return false;
+                    }
+                    error = "Choose whether to discard gear to re-roll this Fight test.";
+                    return false;
+                }
             }
             else
             {
@@ -1411,6 +1517,25 @@ namespace Firefly.Core.Actions
                         return false;
                     }
                     error = "Choose whether to re-roll this skill test.";
+                    return false;
+                }
+
+                if (AbilityDispatcher.NeedsDiscardToRerollChoice(
+                        game, player, skillCheck.Skill, choice?.SkillCheck))
+                {
+                    var gearId = AbilityDispatcher.FindDiscardToRerollGear(
+                        game, player, skillCheck.Skill)!;
+                    _pendingRerollResult = check;
+                    _pendingRerollOptionIndex = optionIndex;
+                    _pendingRerollResolveChoice = choice;
+                    if (!SkillCheck.TrySuspendDiscardToReroll(game, player, gearId, out error))
+                    {
+                        _pendingRerollResult = null;
+                        _pendingRerollOptionIndex = -1;
+                        _pendingRerollResolveChoice = null;
+                        return false;
+                    }
+                    error = "Choose whether to discard gear to re-roll this Fight test.";
                     return false;
                 }
             }

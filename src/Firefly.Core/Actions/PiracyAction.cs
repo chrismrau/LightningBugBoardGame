@@ -21,6 +21,12 @@ namespace Firefly.Core.Actions
         public Skill AttackSkill { get; set; } = Skill.Fight;
         public Skill DefendSkill { get; set; } = Skill.Fight;
 
+        /// <summary>Boarding Bribes / Cortland (Negotiate Boarding is not a Showdown).</summary>
+        public SkillCheckChoice? BoardingSkillCheck { get; set; }
+
+        /// <summary>Guardian / Chari Showdown may re-rolls.</summary>
+        public ShowdownChoice? Showdown { get; set; }
+
         /// <summary>Goods to jettison from the attacker's ship before stealing (make room).</summary>
         public int JettisonFuel { get; set; }
         public int JettisonParts { get; set; }
@@ -99,10 +105,14 @@ namespace Firefly.Core.Actions
     /// </summary>
     public sealed class PiracyAction
     {
-        private bool _resumingRival;
+        private bool _resuming;
         private string? _pendingPiracyPlayerId;
         private string? _pendingPiracyJobId;
         private PiracyChoice? _pendingPiracyChoice;
+        private SkillCheckResult? _pendingBoarding;
+        private ShowdownResult? _pendingShowdownInitial;
+        private int _pendingAttackerSkill;
+        private int _pendingDefenderSkill;
 
         public bool TryPirate(
             GameState game,
@@ -119,7 +129,7 @@ namespace Firefly.Core.Actions
                 error = "Piracy requires a rival choice.";
                 return false;
             }
-            if (game.PendingChoice != null && !_resumingRival)
+            if (game.PendingChoice != null && !_resuming)
             {
                 error = "Resolve the pending choice before continuing piracy.";
                 return false;
@@ -191,26 +201,80 @@ namespace Firefly.Core.Actions
             // PBH p.5: place the card in the Active Job area when attempting.
             ActivatePiracyJob(player, jobId);
 
-            // Boarding Test (PBH p.3 / card description).
-            if (!BoardingTest.TryResolve(
-                    player, choice.BoardSkill, rng,
-                    out var boarding, out error, terms.BoardingTarget))
-                return false;
+            SkillCheckResult boarding;
+            if (_pendingBoarding != null)
+            {
+                boarding = _pendingBoarding;
+                _pendingBoarding = null;
+            }
+            else
+            {
+                var boardCheck = BoardingTest.BuildCheck(player, choice.BoardSkill, terms.BoardingTarget);
+                // Cortland: Negotiate Boarding is a Negotiate Test — Bribes may apply (not Showdown).
+                if (SkillCheck.NeedsBribeChoice(player, boardCheck, choice.BoardingSkillCheck))
+                {
+                    if (!SkillCheck.TrySuspendBribeChoice(
+                            game, player, contextId: $"piracy-board:{jobId}", out error))
+                        return false;
+                    RememberPiracy(playerId, jobId, choice);
+                    error = "Choose how many Bribes to pay before the Boarding Test.";
+                    return false;
+                }
+
+                if (!boardCheck.TryResolve(
+                        player, rng, out boarding, out error, choice.BoardingSkillCheck))
+                    return false;
+            }
 
             if (!boarding.Success)
             {
                 // PBH p.5: failed Boarding → Job remains in Active Job area; Work Action over.
                 if (!game.TryConsumeAction(TurnAction.Work, out error))
                     return false;
+                ClearPiracyPending();
                 result = new PiracyResult(job, boardingFailed: true, boarding: boarding);
                 return true;
             }
 
-            // Piracy Showdown (PBH p.5–6): job completes only on attacker win.
-            var showdown = Showdown.Resolve(
-                Showdown.Of(player, choice.AttackSkill),
-                Showdown.Of(rival, choice.DefendSkill),
-                rng);
+            var attackerSkill = Showdown.Of(player, choice.AttackSkill);
+            var defenderSkill = Showdown.Of(rival, choice.DefendSkill);
+            ShowdownResult showdown;
+            if (_pendingShowdownInitial != null)
+            {
+                showdown = _pendingShowdownInitial;
+            }
+            else
+            {
+                showdown = Showdown.Resolve(attackerSkill, defenderSkill, rng);
+                _pendingShowdownInitial = showdown;
+                _pendingAttackerSkill = attackerSkill;
+                _pendingDefenderSkill = defenderSkill;
+            }
+
+            choice.Showdown ??= new ShowdownChoice();
+            var nextCtx = Showdown.NextRerollContext(player, rival, choice.Showdown);
+            if (nextCtx != null)
+            {
+                var decidingPlayer = nextCtx.StartsWith("defender", StringComparison.Ordinal)
+                    ? rival
+                    : player;
+                var pending = new PendingChoice(
+                    decidingPlayer.Id,
+                    PendingChoiceKinds.ShowdownReroll,
+                    contextId: nextCtx,
+                    options: new[] { SkillRerollOptions.Keep, SkillRerollOptions.Reroll },
+                    prompt: "Showdown re-roll?");
+                if (!game.TrySetPendingChoice(pending, out error))
+                    return false;
+                _pendingBoarding = boarding;
+                RememberPiracy(playerId, jobId, choice);
+                error = "Choose whether to re-roll in the Showdown.";
+                return false;
+            }
+
+            showdown = Showdown.ApplyRerolls(
+                showdown, _pendingAttackerSkill, _pendingDefenderSkill, choice.Showdown, rng);
+            ClearPiracyPending();
 
             if (!showdown.AttackerWins)
                 return FinishShowdownLoss(game, player, rival, job, terms, showdown, boarding, choice, rng, out result, out error);
@@ -262,16 +326,125 @@ namespace Firefly.Core.Actions
             var choice = _pendingPiracyChoice;
             choice.RivalId = rivalId!;
             var jobId = _pendingPiracyJobId!;
-            ClearPendingPiracy();
+            // Keep job/player remembered only via locals; rival resume clears soft state.
+            _pendingPiracyPlayerId = null;
+            _pendingPiracyJobId = null;
+            _pendingPiracyChoice = null;
 
-            _resumingRival = true;
+            _resuming = true;
             try
             {
                 return TryPirate(game, playerId, jobId, choice, rng, out result, out error);
             }
             finally
             {
-                _resumingRival = false;
+                _resuming = false;
+            }
+        }
+
+        /// <summary>
+        /// Resume after Cortland/Bribes PendingChoice on a Negotiate Boarding Test.
+        /// </summary>
+        public bool TryResumeBoardingBribe(
+            GameState game,
+            ChoiceSubmission submission,
+            IRng rng,
+            out PiracyResult? result,
+            out string? error)
+        {
+            result = null;
+            error = null;
+            if (game.PendingChoice == null
+                || !string.Equals(
+                    game.PendingChoice.Kind,
+                    PendingChoiceKinds.BribeAmount,
+                    StringComparison.Ordinal))
+            {
+                error = "No boarding bribe choice is pending.";
+                return false;
+            }
+            if (string.IsNullOrWhiteSpace(_pendingPiracyPlayerId)
+                || string.IsNullOrWhiteSpace(_pendingPiracyJobId)
+                || _pendingPiracyChoice == null)
+            {
+                error = "Piracy boarding bribe resume state is missing.";
+                return false;
+            }
+
+            var playerId = _pendingPiracyPlayerId!;
+            var player = game.GetPlayer(playerId);
+            if (!SkillCheck.TryMergeBribeSubmission(
+                    player, submission, _pendingPiracyChoice.BoardingSkillCheck, out var merged, out error))
+                return false;
+            _pendingPiracyChoice.BoardingSkillCheck = merged;
+
+            if (!game.TrySubmitChoice(playerId, submission, out _, out error))
+                return false;
+
+            var choice = _pendingPiracyChoice;
+            var jobId = _pendingPiracyJobId!;
+            _resuming = true;
+            try
+            {
+                return TryPirate(game, playerId, jobId, choice, rng, out result, out error);
+            }
+            finally
+            {
+                _resuming = false;
+            }
+        }
+
+        /// <summary>
+        /// Resume after Guardian / Chari Showdown re-roll PendingChoice.
+        /// </summary>
+        public bool TryResumeShowdownReroll(
+            GameState game,
+            ChoiceSubmission submission,
+            IRng rng,
+            out PiracyResult? result,
+            out string? error)
+        {
+            result = null;
+            error = null;
+            if (game.PendingChoice == null
+                || !string.Equals(
+                    game.PendingChoice.Kind,
+                    PendingChoiceKinds.ShowdownReroll,
+                    StringComparison.Ordinal))
+            {
+                error = "No Showdown re-roll choice is pending.";
+                return false;
+            }
+            if (string.IsNullOrWhiteSpace(_pendingPiracyPlayerId)
+                || string.IsNullOrWhiteSpace(_pendingPiracyJobId)
+                || _pendingPiracyChoice == null
+                || _pendingShowdownInitial == null)
+            {
+                error = "Piracy Showdown re-roll resume state is missing.";
+                return false;
+            }
+
+            var contextId = game.PendingChoice.ContextId ?? "";
+            var submittingPlayerId = game.PendingChoice.PlayerId;
+            if (!Showdown.TryMergeRerollSubmission(
+                    contextId, submission, _pendingPiracyChoice.Showdown, out var merged, out error))
+                return false;
+            _pendingPiracyChoice.Showdown = merged;
+
+            if (!game.TrySubmitChoice(submittingPlayerId, submission, out _, out error))
+                return false;
+
+            var choice = _pendingPiracyChoice;
+            var jobId = _pendingPiracyJobId!;
+            var playerId = _pendingPiracyPlayerId!;
+            _resuming = true;
+            try
+            {
+                return TryPirate(game, playerId, jobId, choice, rng, out result, out error);
+            }
+            finally
+            {
+                _resuming = false;
             }
         }
 
@@ -291,17 +464,26 @@ namespace Firefly.Core.Actions
                 prompt: "Choose a rival ship in the same sector.");
             if (!game.TrySetPendingChoice(pending, out error))
                 return false;
-            _pendingPiracyPlayerId = playerId;
-            _pendingPiracyJobId = jobId;
-            _pendingPiracyChoice = choice;
+            RememberPiracy(playerId, jobId, choice);
             return true;
         }
 
-        private void ClearPendingPiracy()
+        private void RememberPiracy(string playerId, string jobId, PiracyChoice choice)
+        {
+            _pendingPiracyPlayerId = playerId;
+            _pendingPiracyJobId = jobId;
+            _pendingPiracyChoice = choice;
+        }
+
+        private void ClearPiracyPending()
         {
             _pendingPiracyPlayerId = null;
             _pendingPiracyJobId = null;
             _pendingPiracyChoice = null;
+            _pendingBoarding = null;
+            _pendingShowdownInitial = null;
+            _pendingAttackerSkill = 0;
+            _pendingDefenderSkill = 0;
         }
 
         public static IReadOnlyList<string> SameSectorRivalIds(GameState game, string playerId)

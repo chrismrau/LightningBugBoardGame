@@ -652,9 +652,16 @@
         "Beaumonde": 1
       },
       "count": 3,
-      "specialAbilityType": null,
+      "specialAbilityType": "discardToReroll",
       "ability": null,
-      "id": "gear_extra-ammo-clips_kalidasa"
+      "id": "gear_extra-ammo-clips_kalidasa",
+      "abilities": [
+        {
+          "type": "discardToReroll",
+          "skill": "Fight",
+          "mandatory": false
+        }
+      ]
     },
     {
       "class": "Standard",
@@ -1225,9 +1232,15 @@
         "Meridian": 1
       },
       "count": 1,
-      "specialAbilityType": null,
+      "specialAbilityType": "clearDisgruntledAction",
       "ability": null,
-      "id": "gear_love-bot_bluesun"
+      "id": "gear_love-bot_bluesun",
+      "abilities": [
+        {
+          "type": "clearDisgruntledAction",
+          "mandatory": false
+        }
+      ]
     },
     {
       "class": "Standard",
@@ -1947,9 +1960,16 @@
         "Osiris": 1
       },
       "count": 1,
-      "specialAbilityType": null,
+      "specialAbilityType": "discardToReroll",
       "ability": null,
-      "id": "gear_yolondas-pistol_kalidasa"
+      "id": "gear_yolondas-pistol_kalidasa",
+      "abilities": [
+        {
+          "type": "discardToReroll",
+          "skill": "Fight",
+          "mandatory": false
+        }
+      ]
     },
     {
       "class": "Standard",

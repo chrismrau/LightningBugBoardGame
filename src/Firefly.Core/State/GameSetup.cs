@@ -259,6 +259,7 @@ namespace Firefly.Core.State
                 Ships = ShipCatalog.LoadDefault(),
                 DriveCores = DriveCoreCatalog.LoadDefault(),
                 Gear = GearIndex.LoadDefault(),
+                ShipUpgradeCatalog = ShipUpgradeIndex.LoadDefault(),
                 Supply = SupplyCatalog.LoadDefault()
             };
 

@@ -1,6 +1,6 @@
 {
   "meta": {
-    "description": "Firefly: The Game – Ship Upgrade cards",
+    "description": "Firefly: The Game \u2013 Ship Upgrade cards",
     "count": 26,
     "schemaVersion": "1.0"
   },
@@ -26,9 +26,15 @@
         "Beaumonde": 1
       },
       "count": 1,
-      "specialAbilityType": null,
+      "specialAbilityType": "shoreLeaveAnySector",
       "ability": null,
-      "id": "ship-upgrade_board-game-collection_kalidasa"
+      "id": "ship-upgrade_board-game-collection_kalidasa",
+      "abilities": [
+        {
+          "type": "shoreLeaveAnySector",
+          "mandatory": false
+        }
+      ]
     },
     {
       "class": "Standard",

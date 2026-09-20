@@ -29,6 +29,15 @@ namespace Firefly.Core.Cards
         /// true = re-roll once, false = keep the first roll. FAQ 4.1 p.8 — always ask.
         /// </summary>
         public bool? AcceptReroll { get; set; }
+
+        /// <summary>
+        /// Discard-to-reroll gear may: null = undecided, true = discard gear and re-roll,
+        /// false = decline. FAQ 4.1 p.8 — always ask when carried matching gear exists.
+        /// </summary>
+        public bool? AcceptDiscardReroll { get; set; }
+
+        /// <summary>Gear id discarded when <see cref="AcceptDiscardReroll"/> is true.</summary>
+        public string? DiscardRerollGearId { get; set; }
     }
 
     public sealed class SkillCheck
@@ -185,6 +194,76 @@ namespace Firefly.Core.Cards
                 options: new[] { SkillRerollOptions.Keep, SkillRerollOptions.Reroll },
                 prompt: prompt ?? "Re-roll this skill test?");
             return game.TrySetPendingChoice(pending, out error);
+        }
+
+        /// <summary>
+        /// Suspend discard-to-reroll gear may. ContextId = gear id to discard on accept.
+        /// </summary>
+        public static bool TrySuspendDiscardToReroll(
+            GameState game,
+            PlayerState player,
+            string gearId,
+            out string? error,
+            string? prompt = null)
+        {
+            var pending = new PendingChoice(
+                player.Id,
+                PendingChoiceKinds.DiscardToReroll,
+                contextId: gearId,
+                options: new[] { DiscardToRerollOptions.Discard, DiscardToRerollOptions.Decline },
+                prompt: prompt ?? "Discard gear to re-roll this Fight test?");
+            return game.TrySetPendingChoice(pending, out error);
+        }
+
+        /// <summary>
+        /// Validate discard/decline into <see cref="SkillCheckChoice.AcceptDiscardReroll"/>.
+        /// </summary>
+        public static bool TryMergeDiscardToRerollSubmission(
+            ChoiceSubmission submission,
+            string? gearId,
+            SkillCheckChoice? existing,
+            out SkillCheckChoice merged,
+            out string? error)
+        {
+            merged = existing ?? new SkillCheckChoice();
+            error = null;
+            if (submission == null)
+            {
+                error = "A choice submission is required.";
+                return false;
+            }
+
+            bool accept;
+            if (submission.Accepted != null)
+                accept = submission.Accepted.Value;
+            else if (!string.IsNullOrWhiteSpace(submission.SelectedOptionId))
+            {
+                if (string.Equals(
+                        submission.SelectedOptionId,
+                        DiscardToRerollOptions.Discard,
+                        StringComparison.Ordinal))
+                    accept = true;
+                else if (string.Equals(
+                             submission.SelectedOptionId,
+                             DiscardToRerollOptions.Decline,
+                             StringComparison.Ordinal))
+                    accept = false;
+                else
+                {
+                    error = $"Unknown discard-to-reroll option '{submission.SelectedOptionId}'.";
+                    return false;
+                }
+            }
+            else
+            {
+                error = "Accept (discard) or decline, or select discard/decline.";
+                return false;
+            }
+
+            merged.AcceptDiscardReroll = accept;
+            if (accept)
+                merged.DiscardRerollGearId = gearId;
+            return true;
         }
 
         /// <summary>

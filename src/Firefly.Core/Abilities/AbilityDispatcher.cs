@@ -109,6 +109,186 @@ namespace Firefly.Core.Abilities
                 context,
                 allowOptional: false);
 
+        /// <summary>
+        /// Nandi: Hire Crew at no cost (permission — always-on Buy cost; not mid-resolve may).
+        /// </summary>
+        public static bool HasFreeHireCrew(
+            PlayerState player,
+            AbilityContext? context = null) =>
+            HasAbility(player, AbilityTypes.FreeHireCrew, context, allowOptional: true);
+
+        /// <summary>Board Game Collection: Shore Leave allowed in any Sector via Buy.</summary>
+        public static bool HasShoreLeaveAnySector(
+            GameState game,
+            PlayerState player,
+            AbilityContext? context = null)
+        {
+            context ??= AbilityContext.None;
+            var catalog = game.ShipUpgradeCatalog;
+            if (catalog == null)
+                return false;
+            foreach (var upgradeId in player.ShipUpgrades)
+            {
+                if (!catalog.TryGet(upgradeId, out var upgrade))
+                    continue;
+                foreach (var ability in AllFromShipUpgrade(upgrade))
+                {
+                    if (ability.MatchesType(AbilityTypes.ShoreLeaveAnySector)
+                        && Applies(ability, context, allowOptional: true))
+                        return true;
+                }
+            }
+            return false;
+        }
+
+        /// <summary>Emma / Helen / Lucy Morale Booster on the roster.</summary>
+        public static bool HasMoraleBooster(
+            PlayerState player,
+            AbilityContext? context = null) =>
+            HasAbility(player, AbilityTypes.MoraleBooster, context);
+
+        /// <summary>Love Bot (or similar) clear-Disgruntled action from carried gear.</summary>
+        public static bool HasClearDisgruntledAction(
+            GameState game,
+            PlayerState player,
+            AbilityContext? context = null) =>
+            FindCarriedGearAbility(game, player, AbilityTypes.ClearDisgruntledAction, context) != null;
+
+        /// <summary>True when a Morale Booster or Love Bot action is available.</summary>
+        public static bool CanClearDisgruntledAction(
+            GameState game,
+            PlayerState player,
+            AbilityContext? context = null) =>
+            HasMoraleBooster(player, context) || HasClearDisgruntledAction(game, player, context);
+
+        /// <summary>
+        /// Crew ids legal for Morale Booster / Love Bot: Disgruntled, and not the Morale Booster
+        /// source crew (printed “other than Emma/Helen/Lucy”). Love Bot may clear any.
+        /// </summary>
+        public static IReadOnlyList<string> LegalMoraleBoosterTargets(
+            GameState game,
+            PlayerState player,
+            AbilityContext? context = null)
+        {
+            var moraleExcluded = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var member in player.Roster.Members)
+            {
+                foreach (var ability in AllFromCrew(member.Card))
+                {
+                    if (!ability.MatchesType(AbilityTypes.MoraleBooster)
+                        || !Applies(ability, context, allowOptional: true))
+                        continue;
+                    moraleExcluded.Add(member.Id);
+                    if (string.IsNullOrWhiteSpace(ability.Subject))
+                        continue;
+                    foreach (var other in player.Roster.Members)
+                    {
+                        if (string.Equals(other.Name, ability.Subject, StringComparison.OrdinalIgnoreCase))
+                            moraleExcluded.Add(other.Id);
+                    }
+                }
+            }
+
+            var loveBot = HasClearDisgruntledAction(game, player, context);
+            var list = new List<string>();
+            foreach (var member in player.Roster.Members)
+            {
+                if (!member.Disgruntled)
+                    continue;
+                if (loveBot || !moraleExcluded.Contains(member.Id))
+                    list.Add(member.Id);
+            }
+            return list;
+        }
+
+        /// <summary>
+        /// Carried discard-to-reroll gear for the printed skill (Fight for Extra Ammo / Yolonda's).
+        /// FAQ 4.1 p.2: Onboard unused. Returns first matching gear id or null.
+        /// </summary>
+        public static string? FindDiscardToRerollGear(
+            GameState game,
+            PlayerState player,
+            Skill skill,
+            AbilityContext? context = null)
+        {
+            if (game.Gear == null)
+                return null;
+            foreach (var gearId in player.Gear)
+            {
+                if (!GearCarriage.IsCarried(player, gearId))
+                    continue;
+                if (!game.Gear.TryGet(gearId, out var gear))
+                    continue;
+                foreach (var ability in AllFromGear(gear))
+                {
+                    if (!ability.MatchesType(AbilityTypes.DiscardToReroll)
+                        || !Applies(ability, context, allowOptional: true))
+                        continue;
+                    if (!SkillMatches(ability.Skill, skill))
+                        continue;
+                    return gearId;
+                }
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// FAQ 4.1 p.8 may: after a matching Fight roll, always suspend discard/decline when
+        /// carried discard-to-reroll gear is present and undecided.
+        /// </summary>
+        public static bool NeedsDiscardToRerollChoice(
+            GameState game,
+            PlayerState player,
+            Skill skill,
+            SkillCheckChoice? choice,
+            AbilityContext? context = null)
+        {
+            if (choice?.AcceptDiscardReroll != null)
+                return false;
+            return FindDiscardToRerollGear(game, player, skill, context) != null;
+        }
+
+        public static bool HasShowdownReroll(
+            PlayerState player,
+            AbilityContext? context = null) =>
+            HasAbility(player, AbilityTypes.ShowdownReroll, context);
+
+        public static bool HasShowdownForceRivalReroll(
+            PlayerState player,
+            AbilityContext? context = null) =>
+            HasAbility(player, AbilityTypes.ShowdownForceRivalReroll, context);
+
+        public static IEnumerable<AbilityDefinition> AllFromShipUpgrade(ShipUpgradeEntry upgrade)
+        {
+            if (upgrade?.Abilities == null)
+                yield break;
+            foreach (var ability in upgrade.Abilities)
+                yield return ability;
+        }
+
+        private static AbilityDefinition? FindCarriedGearAbility(
+            GameState game,
+            PlayerState player,
+            string type,
+            AbilityContext? context)
+        {
+            if (game.Gear == null)
+                return null;
+            foreach (var gearId in player.Gear)
+            {
+                if (!GearCarriage.IsCarried(player, gearId))
+                    continue;
+                if (!game.Gear.TryGet(gearId, out var gear))
+                    continue;
+                foreach (var ability in AllFromGear(gear))
+                {
+                    if (ability.MatchesType(type) && Applies(ability, context, allowOptional: true))
+                        return ability;
+                }
+            }
+            return null;
+        }
+
         public static int SumAmount(
             PlayerState player,
             string type,
