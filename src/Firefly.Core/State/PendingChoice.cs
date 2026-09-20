@@ -62,8 +62,8 @@ namespace Firefly.Core.State
 
     /// <summary>
     /// Reserved kind ids. Wired: <see cref="NavPayOrDecline"/>, <see cref="KillVictim"/>,
-    /// <see cref="BribeAmount"/>, <see cref="MedFoamDiscard"/>, <see cref="MisbehaveOption"/>.
-    /// Haven / rival / PTR await consumer (e).
+    /// <see cref="BribeAmount"/>, <see cref="MedFoamDiscard"/>, <see cref="MisbehaveOption"/>,
+    /// <see cref="HavenSector"/>, <see cref="RivalPlayer"/>, <see cref="SectorDestination"/>.
     /// </summary>
     public static class PendingChoiceKinds
     {
@@ -78,7 +78,47 @@ namespace Firefly.Core.State
         /// Option ids are <c>0</c>/<c>1</c>/… or <c>step:N</c>.
         /// </summary>
         public const string MisbehaveOption = "misbehave-option";
-        public const string HavenOrRivalSector = "haven-or-rival-sector";
+        /// <summary>
+        /// Story / Blue Sun Choosing Havens: pick an eligible Haven sector (Blue Sun p.14;
+        /// Any Port setup). <see cref="ChoiceSubmission.Value"/> = sector id.
+        /// </summary>
+        public const string HavenSector = "haven-sector";
+        /// <summary>
+        /// Any Rival piracy: choose a same-sector rival ship (PBH pp.3–5).
+        /// <see cref="ChoiceSubmission.Value"/> or <see cref="ChoiceSubmission.SelectedOptionId"/> = rival player id.
+        /// </summary>
+        public const string RivalPlayer = "rival-player";
+        /// <summary>
+        /// Cruiser / Reaver / Corvette / ship-nudge / Safe Harbor destination.
+        /// PTR or drawer per card text. <see cref="ChoiceSubmission.Value"/> = sector id;
+        /// ship nudge uses <see cref="ChoiceSubmission.Values"/> = via, destination.
+        /// ContextId discriminates the resume site (see <see cref="SectorDestinationContexts"/>).
+        /// </summary>
+        public const string SectorDestination = "sector-destination";
+    }
+
+    /// <summary>ContextId prefixes / ids for <see cref="PendingChoiceKinds.SectorDestination"/>.</summary>
+    public static class SectorDestinationContexts
+    {
+        public const string CruiserPatrol = "cruiser-patrol";
+        public const string AllianceEntanglements = "alliance-entanglements";
+        public const string SafeHarborPrefix = "safe-harbor:";
+        public const string ShipNudge = "ship-nudge";
+        public const string ReaverCutter = "reaver-cutter";
+        public const string OperativeCorvette = "operative-corvette";
+
+        public static string SafeHarbor(string intendedSectorId) =>
+            SafeHarborPrefix + intendedSectorId;
+
+        public static bool TryParseSafeHarbor(string? contextId, out string intendedSectorId)
+        {
+            intendedSectorId = "";
+            if (string.IsNullOrWhiteSpace(contextId)
+                || !contextId.StartsWith(SafeHarborPrefix, StringComparison.Ordinal))
+                return false;
+            intendedSectorId = contextId.Substring(SafeHarborPrefix.Length);
+            return !string.IsNullOrWhiteSpace(intendedSectorId);
+        }
     }
 
     /// <summary>Discrete option ids for <see cref="PendingChoiceKinds.MedFoamDiscard"/>.</summary>

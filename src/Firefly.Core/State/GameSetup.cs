@@ -139,8 +139,9 @@ namespace Firefly.Core.State
 
         /// <summary>
         /// Any Port / chooseHavens stories: player id → Haven sector id.
-        /// When null and chooseHavens is required, each seat's SectorId is used as that
-        /// player's Haven (ships start at Haven per Blue Sun). Thin PendingChoice stub.
+        /// When a seat is omitted and chooseHavens is required, that seat suspends via
+        /// <see cref="PendingChoiceKinds.HavenSector"/> after Create (Blue Sun Choosing Havens).
+        /// Scripted entries still apply immediately (tests / headless setup).
         /// </summary>
         public IDictionary<string, string>? HavenChoices { get; set; }
     }
@@ -348,7 +349,9 @@ namespace Firefly.Core.State
                     player.Warrants = scenario.StartingWarrants;
             }
 
-            if (scenario.AllianceAlertTokensOnNonHavenAlliancePlanets)
+            // Alliance Alert Tokens need every Haven placed first (non-Haven planets only).
+            if (scenario.AllianceAlertTokensOnNonHavenAlliancePlanets
+                && game.PendingChoice == null)
                 PlaceAllianceAlertTokensOnNonHavenAlliancePlanets(game);
         }
 
@@ -365,52 +368,42 @@ namespace Firefly.Core.State
             foreach (var seat in seats)
             {
                 var player = game.GetPlayer(seat.Id);
-                string? havenId = null;
-                if (options.HavenChoices != null
-                    && options.HavenChoices.TryGetValue(seat.Id, out var chosen)
-                    && !string.IsNullOrWhiteSpace(chosen))
+                if (options.HavenChoices == null
+                    || !options.HavenChoices.TryGetValue(seat.Id, out var chosen)
+                    || string.IsNullOrWhiteSpace(chosen))
                 {
-                    havenId = chosen;
-                }
-                else
-                {
-                    // Thin hook: seat SectorId is the Haven pick when choices are omitted.
-                    havenId = seat.SectorId;
+                    // Defer to PendingChoice (one seat at a time) after scripted seats apply.
+                    continue;
                 }
 
-                if (!HavenRules.IsEligibleHavenSector(game, havenId!, out var error))
+                var havenId = chosen;
+                if (!HavenRules.IsEligibleHavenSector(game, havenId, out var error))
                     throw new ArgumentException(
                         $"Haven for '{seat.Id}': {error}",
                         nameof(options));
-                if (!taken.Add(havenId!))
+                if (!taken.Add(havenId))
                     throw new ArgumentException(
                         $"Haven sector '{havenId}' is already claimed.",
                         nameof(options));
 
-                player.HavenSectorId = havenId!;
+                player.HavenSectorId = havenId;
                 // Blue Sun: unless otherwise noted, ships start at their Haven.
-                player.SectorId = havenId!;
+                player.SectorId = havenId;
+            }
+
+            // Suspend for the first seat still missing a Haven; Alliance Alert Tokens wait
+            // until every Haven is chosen (TryResumeHavenSector / ApplyScenarioSetup).
+            if (!HavenRules.TrySuspendNextHavenPick(game, out var pendingError)
+                && game.PendingChoice == null)
+            {
+                throw new ArgumentException(
+                    pendingError ?? "Haven selection failed.",
+                    nameof(options));
             }
         }
 
-        private static void PlaceAllianceAlertTokensOnNonHavenAlliancePlanets(GameState game)
-        {
-            // ScenarioCards.json: Alliance Alert Tokens on non-Haven Alliance planets.
-            // Distinct from the C&P Alliance Alert deck (ActiveAlertRules).
-            game.UseAlertTokens = true;
-            var tokens = game.Tokens;
-            foreach (var sector in game.Map.Sectors.Values)
-            {
-                if (!string.Equals(sector.Region, "Alliance", StringComparison.OrdinalIgnoreCase))
-                    continue;
-                if (!sector.IsPlanetary && string.IsNullOrWhiteSpace(sector.Planet))
-                    continue;
-                if (HavenRules.IsAnyHaven(game, sector.Id))
-                    continue;
-                tokens = tokens.PlaceAlertToken(sector.Id, AlertTokenKind.Alliance, 1);
-            }
-            game.Tokens = tokens;
-        }
+        private static void PlaceAllianceAlertTokensOnNonHavenAlliancePlanets(GameState game) =>
+            HavenRules.PlaceAllianceAlertTokensOnNonHavenAlliancePlanets(game);
 
         private static void PrimeSupplyDecks(SupplyDecks? decks, int revealCount)
         {
