@@ -26,6 +26,39 @@ namespace Firefly.Core.State
         }
     }
 
+    /// <summary>
+    /// One pick in The Browncoat Way snake draft: purchase a Ship <em>or</em> select a Leader.
+    /// SetupCards.json: each turn chooses Leader OR Ship; last player takes both before reverse.
+    /// </summary>
+    public sealed class BrowncoatDraftPick
+    {
+        public string PlayerId { get; }
+        public string? ShipId { get; }
+        public string? LeaderId { get; }
+
+        public BrowncoatDraftPick(string playerId, string? shipId = null, string? leaderId = null)
+        {
+            PlayerId = playerId;
+            ShipId = shipId;
+            LeaderId = leaderId;
+        }
+
+        public static BrowncoatDraftPick Ship(string playerId, string shipId) =>
+            new BrowncoatDraftPick(playerId, shipId: shipId);
+
+        public static BrowncoatDraftPick Leader(string playerId, string leaderId) =>
+            new BrowncoatDraftPick(playerId, leaderId: leaderId);
+    }
+
+    /// <summary>
+    /// Optional post-draft Fuel / Parts purchase (SetupCards.json: Fuel $100, Parts $300).
+    /// </summary>
+    public sealed class BrowncoatResourceBuy
+    {
+        public int Fuel { get; set; }
+        public int Parts { get; set; }
+    }
+
     public sealed class GameSetupOptions
     {
         public string SetupCardId { get; set; } = "setup_standard";
@@ -54,6 +87,22 @@ namespace Firefly.Core.State
         /// claimable revealed card for each pick.
         /// </summary>
         public IList<string>? StripMineClaims { get; set; }
+        /// <summary>
+        /// The Browncoat Way: seat index of the highest dice roll — starts the snake draft
+        /// (SetupCards.json Choose Ships and Leaders). Defaults to 0.
+        /// </summary>
+        public int BrowncoatDraftStartIndex { get; set; }
+        /// <summary>
+        /// Ordered picks for the full snake-draft loop (2 × playerCount picks).
+        /// Null auto-picks from each seat's ShipId / LeaderId (ship preferred on the
+        /// forward pass when both remain).
+        /// </summary>
+        public IList<BrowncoatDraftPick>? BrowncoatDraftPicks { get; set; }
+        /// <summary>
+        /// Optional Fuel/Parts buys after the draft, keyed by player id.
+        /// Null = nobody buys (printed "may buy").
+        /// </summary>
+        public IDictionary<string, BrowncoatResourceBuy>? BrowncoatResourceBuys { get; set; }
         /// <summary>
         /// Optional hook after ships/leaders are seated (and leader crew stripped from
         /// Supply) but before Strip Mining / Priming. Tests use this to stack draft cards.
@@ -179,7 +228,8 @@ namespace Firefly.Core.State
                     fuel: fuel,
                     parts: parts,
                     cash: cash,
-                    shipId: seat.ShipId));
+                    // Browncoat purchases ships in the snake draft; seat.ShipId is only a pick preference.
+                    shipId: setup.PurchaseShipsFromBank ? null : seat.ShipId));
             }
 
             var corvette = options.UseOperativesCorvette ? OperativeCorvetteStartSectorId : null;
@@ -227,8 +277,18 @@ namespace Firefly.Core.State
             if (setup.StartingAlertCard || (scenario != null && scenario.StartingAlertCard))
                 game.AllianceAlertDeck.DrawAndActivate();
 
-            AssignStartingShips(game, seats);
-            HireStartingLeaders(game, seats);
+            if (setup.PurchaseShipsFromBank)
+            {
+                // SetupCards.json The Browncoat Way: snake-draft purchase ships / choose leaders,
+                // then optional Fuel ($100) and Parts ($300). No free starting Fuel/Parts.
+                ApplyBrowncoatSnakeDraft(game, seats, options);
+                ApplyBrowncoatResourceBuys(game, setup, options);
+            }
+            else
+            {
+                AssignStartingShips(game, seats);
+                HireStartingLeaders(game, seats);
+            }
             options.AfterLeadersHired?.Invoke(game);
 
             if (setup.StripMineOneSupplyDeck)
@@ -388,6 +448,273 @@ namespace Firefly.Core.State
             }
         }
 
+        /// <summary>
+        /// The Browncoat Way snake draft (SetupCards.json / printed Set Up card):
+        /// Highest roller picks Leader OR purchases a Ship (list price). Leftward until
+        /// the last player, who selects Leader and purchases a Ship. Then reverse rightward
+        /// for remaining choices. Director's Cut p.47: list prices include starting upgrades.
+        /// </summary>
+        private static void ApplyBrowncoatSnakeDraft(
+            GameState game,
+            IReadOnlyList<PlayerSeat> seats,
+            GameSetupOptions options)
+        {
+            if (game.Ships == null)
+                throw new InvalidOperationException("Ship catalog is required for Browncoat ship purchase.");
+
+            var n = seats.Count;
+            var start = options.BrowncoatDraftStartIndex;
+            if (start < 0 || start >= n)
+                throw new ArgumentException(
+                    $"BrowncoatDraftStartIndex {start} is out of range for {n} players.",
+                    nameof(options));
+
+            var turnPlayerIndexes = BuildBrowncoatTurnPlayerIndexes(n, start);
+            var shipsTaken = new HashSet<string>(StringComparer.Ordinal);
+            var leadersTaken = new HashSet<string>(StringComparer.Ordinal);
+            var corePool = new Queue<ShipCard>();
+            foreach (var ship in game.Ships.CoreStartingShips())
+                corePool.Enqueue(ship);
+
+            var picks = options.BrowncoatDraftPicks;
+            var pickCursor = 0;
+            if (picks == null)
+            {
+                picks = BuildAutoBrowncoatPicks(game, seats, turnPlayerIndexes, shipsTaken, corePool);
+                shipsTaken.Clear();
+                leadersTaken.Clear();
+                corePool.Clear();
+                foreach (var ship in game.Ships.CoreStartingShips())
+                    corePool.Enqueue(ship);
+                pickCursor = 0;
+            }
+
+            for (var turnIndex = 0; turnIndex < turnPlayerIndexes.Count; turnIndex++)
+            {
+                var playerIndex = turnPlayerIndexes[turnIndex];
+                var seat = seats[playerIndex];
+                var player = game.GetPlayer(seat.Id);
+                var slots = PicksForBrowncoatTurn(turnIndex, n);
+                for (var slot = 0; slot < slots; slot++)
+                {
+                    if (BrowncoatPlayerComplete(player, seat))
+                        break;
+                    if (pickCursor >= picks.Count)
+                        throw new ArgumentException(
+                            "BrowncoatDraftPicks ran out before the snake draft finished.",
+                            nameof(options));
+                    var pick = picks[pickCursor++];
+                    if (!string.Equals(pick.PlayerId, seat.Id, StringComparison.Ordinal))
+                        throw new ArgumentException(
+                            $"BrowncoatDraftPicks[{pickCursor - 1}] player '{pick.PlayerId}' does not match snake-order seat '{seat.Id}'.",
+                            nameof(options));
+                    ApplyBrowncoatPick(game, player, pick, shipsTaken, leadersTaken);
+                }
+            }
+
+            if (pickCursor != picks.Count)
+                throw new ArgumentException(
+                    $"BrowncoatDraftPicks has {picks.Count - pickCursor} unused pick(s) after the snake draft.",
+                    nameof(options));
+
+            foreach (var seat in seats)
+            {
+                var player = game.GetPlayer(seat.Id);
+                if (string.IsNullOrWhiteSpace(player.ShipId))
+                    throw new InvalidOperationException(
+                        $"Browncoat draft incomplete: {player.Name} has no ship.");
+            }
+        }
+
+        /// <summary>
+        /// Turn owners in snake order: forward leftward (N−1 one-pick turns), last player
+        /// (two picks), then reverse rightward (N−1 one-pick turns). For N=1 the sole
+        /// player is the "last" player and takes both choices in one turn.
+        /// </summary>
+        private static IReadOnlyList<int> BuildBrowncoatTurnPlayerIndexes(int playerCount, int startIndex)
+        {
+            var turns = new List<int>();
+            for (var i = 0; i < playerCount - 1; i++)
+                turns.Add((startIndex + i) % playerCount);
+            turns.Add((startIndex + playerCount - 1) % playerCount);
+            for (var i = playerCount - 2; i >= 0; i--)
+                turns.Add((startIndex + i) % playerCount);
+            return turns;
+        }
+
+        private static int PicksForBrowncoatTurn(int turnIndex, int playerCount) =>
+            turnIndex == playerCount - 1 ? 2 : 1;
+
+        private static bool BrowncoatPlayerComplete(PlayerState player, PlayerSeat seat)
+        {
+            if (string.IsNullOrWhiteSpace(player.ShipId))
+                return false;
+            if (!string.IsNullOrWhiteSpace(seat.LeaderId) && string.IsNullOrWhiteSpace(player.LeaderId))
+                return false;
+            return true;
+        }
+
+        private static IList<BrowncoatDraftPick> BuildAutoBrowncoatPicks(
+            GameState game,
+            IReadOnlyList<PlayerSeat> seats,
+            IReadOnlyList<int> turnPlayerIndexes,
+            HashSet<string> shipsTaken,
+            Queue<ShipCard> corePool)
+        {
+            var n = seats.Count;
+            var hasShip = new bool[n];
+            var hasLeader = new bool[n];
+            var picks = new List<BrowncoatDraftPick>();
+
+            for (var turnIndex = 0; turnIndex < turnPlayerIndexes.Count; turnIndex++)
+            {
+                var playerIndex = turnPlayerIndexes[turnIndex];
+                var seat = seats[playerIndex];
+                var slots = PicksForBrowncoatTurn(turnIndex, n);
+                for (var slot = 0; slot < slots; slot++)
+                {
+                    var needsShip = !hasShip[playerIndex];
+                    var needsLeader = !hasLeader[playerIndex] && !string.IsNullOrWhiteSpace(seat.LeaderId);
+                    if (!needsShip && !needsLeader)
+                        break;
+
+                    // Prefer ship when both remain (list price is the scarce choice).
+                    if (needsShip)
+                    {
+                        var shipId = ResolveAutoShipId(seat, shipsTaken, corePool, game);
+                        if (!game.Ships!.TryResolve(shipId, out var ship))
+                            throw new ArgumentException($"Unknown ship '{shipId}'.");
+                        shipsTaken.Add(ship.Id);
+                        picks.Add(BrowncoatDraftPick.Ship(seat.Id, ship.Id));
+                        hasShip[playerIndex] = true;
+                        continue;
+                    }
+
+                    picks.Add(BrowncoatDraftPick.Leader(seat.Id, seat.LeaderId!));
+                    hasLeader[playerIndex] = true;
+                }
+            }
+
+            return picks;
+        }
+
+        private static string ResolveAutoShipId(
+            PlayerSeat seat,
+            HashSet<string> shipsTaken,
+            Queue<ShipCard> corePool,
+            GameState game)
+        {
+            if (!string.IsNullOrWhiteSpace(seat.ShipId))
+            {
+                if (!game.Ships!.TryResolve(seat.ShipId, out var named))
+                    throw new ArgumentException($"Unknown ship '{seat.ShipId}'.");
+                if (shipsTaken.Contains(named.Id))
+                    throw new ArgumentException($"Ship '{named.Name}' is already seated.");
+                return named.Id;
+            }
+
+            var ship = NextUnusedCoreShip(corePool, shipsTaken)
+                ?? throw new InvalidOperationException("No core Firefly ships remain to purchase.");
+            return ship.Id;
+        }
+
+        private static void ApplyBrowncoatPick(
+            GameState game,
+            PlayerState player,
+            BrowncoatDraftPick pick,
+            HashSet<string> shipsTaken,
+            HashSet<string> leadersTaken)
+        {
+            var hasShip = !string.IsNullOrWhiteSpace(pick.ShipId);
+            var hasLeader = !string.IsNullOrWhiteSpace(pick.LeaderId);
+            if (hasShip == hasLeader)
+                throw new ArgumentException(
+                    "Each Browncoat draft pick must set exactly one of ShipId or LeaderId.");
+
+            if (hasShip)
+            {
+                if (!string.IsNullOrWhiteSpace(player.ShipId))
+                    throw new InvalidOperationException($"{player.Name} already has a ship.");
+                if (!game.Ships!.TryResolve(pick.ShipId!, out var ship))
+                    throw new ArgumentException($"Unknown ship '{pick.ShipId}'.");
+                if (!shipsTaken.Add(ship.Id))
+                    throw new ArgumentException($"Ship '{ship.Name}' is already seated.");
+
+                // SetupCards.json: "paying the Bank the list price on the Ship's card."
+                // Director's Cut p.47: list prices include starting Ship Upgrades — do not pay again.
+                if (player.Cash < ship.Cost)
+                    throw new InvalidOperationException(
+                        $"{player.Name} cannot afford '{ship.Name}' (${ship.Cost}).");
+                player.Cash -= ship.Cost;
+
+                player.ApplyShip(ship);
+                if (game.DriveCores != null && game.DriveCores.TryResolve(ship.MainDrive, out var core))
+                    player.ApplyDriveCore(core);
+                GrantStartingShipUpgrades(player, ship);
+                return;
+            }
+
+            if (game.Leaders == null)
+                throw new InvalidOperationException("Leader catalog is required to select a Leader.");
+            if (!string.IsNullOrWhiteSpace(player.LeaderId))
+                throw new InvalidOperationException($"{player.Name} already has a Leader.");
+            if (!game.Leaders.TryResolve(pick.LeaderId!, out var leader))
+                throw new ArgumentException($"Unknown leader '{pick.LeaderId}'.");
+            if (!leadersTaken.Add(leader.Id))
+                throw new ArgumentException($"Leader '{leader.Name}' is already seated.");
+            if (!player.Roster.TryHire(leader, out var error))
+                throw new InvalidOperationException(error);
+            player.LeaderId = leader.Id;
+            game.SupplyDecks?.RemoveCrewNamed(leader.Name);
+        }
+
+        /// <summary>
+        /// Director's Cut p.47–48: Series IV ships are pre-equipped with starting Ship Upgrades.
+        /// On The Browncoat Way those upgrades are included in the ship list price.
+        /// </summary>
+        private static void GrantStartingShipUpgrades(PlayerState player, ShipCard ship)
+        {
+            foreach (var upgradeId in ship.StartingUpgrades)
+            {
+                if (string.IsNullOrWhiteSpace(upgradeId))
+                    continue;
+                if (!player.ShipUpgrades.Contains(upgradeId))
+                    player.ShipUpgrades.Add(upgradeId);
+            }
+        }
+
+        private static void ApplyBrowncoatResourceBuys(
+            GameState game,
+            SetupCard setup,
+            GameSetupOptions options)
+        {
+            var buys = options.BrowncoatResourceBuys;
+            if (buys == null || buys.Count == 0)
+                return;
+
+            foreach (var player in game.Players)
+            {
+                if (!buys.TryGetValue(player.Id, out var buy) || buy == null)
+                    continue;
+                if (buy.Fuel < 0 || buy.Parts < 0)
+                    throw new ArgumentException($"Browncoat resource buy for '{player.Id}' cannot be negative.");
+                if (buy.Fuel == 0 && buy.Parts == 0)
+                    continue;
+
+                var cost = buy.Fuel * setup.BuyFuelCost + buy.Parts * setup.BuyPartsCost;
+                if (player.Cash < cost)
+                    throw new InvalidOperationException(
+                        $"{player.Name} cannot afford Browncoat Fuel/Parts (${cost}).");
+                if (!HoldSpace.TryExplain(player, out var error, addFuel: buy.Fuel, addParts: buy.Parts))
+                    throw new InvalidOperationException(
+                        $"Browncoat Fuel/Parts for {player.Name}: {error}");
+
+                player.Cash -= cost;
+                player.Fuel += buy.Fuel;
+                player.Parts += buy.Parts;
+            }
+        }
+
         private static void AssignStartingShips(GameState game, IReadOnlyList<PlayerSeat> seats)
         {
             if (game.Ships == null)
@@ -419,6 +746,9 @@ namespace Firefly.Core.State
                 player.ApplyShip(ship);
                 if (game.DriveCores != null && game.DriveCores.TryResolve(ship.MainDrive, out var core))
                     player.ApplyDriveCore(core);
+                // Standard / non-Browncoat: starting upgrades still equip; payment for those
+                // upgrades outside Browncoat is a separate Coachworks setup concern.
+                GrantStartingShipUpgrades(player, ship);
             }
         }
 

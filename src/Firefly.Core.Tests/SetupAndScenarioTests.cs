@@ -25,6 +25,10 @@ namespace Firefly.Core.Tests
             var card = SetupCatalog.LoadDefault().Get("setup_the-browncoat-way");
             Assert.Equal(12000, card.StartingCash);
             Assert.Equal(0, card.StartingFuel);
+            Assert.Equal(0, card.StartingParts);
+            Assert.True(card.PurchaseShipsFromBank);
+            Assert.Equal(100, card.BuyFuelCost);
+            Assert.Equal(300, card.BuyPartsCost);
         }
 
         [Fact]
@@ -705,8 +709,9 @@ namespace Firefly.Core.Tests
         [Fact]
         public void Browncoat_setup_starts_rich_and_dry()
         {
+            // SetupCards.json: $12,000; no free Fuel/Parts; purchase ship at list price.
             var game = GameSetup.Create(
-                new[] { new PlayerSeat("p1", "Mal", Persephone) },
+                new[] { new PlayerSeat("p1", "Mal", Persephone, shipId: "Serenity", leaderId: "Malcolm") },
                 new GameSetupOptions
                 {
                     SetupCardId = "setup_the-browncoat-way",
@@ -714,10 +719,126 @@ namespace Firefly.Core.Tests
                     Rng = new SystemRng(5)
                 });
 
-            Assert.Equal(12000, game.CurrentPlayer.Cash);
+            Assert.Equal("ship_serenity", game.CurrentPlayer.ShipId);
+            Assert.Equal("leader_malcolm", game.CurrentPlayer.LeaderId);
+            Assert.Equal(12000 - 7800, game.CurrentPlayer.Cash);
             Assert.Equal(0, game.CurrentPlayer.Fuel);
             Assert.Equal(0, game.CurrentPlayer.Parts);
             Assert.Empty(game.CurrentPlayer.JobHand);
+        }
+
+        [Fact]
+        public void Browncoat_snake_draft_follows_forward_last_both_then_reverse()
+        {
+            // SetupCards.json Choose Ships and Leaders:
+            // highest roller → leftward one each → last takes both → reverse remaining.
+            // Seats: p1 start, p2, p3. Explicit picks:
+            // p1 ship, p2 leader, p3 ship+leader, p2 ship, p1 leader.
+            var picks = new List<BrowncoatDraftPick>
+            {
+                BrowncoatDraftPick.Ship("p1", "Serenity"),
+                BrowncoatDraftPick.Leader("p2", "Zoe"),
+                BrowncoatDraftPick.Ship("p3", "Bonanza"),
+                BrowncoatDraftPick.Leader("p3", "Monty"),
+                BrowncoatDraftPick.Ship("p2", "Yun Qi"),
+                BrowncoatDraftPick.Leader("p1", "Malcolm")
+            };
+
+            var game = GameSetup.Create(
+                new[]
+                {
+                    new PlayerSeat("p1", "Mal", Persephone, leaderId: "Malcolm"),
+                    new PlayerSeat("p2", "Zoe", Santo, leaderId: "Zoe"),
+                    new PlayerSeat("p3", "Monty", Regina, leaderId: "Monty")
+                },
+                new GameSetupOptions
+                {
+                    SetupCardId = "setup_the-browncoat-way",
+                    BrowncoatDraftStartIndex = 0,
+                    BrowncoatDraftPicks = picks,
+                    DealStartingJobs = false,
+                    Rng = new SystemRng(51)
+                });
+
+            Assert.Equal("ship_serenity", game.GetPlayer("p1").ShipId);
+            Assert.Equal("leader_malcolm", game.GetPlayer("p1").LeaderId);
+            Assert.Equal(12000 - 7800, game.GetPlayer("p1").Cash);
+
+            Assert.Equal("ship_yun-qi", game.GetPlayer("p2").ShipId);
+            Assert.Equal("leader_zoe_jetwash", game.GetPlayer("p2").LeaderId);
+            Assert.Equal(12000 - 7800, game.GetPlayer("p2").Cash);
+
+            Assert.Equal("ship_bonanza", game.GetPlayer("p3").ShipId);
+            Assert.Equal("leader_monty", game.GetPlayer("p3").LeaderId);
+            Assert.Equal(12000 - 7800, game.GetPlayer("p3").Cash);
+        }
+
+        [Fact]
+        public void Browncoat_post_purchase_fuel_and_parts_use_printed_prices()
+        {
+            var game = GameSetup.Create(
+                new[] { new PlayerSeat("p1", "Mal", Persephone, shipId: "Serenity", leaderId: "Malcolm") },
+                new GameSetupOptions
+                {
+                    SetupCardId = "setup_the-browncoat-way",
+                    BrowncoatResourceBuys = new Dictionary<string, BrowncoatResourceBuy>
+                    {
+                        ["p1"] = new BrowncoatResourceBuy { Fuel = 2, Parts = 1 }
+                    },
+                    DealStartingJobs = false,
+                    Rng = new SystemRng(52)
+                });
+
+            // 12000 - 7800 ship - 2*100 fuel - 1*300 parts
+            Assert.Equal(12000 - 7800 - 200 - 300, game.CurrentPlayer.Cash);
+            Assert.Equal(2, game.CurrentPlayer.Fuel);
+            Assert.Equal(1, game.CurrentPlayer.Parts);
+        }
+
+        [Fact]
+        public void Browncoat_esmeralda_list_price_includes_starting_upgrades()
+        {
+            // Director's Cut p.47: "When playing “The Browncoat Way” Set Up Card, the list
+            // prices on the ships include the cost of the starting Ship Upgrades; do not
+            // pay for them again." Esmeralda $9300 includes Caravan Pods + Full Mess Deck.
+            var game = GameSetup.Create(
+                new[] { new PlayerSeat("p1", "Mal", Persephone, shipId: "Esmeralda", leaderId: "Malcolm") },
+                new GameSetupOptions
+                {
+                    SetupCardId = "setup_the-browncoat-way",
+                    DealStartingJobs = false,
+                    Rng = new SystemRng(53)
+                });
+
+            Assert.Equal("ship_esmeralda", game.CurrentPlayer.ShipId);
+            Assert.Equal(12000 - 9300, game.CurrentPlayer.Cash);
+            Assert.Contains("ship-upgrade_caravan-pods_esmeralda", game.CurrentPlayer.ShipUpgrades);
+            Assert.Contains("ship-upgrade_full-mess-deck_esmeralda", game.CurrentPlayer.ShipUpgrades);
+            // Would be $9300 + $400 + $400 if upgrades were charged again.
+            Assert.NotEqual(12000 - 9300 - 400 - 400, game.CurrentPlayer.Cash);
+        }
+
+        [Fact]
+        public void Browncoat_draft_does_not_run_on_standard_setup()
+        {
+            var game = GameSetup.Create(
+                new[] { new PlayerSeat("p1", "Mal", Persephone, shipId: "Serenity", leaderId: "Malcolm") },
+                new GameSetupOptions
+                {
+                    SetupCardId = "setup_standard",
+                    BrowncoatDraftPicks = new List<BrowncoatDraftPick>
+                    {
+                        BrowncoatDraftPick.Ship("p1", "Serenity"),
+                        BrowncoatDraftPick.Leader("p1", "Malcolm")
+                    },
+                    DealStartingJobs = false,
+                    Rng = new SystemRng(54)
+                });
+
+            // Free starting ship — cash stays at $3000.
+            Assert.Equal(3000, game.CurrentPlayer.Cash);
+            Assert.Equal(6, game.CurrentPlayer.Fuel);
+            Assert.Equal(2, game.CurrentPlayer.Parts);
         }
 
         [Fact]

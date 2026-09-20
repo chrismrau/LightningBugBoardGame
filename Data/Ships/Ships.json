@@ -166,6 +166,10 @@
       "fuelStash": 6,
       "maxCrew": 5,
       "upgradeSlots": 2,
+      "startingUpgrades": [
+        "ship-upgrade_caravan-pods_esmeralda",
+        "ship-upgrade_full-mess-deck_esmeralda"
+      ],
       "specialRules": "MOBILE REFUGE - fugitives on board cannot be seized by the Alliance",
       "color": {
         "r": 145,
@@ -187,6 +191,10 @@
       "fuelStash": 6,
       "maxCrew": 5,
       "upgradeSlots": 2,
+      "startingUpgrades": [
+        "ship-upgrade_decoy-nav-sat-cluster_jetwash",
+        "ship-upgrade_xunsu-emergency-ram-jets_jetwash"
+      ],
       "specialRules": "EMERGENCY NAV ASSIST - Discard a Part to count as Pilot",
       "color": {
         "r": 199,
