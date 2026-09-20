@@ -4,42 +4,57 @@ using System.Collections.Generic;
 namespace Firefly.Core.Cards
 {
     /// <summary>
-    /// Misbehave-local structured effect types. Do not share Nav's effect vocabulary yet —
-    /// PendingChoice will integrate later (core-behaviors plan item 6 / 9).
+    /// Misbehave-only structured effects (outcome markers, Wanted, Solid loss, etc.).
+    /// Shared Kill / Warrant / Load / TakeCash / DisgruntleMoral / ClearDisgruntled live on
+    /// <see cref="CardEffectType"/> — do not duplicate them here.
     /// </summary>
-    public enum MisbehaveEffectType
+    public enum MisbehaveLocalEffectType
     {
         Proceed,
         Botched,
-        WarrantIssued,
-        KillCrew,
         KillAllCrew,
-        LoadCargo,
-        LoadContraband,
-        TakeCash,
         Wanted,
-        DisgruntleMoral,
         DisgruntleMercs,
         DisgruntleTech,
-        ClearDisgruntled,
         LoseSolid,
         DiscardWarrants,
         ReplaceCard
     }
 
     /// <summary>
-    /// One structured overlay effect. Count is used for KillCrew / Load* / TakeCash / DiscardWarrants.
+    /// One Misbehave structured overlay effect: either a shared <see cref="CardEffect"/> or a
+    /// Misbehave-local type. Count on local effects is used for DiscardWarrants.
     /// </summary>
     public sealed class MisbehaveEffect
     {
-        public MisbehaveEffectType Type { get; }
+        public CardEffect? Shared { get; }
+        public MisbehaveLocalEffectType? Local { get; }
         public int Count { get; }
 
-        public MisbehaveEffect(MisbehaveEffectType type, int count = 0)
+        public bool IsShared => Shared != null;
+        public bool IsLocal => Local != null;
+
+        private MisbehaveEffect(CardEffect? shared, MisbehaveLocalEffectType? local, int count)
         {
-            Type = type;
-            Count = count;
+            Shared = shared;
+            Local = local;
+            Count = shared?.Count ?? count;
         }
+
+        public static MisbehaveEffect Of(CardEffectType type, int count = 0) =>
+            new MisbehaveEffect(new CardEffect(type, count), null, count);
+
+        public static MisbehaveEffect Of(CardEffect shared) =>
+            new MisbehaveEffect(shared ?? throw new ArgumentNullException(nameof(shared)), null, shared.Count);
+
+        public static MisbehaveEffect Of(MisbehaveLocalEffectType type, int count = 0) =>
+            new MisbehaveEffect(null, type, count);
+
+        /// <summary>True when this effect is the given shared type.</summary>
+        public bool Is(CardEffectType type) => Shared != null && Shared.Type == type;
+
+        /// <summary>True when this effect is the given local type.</summary>
+        public bool Is(MisbehaveLocalEffectType type) => Local == type;
     }
 
     /// <summary>

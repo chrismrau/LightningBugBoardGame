@@ -1,6 +1,6 @@
 {
   "meta": {
-    "description": "Firefly: The Game – Navigation cards",
+    "description": "Firefly: The Game \u2013 Navigation cards",
     "count": 66,
     "schemaVersion": "1.0",
     "notes": [
@@ -119,7 +119,27 @@
         },
         {
           "name": "Bluff Your Way Through",
-          "details": "Talk 6  1-5 Warrant Issued. Full Stop. Player to right moves Cruiser to adjacent, unoccupied Alliance Sector.  6+ Keep Flying."
+          "details": "Talk 6  1-5 Warrant Issued. Full Stop. Player to right moves Cruiser to adjacent, unoccupied Alliance Sector.  6+ Keep Flying.",
+          "skillCheck": {
+            "skill": "Talk",
+            "target": 6
+          },
+          "bands": [
+            {
+              "range": "1-5",
+              "text": "Warrant Issued. Full Stop. Player to right moves Cruiser to adjacent, unoccupied Alliance Sector.",
+              "effects": [
+                {
+                  "type": "warrantIssued"
+                }
+              ]
+            },
+            {
+              "range": "6+",
+              "text": "Keep Flying.",
+              "effects": []
+            }
+          ]
         }
       ],
       "type": "Contact-related",
@@ -206,7 +226,7 @@
           "details": "Requires Discarding 1 Crew: --Keep Flying."
         },
         {
-          "name": "Charm… and Sidearms",
+          "name": "Charm\u2026 and Sidearms",
           "details": "Talk 8  1-7 [Fight 8  1-7 Kill 1 Crew. Warrant Issued. Full Stop.  8+ Evade.] 8+ Keep Flying."
         }
       ],
@@ -254,8 +274,13 @@
           "details": "Requires Loading 4 Fugitives: --Salvage Op: --Full Stop."
         },
         {
-          "name": "Not My Problem…",
-          "details": "--Disgruntle all Moral Crew. --Keep Flying."
+          "name": "Not My Problem\u2026",
+          "details": "--Disgruntle all Moral Crew. --Keep Flying.",
+          "effects": [
+            {
+              "type": "disgruntleMoral"
+            }
+          ]
         }
       ],
       "type": "Moral Compass",
@@ -302,7 +327,7 @@
           "details": "--Spend 1 Fuel. --Keep Flying."
         },
         {
-          "name": "Shoulda Replaced That…",
+          "name": "Shoulda Replaced That\u2026",
           "details": "Tech 6 Breakdown; 1-5 Full Stop. 6+ Keep Flying."
         }
       ],
@@ -327,7 +352,12 @@
         },
         {
           "name": "Sorry Pal, We're Full Up",
-          "details": "--Moral Crew become Disgruntled. --Keep Flying."
+          "details": "--Moral Crew become Disgruntled. --Keep Flying.",
+          "effects": [
+            {
+              "type": "disgruntleMoral"
+            }
+          ]
         }
       ],
       "type": "Moral Compass",
@@ -359,7 +389,7 @@
     },
     {
       "id": "nav_whats-going-on-in-the-engine-room",
-      "name": "What’s Going on in the Engine Room?",
+      "name": "What\u2019s Going on in the Engine Room?",
       "counts": {
         "core": 1,
         "blueSun": 0,
@@ -510,7 +540,7 @@
       },
       "options": [
         {
-          "name": "Keep Flyin', Cowboy…",
+          "name": "Keep Flyin', Cowboy\u2026",
           "details": "Requires Soldier: --Keep Flying."
         },
         {
@@ -535,7 +565,7 @@
       "options": [
         {
           "name": "All Hands on Deck!",
-          "details": "--Tech 8  1-7 Kill 2 Crew.  8+ Whew… Fire's Out. --Full Stop."
+          "details": "--Tech 8  1-7 Kill 2 Crew.  8+ Whew\u2026 Fire's Out. --Full Stop."
         },
         {
           "name": "Decompress the Hold!",
@@ -683,7 +713,33 @@
         },
         {
           "name": "Reaver on Board!",
-          "details": "Fight 7 Salvage Op; 1-6 Kill 2 Crew. Full Stop. 7+ Take $1000. Full Stop."
+          "details": "Fight 7 Salvage Op; 1-6 Kill 2 Crew. Full Stop. 7+ Take $1000. Full Stop.",
+          "skillCheck": {
+            "skill": "Fight",
+            "target": 7
+          },
+          "bands": [
+            {
+              "range": "1-6",
+              "text": "Kill 2 Crew. Full Stop.",
+              "effects": [
+                {
+                  "type": "killCrew",
+                  "count": 2
+                }
+              ]
+            },
+            {
+              "range": "7+",
+              "text": "Take $1000. Full Stop.",
+              "effects": [
+                {
+                  "type": "takeCash",
+                  "amount": 1000
+                }
+              ]
+            }
+          ]
         }
       ],
       "type": "Salvage Op",
@@ -910,7 +966,7 @@
       },
       "options": [
         {
-          "name": "A Leave on the Wind…",
+          "name": "A Leave on the Wind\u2026",
           "details": "--If you have Pilot, Keep Flying. --Otherwise: Spend 1 Fuel, Keep Flying."
         },
         {
@@ -1102,7 +1158,7 @@
       },
       "options": [
         {
-          "name": "We Got a History…",
+          "name": "We Got a History\u2026",
           "details": "Requires Solid with Patience: --Keep Flying."
         },
         {
@@ -1170,7 +1226,7 @@
       },
       "options": [
         {
-          "name": "Left Nothin' but Ghosts…",
+          "name": "Left Nothin' but Ghosts\u2026",
           "details": "--Keep Flying."
         },
         {
@@ -1242,7 +1298,7 @@
       },
       "options": [
         {
-          "name": "If We're Very Lucky…",
+          "name": "If We're Very Lucky\u2026",
           "details": "Player to your right moves a Reaver Cutter to your Sector. Kill all Passengers & Fugitives. Fight 8; 1-7 Kill 2 Crew, Evade. 8+ Kill 1 Crew Evade."
         },
         {
@@ -1354,7 +1410,7 @@
           "details": "Tech 8 Breakdown; 1-7 Full Stop. 8+ Keep Flying."
         },
         {
-          "name": "Tell Me We Got a Spare…",
+          "name": "Tell Me We Got a Spare\u2026",
           "details": "--Spend 2 Parts. --Keep Flying."
         }
       ],
@@ -1379,7 +1435,33 @@
         },
         {
           "name": "Take 'em Head On!",
-          "details": "Fight 9 Salvage Op; 1-8 Kill a Crew. Full Stop. 9+ Take $500 and 2 Parts. Full Stop."
+          "details": "Fight 9 Salvage Op; 1-8 Kill a Crew. Full Stop. 9+ Take $500 and 2 Parts. Full Stop.",
+          "skillCheck": {
+            "skill": "Fight",
+            "target": 9
+          },
+          "bands": [
+            {
+              "range": "1-8",
+              "text": "Kill a Crew. Full Stop.",
+              "effects": [
+                {
+                  "type": "killCrew",
+                  "count": 1
+                }
+              ]
+            },
+            {
+              "range": "9+",
+              "text": "Take $500 and 2 Parts. Full Stop.",
+              "effects": [
+                {
+                  "type": "takeCash",
+                  "amount": 500
+                }
+              ]
+            }
+          ]
         }
       ],
       "type": "Salvage Op",
@@ -1538,7 +1620,7 @@
       },
       "options": [
         {
-          "name": "That Doesn't Sound Good…",
+          "name": "That Doesn't Sound Good\u2026",
           "details": "Tech 6 Breakdown; 1-5 Full Stop. 6+ Keep Flying."
         },
         {

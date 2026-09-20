@@ -244,11 +244,11 @@ namespace Firefly.Core.Tests
                         {
                             new MisbehaveBand(1, 4, "Attempt Botched", new[]
                             {
-                                new MisbehaveEffect(MisbehaveEffectType.Botched)
+                                MisbehaveEffect.Of(MisbehaveLocalEffectType.Botched)
                             }),
                             new MisbehaveBand(5, null, "Continue", new[]
                             {
-                                new MisbehaveEffect(MisbehaveEffectType.Proceed)
+                                MisbehaveEffect.Of(MisbehaveLocalEffectType.Proceed)
                             })
                         }),
                     new MisbehaveStep(
@@ -259,11 +259,11 @@ namespace Firefly.Core.Tests
                         {
                             new MisbehaveBand(1, 4, "Attempt Botched", new[]
                             {
-                                new MisbehaveEffect(MisbehaveEffectType.Botched)
+                                MisbehaveEffect.Of(MisbehaveLocalEffectType.Botched)
                             }),
                             new MisbehaveBand(5, null, "Proceed", new[]
                             {
-                                new MisbehaveEffect(MisbehaveEffectType.Proceed)
+                                MisbehaveEffect.Of(MisbehaveLocalEffectType.Proceed)
                             })
                         })
                 });
