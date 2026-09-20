@@ -357,12 +357,14 @@ namespace Firefly.Core.Tests
         [Fact]
         public void Spend_2_Parts_Keep_Flying_deducts_parts()
         {
+            // Multi-option Spend is option selection, not in-option pay-vs-decline — still auto-pays.
             var (game, resolver, player) = GameWithQueuedDraws(2);
             player.Parts = 2;
             game.Decks!.Alliance.PlaceOnTop(game.Decks.Catalog.Get("nav_ifn-the-coil-busts-were-driftin"));
             resolver.DrawNext(game);
 
             Assert.True(resolver.TryResolve(game, 1, out var resolution, out var error), error);
+            Assert.Null(game.PendingChoice);
             Assert.Equal(FlightOutcome.KeepFlying, resolution!.Outcome);
             Assert.False(resolution.Stopped);
             Assert.Equal(0, player.Parts);
@@ -384,25 +386,129 @@ namespace Firefly.Core.Tests
         }
 
         [Fact]
-        public void Spend_1_Part_to_Keep_Flying_otherwise_Full_Stop()
+        public void Spend_1_Part_to_Keep_Flying_unaffordable_Full_Stop()
+        {
+            // Printed Otherwise Full Stop when Parts are unavailable — no PendingChoice.
+            var (game, resolver, player) = GameWithQueuedDraws(1);
+            player.Parts = 0;
+            game.Decks!.Alliance.PlaceOnTop(game.Decks.Catalog.Get("nav_first-rule-of-flying"));
+            resolver.DrawNext(game);
+
+            Assert.True(resolver.TryResolve(game, 1, out var stopped, out var stopError), stopError);
+            Assert.Equal(FlightOutcome.FullStop, stopped!.Outcome);
+            Assert.True(stopped.Stopped);
+            Assert.Equal(0, player.Parts);
+            Assert.Null(game.PendingChoice);
+            Assert.Empty(game.PendingNavDraws);
+        }
+
+        [Fact]
+        public void Spend_1_Part_payable_suspends_PendingChoice()
         {
             var (game, resolver, player) = GameWithQueuedDraws(2);
             player.Parts = 1;
             game.Decks!.Alliance.PlaceOnTop(game.Decks.Catalog.Get("nav_first-rule-of-flying"));
             resolver.DrawNext(game);
 
-            Assert.True(resolver.TryResolve(game, 1, out var kept, out var keepError), keepError);
-            Assert.Equal(FlightOutcome.KeepFlying, kept!.Outcome);
+            Assert.False(resolver.TryResolve(game, 1, out var resolution, out var error));
+            Assert.Null(resolution);
+            Assert.Contains("Pay Nav cost", error);
+            Assert.NotNull(game.PendingChoice);
+            Assert.Equal(PendingChoiceKinds.NavPayOrDecline, game.PendingChoice!.Kind);
+            Assert.Equal(
+                new[] { NavPayOrDeclineOptions.Pay, NavPayOrDeclineOptions.Decline },
+                game.PendingChoice.Options);
+            Assert.Equal(1, player.Parts);
+            Assert.NotNull(resolver.FaceUp);
+            Assert.False(game.CanTakeAction(TurnAction.Deal, out _));
+        }
+
+        [Fact]
+        public void Spend_1_Part_pay_via_PendingChoice_Keep_Flying()
+        {
+            var (game, resolver, player) = GameWithQueuedDraws(2);
+            player.Parts = 1;
+            game.Decks!.Alliance.PlaceOnTop(game.Decks.Catalog.Get("nav_first-rule-of-flying"));
+            resolver.DrawNext(game);
+
+            Assert.False(resolver.TryResolve(game, 1, out _, out _));
+            Assert.True(
+                resolver.TryResumeNavPayOrDecline(
+                    game,
+                    new ChoiceSubmission { SelectedOptionId = NavPayOrDeclineOptions.Pay },
+                    out var resolution,
+                    out var error),
+                error);
+            Assert.Null(game.PendingChoice);
+            Assert.Equal(FlightOutcome.KeepFlying, resolution!.Outcome);
+            Assert.False(resolution.Stopped);
             Assert.Equal(0, player.Parts);
             Assert.Single(game.PendingNavDraws);
+        }
 
-            game.PendingNavDraws.Add(new PendingNavDraw(Pelorum, NavRegion.Alliance));
-            game.Decks.Alliance.PlaceOnTop(game.Decks.Catalog.Get("nav_first-rule-of-flying"));
+        [Fact]
+        public void Spend_1_Part_decline_via_PendingChoice_Full_Stop_keeps_Parts()
+        {
+            var (game, resolver, player) = GameWithQueuedDraws(2);
+            player.Parts = 2;
+            game.Decks!.Alliance.PlaceOnTop(game.Decks.Catalog.Get("nav_first-rule-of-flying"));
             resolver.DrawNext(game);
-            Assert.True(resolver.TryResolve(game, 1, out var stopped, out var stopError), stopError);
-            Assert.Equal(FlightOutcome.FullStop, stopped!.Outcome);
-            Assert.True(stopped.Stopped);
+
+            Assert.False(resolver.TryResolve(game, 1, out _, out _));
+            Assert.True(
+                resolver.TryResumeNavPayOrDecline(
+                    game,
+                    new ChoiceSubmission { SelectedOptionId = NavPayOrDeclineOptions.Decline },
+                    out var resolution,
+                    out var error),
+                error);
+            Assert.Null(game.PendingChoice);
+            Assert.Equal(FlightOutcome.FullStop, resolution!.Outcome);
+            Assert.True(resolution.Stopped);
+            Assert.Equal(2, player.Parts);
+            Assert.Empty(game.PendingNavDraws);
+        }
+
+        [Fact]
+        public void Spend_1_Part_PayNavCost_true_pays_without_suspend()
+        {
+            var (game, resolver, player) = GameWithQueuedDraws(2);
+            player.Parts = 1;
+            game.Decks!.Alliance.PlaceOnTop(game.Decks.Catalog.Get("nav_first-rule-of-flying"));
+            resolver.DrawNext(game);
+
+            Assert.True(
+                resolver.TryResolve(
+                    game,
+                    1,
+                    out var resolution,
+                    out var error,
+                    choice: new NavResolveChoice { PayNavCost = true }),
+                error);
+            Assert.Null(game.PendingChoice);
+            Assert.Equal(FlightOutcome.KeepFlying, resolution!.Outcome);
             Assert.Equal(0, player.Parts);
+        }
+
+        [Fact]
+        public void Spend_1_Part_PayNavCost_false_Full_Stop_without_suspend()
+        {
+            var (game, resolver, player) = GameWithQueuedDraws(2);
+            player.Parts = 1;
+            game.Decks!.Alliance.PlaceOnTop(game.Decks.Catalog.Get("nav_first-rule-of-flying"));
+            resolver.DrawNext(game);
+
+            Assert.True(
+                resolver.TryResolve(
+                    game,
+                    1,
+                    out var resolution,
+                    out var error,
+                    choice: new NavResolveChoice { PayNavCost = false }),
+                error);
+            Assert.Null(game.PendingChoice);
+            Assert.Equal(FlightOutcome.FullStop, resolution!.Outcome);
+            Assert.Equal(1, player.Parts);
             Assert.Empty(game.PendingNavDraws);
         }
 
