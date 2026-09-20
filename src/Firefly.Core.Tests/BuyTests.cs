@@ -57,6 +57,7 @@ namespace Firefly.Core.Tests
         {
             var decks = SupplyDecks.FromCatalog(SupplyCatalog.LoadDefault(), new SystemRng(3));
             Assert.True(decks.TryGet("Persephone", out var market));
+            market.Refill();
             Assert.Equal(3, market.FaceUp.Count);
         }
 

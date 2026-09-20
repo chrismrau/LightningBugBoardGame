@@ -39,6 +39,17 @@ namespace Firefly.Core.Cards
         /// </summary>
         public int? GameLengthTokenCount { get; }
 
+        /// <summary>
+        /// Priming the Pump: reveal this many cards from each Supply deck into that deck's
+        /// discard pile (GF9 / Director's Cut; Blitz Double Dip uses 6).
+        /// </summary>
+        public int PrimeSupplyReveal { get; }
+
+        /// <summary>
+        /// The Blitz: Choose 1 Supply Deck to be Strip Mined — free draft with the Dinosaur.
+        /// </summary>
+        public bool StripMineOneSupplyDeck { get; }
+
         public SetupCard(
             string id,
             string name,
@@ -50,7 +61,9 @@ namespace Firefly.Core.Cards
             bool startingAlertCard = false,
             NavReshuffleSetupMode navReshuffleMode = NavReshuffleSetupMode.DiscardIfPlayerCountAtLeast,
             int navReshufflePlayerCountThreshold = 3,
-            int? gameLengthTokenCount = null)
+            int? gameLengthTokenCount = null,
+            int primeSupplyReveal = 3,
+            bool stripMineOneSupplyDeck = false)
         {
             Id = id;
             Name = name;
@@ -63,6 +76,8 @@ namespace Firefly.Core.Cards
             NavReshuffleMode = navReshuffleMode;
             NavReshufflePlayerCountThreshold = navReshufflePlayerCountThreshold;
             GameLengthTokenCount = gameLengthTokenCount;
+            PrimeSupplyReveal = primeSupplyReveal > 0 ? primeSupplyReveal : 3;
+            StripMineOneSupplyDeck = stripMineOneSupplyDeck;
         }
 
         /// <summary>
@@ -106,6 +121,15 @@ namespace Firefly.Core.Cards
                 var startingAlert = card.TryGetProperty("startingAlertCard", out var sa)
                     && sa.ValueKind == JsonValueKind.True;
                 ParseNavReshuffle(card, out var reshuffleMode, out var reshuffleThreshold);
+                var primeReveal = 3;
+                if (card.TryGetProperty("primeSupplyReveal", out var prime)
+                    && prime.TryGetInt32(out var primeN)
+                    && primeN > 0)
+                {
+                    primeReveal = primeN;
+                }
+                var stripMine = card.TryGetProperty("stripMineOneSupplyDeck", out var sm)
+                    && sm.ValueKind == JsonValueKind.True;
                 list.Add(new SetupCard(
                     card.GetProperty("id").GetString() ?? "",
                     card.GetProperty("name").GetString() ?? "",
@@ -115,7 +139,9 @@ namespace Firefly.Core.Cards
                     startingAlert,
                     reshuffleMode,
                     reshuffleThreshold,
-                    ParseGameLengthTokenCount(card)));
+                    ParseGameLengthTokenCount(card),
+                    primeReveal,
+                    stripMine));
             }
             return new SetupCatalog(list);
         }
