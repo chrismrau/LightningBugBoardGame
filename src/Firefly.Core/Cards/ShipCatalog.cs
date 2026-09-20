@@ -79,7 +79,8 @@ namespace Firefly.Core.Cards
                     dto.FuelStash ?? 0,
                     dto.MaxCrew ?? 6,
                     dto.UpgradeSlots ?? 3,
-                    dto.SpecialRules));
+                    dto.SpecialRules,
+                    dto.StartingUpgrades));
             }
             return new ShipCatalog(cards);
         }
@@ -104,6 +105,7 @@ namespace Firefly.Core.Cards
             public int? MaxCrew { get; set; }
             public int? UpgradeSlots { get; set; }
             public string? SpecialRules { get; set; }
+            public List<string>? StartingUpgrades { get; set; }
         }
     }
 }

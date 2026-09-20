@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+
 namespace Firefly.Core.Cards
 {
     public sealed class ShipCard
@@ -15,6 +18,10 @@ namespace Firefly.Core.Cards
         public int MaxCrew { get; }
         public int UpgradeSlots { get; }
         public string? SpecialRules { get; }
+        /// <summary>
+        /// Series IV Coachworks starting Ship Upgrade ids (Director's Cut p.47–48).
+        /// </summary>
+        public IReadOnlyList<string> StartingUpgrades { get; }
 
         public ShipCard(
             string id,
@@ -29,7 +36,8 @@ namespace Firefly.Core.Cards
             int fuelStash,
             int maxCrew,
             int upgradeSlots,
-            string? specialRules)
+            string? specialRules,
+            IReadOnlyList<string>? startingUpgrades = null)
         {
             Id = id;
             Name = name;
@@ -44,6 +52,7 @@ namespace Firefly.Core.Cards
             MaxCrew = maxCrew > 0 ? maxCrew : 6;
             UpgradeSlots = upgradeSlots;
             SpecialRules = specialRules;
+            StartingUpgrades = startingUpgrades ?? Array.Empty<string>();
         }
 
         public bool IsCoreFirefly =>

@@ -50,6 +50,21 @@ namespace Firefly.Core.Cards
         /// </summary>
         public bool StripMineOneSupplyDeck { get; }
 
+        /// <summary>
+        /// The Browncoat Way: purchase ships from the Bank at list price (snake draft).
+        /// </summary>
+        public bool PurchaseShipsFromBank { get; }
+
+        /// <summary>
+        /// Browncoat post-purchase Fuel price (SetupCards.json <c>buyFuelCost</c>; default $100).
+        /// </summary>
+        public int BuyFuelCost { get; }
+
+        /// <summary>
+        /// Browncoat post-purchase Parts price (SetupCards.json <c>buyPartsCost</c>; default $300).
+        /// </summary>
+        public int BuyPartsCost { get; }
+
         public SetupCard(
             string id,
             string name,
@@ -63,7 +78,10 @@ namespace Firefly.Core.Cards
             int navReshufflePlayerCountThreshold = 3,
             int? gameLengthTokenCount = null,
             int primeSupplyReveal = 3,
-            bool stripMineOneSupplyDeck = false)
+            bool stripMineOneSupplyDeck = false,
+            bool purchaseShipsFromBank = false,
+            int buyFuelCost = 100,
+            int buyPartsCost = 300)
         {
             Id = id;
             Name = name;
@@ -78,6 +96,9 @@ namespace Firefly.Core.Cards
             GameLengthTokenCount = gameLengthTokenCount;
             PrimeSupplyReveal = primeSupplyReveal > 0 ? primeSupplyReveal : 3;
             StripMineOneSupplyDeck = stripMineOneSupplyDeck;
+            PurchaseShipsFromBank = purchaseShipsFromBank;
+            BuyFuelCost = buyFuelCost > 0 ? buyFuelCost : 100;
+            BuyPartsCost = buyPartsCost > 0 ? buyPartsCost : 300;
         }
 
         /// <summary>
@@ -112,11 +133,17 @@ namespace Firefly.Core.Cards
             foreach (var card in doc.RootElement.GetProperty("setupCards").EnumerateArray())
             {
                 int? cash = null, fuel = null, parts = null;
+                var buyFuel = 100;
+                var buyParts = 300;
                 if (card.TryGetProperty("startingSupplies", out var supplies))
                 {
                     if (supplies.TryGetProperty("cash", out var c)) cash = c.GetInt32();
                     if (supplies.TryGetProperty("fuel", out var f)) fuel = f.GetInt32();
                     if (supplies.TryGetProperty("parts", out var p)) parts = p.GetInt32();
+                    if (supplies.TryGetProperty("buyFuelCost", out var bf) && bf.TryGetInt32(out var bfN) && bfN > 0)
+                        buyFuel = bfN;
+                    if (supplies.TryGetProperty("buyPartsCost", out var bp) && bp.TryGetInt32(out var bpN) && bpN > 0)
+                        buyParts = bpN;
                 }
                 var startingAlert = card.TryGetProperty("startingAlertCard", out var sa)
                     && sa.ValueKind == JsonValueKind.True;
@@ -130,6 +157,8 @@ namespace Firefly.Core.Cards
                 }
                 var stripMine = card.TryGetProperty("stripMineOneSupplyDeck", out var sm)
                     && sm.ValueKind == JsonValueKind.True;
+                var purchaseShips = card.TryGetProperty("purchaseShipsFromBank", out var ps)
+                    && ps.ValueKind == JsonValueKind.True;
                 list.Add(new SetupCard(
                     card.GetProperty("id").GetString() ?? "",
                     card.GetProperty("name").GetString() ?? "",
@@ -141,7 +170,10 @@ namespace Firefly.Core.Cards
                     reshuffleThreshold,
                     ParseGameLengthTokenCount(card),
                     primeReveal,
-                    stripMine));
+                    stripMine,
+                    purchaseShips,
+                    buyFuel,
+                    buyParts));
             }
             return new SetupCatalog(list);
         }
