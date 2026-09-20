@@ -9,7 +9,10 @@ namespace Firefly.Core.Abilities
     public sealed class AbilityDefinition
     {
         public string Type { get; }
-        /// <summary>FAQ 4.1 p.8: mandatory unless the printed ability says "may". Deferred may-flows stay typed but unused.</summary>
+        /// <summary>
+        /// FAQ 4.1 p.8: mandatory unless the printed ability says "may".
+        /// Optional (<c>mandatory: false</c>) abilities suspend via PendingChoice when their trigger fires.
+        /// </summary>
         public bool Mandatory { get; }
         public int Amount { get; }
         /// <summary>Fight / Tech / Talk for <see cref="AbilityTypes.SkillAddend"/>.</summary>

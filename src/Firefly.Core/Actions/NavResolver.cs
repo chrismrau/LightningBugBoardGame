@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
+using Firefly.Core.Abilities;
 using Firefly.Core.Cards;
 using Firefly.Core.Map;
 using Firefly.Core.Movement;
@@ -212,6 +213,10 @@ namespace Firefly.Core.Actions
         private NavResolveChoice? _pendingKillResolveChoice;
         private int _pendingBribeOptionIndex = -1;
         private NavResolveChoice? _pendingBribeResolveChoice;
+        /// <summary>First skill roll held while skillReroll PendingChoice is open.</summary>
+        private SkillCheckResult? _pendingRerollResult;
+        private int _pendingRerollOptionIndex = -1;
+        private NavResolveChoice? _pendingRerollResolveChoice;
         private int _pendingSectorOptionIndex = -1;
         private NavResolveChoice? _pendingSectorResolveChoice;
         private bool _frozenSkillReady;
@@ -948,6 +953,68 @@ namespace Firefly.Core.Actions
         }
 
         /// <summary>
+        /// Resume after <see cref="PendingChoiceKinds.SkillReroll"/> on a Nav skill test
+        /// (Kaylee / Zoe / Inara may). FAQ 4.1 p.8 — always suspend.
+        /// </summary>
+        public bool TryResumeSkillReroll(
+            GameState game,
+            ChoiceSubmission submission,
+            out NavResolution? resolution,
+            out string? error,
+            IRng? rng = null)
+        {
+            resolution = null;
+            error = null;
+            if (FaceUp == null)
+            {
+                error = "No Nav card is face up.";
+                return false;
+            }
+            if (game.PendingChoice == null
+                || !string.Equals(
+                    game.PendingChoice.Kind,
+                    PendingChoiceKinds.SkillReroll,
+                    StringComparison.Ordinal))
+            {
+                error = "No skill re-roll choice is pending.";
+                return false;
+            }
+            if (_pendingRerollResult == null)
+            {
+                error = "Skill re-roll context is missing the first roll.";
+                return false;
+            }
+
+            var optionIndex = _pendingRerollOptionIndex;
+            if (optionIndex < 0)
+            {
+                error = "Nav skill re-roll context is missing the option index.";
+                return false;
+            }
+
+            var choice = _pendingRerollResolveChoice ?? new NavResolveChoice();
+            if (!SkillCheck.TryMergeSkillRerollSubmission(
+                    submission, choice.SkillCheck, out var merged, out error))
+                return false;
+            choice.SkillCheck = merged;
+
+            if (!game.TrySubmitChoice(game.CurrentPlayer.Id, submission, out _, out error))
+                return false;
+
+            _pendingRerollOptionIndex = -1;
+            _pendingRerollResolveChoice = null;
+            _resumingBribeOrMedFoam = true;
+            try
+            {
+                return TryResolve(game, optionIndex, out resolution, out error, rng, choice);
+            }
+            finally
+            {
+                _resumingBribeOrMedFoam = false;
+            }
+        }
+
+        /// <summary>
         /// Resume after <see cref="PendingChoiceKinds.MedFoamDiscard"/> on a Nav skill-band Kill N.
         /// </summary>
         public bool TryResumeMedFoam(
@@ -1259,6 +1326,9 @@ namespace Firefly.Core.Actions
             _frozenOutcome = FlightOutcome.KeepFlying;
             _pendingKillOptionIndex = -1;
             _pendingKillResolveChoice = null;
+            _pendingRerollResult = null;
+            _pendingRerollOptionIndex = -1;
+            _pendingRerollResolveChoice = null;
         }
 
         /// <summary>
@@ -1289,7 +1359,8 @@ namespace Firefly.Core.Actions
             else if (!SkillCheck.TryParse(option.Details, out skillCheck))
                 return true;
 
-            // GF9 p.6: choose Bribes before rolling when the test is marked Bribes.
+            // GF9 p.6 / Cortland: choose Bribes before rolling when Bribes are allowed.
+            skillCheck = SkillCheck.WithAbilityBribes(skillCheck, player);
             if (SkillCheck.NeedsBribeChoice(player, skillCheck, choice?.SkillCheck))
             {
                 if (!SkillCheck.TrySuspendBribeChoice(
@@ -1304,13 +1375,45 @@ namespace Firefly.Core.Actions
                 return false;
             }
 
-            if (!skillCheck.TryResolve(
-                player,
-                rng ?? new SystemRng(),
-                out check,
-                out error,
-                choice?.SkillCheck))
-                return false;
+            if (_pendingRerollResult != null && choice?.SkillCheck?.AcceptReroll is bool acceptReroll)
+            {
+                check = acceptReroll
+                    ? _pendingRerollResult.Check.RerollKeepingBribes(
+                        player, rng ?? new SystemRng(), _pendingRerollResult)
+                    : _pendingRerollResult;
+                _pendingRerollResult = null;
+            }
+            else
+            {
+                if (!skillCheck.TryResolve(
+                    player,
+                    rng ?? new SystemRng(),
+                    out check,
+                    out error,
+                    choice?.SkillCheck))
+                    return false;
+
+                if (AbilityDispatcher.NeedsSkillRerollChoice(
+                        player, skillCheck.Skill, choice?.SkillCheck))
+                {
+                    _pendingRerollResult = check;
+                    _pendingRerollOptionIndex = optionIndex;
+                    _pendingRerollResolveChoice = choice;
+                    if (!SkillCheck.TrySuspendSkillReroll(
+                            game,
+                            player,
+                            contextId: BuildNavPayContext(drawn.Card.Id, optionIndex),
+                            out error))
+                    {
+                        _pendingRerollResult = null;
+                        _pendingRerollOptionIndex = -1;
+                        _pendingRerollResolveChoice = null;
+                        return false;
+                    }
+                    error = "Choose whether to re-roll this skill test.";
+                    return false;
+                }
+            }
 
             if (outcome == FlightOutcome.Conditional)
                 outcome = SkillCheck.OutcomeFor(option.Details, check!.Success);

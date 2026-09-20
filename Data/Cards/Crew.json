@@ -1,6 +1,6 @@
 {
   "meta": {
-    "description": "Firefly: The Game \u2013 Crew cards",
+    "description": "Firefly: The Game – Crew cards",
     "count": 71,
     "schemaVersion": "1.0"
   },
@@ -68,7 +68,7 @@
         "Regina": 1
       },
       "count": 1,
-      "specialAbilityType": null,
+      "specialAbilityType": "misbehaveProceedCash+skillReroll",
       "ability": null,
       "id": "crew_kaylee_promo",
       "abilities": [
@@ -77,6 +77,11 @@
           "amount": 100,
           "jobOnly": true,
           "mandatory": true
+        },
+        {
+          "type": "skillReroll",
+          "skill": "Tech",
+          "mandatory": false
         }
       ]
     },
@@ -143,7 +148,7 @@
         "Silverhold": 1
       },
       "count": 1,
-      "specialAbilityType": null,
+      "specialAbilityType": "misbehaveProceedCash+skillReroll",
       "ability": null,
       "id": "crew_zoe_promo",
       "abilities": [
@@ -152,6 +157,11 @@
           "amount": 100,
           "jobOnly": true,
           "mandatory": true
+        },
+        {
+          "type": "skillReroll",
+          "skill": "Fight",
+          "mandatory": false
         }
       ]
     },
@@ -260,9 +270,15 @@
         "Silverhold": 1
       },
       "count": 1,
-      "specialAbilityType": "Resources (Shore Leave)",
+      "specialAbilityType": "freeShoreLeaveAtSupply",
       "ability": "0",
-      "id": "crew_barkeep_kalidasa"
+      "id": "crew_barkeep_kalidasa",
+      "abilities": [
+        {
+          "type": "freeShoreLeaveAtSupply",
+          "mandatory": true
+        }
+      ]
     },
     {
       "class": "Standard",
@@ -287,9 +303,15 @@
         "Beaumonde": 1
       },
       "count": 1,
-      "specialAbilityType": "Resources (Shore Leave)",
+      "specialAbilityType": "freeShoreLeaveAtSupply",
       "ability": "0",
-      "id": "crew_barkeep_kalidasa_2"
+      "id": "crew_barkeep_kalidasa_2",
+      "abilities": [
+        {
+          "type": "freeShoreLeaveAtSupply",
+          "mandatory": true
+        }
+      ]
     },
     {
       "class": "Standard",
@@ -479,9 +501,15 @@
         "Meridian": 1
       },
       "count": 1,
-      "specialAbilityType": "Boost (tests), spend for bonus",
+      "specialAbilityType": "bribesOnAnyNegotiate",
       "ability": "0",
-      "id": "crew_cortland_bluesun"
+      "id": "crew_cortland_bluesun",
+      "abilities": [
+        {
+          "type": "bribesOnAnyNegotiate",
+          "mandatory": false
+        }
+      ]
     },
     {
       "class": "Standard",
@@ -1093,9 +1121,16 @@
         "Osiris": 1
       },
       "count": 1,
-      "specialAbilityType": "Boost (tests), reroll",
+      "specialAbilityType": "skillReroll",
       "ability": "1",
-      "id": "crew_inara"
+      "id": "crew_inara",
+      "abilities": [
+        {
+          "type": "skillReroll",
+          "skill": "Negotiate",
+          "mandatory": false
+        }
+      ]
     },
     {
       "class": "Standard",
@@ -1208,9 +1243,16 @@
         "Regina": 1
       },
       "count": 1,
-      "specialAbilityType": "Boost (tests), reroll",
+      "specialAbilityType": "skillReroll",
       "ability": "1",
-      "id": "crew_kaylee"
+      "id": "crew_kaylee",
+      "abilities": [
+        {
+          "type": "skillReroll",
+          "skill": "Tech",
+          "mandatory": false
+        }
+      ]
     },
     {
       "class": "Standard",
@@ -2023,9 +2065,16 @@
         "Silverhold": 1
       },
       "count": 1,
-      "specialAbilityType": "Boost (tests), reroll",
+      "specialAbilityType": "skillReroll",
       "ability": "1",
-      "id": "crew_zoe"
+      "id": "crew_zoe",
+      "abilities": [
+        {
+          "type": "skillReroll",
+          "skill": "Fight",
+          "mandatory": false
+        }
+      ]
     }
   ]
 }

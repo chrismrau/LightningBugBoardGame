@@ -7,7 +7,7 @@ namespace Firefly.Core.Abilities
 {
     /// <summary>
     /// Typed ability dispatcher. Queries crew/gear/leader <see cref="AbilityDefinition"/> lists —
-    /// never English description text. Open-ended <c>may</c> types are deferred to PendingChoice.
+    /// never English description text. Optional <c>may</c> types suspend via PendingChoice.
     /// </summary>
     public static class AbilityDispatcher
     {
@@ -27,12 +27,18 @@ namespace Firefly.Core.Abilities
                 yield return ability;
         }
 
-        public static bool Applies(AbilityDefinition ability, AbilityContext? context)
+        /// <param name="allowOptional">
+        /// When false (default), only mandatory abilities apply (passive / auto hooks).
+        /// When true, include printed <c>may</c> abilities for PendingChoice trigger checks.
+        /// </param>
+        public static bool Applies(
+            AbilityDefinition ability,
+            AbilityContext? context,
+            bool allowOptional = false)
         {
             if (ability == null)
                 return false;
-            // Defer optional "may" abilities until PendingChoice.
-            if (!ability.Mandatory)
+            if (!ability.Mandatory && !allowOptional)
                 return false;
             context ??= AbilityContext.None;
             // GF9 / Director's Cut: Job abilities do not apply while Working Goals.
@@ -40,6 +46,68 @@ namespace Firefly.Core.Abilities
                 return false;
             return true;
         }
+
+        /// <summary>True when the roster has a matching typed ability (mandatory or optional).</summary>
+        public static bool HasAbility(
+            PlayerState player,
+            string type,
+            AbilityContext? context = null,
+            Func<AbilityDefinition, bool>? predicate = null,
+            bool allowOptional = true)
+        {
+            foreach (var member in player.Roster.Members)
+            {
+                foreach (var ability in AllFromCrew(member.Card))
+                {
+                    if (!ability.MatchesType(type) || !Applies(ability, context, allowOptional))
+                        continue;
+                    if (predicate != null && !predicate(ability))
+                        continue;
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        /// <summary>Kaylee / Zoe / Inara: may re-roll tests of the printed skill.</summary>
+        public static bool HasSkillReroll(
+            PlayerState player,
+            Skill skill,
+            AbilityContext? context = null) =>
+            HasAbility(player, AbilityTypes.SkillReroll, context, a => SkillMatches(a.Skill, skill));
+
+        /// <summary>
+        /// FAQ 4.1 p.8 may: after a matching skill roll, always suspend take/decline re-roll
+        /// (even when only one option looks sensible).
+        /// </summary>
+        public static bool NeedsSkillRerollChoice(
+            PlayerState player,
+            Skill skill,
+            SkillCheckChoice? choice,
+            AbilityContext? context = null)
+        {
+            if (choice?.AcceptReroll != null)
+                return false;
+            return HasSkillReroll(player, skill, context);
+        }
+
+        /// <summary>
+        /// Cortland: may pay Bribes before any Negotiate (Talk) Test — not Showdowns.
+        /// </summary>
+        public static bool HasBribesOnAnyNegotiate(
+            PlayerState player,
+            AbilityContext? context = null) =>
+            HasAbility(player, AbilityTypes.BribesOnAnyNegotiate, context);
+
+        /// <summary>Barkeep: Shore Leave at Supply Planets costs $0.</summary>
+        public static bool HasFreeShoreLeaveAtSupply(
+            PlayerState player,
+            AbilityContext? context = null) =>
+            HasAbility(
+                player,
+                AbilityTypes.FreeShoreLeaveAtSupply,
+                context,
+                allowOptional: false);
 
         public static int SumAmount(
             PlayerState player,

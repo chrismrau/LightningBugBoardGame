@@ -29,5 +29,22 @@ namespace Firefly.Core.Abilities
 
         /// <summary>Gear does not count toward the carrier's Gear Limit.</summary>
         public const string ExemptFromGearLimit = "exemptFromGearLimit";
+
+        /// <summary>
+        /// May re-roll a skill test of the printed skill (Kaylee Tech / Zoe Fight / Inara Negotiate).
+        /// Optional — suspends PendingChoiceKinds.SkillReroll.
+        /// </summary>
+        public const string SkillReroll = "skillReroll";
+
+        /// <summary>
+        /// Cortland: may pay Bribes before any Negotiate Test (not Showdowns).
+        /// Optional — enables Bribes on Talk tests and always suspends BribeAmount.
+        /// </summary>
+        public const string BribesOnAnyNegotiate = "bribesOnAnyNegotiate";
+
+        /// <summary>
+        /// Barkeep: Shore Leave at Supply Planets is free (printed; no “may” — always-on cost).
+        /// </summary>
+        public const string FreeShoreLeaveAtSupply = "freeShoreLeaveAtSupply";
     }
 }

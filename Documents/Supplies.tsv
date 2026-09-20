@@ -1,8 +1,8 @@
 Class	Source	Name	Type	Cost	Description	Fight	Tech	Talk	MORAL	WANTED	Merc	Lawman	Hill Folk	Mudder	Pilot	Grifter	Mechanic	Soldier	Medic	Companion	Fake ID	Fancy Duds	Hacking Rig	Transport	Firearm	Sniper Rifle	Explosives	Space Bazaar	Persephone	Silverhold	Regina	Osiris	Meridian	Beaumonde	YCTtS	Count	Meta	Special Ability Type	Abilities
 Promo	Promo Pack	Jayne	Crew	300	Public Relations: May Carry 3 Gear. * Big Damn Heroes: When you Proceed while Misbehaving, take $100.	2				X	X																			1						1		gearCarryLimit+misbehaveProceedCash	[{"type":"gearCarryLimit","amount":3,"mandatory":true},{"type":"misbehaveProceedCash","amount":100,"jobOnly":true,"mandatory":true}]
-Promo	Promo Pack	Kaylee	Crew	300	Natural Know How: May re-roll [Tech] Tests. * Big Damn Heroes: When you Proceed while Misbehaving, take $100.		3		X								X														1					1		misbehaveProceedCash	[{"type":"misbehaveProceedCash","amount":100,"jobOnly":true,"mandatory":true}]
+Promo	Promo Pack	Kaylee	Crew	300	Natural Know How: May re-roll [Tech] Tests. * Big Damn Heroes: When you Proceed while Misbehaving, take $100.		3		X								X														1					1		misbehaveProceedCash+skillReroll	[{"type":"misbehaveProceedCash","amount":100,"jobOnly":true,"mandatory":true},{"type":"skillReroll","skill":"Tech","mandatory":false}]
 Promo	Promo Pack	Wash	Crew	200	Hard Burn: +1 to Full Burn Range. * Big Damn Heroes: When you Proceed while Misbehaving, take $100.		1	1	X						X													1								1		fullBurnRangeBonus+misbehaveProceedCash	[{"type":"fullBurnRangeBonus","amount":1,"mandatory":true},{"type":"misbehaveProceedCash","amount":100,"jobOnly":true,"mandatory":true}]
-Promo	Promo Pack	Zoe	Crew	300	Dust Devil: May re-roll Fighting Tests. * Big Damn Heroes: When you Proceed while Misbehaving, take $100.	2			X	X								X												1						1		misbehaveProceedCash	[{"type":"misbehaveProceedCash","amount":100,"jobOnly":true,"mandatory":true}]
+Promo	Promo Pack	Zoe	Crew	300	Dust Devil: May re-roll Fighting Tests. * Big Damn Heroes: When you Proceed while Misbehaving, take $100.	2			X	X								X												1						1		misbehaveProceedCash+skillReroll	[{"type":"misbehaveProceedCash","amount":100,"jobOnly":true,"mandatory":true},{"type":"skillReroll","skill":"Fight","mandatory":false}]
 Promo	Loot Crate	Loot Crate: Silverhold	Gear	300	Remove from Play to Use: Draw a card from the Silverhold Supply Deck. If it is a Gear Card, keep it. If not, discard it and draw another card. Repeat until a Gear Card is drawn.																								1										
 Promo	Promo Pack	Mal's Pretty Floral Bonnet	Gear	0	Crew carrying Bonnet ignores Wanted Crew Rolls. Does not count towards Gear Limit.																									1						1		exemptFromGearLimit	[{"type":"exemptFromGearLimit","mandatory":true}]
 Promo	Promo Pack	Wash's Lucky Dinosaurs	Gear	0	When Flying, re-roll any Test result of 1. Does not count towards Gear Limit.																							1								1		exemptFromGearLimit	[{"type":"exemptFromGearLimit","mandatory":true}]
@@ -10,15 +10,15 @@ Promo	Promo Pack	Malcolm	Leader	500	Brown Coat: When you complete a Crime Job, t
 Standard	BA	Accountant	Crew	300	Cooking the Books: Whenever you receive a Goal token, take $500.		1	1								X													1							1		Resources (Goal)	
 Standard	PBH	Agent McGinnis	Crew	0	Fed: Whenever you lose a SHOWDOWN - Warrant Issued to Rival. Bounty Bonus +$500. Will not Work Illegal Jobs.		1	1				X																				1				1		Unique	
 Standard	PBH	Bandit	Crew	200	Bird-Doggin': When you complete a Piracy Job, steal $200 from the targeted Rival.	2				X	X																			2	2					4		Resources (Job Type)	
-Standard	Kal	Barkeep	Crew	200	Good Times: Giving your Crew Shore Leave at Supply Planets is free.	1		1		X				X																1						1		Resources (Shore Leave)	
-Standard	Kal	Barkeep	Crew	200	Good Times: Giving your Crew Shore Leave at Supply Planets is free.	1		1		X						X																		1		1		Resources (Shore Leave)	
+Standard	Kal	Barkeep	Crew	200	Good Times: Giving your Crew Shore Leave at Supply Planets is free.	1		1		X				X																1						1		freeShoreLeaveAtSupply	[{"type":"freeShoreLeaveAtSupply","mandatory":true}]
+Standard	Kal	Barkeep	Crew	200	Good Times: Giving your Crew Shore Leave at Supply Planets is free.	1		1		X						X																		1		1		freeShoreLeaveAtSupply	[{"type":"freeShoreLeaveAtSupply","mandatory":true}]
 Standard	F:tG	Bester	Crew	100	Genius Mechanic: On [Tech] Tests, "Thrillin' Heroics" bonus dice do not apply.		1										X														1					1		Downside	
 Standard	F:tG	Billy	Crew	200	Salvage Pro: +1 Cargo from Salvage Ops.		2			X							X												1							1		Resources (Salvage Op)	
 Standard	F:tG	Bree	Crew	200	Black Market Ties: May sell Parts to any Solid Contact for $300.		2			X							X												1							1		Resources (Sell)	
 Standard	F:tG	Bridgit	Crew	300	Deceptive: If Yolonda or Saffron are hired by anyone, Remove Bridgit from Play.		1	2								X				X											1					1		Downside	
 Standard	Kal	Busker	Crew	200	Work the Crowd: When you Make-Work, take an extra $100.			1		X				X		X																		1		1		Resources (Make-Work)	
 Standard	PBH	Chari	Crew	200	Turncoat: In a SHOWDOWN, you may force a Rival to re-roll.			2								X														1						1		Circumstance bonus	
-Standard	BS	Cortland	Crew	300	Laws Are For the Poor: May pay Bribes before any Negotiate Test. Bribes may not be used on SHOWDOWNS.	1	1										X	X															1			1		Boost (tests), spend for bonus	
+Standard	BS	Cortland	Crew	300	Laws Are For the Poor: May pay Bribes before any Negotiate Test. Bribes may not be used on SHOWDOWNS.	1	1										X	X															1			1		bribesOnAnyNegotiate	[{"type":"bribesOnAnyNegotiate","mandatory":false}]
 Standard	F:tG	Crow	Crew	200	Knife Fighter: +[Fight] When Carrying a Knife. May not Carry a Firearm.	2				X	X																				1					1		Conditional bonus (Gear)	
 Standard	PBH	Dalin	Crew	200	Intel Broker: Once per Work Action, you may pay $200 to discard and re-draw a Misbehave Card.		1	1		X																		1								1		Misbehave option	
 Standard	PBH	Deputy	Crew	0	Posse: +1 Fight in SHOWDOWN. Bounty Bonus: +$300. Will not work Illegal Jobs.			1	X			X																			1					1		Conditional bonus (Showdown)	
@@ -40,11 +40,11 @@ Standard	F:tG	Helen	Crew	200	Morale Booster: You may use an Action on your turn 
 Standard	BA	Helmsman	Crew	200	Alliance Training: Counts as Solid with Harken.		1		X						X																	2				2		Constant bonus	
 Standard	F:tG	Hill Folk	Crew	0	Angry Mob: +[Fighting] when you have at least 3 Hill Folk in your crew. Hill Folk.				X				X																	2						2		Conditional bonus (Crew)	
 Standard	Kal	Holder	Crew	200	Shanghai: When you Make-Work, you may also take a Fugitive Token.	1	1			X					X																			1		1		Resources (Make-Work)	
-Standard	F:tG	Inara	Crew	300	Ambassador: May re-roll Negotiate Tests.			3	X											X		X										1				1		Boost (tests), reroll	
+Standard	F:tG	Inara	Crew	300	Ambassador: May re-roll Negotiate Tests.			3	X											X		X										1				1		skillReroll	[{"type":"skillReroll","skill":"Negotiate","mandatory":false}]
 Standard	F:tG	Interrogator	Crew	100				1		X									X													1				1		N/A	
 Standard	F:tG	Jayne	Crew	300	Public Relations: May Carry 3 Gear.	2				X	X																			1						1	Extra Gear	gearCarryLimit	[{"type":"gearCarryLimit","amount":3,"mandatory":true}]
 Standard	F:tG	Jesse	Crew	200	Opportunist: +1 Contraband from Salvage Ops.	1	1			X					X													1								1		Resources (Salvage Op)	
-Standard	F:tG	Kaylee	Crew	300	Natural Know How: May re-roll [Tech] Tests.		3		X								X														1					1		Boost (tests), reroll	
+Standard	F:tG	Kaylee	Crew	300	Natural Know How: May re-roll [Tech] Tests.		3		X								X														1					1		skillReroll	[{"type":"skillReroll","skill":"Tech","mandatory":false}]
 Standard	F:tG	Lucy	Crew	200	Morale Booster: You may use an Action on your turn to remove Disgruntled from a Crew other than Lucy.			2	X							X															1					1		Morale Booster	
 Standard	F:tG	Lund	Crew	200	Cheap Shot: May use Gear in "Kosherized" Fight Tests.	2												X													1					1		Circumstance bonus	
 Standard	PBH	Meadows	Crew	0	Hero Worship: Any time a Crew is Killed, Apprehended, or Seized by the Alliance, you may Kill Meadows instead.				X																					1						1		Constant bonus	
@@ -73,7 +73,7 @@ Standard	F:tG	Tracey	Crew	100	Unlucky: Whenever a Crew is Killed, Tracey must be
 Standard	F:tG	Two-Fry	Crew	200	Dead-Eye: When Carrying a Sniper Rifle on Jobs, draw 1 fewer Misbehave Card, down to a minimum of 1.	1				X	X																				1					1		Misbehave option	
 Standard	F:tG	Wash	Crew	200	Hard Burn: +1 to Full Burn Range.		1	1	X						X													1								1	Constant bonus	fullBurnRangeBonus	[{"type":"fullBurnRangeBonus","amount":1,"mandatory":true}]
 Standard	F:tG	Yolonda	Crew	300	Deceptive: If Saffron or Bridgit are hired by anyone, Remove Yolanda from Play.		1	2								X				X												1				1		Downside	
-Standard	F:tG	Zoe	Crew	300	Dust Devil: May re-roll Fighting Tests.	2			X	X								X												1						1		Boost (tests), reroll	
+Standard	F:tG	Zoe	Crew	300	Dust Devil: May re-roll Fighting Tests.	2			X	X								X												1						1		skillReroll	[{"type":"skillReroll","skill":"Fight","mandatory":false}]
 Standard	F:tG	Bona Fide Credentials	Gear	1000				1													X							1	1			1				3			
 Standard	PBH	Friendly Game of Cards	Gear	0	GAMBLING. Discard to Use: Pay Bank $300. Name a Suit. Flip over 3 Misbehave Cards. Take $500 and remove 1 Disgruntled token for each card that matches the named suit.																									1						1			
 Standard	BA	The Best in the House	Gear	400	Discard to remove Disgruntled from all Crew.																									1						1			

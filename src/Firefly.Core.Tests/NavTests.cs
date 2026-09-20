@@ -650,7 +650,12 @@ namespace Firefly.Core.Tests
             game.Decks!.Alliance.PlaceOnTop(game.Decks.Catalog.Get("nav_ghost-ship"));
             resolver.DrawNext(game);
 
-            Assert.False(resolver.TryResolve(game, 1, out _, out var suspendError, ScriptedRng.FromDieFaces(1)));
+            Assert.False(resolver.TryResolve(
+                game, 1, out _, out var suspendError, ScriptedRng.FromDieFaces(1),
+                new NavResolveChoice
+                {
+                    SkillCheck = new SkillCheckChoice { AcceptReroll = false }
+                }));
             Assert.Contains("Choose which crew", suspendError);
             Assert.Equal(PendingChoiceKinds.KillVictim, game.PendingChoice!.Kind);
             Assert.Equal("2", game.PendingChoice.ContextId);
@@ -694,6 +699,7 @@ namespace Firefly.Core.Tests
                 ScriptedRng.FromDieFaces(1),
                 new NavResolveChoice
                 {
+                    SkillCheck = new SkillCheckChoice { AcceptReroll = false },
                     Kill = new KillChoice
                     {
                         VictimCrewIds = new List<string> { "crew_jayne", "crew_kaylee" }
@@ -1305,7 +1311,11 @@ namespace Firefly.Core.Tests
             game.Decks!.Alliance.PlaceOnTop(game.Decks.Catalog.Get("nav_ship-graveyard"));
             resolver.DrawNext(game);
 
-            var choice = new NavResolveChoice { TakeFromDiscardCardId = upgrade.Id };
+            var choice = new NavResolveChoice
+            {
+                TakeFromDiscardCardId = upgrade.Id,
+                SkillCheck = new SkillCheckChoice { AcceptReroll = false }
+            };
             Assert.True(resolver.TryResolve(
                 game,
                 0,

@@ -1,3 +1,4 @@
+using Firefly.Core.Abilities;
 using Firefly.Core.Cards;
 using Firefly.Core.Map;
 using Firefly.Core.State;
@@ -90,9 +91,11 @@ namespace Firefly.Core.Actions
             }
 
             // ScenarioCards.json Friends in Low Places: at your own Haven, Shore Leave is free.
-            var free = game.Scenario != null
-                && game.Scenario.FriendsInLowPlaces
-                && HavenRules.IsOwnHaven(player, player.SectorId);
+            // Barkeep Good Times: Shore Leave at Supply Planets is free (Supplies.tsv).
+            var free = (game.Scenario != null
+                    && game.Scenario.FriendsInLowPlaces
+                    && HavenRules.IsOwnHaven(player, player.SectorId))
+                || (AbilityDispatcher.HasFreeShoreLeaveAtSupply(player) && sector.HasSupplyDeck);
             var cost = free ? 0 : CostFor(player);
             if (player.Cash < cost)
             {
