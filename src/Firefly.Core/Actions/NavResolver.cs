@@ -978,9 +978,22 @@ namespace Firefly.Core.Actions
                 return false;
             }
 
-            if (!AreAdjacent(game, from!, destination!))
+            // AllianceAlert.tsv Rapid Response: "+1 extra Sector" on player Alliance-ship moves
+            // (not Alliance Contact / named Cruiser snap).
+            var maxSectors = 1 + ActiveAlertRules.ExtraAllianceShipMove(game);
+            var path = new Pathfinder(game.Map).ShortestPath(from!, destination!);
+            if (path == null)
             {
-                error = "Cruiser Patrol must move the Cruiser 1 Sector.";
+                error = "No path for Cruiser Patrol move.";
+                return false;
+            }
+
+            var distance = path.Count - 1;
+            if (distance < 1 || distance > maxSectors)
+            {
+                error = maxSectors == 1
+                    ? "Cruiser Patrol must move the Cruiser 1 Sector."
+                    : $"Cruiser Patrol must move the Cruiser 1 to {maxSectors} Sectors.";
                 return false;
             }
 
@@ -1172,10 +1185,14 @@ namespace Firefly.Core.Actions
                     error = "No path for Operative's Corvette move.";
                     return false;
                 }
+                // Printed 1–2; Rapid Response may add one extra Sector (Alliance Ship).
+                var maxSectors = 2 + ActiveAlertRules.ExtraAllianceShipMove(game);
                 var distance = path.Count - 1;
-                if (distance < 1 || distance > 2)
+                if (distance < 1 || distance > maxSectors)
                 {
-                    error = "Operative's Corvette must move 1 or 2 Sectors.";
+                    error = maxSectors == 2
+                        ? "Operative's Corvette must move 1 or 2 Sectors."
+                        : $"Operative's Corvette must move 1 to {maxSectors} Sectors.";
                     return false;
                 }
             }

@@ -632,6 +632,70 @@ namespace Firefly.Core.Tests
         }
 
         [Fact]
+        public void Rapid_Response_allows_Cruiser_Patrol_two_Alliance_Sectors()
+        {
+            var game = GameSetup.Create(
+                new[] { new PlayerSeat("p1", "Mal", Persephone) },
+                new GameSetupOptions { DealStartingJobs = false, Rng = new SystemRng(3) });
+            ForceActive(game, "Rapid Response");
+            game.Tokens = game.Tokens.WithAllianceCruiser(Londinium);
+            game.PendingNavDraws.Add(new PendingNavDraw(Persephone, NavRegion.Alliance));
+            game.Decks!.Alliance.PlaceOnTop(game.Decks.Catalog.Get("nav_cruiser-patrol"));
+
+            var resolver = new NavResolver();
+            Assert.True(resolver.TryAutoResolve(
+                game,
+                out var resolution,
+                out var error,
+                choice: new NavResolveChoice { AllianceCruiserToSectorId = TwoFromLondinium }), error);
+            Assert.Equal(FlightOutcome.KeepFlying, resolution!.Outcome);
+            Assert.Equal(TwoFromLondinium, game.Tokens.AllianceCruiserSectorId);
+            Assert.Null(game.PendingEncounter);
+        }
+
+        [Fact]
+        public void Cruiser_Patrol_rejects_two_Sectors_without_Rapid_Response()
+        {
+            var game = GameSetup.Create(
+                new[] { new PlayerSeat("p1", "Mal", Persephone) },
+                new GameSetupOptions { DealStartingJobs = false, Rng = new SystemRng(3) });
+            Assert.Equal(0, ActiveAlertRules.ExtraAllianceShipMove(game));
+            game.Tokens = game.Tokens.WithAllianceCruiser(Londinium);
+            game.PendingNavDraws.Add(new PendingNavDraw(Persephone, NavRegion.Alliance));
+            game.Decks!.Alliance.PlaceOnTop(game.Decks.Catalog.Get("nav_cruiser-patrol"));
+
+            var resolver = new NavResolver();
+            Assert.False(resolver.TryAutoResolve(
+                game,
+                out _,
+                out var error,
+                choice: new NavResolveChoice { AllianceCruiserToSectorId = TwoFromLondinium }));
+            Assert.Contains("1 Sector", error);
+            Assert.Equal(Londinium, game.Tokens.AllianceCruiserSectorId);
+        }
+
+        [Fact]
+        public void Rapid_Response_still_rejects_Cruiser_Patrol_beyond_two_Sectors()
+        {
+            var game = GameSetup.Create(
+                new[] { new PlayerSeat("p1", "Mal", Persephone) },
+                new GameSetupOptions { DealStartingJobs = false, Rng = new SystemRng(3) });
+            ForceActive(game, "Rapid Response");
+            game.Tokens = game.Tokens.WithAllianceCruiser(Londinium);
+            game.PendingNavDraws.Add(new PendingNavDraw(Persephone, NavRegion.Alliance));
+            game.Decks!.Alliance.PlaceOnTop(game.Decks.Catalog.Get("nav_cruiser-patrol"));
+
+            var resolver = new NavResolver();
+            Assert.False(resolver.TryAutoResolve(
+                game,
+                out _,
+                out var error,
+                choice: new NavResolveChoice { AllianceCruiserToSectorId = Pelorum }));
+            Assert.Contains("1 to 2", error);
+            Assert.Equal(Londinium, game.Tokens.AllianceCruiserSectorId);
+        }
+
+        [Fact]
         public void Rapid_Response_grants_one_extra_Alliance_ship_sector()
         {
             var game = GameSetup.Create(
@@ -642,7 +706,52 @@ namespace Firefly.Core.Tests
             Assert.Equal(1, ActiveAlertRules.ExtraAllianceShipMove(game));
         }
 
+        [Fact]
+        public void Rapid_Response_allows_Cry_Baby_two_Alliance_Sectors()
+        {
+            var game = GameSetup.Create(
+                new[] { new PlayerSeat("p1", "Mal", Londinium) },
+                new GameSetupOptions { DealStartingJobs = false, Rng = new SystemRng(3) });
+            ForceActive(game, "Rapid Response");
+            game.Tokens = game.Tokens.WithAllianceCruiser(Londinium);
+            game.CurrentPlayer.ShipUpgrades.Add(CryBabyAction.CardId);
+            game.PendingEncounter = TokenKind.AllianceCruiser;
+            game.PendingEncounterSectorId = Londinium;
+            game.PendingEncounterPlayerId = "p1";
+
+            Assert.True(CryBabyAction.TryDeploy(game, "p1", TwoFromLondinium, out var error), error);
+            Assert.Equal(TwoFromLondinium, game.Tokens.AllianceCruiserSectorId);
+            Assert.Null(game.PendingEncounter);
+        }
+
+        [Fact]
+        public void Rapid_Response_allows_Persistent_Pursuit_three_Sectors()
+        {
+            var map = SectorMap.LoadFromDirectory(GameData.MapDirectory);
+            var decks = NavCatalog.BuildDecks(GameData.NavCardsPath, new SystemRng(3));
+            var tokens = new MapTokens(operativeCorvetteSectorId: CorvetteStart);
+            var player = new PlayerState("p1", "Mal", CorvetteStart, fuel: 3);
+            var game = new GameState(map, new[] { player }, tokens, decks);
+            ForceActive(game, "Rapid Response");
+            game.PendingNavDraws.Add(new PendingNavDraw(CorvetteStart, NavRegion.Rim));
+            game.Decks!.Rim.PlaceOnTop(game.Decks.Catalog.Get("nav_persistent-pursuit"));
+
+            var resolver = new NavResolver();
+            Assert.True(resolver.TryAutoResolve(
+                game,
+                out var resolution,
+                out var error,
+                choice: new NavResolveChoice { OperativeCorvetteToSectorId = ThreeFromCorvetteStart }), error);
+            Assert.Equal(FlightOutcome.KeepFlying, resolution!.Outcome);
+            Assert.Equal(ThreeFromCorvetteStart, game.Tokens.OperativeCorvetteSectorId);
+        }
+
         private const string Santo = "alliance-qin-shi-huang-r1-01";
+        private const string Londinium = "alliance-white-sun-r1-02";
+        private const string TwoFromLondinium = "alliance-white-sun-r2-01";
+        private const string Pelorum = "alliance-lux-r1-02";
+        private const string CorvetteStart = "rim-cortex-relay-2-r1-11";
+        private const string ThreeFromCorvetteStart = "rim-kalidasa-r3-05";
         private const string Crime = "job_badger_badgers-11-casino-caper";
 
         private static void ForceActive(GameState game, string name)

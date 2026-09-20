@@ -128,7 +128,8 @@ namespace Firefly.Core.Cards
 
         /// <summary>
         /// Extra sectors a player may add when they move an Alliance ship.
-        /// Does not apply to Alliance Cruiser / Alliance Contact Nav snaps.
+        /// Does not apply to Alliance Cruiser / Alliance Contact Nav snaps, or to
+        /// Alliance Entanglements placements (printed "any … Sector", not a range).
         /// </summary>
         public static int ExtraAllianceShipMove(GameState? game) =>
             IsActive(game, RapidResponse) ? 1 : 0;

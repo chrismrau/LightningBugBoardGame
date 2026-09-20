@@ -72,9 +72,22 @@ namespace Firefly.Core.Actions
                 return false;
             }
 
-            if (!AreAdjacent(game, cruiserSector!, cruiserToSectorId))
+            // AllianceAlert.tsv Rapid Response: player may move an Alliance Ship one extra Sector.
+            var maxSectors = 1 + ActiveAlertRules.ExtraAllianceShipMove(game);
+            var path = new Pathfinder(game.Map).ShortestPath(cruiserSector!, cruiserToSectorId);
+            if (path == null)
             {
-                error = "Cry Baby must move the Cruiser 1 Sector.";
+                error = "No path for Cry Baby Cruiser move.";
+                RestoreCryBaby(player);
+                return false;
+            }
+
+            var distance = path.Count - 1;
+            if (distance < 1 || distance > maxSectors)
+            {
+                error = maxSectors == 1
+                    ? "Cry Baby must move the Cruiser 1 Sector."
+                    : $"Cry Baby must move the Cruiser 1 to {maxSectors} Sectors.";
                 RestoreCryBaby(player);
                 return false;
             }
@@ -144,16 +157,6 @@ namespace Firefly.Core.Actions
             if (!game.Map.TryGet(sectorId, out var sector))
                 return false;
             return sector.NavRegion == NavRegion.Alliance;
-        }
-
-        private static bool AreAdjacent(GameState game, string fromSectorId, string toSectorId)
-        {
-            foreach (var n in game.Map.Neighbors(fromSectorId))
-            {
-                if (string.Equals(n, toSectorId, StringComparison.OrdinalIgnoreCase))
-                    return true;
-            }
-            return false;
         }
     }
 }
