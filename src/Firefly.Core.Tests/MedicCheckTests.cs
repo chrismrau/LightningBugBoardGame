@@ -92,12 +92,96 @@ namespace Firefly.Core.Tests
             Assert.True(player.Roster.TryHire(Crew.Get("crew_kaylee"), out _));
             Assert.True(player.Roster.TryHire(Crew.Get("crew_wash"), out _));
 
-            // Auto-pick from end: wash then kaylee. 3 → die, 5 → saved.
-            Assert.Equal(1, CrewKill.KillUpTo(game, player, 2, ScriptedRng.FromDieFaces(3, 5)));
+            var choice = new KillChoice
+            {
+                VictimCrewIds = new List<string> { "crew_wash", "crew_kaylee" }
+            };
+            Assert.Equal(1, CrewKill.KillUpTo(game, player, 2, ScriptedRng.FromDieFaces(3, 5), choice));
             Assert.Contains("crew_wash", game.RemovedFromPlay);
             Assert.NotNull(player.Roster.Find("crew_kaylee"));
             Assert.NotNull(player.Roster.Find("crew_doralee"));
             Assert.Equal(2, player.Roster.Count);
+        }
+
+        [Fact]
+        public void Kill_up_to_without_victims_suspends_PendingChoice()
+        {
+            var game = NewGame();
+            var player = game.CurrentPlayer;
+            Assert.True(player.Roster.TryHire(Crew.Get("crew_kaylee"), out _));
+            Assert.True(player.Roster.TryHire(Crew.Get("crew_jayne"), out _));
+            Assert.True(player.Roster.TryHire(Crew.Get("crew_zoe"), out _));
+
+            Assert.False(CrewKill.TryKillUpTo(
+                game, player, 1, new SystemRng(1), out var killed, out var error));
+            Assert.Equal(0, killed);
+            Assert.Contains("Choose which crew", error);
+            Assert.NotNull(game.PendingChoice);
+            Assert.Equal(PendingChoiceKinds.KillVictim, game.PendingChoice!.Kind);
+            Assert.Equal("1", game.PendingChoice.ContextId);
+            Assert.Equal(3, player.Roster.Count);
+        }
+
+        [Fact]
+        public void Kill_up_to_resume_PendingChoice_applies_medic_on_chosen_victims()
+        {
+            var game = NewGame();
+            var player = game.CurrentPlayer;
+            Assert.True(player.Roster.TryHire(Crew.Get("crew_doralee"), out _));
+            Assert.True(player.Roster.TryHire(Crew.Get("crew_kaylee"), out _));
+            Assert.True(player.Roster.TryHire(Crew.Get("crew_wash"), out _));
+
+            Assert.False(CrewKill.TryKillUpTo(
+                game, player, 2, ScriptedRng.FromDieFaces(3, 5), out _, out _));
+
+            Assert.True(CrewKill.TryResumeKillUpTo(
+                game,
+                new ChoiceSubmission
+                {
+                    Values = new List<string> { "crew_wash", "crew_kaylee" }
+                },
+                ScriptedRng.FromDieFaces(3, 5),
+                out var killed,
+                out var error), error);
+            Assert.Equal(1, killed);
+            Assert.Null(game.PendingChoice);
+            Assert.Contains("crew_wash", game.RemovedFromPlay);
+            Assert.NotNull(player.Roster.Find("crew_kaylee"));
+            Assert.NotNull(player.Roster.Find("crew_doralee"));
+        }
+
+        [Fact]
+        public void Kill_up_to_whole_roster_needs_no_PendingChoice()
+        {
+            var game = NewGame();
+            var player = game.CurrentPlayer;
+            Assert.True(player.Roster.TryHire(Crew.Get("crew_kaylee"), out _));
+            Assert.True(player.Roster.TryHire(Crew.Get("crew_jayne"), out _));
+
+            Assert.True(CrewKill.TryKillUpTo(
+                game, player, 2, new SystemRng(1), out var killed, out var error), error);
+            Assert.Null(game.PendingChoice);
+            Assert.Equal(2, killed);
+            Assert.Equal(0, player.Roster.Count);
+        }
+
+        [Fact]
+        public void Leader_may_be_chosen_as_kill_victim_then_Really_Lucky()
+        {
+            // FAQ 4.1 p.3: Leader can take the hit; fail Medic → Really Lucky Disgruntle.
+            var game = NewGame();
+            var player = game.CurrentPlayer;
+            Assert.True(player.Roster.TryHire(LeaderCatalog.LoadDefault().Get("leader_malcolm"), out _));
+            Assert.True(player.Roster.TryHire(Crew.Get("crew_doralee"), out _));
+            Assert.True(player.Roster.TryHire(Crew.Get("crew_kaylee"), out _));
+
+            var choice = new KillChoice
+            {
+                VictimCrewIds = new List<string> { player.Roster.Leader!.Id }
+            };
+            Assert.Equal(0, CrewKill.KillUpTo(game, player, 1, ScriptedRng.FromDieFaces(2), choice));
+            Assert.True(player.Roster.Leader!.Disgruntled);
+            Assert.Equal(3, player.Roster.Count);
         }
 
         [Fact]
@@ -215,14 +299,24 @@ namespace Firefly.Core.Tests
             var resolver = new MisbehaveResolver();
             resolver.DrawNext(game);
 
-            // Skill die 1 (Ambush kill band), Medic die 5 (save auto-picked end crew).
-            Assert.True(resolver.TryResolve(
+            // Skill die 1 (Ambush kill band), then PendingChoice for victim, Medic die 5.
+            Assert.False(resolver.TryResolve(
                 game, "p1",
                 new MisbehaveChoice { OptionIndex = 0 },
+                out _, out var suspendError,
+                ScriptedRng.FromDieFaces(1)));
+            Assert.Contains("Choose which crew", suspendError);
+            Assert.Equal(PendingChoiceKinds.KillVictim, game.PendingChoice!.Kind);
+
+            Assert.True(resolver.TryResumeKillVictims(
+                game, "p1",
+                new ChoiceSubmission { Values = new List<string> { "crew_kaylee" } },
+                new MisbehaveChoice { OptionIndex = 0 },
                 out var resolution, out var error,
-                ScriptedRng.FromDieFaces(1, 5)), error);
+                ScriptedRng.FromDieFaces(5)), error);
             Assert.Equal(0, resolution!.CrewKilled);
             Assert.Equal(2, game.CurrentPlayer.Roster.Count);
+            Assert.Null(game.PendingChoice);
         }
 
         [Fact]
@@ -244,16 +338,30 @@ namespace Firefly.Core.Tests
             game.PendingEncounter = TokenKind.ReaverCutter;
             game.PendingEncounterSectorId = CutterStart;
 
-            // Fight fail → Kill 2; Medic 5 save (wash), 3 fail (kaylee).
-            Assert.True(ReaverContact.TryResolve(
+            // Fight fail → Kill 2; suspend for victims.
+            Assert.False(ReaverContact.TryResolve(
                 game,
-                ScriptedRng.FromDieFaces(5, 3),
+                ScriptedRng.FromDieFaces(),
                 CutterAdjacent,
+                out _,
+                out var suspendError));
+            Assert.Contains("Choose which crew", suspendError);
+            Assert.Equal(PendingChoiceKinds.KillVictim, game.PendingChoice!.Kind);
+
+            // Medic 5 save (wash), 3 fail (kaylee).
+            Assert.True(ReaverContact.TryResumeKillVictims(
+                game,
+                new ChoiceSubmission
+                {
+                    Values = new List<string> { "crew_wash", "crew_kaylee" }
+                },
+                ScriptedRng.FromDieFaces(5, 3),
                 out var result,
                 out var error), error);
             Assert.Equal(1, result!.CrewKilled);
             Assert.Equal(2, player.Roster.Count);
             Assert.Contains("crew_kaylee", game.RemovedFromPlay);
+            Assert.Null(game.PendingChoice);
         }
 
         [Fact]

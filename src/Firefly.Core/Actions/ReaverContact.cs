@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Firefly.Core.Cards;
 using Firefly.Core.Movement;
 using Firefly.Core.State;
@@ -32,10 +33,20 @@ namespace Firefly.Core.Actions
     /// (1–7 Kill 2 Crew + Evade; 8+ Kill 1 Crew + Evade).
     /// GF9 p.8 / Director's Cut p.17 — resolve at start of turn in the Cutter's Sector,
     /// or immediately when the "Reaver Cutter" Nav Card moves the Cutter onto you.
+    /// Kill N victim picks suspend via <see cref="PendingChoiceKinds.KillVictim"/>.
     /// </summary>
     public static class ReaverContact
     {
         public const int FightTarget = 8;
+
+        private static bool _resumingKillVictims;
+        private static string? _pendingEvadeToSectorId;
+        private static SkillCheckResult? _pendingFight;
+        private static int _pendingKillCount;
+        private static int _pendingPassengers;
+        private static int _pendingFugitives;
+        private static KillChoice? _pendingKillChoice;
+        private static bool _pendingIsEncounterResolve;
 
         public static bool TryResolve(
             GameState game,
@@ -52,12 +63,26 @@ namespace Firefly.Core.Actions
                 error = "No Reaver Cutter encounter is pending.";
                 return false;
             }
+            if (game.PendingChoice != null && !_resumingKillVictims)
+            {
+                error = "Resolve the pending choice before continuing Reaver Contact.";
+                return false;
+            }
 
             var player = game.CurrentPlayer;
             var sector = game.PendingEncounterSectorId ?? player.SectorId;
             player.SectorId = sector;
 
-            if (!TryApply(game, player, rng, evadeToSectorId, out result, out error, killChoice))
+            if (!TryApply(
+                    game,
+                    player,
+                    rng,
+                    evadeToSectorId,
+                    out result,
+                    out error,
+                    killChoice,
+                    isEncounterResolve: true,
+                    allowSuspend: true))
                 return false;
 
             game.PendingEncounter = null;
@@ -76,8 +101,102 @@ namespace Firefly.Core.Actions
             string evadeToSectorId,
             out ReaverContactResult? result,
             out string? error,
-            KillChoice? killChoice = null) =>
-            TryApply(game, game.CurrentPlayer, rng, evadeToSectorId, out result, out error, killChoice);
+            KillChoice? killChoice = null)
+        {
+            if (game.PendingChoice != null && !_resumingKillVictims)
+            {
+                result = null;
+                error = "Resolve the pending choice before continuing Reaver Contact.";
+                return false;
+            }
+            return TryApply(
+                game,
+                game.CurrentPlayer,
+                rng,
+                evadeToSectorId,
+                out result,
+                out error,
+                killChoice,
+                isEncounterResolve: false,
+                allowSuspend: false);
+        }
+
+        /// <summary>
+        /// Resume after <see cref="PendingChoiceKinds.KillVictim"/> during Reaver Contact.
+        /// </summary>
+        public static bool TryResumeKillVictims(
+            GameState game,
+            ChoiceSubmission submission,
+            IRng rng,
+            out ReaverContactResult? result,
+            out string? error)
+        {
+            result = null;
+            error = null;
+            if (game.PendingChoice == null
+                || !string.Equals(
+                    game.PendingChoice.Kind,
+                    PendingChoiceKinds.KillVictim,
+                    System.StringComparison.Ordinal))
+            {
+                error = "No kill-victim choice is pending.";
+                return false;
+            }
+            if (_pendingFight == null || string.IsNullOrWhiteSpace(_pendingEvadeToSectorId))
+            {
+                error = "No Reaver Contact kill-victim resume state is stored.";
+                return false;
+            }
+            if (!CrewKill.TryParseKillCount(game.PendingChoice.ContextId, out var count))
+            {
+                error = "Kill-victim context is missing the kill count.";
+                return false;
+            }
+
+            var player = game.GetPlayer(game.PendingChoice.PlayerId);
+            if (!CrewKill.TryMergeVictimSubmission(
+                    player, count, submission, _pendingKillChoice, out var merged, out error))
+                return false;
+
+            if (!game.TrySubmitChoice(player.Id, submission, out _, out error))
+                return false;
+
+            var evadeTo = _pendingEvadeToSectorId!;
+            var fight = _pendingFight!;
+            var killCount = _pendingKillCount;
+            var passengers = _pendingPassengers;
+            var fugitives = _pendingFugitives;
+            var isEncounter = _pendingIsEncounterResolve;
+            ClearPendingResume();
+
+            _resumingKillVictims = true;
+            try
+            {
+                // PBH p.12: Bound Fugitives leave play with Passenger & Fugitive tokens.
+                BoundFugitives.RemoveAllFromPlay(game, player);
+                player.Passengers = 0;
+                player.Fugitives = 0;
+                if (!CrewKill.TryKillUpTo(
+                        game, player, killCount, rng, out var crewKilled, out error, merged))
+                    return false;
+                if (!FlightEvade.TryMove(game, player, evadeTo, out error))
+                    return false;
+
+                if (isEncounter)
+                {
+                    game.PendingEncounter = null;
+                    game.PendingEncounterSectorId = null;
+                    game.PendingNavDraws.Clear();
+                }
+
+                result = new ReaverContactResult(passengers, fugitives, fight, crewKilled, evadeTo);
+                return true;
+            }
+            finally
+            {
+                _resumingKillVictims = false;
+            }
+        }
 
         private static bool TryApply(
             GameState game,
@@ -86,7 +205,9 @@ namespace Firefly.Core.Actions
             string evadeToSectorId,
             out ReaverContactResult? result,
             out string? error,
-            KillChoice? killChoice = null)
+            KillChoice? killChoice,
+            bool isEncounterResolve,
+            bool allowSuspend)
         {
             result = null;
             error = null;
@@ -94,22 +215,64 @@ namespace Firefly.Core.Actions
             if (!FlightEvade.CanMove(game, player, evadeToSectorId, out error))
                 return false;
 
-            var passengers = player.Passengers;
-            // PBH p.12: if Reavers Kill Passenger and Fugitive tokens, Bound Fugitives leave play.
-            var fugitives = player.Fugitives + BoundFugitives.RemoveAllFromPlay(game, player);
-            player.Passengers = 0;
-            player.Fugitives = 0;
-
+            // Fight first so Kill N is known before mutating passengers / crew.
             var check = new SkillCheck(Skill.Fight, FightTarget);
             var fight = check.Resolve(player, rng);
             var killCount = fight.Success ? 1 : 2;
-            var crewKilled = CrewKill.KillUpTo(game, player, killCount, rng, killChoice);
+
+            if (CrewKill.NeedsVictimChoice(player, killCount, killChoice))
+            {
+                if (!allowSuspend)
+                {
+                    error =
+                        "Reaver Contact Kill N requires KillChoice.VictimCrewIds when resolved mid-Nav.";
+                    return false;
+                }
+
+                // Defer passenger / fugitive / crew removal until victims are chosen.
+                _pendingEvadeToSectorId = evadeToSectorId;
+                _pendingFight = fight;
+                _pendingKillCount = killCount;
+                _pendingPassengers = player.Passengers;
+                _pendingFugitives = player.Fugitives + BoundFugitives.Count(player);
+                _pendingKillChoice = killChoice;
+                _pendingIsEncounterResolve = isEncounterResolve;
+                if (!CrewKill.TrySuspendVictimChoice(game, player, killCount, out error))
+                {
+                    ClearPendingResume();
+                    return false;
+                }
+                error = "Choose which crew are killed.";
+                return false;
+            }
+
+            var passengersKilled = player.Passengers;
+            // PBH p.12: if Reavers Kill Passenger and Fugitive tokens, Bound Fugitives leave play.
+            var fugitivesKilled = player.Fugitives + BoundFugitives.RemoveAllFromPlay(game, player);
+            player.Passengers = 0;
+            player.Fugitives = 0;
+
+            if (!CrewKill.TryKillUpTo(
+                    game, player, killCount, rng, out var crewKilled, out error, killChoice))
+                return false;
 
             if (!FlightEvade.TryMove(game, player, evadeToSectorId, out error))
                 return false;
 
-            result = new ReaverContactResult(passengers, fugitives, fight, crewKilled, evadeToSectorId);
+            result = new ReaverContactResult(
+                passengersKilled, fugitivesKilled, fight, crewKilled, evadeToSectorId);
             return true;
+        }
+
+        private static void ClearPendingResume()
+        {
+            _pendingEvadeToSectorId = null;
+            _pendingFight = null;
+            _pendingKillCount = 0;
+            _pendingPassengers = 0;
+            _pendingFugitives = 0;
+            _pendingKillChoice = null;
+            _pendingIsEncounterResolve = false;
         }
     }
 

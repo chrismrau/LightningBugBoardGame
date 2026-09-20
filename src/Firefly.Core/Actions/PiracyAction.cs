@@ -209,7 +209,11 @@ namespace Firefly.Core.Actions
             result = null;
             var killed = 0;
             if (terms.KillOnLoss > 0)
-                killed = CrewKill.KillUpTo(game, player, terms.KillOnLoss, rng, choice.KillChoice);
+            {
+                if (!CrewKill.TryKillUpTo(
+                        game, player, terms.KillOnLoss, rng, out killed, out error, choice.KillChoice))
+                    return false;
+            }
 
             // FAQ 4.1 p.12: all Illegal Piracy Jobs → Warrant Issued on Showdown loss.
             var warrants = 0;
@@ -223,7 +227,12 @@ namespace Firefly.Core.Actions
             DiscardPiracyJob(game, player, job);
             // FAQ 4.1 p.12: Niska Pound of Flesh when Warrant Issued on his Piracy Job.
             if (warrants > 0 && ContactSolidBenefits.IsNiskaJob(job))
-                CrewKill.KillUpTo(game, player, 1, rng, choice.KillChoice);
+            {
+                if (!CrewKill.TryKillUpTo(
+                        game, player, 1, rng, out var niskaKilled, out error, choice.KillChoice))
+                    return false;
+                killed += niskaKilled;
+            }
 
             ActiveAlertRules.OnJobBotched(game, player);
             if (!game.TryConsumeAction(TurnAction.Work, out error))

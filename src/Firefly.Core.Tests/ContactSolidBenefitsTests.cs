@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Firefly.Core.Actions;
 using Firefly.Core.Cards;
 using Firefly.Core.Data;
@@ -340,7 +341,11 @@ namespace Firefly.Core.Tests
             resolver.DrawNext(game);
             Assert.True(resolver.TryResolve(
                 game, "p1",
-                new MisbehaveChoice { OptionIndex = 1 },
+                new MisbehaveChoice
+                {
+                    OptionIndex = 1,
+                    Kill = new KillChoice { VictimCrewIds = new List<string> { "crew_kaylee" } }
+                },
                 out var resolution, out var error,
                 ScriptedRng.FromDieFaces(1)), error);
 

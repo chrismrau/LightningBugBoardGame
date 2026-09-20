@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Firefly.Core.Actions;
 using Firefly.Core.Cards;
 using Firefly.Core.Data;
@@ -93,7 +94,11 @@ namespace Firefly.Core.Tests
                 ScriptedRng.FromDieFaces(),
                 CutterAdjacent,
                 out var result,
-                out var error), error);
+                out var error,
+                new KillChoice
+                {
+                    VictimCrewIds = new List<string> { "crew_wash", "crew_zoe" }
+                }), error);
             Assert.Equal(2, result!.PassengersKilled);
             Assert.Equal(1, result.FugitivesKilled);
             Assert.False(result.Fight.Success);
@@ -124,7 +129,8 @@ namespace Firefly.Core.Tests
                 ScriptedRng.FromDieFaces(6, 6),
                 CutterAdjacent,
                 out var result,
-                out _));
+                out _,
+                new KillChoice { VictimCrewIds = new List<string> { "crew_zoe" } }));
             Assert.True(result!.Fight.Success);
             Assert.Equal(1, result.CrewKilled);
             Assert.Equal(1, player.Roster.Count);
