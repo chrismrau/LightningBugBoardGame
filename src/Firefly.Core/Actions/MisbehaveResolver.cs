@@ -74,16 +74,14 @@ namespace Firefly.Core.Actions
     /// TryProceedMisbehave remains the force/skip path used by Work tests.
     /// Ace auto-succeeds. Replace-card options discard without spending a step.
     /// Skill bands pick the printed effect; Attempt Botched ends the Work site.
+    /// Prefer structured option.SkillCheck / Bands / Effects when present; else prose/regex
+    /// via SkillCheck.TryParse and SkillCheck.BandText (shared banding — no local BandPattern).
     /// </summary>
     public sealed class MisbehaveResolver
     {
         private static readonly Regex RequiresPattern = new Regex(
             @"Requires\s*:?\s*([^.;]+)",
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
-
-        private static readonly Regex BandPattern = new Regex(
-            @"(\d+)\s*(?:-\s*(\d+)|\+)\s*[:;,]?\s*(.*?)(?=(?:\s+\d+\s*(?:-\s*\d+|\+))|$)",
-            RegexOptions.IgnoreCase | RegexOptions.Singleline | RegexOptions.Compiled);
 
         private static readonly Regex PlusWithPattern = new Regex(
             @"\+(\d+)\s+(Fight|Tech|Talk|Negotiate)\s+with\s+([A-Za-z][A-Za-z ']+)",
@@ -164,20 +162,14 @@ namespace Firefly.Core.Actions
                     : MisbehaveOutcome.Proceed;
                 return Finish(game, playerId, card, option, alertOutcome, null, 0, 0, 0, 0, false, out resolution, out error);
             }
-            SkillCheckResult? check = null;
-            var bandText = details;
-            var bribeCash = 0;
-            if (SkillCheck.TryParse(details, out var skillCheck))
-            {
-                if (!skillCheck.TryResolve(player, rng, out check, out error, choice.SkillCheck))
-                    return false;
-                bribeCash = check.BribeDollarsPaid;
-                var sum = check.Total + BonusFromGear(game, player, details);
-                bandText = BandText(details, sum) ?? details;
-                check = check.WithTotal(sum);
-            }
 
-            if (IsReplaceCard(details))
+            // Structured overlay preferred when present; otherwise prose/regex path.
+            if (!TryResolveSkillAndBand(
+                game, player, card, option, details, choice, rng,
+                out var check, out var bandText, out var structuredEffects, out var bribeCash, out error))
+                return false;
+
+            if (HasEffect(structuredEffects, MisbehaveEffectType.ReplaceCard) || IsReplaceCard(details))
             {
                 var extra = Contains(details, "Draw two") || Contains(details, "Draw 2") ? 1 : 0;
                 pending.Remaining += extra;
@@ -193,8 +185,14 @@ namespace Firefly.Core.Actions
                 return false;
             }
 
+            var useStructured = structuredEffects != null && structuredEffects.Count > 0;
+            var effectBand = bandText ?? details;
+            var effectText = check == null ? details : effectBand;
+
             // Validate Solid-loss discard hooks before mutating crew / warrants.
-            if (WouldLoseSolid(details) || WouldLoseSolid(bandText ?? ""))
+            if (WouldLoseSolid(details)
+                || WouldLoseSolid(effectBand)
+                || (useStructured && HasEffect(structuredEffects, MisbehaveEffectType.LoseSolid)))
             {
                 var lostId = ResolveLoseSolidId(player, choice.LoseSolidId);
                 if (lostId == null)
@@ -218,25 +216,45 @@ namespace Firefly.Core.Actions
                 DiscardDisgruntled(player);
 
             if (optionalPay && !paying)
-                bandText = "Attempt Botched";
-
-            var warrants = 0;
-            if (Contains(bandText, "Warrant Issued"))
             {
-                player.Warrants++;
-                warrants = 1;
+                effectBand = "Attempt Botched";
+                effectText = effectBand;
+                useStructured = false;
             }
 
-            var effectText = check == null ? details : bandText;
-            var killed = KillCrew(game, player, effectText, rng, choice.Kill);
-            var loaded = LoadGoods(player, effectText);
-            cashDelta += TakeCash(player, effectText);
-            ApplyWanted(player, effectText, choice.TargetCrewId);
-            ApplyDisgruntle(player, effectText);
-            ApplyClearDisgruntled(player, effectText);
-            if (!TryApplySolidLoss(game, player, effectText, effectText, choice, out error))
-                return false;
-            ApplyWarrantDiscard(player, effectText, choice.DiscardWarrants);
+            int warrants;
+            int killed;
+            int loaded;
+            MisbehaveOutcome outcome;
+            if (useStructured)
+            {
+                if (!TryApplyStructuredEffects(
+                    game, player, structuredEffects!, rng, choice,
+                    ref cashDelta, out warrants, out killed, out loaded, out outcome, out error))
+                    return false;
+            }
+            else
+            {
+                warrants = 0;
+                if (Contains(effectBand, "Warrant Issued"))
+                {
+                    player.Warrants++;
+                    warrants = 1;
+                }
+
+                killed = KillCrew(game, player, effectText, rng, choice.Kill);
+                loaded = LoadGoods(player, effectText);
+                cashDelta += TakeCash(player, effectText);
+                ApplyWanted(player, effectText, choice.TargetCrewId);
+                ApplyDisgruntle(player, effectText);
+                ApplyClearDisgruntled(player, effectText);
+                if (!TryApplySolidLoss(game, player, effectText, effectText, choice, out error))
+                    return false;
+                ApplyWarrantDiscard(player, effectText, choice.DiscardWarrants);
+                outcome = Contains(effectBand, "Attempt Botched")
+                    ? MisbehaveOutcome.Botched
+                    : MisbehaveOutcome.Proceed;
+            }
 
             // GF9 / FAQ: Warrant Issued while Working discards the Job. Niska Pound of Flesh: Kill a Crew.
             if (warrants > 0 && game.PendingMisbehave != null)
@@ -253,10 +271,6 @@ namespace Firefly.Core.Actions
                 return true;
             }
 
-            var outcome = Contains(bandText, "Attempt Botched")
-                ? MisbehaveOutcome.Botched
-                : MisbehaveOutcome.Proceed;
-
             if (outcome == MisbehaveOutcome.Proceed)
             {
                 // Big Damn Heroes / typed misbehaveProceedCash (Job-only; Goals Work not implemented).
@@ -270,6 +284,207 @@ namespace Firefly.Core.Actions
             }
 
             return Finish(game, playerId, card, option, outcome, check, warrants, killed, loaded, cashDelta, false, out resolution, out error);
+        }
+
+        /// <summary>
+        /// Prefer option.SkillCheck / option.Bands when present; else SkillCheck.TryParse + BandText.
+        /// Card-level Bribes/Kosherized flags fill structured specs that omitted them.
+        /// </summary>
+        private static bool TryResolveSkillAndBand(
+            GameState game,
+            PlayerState player,
+            MisbehaveCard card,
+            MisbehaveOption option,
+            string details,
+            MisbehaveChoice choice,
+            IRng rng,
+            out SkillCheckResult? check,
+            out string bandText,
+            out IReadOnlyList<MisbehaveEffect>? structuredEffects,
+            out int bribeCash,
+            out string? error)
+        {
+            check = null;
+            bandText = details;
+            structuredEffects = null;
+            bribeCash = 0;
+            error = null;
+
+            if (!TryGetSkillCheck(option, card, details, out var skillCheck))
+            {
+                if (option.HasStructuredEffects)
+                    structuredEffects = option.Effects;
+                return true;
+            }
+
+            if (!skillCheck.TryResolve(player, rng, out check, out error, choice.SkillCheck))
+                return false;
+            bribeCash = check.BribeDollarsPaid;
+            var sum = check.Total + BonusFromGear(game, player, details);
+            check = check.WithTotal(sum);
+
+            if (option.HasStructuredBands)
+            {
+                var band = MisbehaveBand.Pick(option.Bands, sum);
+                if (band != null)
+                {
+                    if (band.Effects.Count > 0)
+                        structuredEffects = band.Effects;
+                    bandText = !string.IsNullOrWhiteSpace(band.Text) ? band.Text! : details;
+                }
+                else
+                    bandText = details;
+            }
+            else
+            {
+                bandText = SkillCheck.BandText(details, sum) ?? details;
+                if (option.HasStructuredEffects)
+                    structuredEffects = option.Effects;
+            }
+
+            return true;
+        }
+
+        private static bool TryGetSkillCheck(
+            MisbehaveOption option,
+            MisbehaveCard card,
+            string details,
+            out SkillCheck skillCheck)
+        {
+            if (option.SkillCheck != null)
+            {
+                var spec = option.SkillCheck;
+                var kosherized = spec.Kosherized || card.Kosherized;
+                var bribes = (spec.BribesAllowed || card.Bribes) && spec.Skill == Skill.Talk;
+                skillCheck = new SkillCheck(spec.Skill, spec.Target, kosherized, bribes);
+                return true;
+            }
+
+            if (!SkillCheck.TryParse(details, out skillCheck))
+                return false;
+
+            // Card-level flags overlay prose parses that omitted Bribes/Kosherized wording.
+            if ((card.Kosherized && !skillCheck.Kosherized) || (card.Bribes && !skillCheck.BribesAllowed))
+            {
+                var bribes = (skillCheck.BribesAllowed || card.Bribes) && skillCheck.Skill == Skill.Talk;
+                skillCheck = new SkillCheck(
+                    skillCheck.Skill,
+                    skillCheck.Target,
+                    skillCheck.Kosherized || card.Kosherized,
+                    bribes);
+            }
+            return true;
+        }
+
+        private static bool TryApplyStructuredEffects(
+            GameState game,
+            PlayerState player,
+            IReadOnlyList<MisbehaveEffect> effects,
+            IRng rng,
+            MisbehaveChoice choice,
+            ref int cashDelta,
+            out int warrants,
+            out int killed,
+            out int loaded,
+            out MisbehaveOutcome outcome,
+            out string? error)
+        {
+            warrants = 0;
+            killed = 0;
+            loaded = 0;
+            outcome = MisbehaveOutcome.Proceed;
+            error = null;
+
+            foreach (var effect in effects)
+            {
+                switch (effect.Type)
+                {
+                    case MisbehaveEffectType.Proceed:
+                        outcome = MisbehaveOutcome.Proceed;
+                        break;
+                    case MisbehaveEffectType.Botched:
+                        outcome = MisbehaveOutcome.Botched;
+                        break;
+                    case MisbehaveEffectType.WarrantIssued:
+                        player.Warrants++;
+                        warrants++;
+                        break;
+                    case MisbehaveEffectType.KillAllCrew:
+                        killed += CrewKill.KillAll(game, player, rng, choice.Kill);
+                        break;
+                    case MisbehaveEffectType.KillCrew:
+                        var killCount = effect.Count > 0 ? effect.Count : 1;
+                        killed += CrewKill.KillUpTo(game, player, killCount, rng, choice.Kill);
+                        break;
+                    case MisbehaveEffectType.LoadCargo:
+                        var cargo = effect.Count > 0 ? effect.Count : 1;
+                        player.Cargo += cargo;
+                        loaded += cargo;
+                        break;
+                    case MisbehaveEffectType.LoadContraband:
+                        var contra = effect.Count > 0 ? effect.Count : 1;
+                        player.Contraband += contra;
+                        loaded += contra;
+                        break;
+                    case MisbehaveEffectType.TakeCash:
+                        var cash = effect.Count;
+                        player.Cash += cash;
+                        cashDelta += cash;
+                        break;
+                    case MisbehaveEffectType.Wanted:
+                        ApplyWanted(player, "Wanted", choice.TargetCrewId);
+                        break;
+                    case MisbehaveEffectType.DisgruntleMoral:
+                        player.Roster.DisgruntleMoral();
+                        break;
+                    case MisbehaveEffectType.DisgruntleMercs:
+                        player.Roster.DisgruntleWhere(
+                            m => m.Card.HasProfession("Merc") || m.Card.HasProfession("Soldier"));
+                        break;
+                    case MisbehaveEffectType.DisgruntleTech:
+                        player.Roster.DisgruntleWhere(m => m.Card.Tech > 0);
+                        break;
+                    case MisbehaveEffectType.ClearDisgruntled:
+                        foreach (var member in player.Roster.Members)
+                            member.Disgruntled = false;
+                        break;
+                    case MisbehaveEffectType.LoseSolid:
+                        break;
+                    case MisbehaveEffectType.DiscardWarrants:
+                        var discard = effect.Count > 0 ? effect.Count : choice.DiscardWarrants;
+                        if (discard <= 0)
+                            discard = 1;
+                        if (discard > player.Warrants)
+                            discard = player.Warrants;
+                        player.Warrants -= discard;
+                        break;
+                    case MisbehaveEffectType.ReplaceCard:
+                        break;
+                }
+            }
+
+            if (HasEffect(effects, MisbehaveEffectType.LoseSolid))
+            {
+                var solidChoice = choice.SolidRep ?? new SolidRepChoice();
+                if (solidChoice.Kill == null && choice.Kill != null)
+                    solidChoice.Kill = choice.Kill;
+                if (!ContactSolidBenefits.TryLoseSolid(game, player, choice.LoseSolidId, solidChoice, out error))
+                    return false;
+            }
+
+            return true;
+        }
+
+        private static bool HasEffect(IReadOnlyList<MisbehaveEffect>? effects, MisbehaveEffectType type)
+        {
+            if (effects == null)
+                return false;
+            foreach (var effect in effects)
+            {
+                if (effect.Type == type)
+                    return true;
+            }
+            return false;
         }
 
         private bool Finish(
@@ -449,19 +664,6 @@ namespace Firefly.Core.Actions
                     bonus += int.Parse(match.Groups[1].Value);
             }
             return bonus;
-        }
-
-        private static string? BandText(string details, int sum)
-        {
-            string? picked = null;
-            foreach (Match match in BandPattern.Matches(details))
-            {
-                var min = int.Parse(match.Groups[1].Value);
-                var max = match.Groups[2].Success ? int.Parse(match.Groups[2].Value) : int.MaxValue;
-                if (sum >= min && sum <= max)
-                    picked = match.Groups[3].Value.Trim().TrimEnd('.');
-            }
-            return string.IsNullOrWhiteSpace(picked) ? null : picked;
         }
 
         private static int PayAmount(PlayerState player, string details, bool payCuts)
