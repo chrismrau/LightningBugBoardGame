@@ -565,9 +565,16 @@
         "Space Bazaar": 1
       },
       "count": 1,
-      "specialAbilityType": "Misbehave option",
+      "specialAbilityType": "misbehaveDiscardRedraw",
       "ability": "1",
-      "id": "crew_dalin_piratesbountyhunters"
+      "id": "crew_dalin_piratesbountyhunters",
+      "abilities": [
+        {
+          "type": "misbehaveDiscardRedraw",
+          "amount": 200,
+          "mandatory": false
+        }
+      ]
     },
     {
       "class": "Standard",
@@ -1491,9 +1498,15 @@
         "Beaumonde": 1
       },
       "count": 1,
-      "specialAbilityType": "Discard for bonus",
+      "specialAbilityType": "discardInsteadOfLoseSolid",
       "ability": "0",
-      "id": "crew_roberta_kalidasa"
+      "id": "crew_roberta_kalidasa",
+      "abilities": [
+        {
+          "type": "discardInsteadOfLoseSolid",
+          "mandatory": false
+        }
+      ]
     },
     {
       "class": "Standard",
@@ -1925,9 +1938,15 @@
         "Meridian": 1
       },
       "count": 1,
-      "specialAbilityType": "Discard for bonus",
+      "specialAbilityType": "discardBuyUpgradeHalf",
       "ability": "0",
-      "id": "crew_the-salesman_bluesun"
+      "id": "crew_the-salesman_bluesun",
+      "abilities": [
+        {
+          "type": "discardBuyUpgradeHalf",
+          "mandatory": false
+        }
+      ]
     },
     {
       "class": "Standard",

@@ -64,8 +64,29 @@ namespace Firefly.Core.Actions
             @"Bounty Bonus[:\s]*\+?\$(\d+)",
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
+        private enum PendingBountyKind
+        {
+            None,
+            Confront,
+            Jump
+        }
+
+        private PendingBountyKind _pendingKind;
+        private string? _pendingPlayerId;
+        private string? _pendingBountyId;
+        private string? _pendingRivalId;
+        private string? _pendingCrewId;
+        private Skill _pendingAttack;
+        private Skill _pendingDefend;
+        private Skill _pendingBoard;
+        private bool _pendingRescue;
+        private SkillCheckChoice? _pendingBoardingSkillCheck;
+        private KillChoice? _pendingKillChoice;
+        private bool _resuming;
+
         /// <summary>
         /// Confrontation: fugitive is in a rival's Crew — same sector, Boarding then Showdown (PBH p.10).
+        /// Cortland Negotiate Boarding suspends Bribes via PendingChoice (same as Piracy).
         /// </summary>
         public bool TryApprehendRival(
             GameState game,
@@ -79,9 +100,13 @@ namespace Firefly.Core.Actions
             IRng rng,
             out BountyResult? result,
             out string? error,
-            KillChoice? killChoice = null)
+            KillChoice? killChoice = null,
+            SkillCheckChoice? boardingSkillCheck = null)
         {
             result = null;
+            if (!_resuming)
+                ClearPending();
+
             if (!BeginWork(game, playerId, bountyId, out var player, out var bounty, out error))
                 return false;
             if (string.Equals(playerId, rivalId, StringComparison.Ordinal))
@@ -113,14 +138,32 @@ namespace Firefly.Core.Actions
                 error = "Boarding Test uses Tech or Negotiate only (PBH p.3).";
                 return false;
             }
-            if (!PassBoarding(player, boardSkill, rng))
+
+            if (!TryPassBoarding(
+                    game, player, boardSkill, boardingSkillCheck, rng,
+                    contextId: $"bounty-board:confront:{bounty.Id}",
+                    out var boarded, out error))
             {
+                if (game.PendingChoice != null)
+                {
+                    RememberConfront(
+                        playerId, bounty.Id, rivalId, crewId,
+                        attackSkill, defendSkill, boardSkill,
+                        boardingSkillCheck, killChoice);
+                }
+                return false;
+            }
+
+            if (!boarded)
+            {
+                ClearPending();
                 if (!game.TryConsumeAction(TurnAction.Work, out error))
                     return false;
                 result = new BountyResult(BountyHuntKind.Confrontation, bounty.Id, success: false, boardingFailed: true);
                 return true;
             }
 
+            ClearPending();
             var showdown = Showdown.Resolve(Showdown.Of(player, attackSkill), Showdown.Of(rival, defendSkill), rng);
             if (!showdown.AttackerWins)
             {
@@ -137,6 +180,87 @@ namespace Firefly.Core.Actions
                 return false;
             result = new BountyResult(BountyHuntKind.Confrontation, bounty.Id, true, showdown: showdown);
             return true;
+        }
+
+        /// <summary>
+        /// Resume after Cortland/Bribes PendingChoice on a Negotiate Boarding Test.
+        /// </summary>
+        public bool TryResumeBoardingBribe(
+            GameState game,
+            ChoiceSubmission submission,
+            IRng rng,
+            out BountyResult? result,
+            out string? error)
+        {
+            result = null;
+            error = null;
+            if (game.PendingChoice == null
+                || !string.Equals(
+                    game.PendingChoice.Kind,
+                    PendingChoiceKinds.BribeAmount,
+                    StringComparison.Ordinal))
+            {
+                error = "No boarding bribe choice is pending.";
+                return false;
+            }
+            if (_pendingKind == PendingBountyKind.None
+                || string.IsNullOrWhiteSpace(_pendingPlayerId)
+                || string.IsNullOrWhiteSpace(_pendingBountyId)
+                || string.IsNullOrWhiteSpace(_pendingRivalId))
+            {
+                error = "Bounty boarding bribe resume state is missing.";
+                return false;
+            }
+
+            var player = game.GetPlayer(_pendingPlayerId!);
+            if (!SkillCheck.TryMergeBribeSubmission(
+                    player, submission, _pendingBoardingSkillCheck, out var merged, out error))
+                return false;
+            _pendingBoardingSkillCheck = merged;
+
+            if (!game.TrySubmitChoice(_pendingPlayerId!, submission, out _, out error))
+                return false;
+
+            _resuming = true;
+            try
+            {
+                if (_pendingKind == PendingBountyKind.Jump)
+                {
+                    return TryJump(
+                        game,
+                        _pendingPlayerId!,
+                        _pendingRivalId!,
+                        _pendingBountyId!,
+                        _pendingAttack,
+                        _pendingDefend,
+                        _pendingBoard,
+                        rng,
+                        _pendingRescue,
+                        out result,
+                        out error,
+                        _pendingKillChoice,
+                        _pendingBoardingSkillCheck);
+                }
+
+                return TryApprehendRival(
+                    game,
+                    _pendingPlayerId!,
+                    _pendingBountyId!,
+                    _pendingRivalId!,
+                    _pendingCrewId!,
+                    _pendingAttack,
+                    _pendingDefend,
+                    _pendingBoard,
+                    rng,
+                    out result,
+                    out error,
+                    _pendingKillChoice,
+                    _pendingBoardingSkillCheck);
+            }
+            finally
+            {
+                _resuming = false;
+            }
         }
 
         public bool TryApprehendLone(
@@ -293,9 +417,13 @@ namespace Firefly.Core.Actions
             bool rescue,
             out BountyResult? result,
             out string? error,
-            KillChoice? killChoice = null)
+            KillChoice? killChoice = null,
+            SkillCheckChoice? boardingSkillCheck = null)
         {
             result = null;
+            if (!_resuming)
+                ClearPending();
+
             if (!CanStart(game, playerId, out var player, out error))
                 return false;
             if (string.Equals(playerId, fromPlayerId, StringComparison.Ordinal))
@@ -326,14 +454,32 @@ namespace Firefly.Core.Actions
                 error = "Boarding Test uses Tech or Negotiate only (PBH p.3).";
                 return false;
             }
-            if (!PassBoarding(player, boardSkill, rng))
+
+            if (!TryPassBoarding(
+                    game, player, boardSkill, boardingSkillCheck, rng,
+                    contextId: $"bounty-board:jump:{bounty.Id}",
+                    out var boarded, out error))
             {
+                if (game.PendingChoice != null)
+                {
+                    RememberJump(
+                        playerId, fromPlayerId, bounty.Id,
+                        attackSkill, defendSkill, boardSkill, rescue,
+                        boardingSkillCheck, killChoice);
+                }
+                return false;
+            }
+
+            if (!boarded)
+            {
+                ClearPending();
                 if (!game.TryConsumeAction(TurnAction.Work, out error))
                     return false;
                 result = new BountyResult(BountyHuntKind.Jump, bounty.Id, false, boardingFailed: true);
                 return true;
             }
 
+            ClearPending();
             var showdown = Showdown.Resolve(Showdown.Of(player, attackSkill), Showdown.Of(rival, defendSkill), rng);
             if (!showdown.AttackerWins)
             {
@@ -427,12 +573,90 @@ namespace Firefly.Core.Actions
             return null;
         }
 
-        private static bool PassBoarding(PlayerState player, Skill boardSkill, IRng rng)
+        private static bool TryPassBoarding(
+            GameState game,
+            PlayerState player,
+            Skill boardSkill,
+            SkillCheckChoice? choice,
+            IRng rng,
+            string contextId,
+            out bool success,
+            out string? error)
         {
-            // PBH p.3: Tech or Negotiate only. Shared with piracy BoardingTest.
-            if (!BoardingTest.TryResolve(player, boardSkill, rng, out var result, out _))
+            success = false;
+            var boardCheck = BoardingTest.BuildCheck(player, boardSkill, BoardingTarget);
+            if (SkillCheck.NeedsBribeChoice(player, boardCheck, choice))
+            {
+                if (!SkillCheck.TrySuspendBribeChoice(game, player, contextId: contextId, out error))
+                    return false;
+                error = "Choose how many Bribes to pay before the Boarding Test.";
                 return false;
-            return result.Success;
+            }
+
+            if (!boardCheck.TryResolve(player, rng, out var result, out error, choice))
+                return false;
+            success = result.Success;
+            return true;
+        }
+
+        private void RememberConfront(
+            string playerId,
+            string bountyId,
+            string rivalId,
+            string crewId,
+            Skill attack,
+            Skill defend,
+            Skill board,
+            SkillCheckChoice? boarding,
+            KillChoice? kill)
+        {
+            _pendingKind = PendingBountyKind.Confront;
+            _pendingPlayerId = playerId;
+            _pendingBountyId = bountyId;
+            _pendingRivalId = rivalId;
+            _pendingCrewId = crewId;
+            _pendingAttack = attack;
+            _pendingDefend = defend;
+            _pendingBoard = board;
+            _pendingBoardingSkillCheck = boarding;
+            _pendingKillChoice = kill;
+            _pendingRescue = false;
+        }
+
+        private void RememberJump(
+            string playerId,
+            string rivalId,
+            string bountyId,
+            Skill attack,
+            Skill defend,
+            Skill board,
+            bool rescue,
+            SkillCheckChoice? boarding,
+            KillChoice? kill)
+        {
+            _pendingKind = PendingBountyKind.Jump;
+            _pendingPlayerId = playerId;
+            _pendingBountyId = bountyId;
+            _pendingRivalId = rivalId;
+            _pendingCrewId = null;
+            _pendingAttack = attack;
+            _pendingDefend = defend;
+            _pendingBoard = board;
+            _pendingRescue = rescue;
+            _pendingBoardingSkillCheck = boarding;
+            _pendingKillChoice = kill;
+        }
+
+        private void ClearPending()
+        {
+            _pendingKind = PendingBountyKind.None;
+            _pendingPlayerId = null;
+            _pendingBountyId = null;
+            _pendingRivalId = null;
+            _pendingCrewId = null;
+            _pendingBoardingSkillCheck = null;
+            _pendingKillChoice = null;
+            _pendingRescue = false;
         }
 
         private static int ApplyBotch(

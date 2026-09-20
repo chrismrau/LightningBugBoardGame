@@ -258,6 +258,268 @@ namespace Firefly.Core.Abilities
             AbilityContext? context = null) =>
             HasAbility(player, AbilityTypes.ShowdownForceRivalReroll, context);
 
+        /// <summary>Fully Equipped Med Bay installed.</summary>
+        public static bool HasMedicCheckReroll(
+            GameState game,
+            PlayerState player,
+            AbilityContext? context = null)
+        {
+            context ??= AbilityContext.None;
+            var catalog = game.ShipUpgradeCatalog;
+            if (catalog == null)
+                return false;
+            foreach (var upgradeId in player.ShipUpgrades)
+            {
+                if (!catalog.TryGet(upgradeId, out var upgrade))
+                    continue;
+                foreach (var ability in AllFromShipUpgrade(upgrade))
+                {
+                    if (ability.MatchesType(AbilityTypes.MedicCheckReroll)
+                        && Applies(ability, context, allowOptional: true))
+                        return true;
+                }
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Mandatory re-roll of 1s when carried gear matches skill / when / Companion rules.
+        /// </summary>
+        public static bool HasRerollOnes(
+            GameState game,
+            PlayerState player,
+            Skill skill,
+            AbilityContext? context = null)
+        {
+            context ??= AbilityContext.None;
+            if (game.Gear == null)
+                return false;
+            foreach (var gearId in player.Gear)
+            {
+                if (!GearCarriage.IsCarried(player, gearId))
+                    continue;
+                if (!game.Gear.TryGet(gearId, out var gear))
+                    continue;
+                foreach (var ability in AllFromGear(gear))
+                {
+                    if (!ability.MatchesType(AbilityTypes.RerollOnes)
+                        || !Applies(ability, context, allowOptional: false))
+                        continue;
+                    if (!RerollOnesWhenMatches(ability, context))
+                        continue;
+                    if (!string.IsNullOrWhiteSpace(ability.Skill)
+                        && !SkillMatches(ability.Skill, skill))
+                        continue;
+                    if (!RerollOnesCarrierOk(player, gearId, ability))
+                        continue;
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        public static bool HasMisbehaveDiscardRedraw(
+            PlayerState player,
+            AbilityContext? context = null) =>
+            HasAbility(player, AbilityTypes.MisbehaveDiscardRedraw, context);
+
+        public static int MisbehaveDiscardRedrawCost(
+            PlayerState player,
+            AbilityContext? context = null)
+        {
+            foreach (var member in player.Roster.Members)
+            {
+                foreach (var ability in AllFromCrew(member.Card))
+                {
+                    if (!ability.MatchesType(AbilityTypes.MisbehaveDiscardRedraw)
+                        || !Applies(ability, context, allowOptional: true))
+                        continue;
+                    return ability.Amount > 0 ? ability.Amount : 200;
+                }
+            }
+            return 200;
+        }
+
+        public static CrewMember? FindDiscardInsteadOfLoseSolid(
+            PlayerState player,
+            AbilityContext? context = null)
+        {
+            foreach (var member in player.Roster.Members)
+            {
+                if (member.IsLeader)
+                    continue;
+                foreach (var ability in AllFromCrew(member.Card))
+                {
+                    if (ability.MatchesType(AbilityTypes.DiscardInsteadOfLoseSolid)
+                        && Applies(ability, context, allowOptional: true))
+                        return member;
+                }
+            }
+            return null;
+        }
+
+        public static bool HasHireFromSupplyDiscard(
+            GameState game,
+            PlayerState player,
+            string supplyPlanet,
+            AbilityContext? context = null)
+        {
+            if (game.Gear == null || string.IsNullOrWhiteSpace(supplyPlanet))
+                return false;
+            context ??= AbilityContext.None;
+            foreach (var gearId in player.Gear)
+            {
+                if (!GearCarriage.IsCarried(player, gearId))
+                    continue;
+                if (!game.Gear.TryGet(gearId, out var gear))
+                    continue;
+                foreach (var ability in AllFromGear(gear))
+                {
+                    if (!ability.MatchesType(AbilityTypes.HireFromSupplyDiscard)
+                        || !Applies(ability, context, allowOptional: true))
+                        continue;
+                    if (string.Equals(
+                            ability.Location, supplyPlanet, StringComparison.OrdinalIgnoreCase))
+                        return true;
+                }
+            }
+            return false;
+        }
+
+        public static string? FindHireFromSupplyDiscardGear(
+            GameState game,
+            PlayerState player,
+            string supplyPlanet,
+            AbilityContext? context = null)
+        {
+            if (game.Gear == null)
+                return null;
+            context ??= AbilityContext.None;
+            foreach (var gearId in player.Gear)
+            {
+                if (!GearCarriage.IsCarried(player, gearId))
+                    continue;
+                if (!game.Gear.TryGet(gearId, out var gear))
+                    continue;
+                foreach (var ability in AllFromGear(gear))
+                {
+                    if (!ability.MatchesType(AbilityTypes.HireFromSupplyDiscard)
+                        || !Applies(ability, context, allowOptional: true))
+                        continue;
+                    if (string.Equals(
+                            ability.Location, supplyPlanet, StringComparison.OrdinalIgnoreCase))
+                        return gearId;
+                }
+            }
+            return null;
+        }
+
+        public static CrewMember? FindDiscardBuyUpgradeHalf(
+            PlayerState player,
+            AbilityContext? context = null)
+        {
+            foreach (var member in player.Roster.Members)
+            {
+                if (member.IsLeader)
+                    continue;
+                foreach (var ability in AllFromCrew(member.Card))
+                {
+                    if (ability.MatchesType(AbilityTypes.DiscardBuyUpgradeHalf)
+                        && Applies(ability, context, allowOptional: true))
+                        return member;
+                }
+            }
+            return null;
+        }
+
+        public static bool HasHalfPriceDriveAndUpgrade(
+            PlayerState player,
+            AbilityContext? context = null) =>
+            HasAbility(player, AbilityTypes.HalfPriceDriveAndUpgrade, context);
+
+        public static bool HasHalfPriceExplosiveFirearmGear(
+            PlayerState player,
+            AbilityContext? context = null) =>
+            HasAbility(player, AbilityTypes.HalfPriceExplosiveFirearmGear, context);
+
+        public static int ConsiderJobsUpTo(
+            GameState game,
+            PlayerState player,
+            AbilityContext? context = null)
+        {
+            var best = 0;
+            if (game.Gear == null)
+                return best;
+            context ??= AbilityContext.None;
+            foreach (var gearId in player.Gear)
+            {
+                if (!GearCarriage.IsCarried(player, gearId))
+                    continue;
+                if (!game.Gear.TryGet(gearId, out var gear))
+                    continue;
+                foreach (var ability in AllFromGear(gear))
+                {
+                    if (!ability.MatchesType(AbilityTypes.ConsiderJobsUpTo)
+                        || !Applies(ability, context, allowOptional: true))
+                        continue;
+                    var n = ability.Amount > 0 ? ability.Amount : DealActionDefaults.FineHatConsiderUpTo;
+                    if (n > best)
+                        best = n;
+                }
+            }
+            return best;
+        }
+
+        public static bool HasConsiderTopAnyContact(
+            GameState game,
+            PlayerState player,
+            AbilityContext? context = null) =>
+            FindCarriedGearAbility(game, player, AbilityTypes.ConsiderTopAnyContact, context) != null;
+
+        /// <summary>
+        /// Sync DealModifiers from carried typed gear (Fine Hat / Cortex Uplink).
+        /// </summary>
+        public static void RefreshDealModifiers(GameState game, PlayerState player)
+        {
+            var upTo = ConsiderJobsUpTo(game, player);
+            if (upTo > 0)
+                player.Deal.ConsiderUpTo = upTo;
+            else
+                player.Deal.ConsiderUpTo = null;
+
+            var cortex = HasConsiderTopAnyContact(game, player);
+            player.Deal.ConsiderTopCardFromAnyContact = cortex;
+            if (cortex)
+                player.Deal.CanDealFromAnySector = true;
+        }
+
+        private static bool RerollOnesWhenMatches(AbilityDefinition ability, AbilityContext context)
+        {
+            if (string.IsNullOrWhiteSpace(ability.Location))
+                return true;
+            if (ability.Location.Equals("Flying", StringComparison.OrdinalIgnoreCase))
+                return context.IsFlying;
+            if (ability.Location.Equals("Misbehaving", StringComparison.OrdinalIgnoreCase))
+                return context.IsMisbehaving || context.IsWorkingJob;
+            return true;
+        }
+
+        private static bool RerollOnesCarrierOk(
+            PlayerState player,
+            string gearId,
+            AbilityDefinition ability)
+        {
+            if (string.IsNullOrWhiteSpace(ability.Subject))
+                return true;
+            if (!ability.Subject.Equals("Companion", StringComparison.OrdinalIgnoreCase))
+                return true;
+            var carrierId = GearCarriage.CarrierOf(player, gearId);
+            if (carrierId == null)
+                return false;
+            var carrier = player.Roster.Find(carrierId);
+            return carrier != null && carrier.Card.HasProfession("Companion");
+        }
+
         public static IEnumerable<AbilityDefinition> AllFromShipUpgrade(ShipUpgradeEntry upgrade)
         {
             if (upgrade?.Abilities == null)
@@ -342,7 +604,7 @@ namespace Firefly.Core.Abilities
                         ? ability
                         : new AbilityDefinition(
                             ability.Type, ability.Mandatory, ability.Amount,
-                            ability.Skill, ability.Subject, jobOnly: true);
+                            ability.Skill, ability.Subject, jobOnly: true, ability.Location);
                     if (!Applies(effective, context))
                         continue;
                     total += ability.Amount;

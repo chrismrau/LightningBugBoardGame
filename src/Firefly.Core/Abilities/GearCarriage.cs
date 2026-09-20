@@ -149,6 +149,7 @@ namespace Firefly.Core.Abilities
             player.FightBonus = AbilityDispatcher.CarriedSkillAddend(game, player, Skill.Fight);
             player.TechBonus = AbilityDispatcher.CarriedSkillAddend(game, player, Skill.Tech);
             player.TalkBonus = AbilityDispatcher.CarriedSkillAddend(game, player, Skill.Talk);
+            AbilityDispatcher.RefreshDealModifiers(game, player);
         }
 
         /// <summary>

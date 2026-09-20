@@ -41,7 +41,11 @@ namespace Firefly.Core.Abilities
                 if (node.TryGetProperty("jobOnly", out var jo) && jo.ValueKind == JsonValueKind.True)
                     jobOnly = true;
 
-                list.Add(new AbilityDefinition(type!, mandatory, amount, skill, subject, jobOnly));
+                string? location = null;
+                if (node.TryGetProperty("location", out var loc))
+                    location = loc.GetString();
+
+                list.Add(new AbilityDefinition(type!, mandatory, amount, skill, subject, jobOnly, location));
             }
             return list;
         }

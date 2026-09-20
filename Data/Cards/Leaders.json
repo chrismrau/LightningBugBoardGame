@@ -119,9 +119,15 @@
         "YCTtS": 1
       },
       "count": 1,
-      "specialAbilityType": null,
+      "specialAbilityType": "halfPriceDriveAndUpgrade",
       "ability": null,
-      "id": "leader_corbin"
+      "id": "leader_corbin",
+      "abilities": [
+        {
+          "type": "halfPriceDriveAndUpgrade",
+          "mandatory": false
+        }
+      ]
     },
     {
       "class": "Standard",
@@ -208,9 +214,15 @@
         "YCTtS": 1
       },
       "count": 1,
-      "specialAbilityType": null,
+      "specialAbilityType": "halfPriceExplosiveFirearmGear",
       "ability": null,
-      "id": "leader_marco"
+      "id": "leader_marco",
+      "abilities": [
+        {
+          "type": "halfPriceExplosiveFirearmGear",
+          "mandatory": false
+        }
+      ]
     },
     {
       "class": "Standard",

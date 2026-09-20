@@ -86,5 +86,62 @@ namespace Firefly.Core.Abilities
         /// Optional — always suspends after the Showdown roll.
         /// </summary>
         public const string ShowdownForceRivalReroll = "showdownForceRivalReroll";
+
+        /// <summary>
+        /// Fully Equipped Med Bay: may re-roll Medic Checks.
+        /// Optional — always suspends after the first Medic die.
+        /// </summary>
+        public const string MedicCheckReroll = "medicCheckReroll";
+
+        /// <summary>
+        /// Mandatory re-roll of faces showing 1 (Wash's Dinosaurs / Jayne's Hat / Bow / Guns / Carbine).
+        /// No printed “may” — auto-reroll ones. Location = Flying | Misbehaving when scoped;
+        /// Subject = Companion when carrier profession required.
+        /// </summary>
+        public const string RerollOnes = "rerollOnes";
+
+        /// <summary>
+        /// Dalin: once per Work Action, pay $Amount to discard and re-draw a Misbehave card.
+        /// Optional — always suspends when legal.
+        /// </summary>
+        public const string MisbehaveDiscardRedraw = "misbehaveDiscardRedraw";
+
+        /// <summary>
+        /// Roberta: may discard this crew instead of losing Solid Rep.
+        /// Optional — always suspends when Solid would be lost.
+        /// </summary>
+        public const string DiscardInsteadOfLoseSolid = "discardInsteadOfLoseSolid";
+
+        /// <summary>
+        /// Labor Contract: Hire 1 Crew from the named Supply discard pile for free (any sector).
+        /// Location = planet name. Permission — Buy path when present.
+        /// </summary>
+        public const string HireFromSupplyDiscard = "hireFromSupplyDiscard";
+
+        /// <summary>
+        /// The Salesman: Buy Action — discard self to buy Upgrade/Drive from any discard at half price.
+        /// Optional — Buy path when chosen.
+        /// </summary>
+        public const string DiscardBuyUpgradeHalf = "discardBuyUpgradeHalf";
+
+        /// <summary>
+        /// Corbin: Buy Drive Cores and Ship Upgrades at half price (permission).
+        /// </summary>
+        public const string HalfPriceDriveAndUpgrade = "halfPriceDriveAndUpgrade";
+
+        /// <summary>
+        /// Marco: Buy Explosives/Firearm Gear at half price (permission).
+        /// </summary>
+        public const string HalfPriceExplosiveFirearmGear = "halfPriceExplosiveFirearmGear";
+
+        /// <summary>
+        /// A Very Fine Hat: when Dealing, Consider up to Amount jobs (permission; Amount default 4).
+        /// </summary>
+        public const string ConsiderJobsUpTo = "considerJobsUpTo";
+
+        /// <summary>
+        /// Cortex Uplink: Deal from any location — Consider top face-down of any Contact.
+        /// </summary>
+        public const string ConsiderTopAnyContact = "considerTopAnyContact";
     }
 }

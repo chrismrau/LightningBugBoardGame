@@ -89,6 +89,11 @@
         {
           "type": "exemptFromGearLimit",
           "mandatory": true
+        },
+        {
+          "type": "rerollOnes",
+          "mandatory": true,
+          "location": "Flying"
         }
       ]
     },
@@ -250,9 +255,16 @@
         "Persephone": 1
       },
       "count": 1,
-      "specialAbilityType": null,
+      "specialAbilityType": "considerJobsUpTo",
       "ability": null,
-      "id": "gear_a-very-fine-hat"
+      "id": "gear_a-very-fine-hat",
+      "abilities": [
+        {
+          "type": "considerJobsUpTo",
+          "amount": 4,
+          "mandatory": false
+        }
+      ]
     },
     {
       "class": "Standard",
@@ -460,9 +472,15 @@
         "Persephone": 2
       },
       "count": 2,
-      "specialAbilityType": null,
+      "specialAbilityType": "considerTopAnyContact",
       "ability": null,
-      "id": "gear_cortex-uplink_breakinatmo"
+      "id": "gear_cortex-uplink_breakinatmo",
+      "abilities": [
+        {
+          "type": "considerTopAnyContact",
+          "mandatory": false
+        }
+      ]
     },
     {
       "class": "Standard",
@@ -902,9 +920,17 @@
         "Beaumonde": 1
       },
       "count": 1,
-      "specialAbilityType": null,
+      "specialAbilityType": "rerollOnes",
       "ability": null,
-      "id": "gear_inaras-bow_kalidasa"
+      "id": "gear_inaras-bow_kalidasa",
+      "abilities": [
+        {
+          "type": "rerollOnes",
+          "skill": "Fight",
+          "mandatory": true,
+          "subject": "Companion"
+        }
+      ]
     },
     {
       "class": "Standard",
@@ -961,6 +987,11 @@
         {
           "type": "exemptFromGearLimit",
           "mandatory": true
+        },
+        {
+          "type": "rerollOnes",
+          "mandatory": true,
+          "location": "Misbehaving"
         }
       ]
     },
@@ -1130,9 +1161,16 @@
         "Beaumonde": 1
       },
       "count": 1,
-      "specialAbilityType": null,
+      "specialAbilityType": "hireFromSupplyDiscard",
       "ability": null,
-      "id": "gear_labor-contract-persephone_kalidasa"
+      "id": "gear_labor-contract-persephone_kalidasa",
+      "abilities": [
+        {
+          "type": "hireFromSupplyDiscard",
+          "mandatory": false,
+          "location": "Persephone"
+        }
+      ]
     },
     {
       "class": "Standard",
@@ -1155,9 +1193,16 @@
         "Beaumonde": 1
       },
       "count": 1,
-      "specialAbilityType": null,
+      "specialAbilityType": "hireFromSupplyDiscard",
       "ability": null,
-      "id": "gear_labor-contract-regina_kalidasa"
+      "id": "gear_labor-contract-regina_kalidasa",
+      "abilities": [
+        {
+          "type": "hireFromSupplyDiscard",
+          "mandatory": false,
+          "location": "Regina"
+        }
+      ]
     },
     {
       "class": "Standard",
@@ -1180,9 +1225,16 @@
         "Beaumonde": 1
       },
       "count": 1,
-      "specialAbilityType": null,
+      "specialAbilityType": "hireFromSupplyDiscard",
       "ability": null,
-      "id": "gear_labor-contract-silverhold_kalidasa"
+      "id": "gear_labor-contract-silverhold_kalidasa",
+      "abilities": [
+        {
+          "type": "hireFromSupplyDiscard",
+          "mandatory": false,
+          "location": "Silverhold"
+        }
+      ]
     },
     {
       "class": "Standard",
@@ -1205,9 +1257,16 @@
         "Beaumonde": 1
       },
       "count": 1,
-      "specialAbilityType": null,
+      "specialAbilityType": "hireFromSupplyDiscard",
       "ability": null,
-      "id": "gear_labor-contract-space-bazaar_kalidasa"
+      "id": "gear_labor-contract-space-bazaar_kalidasa",
+      "abilities": [
+        {
+          "type": "hireFromSupplyDiscard",
+          "mandatory": false,
+          "location": "Space Bazaar"
+        }
+      ]
     },
     {
       "class": "Standard",
@@ -1457,9 +1516,16 @@
         "Regina": 1
       },
       "count": 1,
-      "specialAbilityType": null,
+      "specialAbilityType": "rerollOnes",
       "ability": null,
-      "id": "gear_nandis-gun-collection_breakinatmo"
+      "id": "gear_nandis-gun-collection_breakinatmo",
+      "abilities": [
+        {
+          "type": "rerollOnes",
+          "skill": "Negotiate",
+          "mandatory": true
+        }
+      ]
     },
     {
       "class": "Standard",
@@ -1831,9 +1897,16 @@
         "Regina": 1
       },
       "count": 1,
-      "specialAbilityType": null,
+      "specialAbilityType": "rerollOnes",
       "ability": null,
-      "id": "gear_two-frys-carbine_breakinatmo"
+      "id": "gear_two-frys-carbine_breakinatmo",
+      "abilities": [
+        {
+          "type": "rerollOnes",
+          "skill": "Fight",
+          "mandatory": true
+        }
+      ]
     },
     {
       "class": "Standard",

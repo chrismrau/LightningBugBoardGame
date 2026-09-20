@@ -366,9 +366,15 @@
         "Osiris": 2
       },
       "count": 2,
-      "specialAbilityType": null,
+      "specialAbilityType": "medicCheckReroll",
       "ability": null,
-      "id": "ship-upgrade_fully-equipped-med-bay"
+      "id": "ship-upgrade_fully-equipped-med-bay",
+      "abilities": [
+        {
+          "type": "medicCheckReroll",
+          "mandatory": false
+        }
+      ]
     },
     {
       "class": "Standard",

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Firefly.Core.Abilities;
 using Firefly.Core.Actions;
 using Firefly.Core.State;
 
@@ -48,13 +49,15 @@ namespace Firefly.Core.Cards
         /// <summary>
         /// Lose Solid and apply printed discard-downs (Blue Sun Mr. Universe hand;
         /// Kalidasa Higgins active job). Thin hooks for which cards to discard.
+        /// Roberta Make Nice: may discard Roberta instead (PendingChoice when undecided).
         /// </summary>
         public static bool TryLoseSolid(
             GameState game,
             PlayerState player,
             string? contactIdOrName,
             SolidRepChoice? choice,
-            out string? error)
+            out string? error,
+            bool? discardRobertaInstead = null)
         {
             error = null;
             if (player == null)
@@ -68,6 +71,34 @@ namespace Firefly.Core.Cards
             {
                 error = "Not Solid with that Contact.";
                 return false;
+            }
+
+            var roberta = AbilityDispatcher.FindDiscardInsteadOfLoseSolid(player);
+            if (roberta != null && discardRobertaInstead == null)
+            {
+                var pending = new PendingChoice(
+                    player.Id,
+                    PendingChoiceKinds.DiscardOrLoseSolid,
+                    contextId: lostId,
+                    options: new[]
+                    {
+                        DiscardOrLoseSolidOptions.DiscardCrew,
+                        DiscardOrLoseSolidOptions.LoseSolid
+                    },
+                    prompt: $"Discard {roberta.Name} instead of losing Solid?");
+                if (!game.TrySetPendingChoice(pending, out error))
+                    return false;
+                error = "Choose whether to discard Roberta instead of losing Solid.";
+                return false;
+            }
+
+            if (roberta != null && discardRobertaInstead == true)
+            {
+                if (!player.Roster.TryDismiss(roberta.Id, out error))
+                    return false;
+                // Supplies.tsv: "Discard Roberta" — leave play (not Jump Ship return).
+                game.RemovedFromPlay.Add(roberta.Id);
+                return true;
             }
 
             if (!CanDiscardDownAfterLosing(game, player, lostId, choice, out error))
@@ -84,6 +115,62 @@ namespace Firefly.Core.Cards
             if (player.ActiveJobs.Count > player.ActiveJobLimit)
                 TryDiscardActiveDown(game, player, beforeActive, choice, out _);
             return true;
+        }
+
+        /// <summary>
+        /// Resume Roberta Make Nice PendingChoice.
+        /// </summary>
+        public static bool TryResumeDiscardOrLoseSolid(
+            GameState game,
+            ChoiceSubmission submission,
+            SolidRepChoice? solidRep,
+            out string? error)
+        {
+            error = null;
+            if (game.PendingChoice == null
+                || !string.Equals(
+                    game.PendingChoice.Kind,
+                    PendingChoiceKinds.DiscardOrLoseSolid,
+                    StringComparison.Ordinal))
+            {
+                error = "No discard-or-lose-Solid choice is pending.";
+                return false;
+            }
+
+            var player = game.GetPlayer(game.PendingChoice.PlayerId);
+            var contactId = game.PendingChoice.ContextId;
+            bool discard;
+            if (submission.Accepted != null)
+                discard = submission.Accepted.Value;
+            else if (!string.IsNullOrWhiteSpace(submission.SelectedOptionId))
+            {
+                if (string.Equals(
+                        submission.SelectedOptionId,
+                        DiscardOrLoseSolidOptions.DiscardCrew,
+                        StringComparison.Ordinal))
+                    discard = true;
+                else if (string.Equals(
+                             submission.SelectedOptionId,
+                             DiscardOrLoseSolidOptions.LoseSolid,
+                             StringComparison.Ordinal))
+                    discard = false;
+                else
+                {
+                    error = $"Unknown Solid option '{submission.SelectedOptionId}'.";
+                    return false;
+                }
+            }
+            else
+            {
+                error = "Choose discard-crew or lose-solid.";
+                return false;
+            }
+
+            if (!game.TrySubmitChoice(player.Id, submission, out _, out error))
+                return false;
+
+            return TryLoseSolid(
+                game, player, contactId, solidRep, out error, discardRobertaInstead: discard);
         }
 
         /// <summary>Validate discard-down hooks before mutating other Misbehave effects.</summary>

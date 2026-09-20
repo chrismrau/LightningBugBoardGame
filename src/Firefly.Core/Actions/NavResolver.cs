@@ -1454,7 +1454,8 @@ namespace Firefly.Core.Actions
                         return false;
                     }
                     check = _pendingRerollResult.Check.RerollKeepingBribes(
-                        player, rng ?? new SystemRng(), _pendingRerollResult);
+                        player, rng ?? new SystemRng(), _pendingRerollResult,
+                        game, AbilityContext.Flying);
                 }
                 else
                     check = _pendingRerollResult;
@@ -1466,7 +1467,8 @@ namespace Firefly.Core.Actions
             {
                 check = acceptReroll
                     ? _pendingRerollResult.Check.RerollKeepingBribes(
-                        player, rng ?? new SystemRng(), _pendingRerollResult)
+                        player, rng ?? new SystemRng(), _pendingRerollResult,
+                        game, AbilityContext.Flying)
                     : _pendingRerollResult;
                 _pendingRerollResult = null;
 
@@ -1496,7 +1498,9 @@ namespace Firefly.Core.Actions
                     rng ?? new SystemRng(),
                     out check,
                     out error,
-                    choice?.SkillCheck))
+                    choice?.SkillCheck,
+                    game,
+                    AbilityContext.Flying))
                     return false;
 
                 if (AbilityDispatcher.NeedsSkillRerollChoice(

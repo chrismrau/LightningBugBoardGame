@@ -65,7 +65,8 @@ namespace Firefly.Core.State
     /// <see cref="BribeAmount"/>, <see cref="MedFoamDiscard"/>, <see cref="MisbehaveOption"/>,
     /// <see cref="HavenSector"/>, <see cref="RivalPlayer"/>, <see cref="SectorDestination"/>,
     /// <see cref="SkillReroll"/>, <see cref="DiscardToReroll"/>, <see cref="MoraleBoosterTarget"/>,
-    /// <see cref="ShowdownReroll"/>, <see cref="HavenFuelAmount"/>.
+    /// <see cref="ShowdownReroll"/>, <see cref="HavenFuelAmount"/>, <see cref="MedicReroll"/>,
+    /// <see cref="DiscardOrLoseSolid"/>, <see cref="MisbehaveDiscardRedraw"/>.
     /// </summary>
     public static class PendingChoiceKinds
     {
@@ -124,6 +125,35 @@ namespace Firefly.Core.State
         /// <see cref="ChoiceSubmission.Amount"/> = fuel count.
         /// </summary>
         public const string HavenFuelAmount = "haven-fuel-amount";
+        /// <summary>
+        /// Fully Equipped Med Bay: keep or re-roll a Medic Check die.
+        /// Options: <see cref="SkillRerollOptions"/>. ContextId = kill count (or victim id).
+        /// </summary>
+        public const string MedicReroll = "medic-reroll";
+        /// <summary>
+        /// Roberta: discard Roberta or lose Solid Rep.
+        /// Options: <see cref="DiscardOrLoseSolidOptions"/>. ContextId = contact id.
+        /// </summary>
+        public const string DiscardOrLoseSolid = "discard-or-lose-solid";
+        /// <summary>
+        /// Dalin: pay to discard/redraw Misbehave, or decline.
+        /// Options: <see cref="DalinRedrawOptions"/>.
+        /// </summary>
+        public const string MisbehaveDiscardRedraw = "misbehave-discard-redraw";
+    }
+
+    /// <summary>Discrete option ids for <see cref="PendingChoiceKinds.DiscardOrLoseSolid"/>.</summary>
+    public static class DiscardOrLoseSolidOptions
+    {
+        public const string DiscardCrew = "discard-crew";
+        public const string LoseSolid = "lose-solid";
+    }
+
+    /// <summary>Discrete option ids for <see cref="PendingChoiceKinds.MisbehaveDiscardRedraw"/>.</summary>
+    public static class DalinRedrawOptions
+    {
+        public const string PayRedraw = "pay-redraw";
+        public const string Decline = "decline";
     }
 
     /// <summary>Discrete option ids for <see cref="PendingChoiceKinds.DiscardToReroll"/>.</summary>
