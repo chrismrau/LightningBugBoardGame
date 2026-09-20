@@ -61,16 +61,25 @@ namespace Firefly.Core.State
     }
 
     /// <summary>
-    /// Reserved kind ids. <see cref="NavPayOrDecline"/> is wired in <c>NavResolver</c>;
-    /// <see cref="KillVictim"/> is wired in <c>CrewKill</c> / Misbehave / Nav / Reaver.
-    /// Remaining kinds await consumer migration.
+    /// Reserved kind ids. Wired: <see cref="NavPayOrDecline"/>, <see cref="KillVictim"/>,
+    /// <see cref="BribeAmount"/>, <see cref="MedFoamDiscard"/>. Others await migration.
     /// </summary>
     public static class PendingChoiceKinds
     {
         public const string NavPayOrDecline = "nav-pay-or-decline";
         public const string KillVictim = "kill-victim";
-        public const string BribeOrMedFoam = "bribe-or-med-foam";
+        /// <summary>Marked Negotiate Bribes: choose $0 / $100 / … before the roll (GF9 p.6).</summary>
+        public const string BribeAmount = "bribe-amount";
+        /// <summary>Optional Med Foam discard to succeed a Medic Check (Supplies.tsv / Gear).</summary>
+        public const string MedFoamDiscard = "med-foam-discard";
         public const string MisbehaveOption = "misbehave-option";
         public const string HavenOrRivalSector = "haven-or-rival-sector";
+    }
+
+    /// <summary>Discrete option ids for <see cref="PendingChoiceKinds.MedFoamDiscard"/>.</summary>
+    public static class MedFoamDiscardOptions
+    {
+        public const string Discard = "discard";
+        public const string Decline = "decline";
     }
 }

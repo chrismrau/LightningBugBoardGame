@@ -27,7 +27,7 @@ namespace Firefly.Core.Actions
         /// Kill / Medic hooks. Victim ids come from PendingChoice resume or tests.
         /// </summary>
         public KillChoice? Kill { get; set; }
-        /// <summary>Thin skill-test Bribes hook until PendingChoice.</summary>
+        /// <summary>Thin skill-test Bribes hook; null BribeDollars suspends when affordable.</summary>
         public SkillCheckChoice? SkillCheck { get; set; }
         /// <summary>Discard-down when losing Solid (Mr. Universe hand / Higgins active).</summary>
         public SolidRepChoice? SolidRep { get; set; }
@@ -93,11 +93,15 @@ namespace Firefly.Core.Actions
 
         /// <summary>True while <see cref="TryResumeKillVictims"/> re-enters <see cref="TryResolve"/>.</summary>
         private bool _resumingKillVictims;
+        /// <summary>True while bribe / Med Foam resume re-enters <see cref="TryResolve"/>.</summary>
+        private bool _resumingBribeOrMedFoam;
         private bool _frozenSkillReady;
         private SkillCheckResult? _frozenSkillCheck;
         private string? _frozenBandText;
         private IReadOnlyList<MisbehaveEffect>? _frozenStructuredEffects;
         private int _frozenBribeCash;
+        /// <summary>Kill choice held across Med Foam suspend after victim pick.</summary>
+        private KillChoice? _pendingKillAfterVictims;
 
         public MisbehaveCard DrawNext(GameState game)
         {
@@ -149,6 +153,7 @@ namespace Firefly.Core.Actions
             if (!game.TrySubmitChoice(playerId, submission, out _, out error))
                 return false;
 
+            _pendingKillAfterVictims = merged;
             _resumingKillVictims = true;
             try
             {
@@ -156,6 +161,102 @@ namespace Firefly.Core.Actions
             }
             finally
             {
+                _resumingKillVictims = false;
+            }
+        }
+
+        /// <summary>
+        /// Resume after <see cref="PendingChoiceKinds.BribeAmount"/>: merge dollars and re-enter
+        /// before the Negotiate roll (GF9 p.6).
+        /// </summary>
+        public bool TryResumeBribeAmount(
+            GameState game,
+            string playerId,
+            ChoiceSubmission submission,
+            MisbehaveChoice choice,
+            out MisbehaveResolution? resolution,
+            out string? error,
+            IRng? rng = null)
+        {
+            resolution = null;
+            error = null;
+            if (game.PendingChoice == null
+                || !string.Equals(
+                    game.PendingChoice.Kind,
+                    PendingChoiceKinds.BribeAmount,
+                    StringComparison.Ordinal))
+            {
+                error = "No bribe-amount choice is pending.";
+                return false;
+            }
+
+            var player = game.GetPlayer(playerId);
+            if (!SkillCheck.TryMergeBribeSubmission(
+                    player, submission, choice.SkillCheck, out var merged, out error))
+                return false;
+            choice.SkillCheck = merged;
+
+            if (!game.TrySubmitChoice(playerId, submission, out _, out error))
+                return false;
+
+            _resumingBribeOrMedFoam = true;
+            try
+            {
+                return TryResolve(game, playerId, choice, out resolution, out error, rng);
+            }
+            finally
+            {
+                _resumingBribeOrMedFoam = false;
+            }
+        }
+
+        /// <summary>
+        /// Resume after <see cref="PendingChoiceKinds.MedFoamDiscard"/>: merge discard/decline
+        /// and re-enter with the frozen skill band.
+        /// </summary>
+        public bool TryResumeMedFoam(
+            GameState game,
+            string playerId,
+            ChoiceSubmission submission,
+            MisbehaveChoice choice,
+            out MisbehaveResolution? resolution,
+            out string? error,
+            IRng? rng = null)
+        {
+            resolution = null;
+            error = null;
+            if (game.PendingChoice == null
+                || !string.Equals(
+                    game.PendingChoice.Kind,
+                    PendingChoiceKinds.MedFoamDiscard,
+                    StringComparison.Ordinal))
+            {
+                error = "No Med Foam choice is pending.";
+                return false;
+            }
+
+            if (!CrewKill.TryMergeMedFoamSubmission(submission, choice.Kill, out var merged, out error))
+                return false;
+            if (_pendingKillAfterVictims?.VictimCrewIds != null
+                && (merged.VictimCrewIds == null || merged.VictimCrewIds.Count == 0))
+            {
+                merged.VictimCrewIds = _pendingKillAfterVictims.VictimCrewIds;
+            }
+            choice.Kill = merged;
+
+            if (!game.TrySubmitChoice(playerId, submission, out _, out error))
+                return false;
+
+            _pendingKillAfterVictims = null;
+            _resumingBribeOrMedFoam = true;
+            _resumingKillVictims = true; // allow frozen skill path
+            try
+            {
+                return TryResolve(game, playerId, choice, out resolution, out error, rng);
+            }
+            finally
+            {
+                _resumingBribeOrMedFoam = false;
                 _resumingKillVictims = false;
             }
         }
@@ -180,7 +281,7 @@ namespace Firefly.Core.Actions
                 error = "This Misbehave belongs to another player.";
                 return false;
             }
-            if (game.PendingChoice != null && !_resumingKillVictims)
+            if (game.PendingChoice != null && !_resumingKillVictims && !_resumingBribeOrMedFoam)
             {
                 error = "Resolve the pending choice before continuing Misbehave.";
                 return false;
@@ -275,6 +376,19 @@ namespace Firefly.Core.Actions
                     return false;
                 }
                 error = "Choose which crew are killed.";
+                return false;
+            }
+
+            // Optional Med Foam discard before mutating (after victims known).
+            if (CrewKill.NeedsMedFoamChoice(game, player, plannedKill, choice.Kill))
+            {
+                FreezeSkill(check, bandText, structuredEffects, bribeCash);
+                if (!CrewKill.TrySuspendMedFoamChoice(game, player, plannedKill, out error))
+                {
+                    ClearFrozenSkill();
+                    return false;
+                }
+                error = "Choose whether to discard Med Foam for a successful Medic Check.";
                 return false;
             }
 
@@ -422,6 +536,19 @@ namespace Firefly.Core.Actions
                 return true;
             }
 
+            // GF9 p.6: "Before you roll a dice, you may choose to pay Bribes."
+            if (SkillCheck.NeedsBribeChoice(player, skillCheck, choice.SkillCheck))
+            {
+                if (!SkillCheck.TrySuspendBribeChoice(
+                        game,
+                        player,
+                        contextId: $"{card.Id}:{choice.OptionIndex}",
+                        out error))
+                    return false;
+                error = "Choose how many Bribes to pay before rolling.";
+                return false;
+            }
+
             if (!skillCheck.TryResolve(player, rng, out check, out error, choice.SkillCheck))
                 return false;
             bribeCash = check.BribeDollarsPaid;
@@ -470,6 +597,7 @@ namespace Firefly.Core.Actions
             _frozenBandText = null;
             _frozenStructuredEffects = null;
             _frozenBribeCash = 0;
+            _pendingKillAfterVictims = null;
         }
 
         private static bool TryGetSkillCheck(

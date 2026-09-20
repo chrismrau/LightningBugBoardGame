@@ -12,17 +12,18 @@ namespace Firefly.Core.Cards
     }
 
     /// <summary>
-    /// Thin skill-test hooks until the shared PendingChoice layer.
-    /// Bribes: dollars paid before the roll ($100 = +1). Default 0 = decline.
-    /// Do not invent auto-pay when the player is rich.
+    /// Skill-test Bribes choice. Null <see cref="BribeDollars"/> means undecided —
+    /// Misbehave / Nav suspend via <see cref="State.PendingChoiceKinds.BribeAmount"/>
+    /// when the player can afford at least $100. 0 = decline; positive = pay.
     /// </summary>
     public sealed class SkillCheckChoice
     {
         /// <summary>
-        /// Dollars to pay as Bribes before rolling. Must be a non-negative multiple of 100
-        /// and not exceed cash. Ignored when the test is not printed Bribes.
+        /// Dollars to pay as Bribes before rolling. Null = not yet chosen (PendingChoice).
+        /// 0 = decline. Positive must be a multiple of 100 and not exceed cash.
+        /// Ignored when the test is not printed Bribes.
         /// </summary>
-        public int BribeDollars { get; set; }
+        public int? BribeDollars { get; set; }
     }
 
     public sealed class SkillCheck
@@ -106,8 +107,93 @@ namespace Firefly.Core.Cards
         }
 
         /// <summary>
+        /// True when a printed Bribes Negotiate needs the player to pick an amount.
+        /// Unaffordable (&lt; $100) auto-declines (no PendingChoice) — same stance as Nav
+        /// unaffordable pay-vs-decline.
+        /// </summary>
+        public static bool NeedsBribeChoice(
+            PlayerState player,
+            SkillCheck check,
+            SkillCheckChoice? choice)
+        {
+            if (check == null || !check.BribesAllowed)
+                return false;
+            if (choice?.BribeDollars != null)
+                return false;
+            return player.Cash >= 100;
+        }
+
+        /// <summary>
+        /// Suspend with <see cref="State.PendingChoiceKinds.BribeAmount"/>.
+        /// Submission uses <see cref="State.ChoiceSubmission.Amount"/> ($0 or $100 increments).
+        /// </summary>
+        public static bool TrySuspendBribeChoice(
+            GameState game,
+            PlayerState player,
+            string? contextId,
+            out string? error,
+            string? prompt = null)
+        {
+            var pending = new PendingChoice(
+                player.Id,
+                PendingChoiceKinds.BribeAmount,
+                contextId: contextId,
+                options: null,
+                prompt: prompt
+                    ?? $"Pay Bribes before rolling ($0–${(player.Cash / 100) * 100} in $100 increments)?");
+            return game.TrySetPendingChoice(pending, out error);
+        }
+
+        /// <summary>
+        /// Validate <see cref="ChoiceSubmission.Amount"/> as Bribe dollars and merge into a
+        /// <see cref="SkillCheckChoice"/>. Does not clear PendingChoice.
+        /// </summary>
+        public static bool TryMergeBribeSubmission(
+            PlayerState player,
+            ChoiceSubmission submission,
+            SkillCheckChoice? existing,
+            out SkillCheckChoice merged,
+            out string? error)
+        {
+            merged = existing ?? new SkillCheckChoice();
+            error = null;
+            if (submission == null)
+            {
+                error = "A choice submission is required.";
+                return false;
+            }
+            if (submission.Amount == null)
+            {
+                error = "Bribe dollar amount is required (use 0 to decline).";
+                return false;
+            }
+
+            var dollars = submission.Amount.Value;
+            if (dollars < 0)
+            {
+                error = "Bribe dollars cannot be negative.";
+                return false;
+            }
+            if (dollars % 100 != 0)
+            {
+                error = "Bribes must be paid in $100 increments.";
+                return false;
+            }
+            if (player.Cash < dollars)
+            {
+                error = $"Need ${dollars} to pay Bribes.";
+                return false;
+            }
+
+            merged.BribeDollars = dollars;
+            return true;
+        }
+
+        /// <summary>
         /// Resolve the test. When Bribes are allowed, pays <see cref="SkillCheckChoice.BribeDollars"/>
-        /// before rolling ($100 = +1). Fails closed if the bribe amount is invalid.
+        /// before rolling ($100 = +1). Null / unset bribe dollars are treated as decline ($0) —
+        /// callers that need PendingChoice must suspend first via <see cref="NeedsBribeChoice"/>.
+        /// Fails closed if the bribe amount is invalid.
         /// </summary>
         public bool TryResolve(
             PlayerState player,
@@ -121,24 +207,24 @@ namespace Firefly.Core.Cards
 
             var bribeDollars = 0;
             var bribeBonus = 0;
-            if (BribesAllowed && choice != null && choice.BribeDollars != 0)
+            if (BribesAllowed && choice?.BribeDollars is int requested && requested != 0)
             {
-                if (choice.BribeDollars < 0)
+                if (requested < 0)
                 {
                     error = "Bribe dollars cannot be negative.";
                     return false;
                 }
-                if (choice.BribeDollars % 100 != 0)
+                if (requested % 100 != 0)
                 {
                     error = "Bribes must be paid in $100 increments.";
                     return false;
                 }
-                if (player.Cash < choice.BribeDollars)
+                if (player.Cash < requested)
                 {
-                    error = $"Need ${choice.BribeDollars} to pay Bribes.";
+                    error = $"Need ${requested} to pay Bribes.";
                     return false;
                 }
-                bribeDollars = choice.BribeDollars;
+                bribeDollars = requested;
                 bribeBonus = bribeDollars / 100;
                 player.Cash -= bribeDollars;
             }

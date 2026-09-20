@@ -145,7 +145,7 @@ namespace Firefly.Core.Actions
         public string? ShipNudgeToSectorId { get; set; }
         /// <summary>Kill / Medic hooks. Victim ids from PendingChoice resume or tests.</summary>
         public KillChoice? Kill { get; set; }
-        /// <summary>Thin skill-test Bribes hook until PendingChoice.</summary>
+        /// <summary>Skill-test Bribes; null BribeDollars suspends when affordable.</summary>
         public SkillCheckChoice? SkillCheck { get; set; }
         /// <summary>
         /// Harken Solid — Your Papers are in Order (may ignore Customs Inspection).
@@ -185,6 +185,8 @@ namespace Firefly.Core.Actions
     /// <see cref="NavResolveChoice.PayNavCost"/> is already set; decline → Full Stop.
     /// Skill-band Kill N suspends via <see cref="PendingChoiceKinds.KillVictim"/> when the
     /// player must pick victims unless <see cref="KillChoice.VictimCrewIds"/> is set.
+    /// Marked Negotiate Bribes suspend via <see cref="PendingChoiceKinds.BribeAmount"/>;
+    /// optional Med Foam discard via <see cref="PendingChoiceKinds.MedFoamDiscard"/>.
     /// Named "Alliance Cruiser" Nav snaps the Cruiser onto the ship and queues Contact.
     /// Cruiser Patrol / Alliance Entanglements move the Cruiser per card text without that snap/Contact.
     /// Reaver Cutter cards move a Cutter; the named "Reaver Cutter" card applies Contact immediately.
@@ -199,10 +201,13 @@ namespace Firefly.Core.Actions
         private int _pendingNavPayOptionIndex = -1;
         private NavResolveChoice? _pendingNavPayResolveChoice;
 
-        /// <summary>Kill-victim suspend: re-enter resolve with frozen skill band.</summary>
+        /// <summary>Kill-victim / Med Foam suspend: re-enter resolve with frozen skill band.</summary>
         private bool _resumingKillVictims;
+        private bool _resumingBribeOrMedFoam;
         private int _pendingKillOptionIndex = -1;
         private NavResolveChoice? _pendingKillResolveChoice;
+        private int _pendingBribeOptionIndex = -1;
+        private NavResolveChoice? _pendingBribeResolveChoice;
         private bool _frozenSkillReady;
         private SkillCheckResult? _frozenSkillCheck;
         private string? _frozenBandText;
@@ -266,10 +271,11 @@ namespace Firefly.Core.Actions
                 return false;
             }
 
-            // Pay-vs-decline / kill-victim resume clears PendingChoice before re-entering.
+            // Pay-vs-decline / kill-victim / bribe / Med Foam resume clears PendingChoice before re-entering.
             if (game.PendingChoice != null
                 && choice?.PayNavCost == null
-                && !_resumingKillVictims)
+                && !_resumingKillVictims
+                && !_resumingBribeOrMedFoam)
             {
                 error = "Resolve the pending choice before continuing Nav.";
                 return false;
@@ -348,6 +354,21 @@ namespace Firefly.Core.Actions
             }
             else if (SkillCheck.TryParse(option.Details, out var skillCheck))
             {
+                // GF9 p.6: choose Bribes before rolling when the test is marked Bribes.
+                if (SkillCheck.NeedsBribeChoice(player, skillCheck, choice?.SkillCheck))
+                {
+                    if (!SkillCheck.TrySuspendBribeChoice(
+                            game,
+                            player,
+                            contextId: BuildNavPayContext(drawn.Card.Id, optionIndex),
+                            out error))
+                        return false;
+                    _pendingBribeOptionIndex = optionIndex;
+                    _pendingBribeResolveChoice = choice;
+                    error = "Choose how many Bribes to pay before rolling.";
+                    return false;
+                }
+
                 if (!skillCheck.TryResolve(
                     player,
                     rng ?? new SystemRng(),
@@ -360,7 +381,7 @@ namespace Firefly.Core.Actions
                 bandText = SkillCheck.BandText(option.Details, check.Total);
             }
 
-            // Suspend Kill N victim pick before token moves / costs (skill already frozen).
+            // Suspend Kill N victim / Med Foam before token moves / costs (skill already frozen).
             if (check != null)
             {
                 var plannedKill = PlannedSkillBandKillCount(bandText);
@@ -378,6 +399,23 @@ namespace Firefly.Core.Actions
                         return false;
                     }
                     error = "Choose which crew are killed.";
+                    return false;
+                }
+
+                if (CrewKill.NeedsMedFoamChoice(game, player, plannedKill, choice?.Kill))
+                {
+                    _frozenSkillReady = true;
+                    _frozenSkillCheck = check;
+                    _frozenBandText = bandText;
+                    _frozenOutcome = outcome;
+                    _pendingKillOptionIndex = optionIndex;
+                    _pendingKillResolveChoice = choice;
+                    if (!CrewKill.TrySuspendMedFoamChoice(game, player, plannedKill, out error))
+                    {
+                        ClearFrozenKillSkill();
+                        return false;
+                    }
+                    error = "Choose whether to discard Med Foam for a successful Medic Check.";
                     return false;
                 }
             }
@@ -790,6 +828,125 @@ namespace Firefly.Core.Actions
             finally
             {
                 _resumingKillVictims = false;
+            }
+        }
+
+        /// <summary>
+        /// Resume after <see cref="PendingChoiceKinds.BribeAmount"/> on a marked Negotiate Nav test.
+        /// </summary>
+        public bool TryResumeBribeAmount(
+            GameState game,
+            ChoiceSubmission submission,
+            out NavResolution? resolution,
+            out string? error,
+            IRng? rng = null)
+        {
+            resolution = null;
+            error = null;
+            if (FaceUp == null)
+            {
+                error = "No Nav card is face up.";
+                return false;
+            }
+            if (game.PendingChoice == null
+                || !string.Equals(
+                    game.PendingChoice.Kind,
+                    PendingChoiceKinds.BribeAmount,
+                    StringComparison.Ordinal))
+            {
+                error = "No bribe-amount choice is pending.";
+                return false;
+            }
+
+            var optionIndex = _pendingBribeOptionIndex;
+            if (optionIndex < 0
+                && game.PendingChoice.ContextId != null
+                && TryParseNavPayContext(game.PendingChoice.ContextId, out _, out var fromContext))
+            {
+                optionIndex = fromContext;
+            }
+            if (optionIndex < 0)
+            {
+                error = "Nav bribe context is missing the option index.";
+                return false;
+            }
+
+            var choice = _pendingBribeResolveChoice ?? new NavResolveChoice();
+            if (!SkillCheck.TryMergeBribeSubmission(
+                    game.CurrentPlayer, submission, choice.SkillCheck, out var merged, out error))
+                return false;
+            choice.SkillCheck = merged;
+
+            if (!game.TrySubmitChoice(game.CurrentPlayer.Id, submission, out _, out error))
+                return false;
+
+            _pendingBribeOptionIndex = -1;
+            _pendingBribeResolveChoice = null;
+            _resumingBribeOrMedFoam = true;
+            try
+            {
+                return TryResolve(game, optionIndex, out resolution, out error, rng, choice);
+            }
+            finally
+            {
+                _resumingBribeOrMedFoam = false;
+            }
+        }
+
+        /// <summary>
+        /// Resume after <see cref="PendingChoiceKinds.MedFoamDiscard"/> on a Nav skill-band Kill N.
+        /// </summary>
+        public bool TryResumeMedFoam(
+            GameState game,
+            ChoiceSubmission submission,
+            out NavResolution? resolution,
+            out string? error,
+            IRng? rng = null)
+        {
+            resolution = null;
+            error = null;
+            if (FaceUp == null)
+            {
+                error = "No Nav card is face up.";
+                return false;
+            }
+            if (game.PendingChoice == null
+                || !string.Equals(
+                    game.PendingChoice.Kind,
+                    PendingChoiceKinds.MedFoamDiscard,
+                    StringComparison.Ordinal))
+            {
+                error = "No Med Foam choice is pending.";
+                return false;
+            }
+
+            var optionIndex = _pendingKillOptionIndex;
+            if (optionIndex < 0)
+            {
+                error = "Nav Med Foam context is missing the option index.";
+                return false;
+            }
+
+            var choice = _pendingKillResolveChoice ?? new NavResolveChoice();
+            if (!CrewKill.TryMergeMedFoamSubmission(submission, choice.Kill, out var merged, out error))
+                return false;
+            choice.Kill = merged;
+
+            if (!game.TrySubmitChoice(game.CurrentPlayer.Id, submission, out _, out error))
+                return false;
+
+            _pendingKillOptionIndex = -1;
+            _pendingKillResolveChoice = null;
+            _resumingKillVictims = true;
+            _resumingBribeOrMedFoam = true;
+            try
+            {
+                return TryResolve(game, optionIndex, out resolution, out error, rng, choice);
+            }
+            finally
+            {
+                _resumingKillVictims = false;
+                _resumingBribeOrMedFoam = false;
             }
         }
 
@@ -1841,7 +1998,7 @@ namespace Firefly.Core.Actions
                 {
                     // Prefight should have suspended; surface unexpected mid-band suspend.
                     throw new System.InvalidOperationException(
-                        killError ?? "Kill victim choice required mid skill-band apply.");
+                        killError ?? "Kill / Med Foam choice required mid skill-band apply.");
                 }
             }
 

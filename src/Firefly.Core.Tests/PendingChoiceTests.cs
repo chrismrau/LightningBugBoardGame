@@ -42,7 +42,7 @@ namespace Firefly.Core.Tests
                 new PendingChoice("p1", PendingChoiceKinds.KillVictim), out _));
 
             Assert.False(game.TrySetPendingChoice(
-                new PendingChoice("p1", PendingChoiceKinds.BribeOrMedFoam), out var error));
+                new PendingChoice("p1", PendingChoiceKinds.BribeAmount), out var error));
             Assert.Contains("already pending", error);
             Assert.Equal(PendingChoiceKinds.KillVictim, game.PendingChoice!.Kind);
         }
