@@ -93,6 +93,11 @@ namespace Firefly.Core.State
         public ScenarioCard? Scenario { get; set; }
         public PendingMisbehave? PendingMisbehave { get; set; }
         /// <summary>
+        /// Shared player-decision wait (at most one). Suspend mid-resolve; resume via
+        /// <see cref="TrySubmitChoice"/>. Consumers migrate later — auto-resolve stays until wired.
+        /// </summary>
+        public PendingChoice? PendingChoice { get; private set; }
+        /// <summary>
         /// FAQ 4.1 p.2: Gear may not be switched during a Work Action.
         /// Set while Work/Misbehave for the current attempt is in flight.
         /// </summary>
@@ -126,7 +131,8 @@ namespace Firefly.Core.State
             PendingNavDraws.Count > 0
             || PendingAlertSectors.Count > 0
             || PendingEncounter.HasValue
-            || PendingMisbehave != null;
+            || PendingMisbehave != null
+            || PendingChoice != null;
 
         public GameState(SectorMap map, IReadOnlyList<PlayerState> players, MapTokens? tokens = null, NavDecks? decks = null)
         {
@@ -163,8 +169,92 @@ namespace Firefly.Core.State
             PendingAllianceContactQueue.Clear();
             PendingEncounterDeferredNav = false;
             PendingMisbehave = null;
+            PendingChoice = null;
             FlyRangeBonusThisAction = 0;
             DiscardFuelPerExtraSectorThisFly = false;
+        }
+
+        /// <summary>
+        /// Suspend mid-resolve with exactly one pending choice. Fails if one is already set.
+        /// </summary>
+        public bool TrySetPendingChoice(PendingChoice choice, out string? error)
+        {
+            error = null;
+            if (choice == null)
+            {
+                error = "A pending choice is required.";
+                return false;
+            }
+            if (PendingChoice != null)
+            {
+                error = "A choice is already pending; only one PendingChoice is allowed at a time.";
+                return false;
+            }
+            PendingChoice = choice;
+            return true;
+        }
+
+        /// <summary>
+        /// Resume after a pending choice. Clears <see cref="PendingChoice"/> on success and
+        /// returns the resolved wait state so the caller can continue the suspended action.
+        /// Rejects when none is pending, the player does not match, or a discrete option is illegal.
+        /// </summary>
+        public bool TrySubmitChoice(
+            string playerId,
+            ChoiceSubmission submission,
+            out PendingChoice? resolved,
+            out string? error)
+        {
+            resolved = null;
+            error = null;
+            if (PendingChoice == null)
+            {
+                error = "No choice is pending.";
+                return false;
+            }
+            if (string.IsNullOrWhiteSpace(playerId) ||
+                !string.Equals(PendingChoice.PlayerId, playerId, StringComparison.Ordinal))
+            {
+                error = "Choice must be submitted by the player who owns the pending choice.";
+                return false;
+            }
+            if (submission == null)
+            {
+                error = "A choice submission is required.";
+                return false;
+            }
+            if (PendingChoice.Options != null && PendingChoice.Options.Count > 0)
+            {
+                if (string.IsNullOrWhiteSpace(submission.SelectedOptionId))
+                {
+                    error = "A selected option id is required.";
+                    return false;
+                }
+                var legal = false;
+                foreach (var option in PendingChoice.Options)
+                {
+                    if (string.Equals(option, submission.SelectedOptionId, StringComparison.Ordinal))
+                    {
+                        legal = true;
+                        break;
+                    }
+                }
+                if (!legal)
+                {
+                    error = $"Option '{submission.SelectedOptionId}' is not legal for this choice.";
+                    return false;
+                }
+            }
+
+            resolved = PendingChoice;
+            PendingChoice = null;
+            return true;
+        }
+
+        /// <summary>Clear a pending choice without submitting (tests / EndTurn / abort).</summary>
+        public void ClearPendingChoice()
+        {
+            PendingChoice = null;
         }
 
         public bool CanTakeAction(TurnAction action, out string? error)
@@ -177,7 +267,7 @@ namespace Firefly.Core.State
             }
             if (HasPendingEvents)
             {
-                error = "Resolve pending Alert Tokens, Nav cards, encounters, or Misbehave before taking another action.";
+                error = "Resolve pending Alert Tokens, Nav cards, encounters, Misbehave, or choices before taking another action.";
                 return false;
             }
             if (TurnComplete)
