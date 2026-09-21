@@ -928,16 +928,20 @@ namespace Firefly.Core.Abilities
         /// <summary>
         /// Passive skill addends from carried gear skills + typed skillAddend abilities on usable gear/crew.
         /// Onboard (unassigned) gear never contributes (FAQ 4.1 p.2).
+        /// When <paramref name="job"/> is Illegal, Lawmen stay onboard (PBH) — their carried gear is unused.
         /// </summary>
         public static int CarriedSkillAddend(
             GameState game,
             PlayerState player,
             Skill skill,
-            AbilityContext? context = null)
+            AbilityContext? context = null,
+            JobCard? job = null)
         {
             var total = 0;
             foreach (var member in player.Roster.Members)
             {
+                if (job != null && LawmanRules.StaysOnboardForJob(member, job))
+                    continue;
                 foreach (var ability in AllFromCrew(member.Card))
                 {
                     if (!ability.MatchesType(AbilityTypes.SkillAddend) || !Applies(ability, context))
@@ -957,6 +961,13 @@ namespace Firefly.Core.Abilities
                     continue;
                 if (!game.Gear.TryGet(gearId, out var gear))
                     continue;
+                var carrierId = GearCarriage.CarrierOf(player, gearId);
+                if (carrierId != null && job != null)
+                {
+                    var carrier = player.Roster.Find(carrierId);
+                    if (carrier != null && LawmanRules.StaysOnboardForJob(carrier, job))
+                        continue;
+                }
 
                 total += skill switch
                 {

@@ -811,7 +811,9 @@ namespace Firefly.Core.Tests
             resolver.DrawNext(game);
 
             Assert.False(resolver.TryResolve(game, 0, out _, out var error, ScriptedRng.FromDieFaces(1)));
-            Assert.Contains("Goods composition", error);
+            Assert.Contains("Choose a mix", error);
+            Assert.NotNull(game.PendingChoice);
+            Assert.Equal(PendingChoiceKinds.GoodsMix, game.PendingChoice!.Kind);
             Assert.Equal(0, player.Cargo);
             Assert.NotNull(resolver.FaceUp);
         }
@@ -891,9 +893,20 @@ namespace Firefly.Core.Tests
             game.Decks!.Alliance.PlaceOnTop(game.Decks.Catalog.Get("nav_customs-inspection"));
             resolver.DrawNext(game);
 
-            Assert.True(resolver.TryResolve(game, 0, out var resolution, out var error), error);
+            // Blue Sun Goods / stash keep: both types present → PendingChoice (scripted keep = old auto-pack).
+            Assert.False(resolver.TryResolve(game, 0, out _, out var suspendErr));
+            Assert.Equal(PendingChoiceKinds.GoodsMix, game.PendingChoice!.Kind);
+            Assert.True(
+                resolver.TryResumeGoodsMix(
+                    game,
+                    new ChoiceSubmission
+                    {
+                        Values = new List<string> { "3", "1" }
+                    },
+                    out var resolution,
+                    out var error),
+                error);
             Assert.Equal(FlightOutcome.FullStop, resolution!.Outcome);
-            // Auto-pack protects Contraband first into 4 stash slots: keep 3 Contra + 1 Fugitive.
             Assert.Equal(0, resolution.ContrabandSeized);
             Assert.Equal(2, resolution.FugitivesSeized);
             Assert.Equal(3, player.Contraband);
@@ -976,9 +989,21 @@ namespace Firefly.Core.Tests
             game.Decks!.Alliance.PlaceOnTop(game.Decks.Catalog.Get("nav_local-tariff-patrol"));
             resolver.DrawNext(game);
 
-            Assert.True(resolver.TryResolve(game, 0, out var resolution, out var error, ScriptedRng.FromDieFaces(1)), error);
-            Assert.False(resolution!.SkillCheck!.Success);
+            Assert.False(resolver.TryResolve(game, 0, out _, out _, ScriptedRng.FromDieFaces(1)));
+            Assert.Equal(PendingChoiceKinds.GoodsMix, game.PendingChoice!.Kind);
             // Stash protects 4 Contraband; 2 Contra + 2 Cargo unprotected; seize all 4 (cap 5).
+            Assert.True(
+                resolver.TryResumeGoodsMix(
+                    game,
+                    new ChoiceSubmission
+                    {
+                        Values = new List<string> { "0", "0", "2", "2" }
+                    },
+                    out var resolution,
+                    out var error,
+                    ScriptedRng.FromDieFaces(1)),
+                error);
+            Assert.False(resolution!.SkillCheck!.Success);
             Assert.Equal(4, resolution.GoodsSeized);
             Assert.Equal(4, player.Contraband);
             Assert.Equal(0, player.Cargo);
