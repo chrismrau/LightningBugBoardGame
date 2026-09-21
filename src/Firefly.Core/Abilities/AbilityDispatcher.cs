@@ -660,6 +660,33 @@ namespace Firefly.Core.Abilities
             return best;
         }
 
+        /// <summary>Bree: may sell Parts to a Solid Contact (Deal path).</summary>
+        public static bool HasSellPartsToSolidContact(
+            PlayerState player,
+            AbilityContext? context = null) =>
+            HasAbility(player, AbilityTypes.SellPartsToSolidContact, context);
+
+        /// <summary>
+        /// Cash per Part when selling via <see cref="AbilityTypes.SellPartsToSolidContact"/>.
+        /// Printed Bree = $300; Amount from ability JSON.
+        /// </summary>
+        public static int SellPartsToSolidContactPrice(
+            PlayerState player,
+            AbilityContext? context = null)
+        {
+            foreach (var member in player.Roster.Members)
+            {
+                foreach (var ability in AllFromCrew(member.Card))
+                {
+                    if (!ability.MatchesType(AbilityTypes.SellPartsToSolidContact)
+                        || !Applies(ability, context, allowOptional: true))
+                        continue;
+                    return ability.Amount > 0 ? ability.Amount : 300;
+                }
+            }
+            return 300;
+        }
+
         private static bool RerollOnesWhenMatches(AbilityDefinition ability, AbilityContext context)
         {
             if (string.IsNullOrWhiteSpace(ability.Location))

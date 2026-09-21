@@ -13,6 +13,11 @@ namespace Firefly.Core.Actions
         public IList<string> TakeFromDiscard { get; set; } = new List<string>();
         public int SellContraband { get; set; }
         public int SellCargo { get; set; }
+        /// <summary>
+        /// Bree Black Market Ties: Parts to sell to a Solid Contact ($300 each).
+        /// Null when Bree can sell → PendingChoiceKinds.DealSellParts; non-null skips suspend.
+        /// </summary>
+        public int? SellParts { get; set; }
         public bool ClearWarrants { get; set; }
         /// <summary>FAQ 4.1 Amnon Travel Hub: load as part of Deal when Solid.</summary>
         public int LoadPassengers { get; set; }
@@ -39,6 +44,7 @@ namespace Firefly.Core.Actions
         public IReadOnlyList<JobCard> TakenFromDiscard { get; }
         public int ContrabandSold { get; }
         public int CargoSold { get; }
+        public int PartsSold { get; }
         public int CashFromSales { get; }
         public bool WarrantsCleared { get; }
         public int PassengersLoaded { get; }
@@ -63,7 +69,8 @@ namespace Firefly.Core.Actions
             int contrabandBought = 0,
             int cargoBought = 0,
             int cashSpentBuying = 0,
-            int fuelBought = 0)
+            int fuelBought = 0,
+            int partsSold = 0)
         {
             Contact = contact;
             Considered = considered;
@@ -72,6 +79,7 @@ namespace Firefly.Core.Actions
             TakenFromDiscard = takenFromDiscard;
             ContrabandSold = contrabandSold;
             CargoSold = cargoSold;
+            PartsSold = partsSold;
             CashFromSales = cashFromSales;
             WarrantsCleared = warrantsCleared;
             PassengersLoaded = passengersLoaded;
@@ -90,6 +98,8 @@ namespace Firefly.Core.Actions
     /// </summary>
     public sealed class DealAction
     {
+        private DealRequest? _pendingSellPartsRequest;
+
         public bool TryDeal(
             GameState game,
             string playerId,
@@ -142,11 +152,23 @@ namespace Firefly.Core.Actions
             }
 
             var remote = !atLocation;
-            if (remote && (request.SellContraband > 0 || request.SellCargo > 0 || request.ClearWarrants
+            var sellPartsRequested = request.SellParts ?? 0;
+            if (remote && (request.SellContraband > 0 || request.SellCargo > 0 || sellPartsRequested > 0
+                || request.ClearWarrants
                 || request.LoadPassengers > 0 || request.LoadFugitives > 0
                 || request.BuyContraband > 0 || request.BuyCargo > 0 || request.BuyFuel > 0))
             {
                 error = "Selling, buying goods, Amnon loading, and Badger's warrant wipe require being in the Contact's sector.";
+                return false;
+            }
+
+            // Bree: May sell Parts to any Solid Contact for $300 (Supplies.tsv).
+            // FAQ 4.1 p.8 — may abilities suspend via PendingChoice when unset.
+            if (NeedsBreeSellPartsChoice(game, player, contact, remote, request))
+            {
+                if (!TrySuspendBreeSellParts(game, player, contact, request, out error))
+                    return false;
+                error = "Choose how many Parts to sell to this Solid Contact.";
                 return false;
             }
 
@@ -259,7 +281,7 @@ namespace Firefly.Core.Actions
                 return false;
             }
 
-            if (request.SellContraband < 0 || request.SellCargo < 0)
+            if (request.SellContraband < 0 || request.SellCargo < 0 || sellPartsRequested < 0)
             {
                 foreach (var taken in fromDiscard)
                     deck.MoveToDiscard(taken);
@@ -275,12 +297,13 @@ namespace Firefly.Core.Actions
                 error = "Enhanced Inspection: you may not Sell Cargo to Contacts.";
                 return false;
             }
-            if (request.SellContraband > player.Contraband || request.SellCargo > player.Cargo)
+            if (request.SellContraband > player.Contraband || request.SellCargo > player.Cargo
+                || sellPartsRequested > player.Parts)
             {
                 foreach (var taken in fromDiscard)
                     deck.MoveToDiscard(taken);
                 deck.PutOnBottom(drawn);
-                error = "Not enough cargo or contraband to sell.";
+                error = "Not enough cargo, contraband, or Parts to sell.";
                 return false;
             }
             if ((request.SellContraband > 0 && contact.SellPrices?.Contraband == null) ||
@@ -293,11 +316,34 @@ namespace Firefly.Core.Actions
                 return false;
             }
 
+            var partsPrice = AbilityDispatcher.SellPartsToSolidContactPrice(player);
+            if (sellPartsRequested > 0)
+            {
+                if (!AbilityDispatcher.HasSellPartsToSolidContact(player))
+                {
+                    foreach (var taken in fromDiscard)
+                        deck.MoveToDiscard(taken);
+                    deck.PutOnBottom(drawn);
+                    error = "Bree is required to sell Parts to a Contact.";
+                    return false;
+                }
+                if (!ContactSolidBenefits.CountsAsSolidWith(game, player, contact))
+                {
+                    foreach (var taken in fromDiscard)
+                        deck.MoveToDiscard(taken);
+                    deck.PutOnBottom(drawn);
+                    error = "May only sell Parts to a Solid Contact.";
+                    return false;
+                }
+            }
+
             var cash = 0;
             if (request.SellContraband > 0)
                 cash += request.SellContraband * contact.SellPrices!.Contraband!.Value;
             if (request.SellCargo > 0)
                 cash += request.SellCargo * contact.SellPrices!.Cargo!.Value;
+            if (sellPartsRequested > 0)
+                cash += sellPartsRequested * partsPrice;
 
             var warrantsCleared = false;
             if (request.ClearWarrants)
@@ -431,6 +477,7 @@ namespace Firefly.Core.Actions
 
             player.Contraband -= request.SellContraband;
             player.Cargo -= request.SellCargo;
+            player.Parts -= sellPartsRequested;
             player.Cash += cash;
 
             if (request.ClearWarrants)
@@ -447,6 +494,7 @@ namespace Firefly.Core.Actions
             player.Fuel += request.BuyFuel;
             player.Cash -= buyCost;
 
+            _pendingSellPartsRequest = null;
             game.TryConsumeAction(TurnAction.Deal, out _);
             result = new DealResult(
                 contact,
@@ -463,8 +511,106 @@ namespace Firefly.Core.Actions
                 request.BuyContraband,
                 request.BuyCargo,
                 buyCost,
-                request.BuyFuel);
+                request.BuyFuel,
+                sellPartsRequested);
             error = null;
+            return true;
+        }
+
+        /// <summary>
+        /// Resume after Bree DealSellParts PendingChoice.
+        /// <see cref="ChoiceSubmission.Amount"/> = Parts to sell (0 = decline).
+        /// </summary>
+        public bool TryResumeDealSellParts(
+            GameState game,
+            ChoiceSubmission submission,
+            out DealResult? result,
+            out string? error)
+        {
+            result = null;
+            if (game.PendingChoice == null
+                || !string.Equals(
+                    game.PendingChoice.Kind,
+                    PendingChoiceKinds.DealSellParts,
+                    System.StringComparison.Ordinal))
+            {
+                error = "No Deal sell-Parts choice is pending.";
+                return false;
+            }
+            if (_pendingSellPartsRequest == null)
+            {
+                error = "Deal sell-Parts resume state is missing.";
+                return false;
+            }
+
+            var amount = submission.Amount;
+            if (amount == null
+                && !string.IsNullOrWhiteSpace(submission.SelectedOptionId)
+                && int.TryParse(submission.SelectedOptionId, out var parsed))
+                amount = parsed;
+            if (amount == null)
+            {
+                error = "Parts amount is required (0 or more).";
+                return false;
+            }
+            if (amount < 0)
+            {
+                error = "Cannot sell a negative quantity of Parts.";
+                return false;
+            }
+
+            var player = game.GetPlayer(game.PendingChoice.PlayerId);
+            if (amount > player.Parts)
+            {
+                error = "Not enough Parts to sell.";
+                return false;
+            }
+
+            if (!game.TrySubmitChoice(game.PendingChoice.PlayerId, submission, out _, out error))
+                return false;
+
+            _pendingSellPartsRequest.SellParts = amount;
+            var request = _pendingSellPartsRequest;
+            _pendingSellPartsRequest = null;
+            return TryDeal(game, player.Id, request, out result, out error);
+        }
+
+        private static bool NeedsBreeSellPartsChoice(
+            GameState game,
+            PlayerState player,
+            ContactCard contact,
+            bool remote,
+            DealRequest request)
+        {
+            if (request.SellParts != null)
+                return false;
+            if (remote)
+                return false;
+            if (!AbilityDispatcher.HasSellPartsToSolidContact(player))
+                return false;
+            if (!ContactSolidBenefits.CountsAsSolidWith(game, player, contact))
+                return false;
+            return player.Parts > 0;
+        }
+
+        private bool TrySuspendBreeSellParts(
+            GameState game,
+            PlayerState player,
+            ContactCard contact,
+            DealRequest request,
+            out string? error)
+        {
+            var price = AbilityDispatcher.SellPartsToSolidContactPrice(player);
+            var pending = new PendingChoice(
+                player.Id,
+                PendingChoiceKinds.DealSellParts,
+                contextId: contact.Name,
+                options: null,
+                prompt: $"Sell how many Parts to {contact.Name} for ${price} each (0–{player.Parts})?");
+            if (!game.TrySetPendingChoice(pending, out error))
+                return false;
+
+            _pendingSellPartsRequest = request;
             return true;
         }
 

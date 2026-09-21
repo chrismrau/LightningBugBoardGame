@@ -390,9 +390,16 @@
         "Persephone": 1
       },
       "count": 1,
-      "specialAbilityType": "Resources (Sell)",
+      "specialAbilityType": "sellPartsToSolidContact",
       "ability": "0",
-      "id": "crew_bree"
+      "id": "crew_bree",
+      "abilities": [
+        {
+          "type": "sellPartsToSolidContact",
+          "amount": 300,
+          "mandatory": false
+        }
+      ]
     },
     {
       "class": "Standard",
