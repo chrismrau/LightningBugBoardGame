@@ -971,8 +971,11 @@ namespace Firefly.Core.Actions
             }
 
             // Printed "If you have X, Proceed. Otherwise, …" — structured proceedIfTag overlay.
+            var job = game.Jobs != null && game.Jobs.TryGet(pending.JobId, out var jobCard)
+                ? jobCard
+                : null;
             if (!string.IsNullOrWhiteSpace(option.ProceedIfTag)
-                && HasTag(game, player, option.ProceedIfTag))
+                && HasTag(game, player, option.ProceedIfTag, job))
             {
                 structuredEffects = option.HasStructuredEffects
                     ? option.Effects
@@ -1068,7 +1071,7 @@ namespace Firefly.Core.Actions
             {
                 if (!skillCheck.TryResolve(
                         player, rng, out check, out error, choice.SkillCheck,
-                        game, AbilityContext.Misbehaving))
+                        game, AbilityContext.Misbehaving, job))
                     return false;
 
                 // FAQ 4.1 p.8 may: always suspend take/decline re-roll when skillReroll matches.
@@ -1458,7 +1461,7 @@ namespace Firefly.Core.Actions
             return true;
         }
 
-        public static bool HasTag(GameState game, PlayerState player, string? tag)
+        public static bool HasTag(GameState game, PlayerState player, string? tag, JobCard? job = null)
         {
             if (string.IsNullOrWhiteSpace(tag))
                 return false;
@@ -1477,22 +1480,42 @@ namespace Firefly.Core.Actions
 
             if (player.Roster.HasName(tag))
                 return true;
-            if (player.Roster.HasProfession(tag))
+            if (LawmanRules.HasProfessionForJob(player, job, tag))
+                return true;
+            if (LawmanRules.HasKeywordForJob(player, job, tag))
                 return true;
 
-            foreach (var member in player.Roster.Members)
-            {
-                foreach (var keyword in member.Card.Keywords)
-                {
-                    if (NamesMatch(keyword, tag))
-                        return true;
-                }
-            }
+            // When no Illegal Job filter, fall back to full roster keywords (HasKeywordForJob
+            // already covers Legal / null job). Profession covered above.
 
             if (game.Gear != null)
             {
                 // FAQ 4.1 p.2 / GF9 p.14: Onboard Ship Gear may not be used — only carried Gear.
-                if (GearCarriage.HasUsableGearTag(game, player, tag))
+                // PBH: Lawmen stay onboard on Illegal Jobs — their carried gear is unused.
+                if (job != null && !job.Legal)
+                {
+                    foreach (var gearId in player.Gear)
+                    {
+                        if (!GearCarriage.IsCarried(player, gearId))
+                            continue;
+                        var carrierId = GearCarriage.CarrierOf(player, gearId);
+                        if (carrierId != null)
+                        {
+                            var carrier = player.Roster.Find(carrierId);
+                            if (carrier != null && LawmanRules.StaysOnboardForJob(carrier, job))
+                                continue;
+                        }
+                        if (game.Gear.TryGet(gearId, out var gear)
+                            && (NamesMatch(gear.Id, tag) || NamesMatch(gear.Name, tag)))
+                            return true;
+                        foreach (var keyword in gear.Keywords)
+                        {
+                            if (NamesMatch(keyword, tag))
+                                return true;
+                        }
+                    }
+                }
+                else if (GearCarriage.HasUsableGearTag(game, player, tag))
                     return true;
             }
 

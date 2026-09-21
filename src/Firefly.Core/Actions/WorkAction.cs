@@ -447,12 +447,13 @@ namespace Firefly.Core.Actions
             var pay = job.PayBase ?? 0;
             if (JobTerms.PayPerPassenger(job))
                 pay *= System.Math.Max(1, active.Passengers);
-            pay += JobTerms.ProfessionBonus(job, player.Roster.HasProfession);
+            pay += JobTerms.ProfessionBonus(job, p => LawmanRules.HasProfessionForJob(player, job, p));
             // Keyword Bonus Tab (TRANSPORT +200): same availability as Misbehave HasTag —
             // roster (incl. Disgruntled) + carried Gear. Onboard Ship Gear is unused (FAQ 4.1 p.2).
-            pay += JobTerms.KeywordBonus(job, kw => MisbehaveResolver.HasTag(game, player, kw));
+            // PBH: Lawmen stay onboard on Illegal Jobs.
+            pay += JobTerms.KeywordBonus(job, kw => MisbehaveResolver.HasTag(game, player, kw, job));
             pay += ContactSolidBenefits.CompletionBonus(game, player, job);
-            var partsBonus = JobTerms.ProfessionPartsBonus(job, player.Roster.HasProfession);
+            var partsBonus = JobTerms.ProfessionPartsBonus(job, p => LawmanRules.HasProfessionForJob(player, job, p));
             if (partsBonus > 0 && HoldSpace.Fits(player, addParts: partsBonus))
                 player.Parts += partsBonus;
             return pay;

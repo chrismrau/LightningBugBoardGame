@@ -230,6 +230,16 @@ namespace Firefly.Core.Actions
         private IReadOnlyList<CardEffect>? _frozenBandEffects;
         private FlightOutcome _frozenOutcome;
 
+        /// <summary>
+        /// Mid-Nav Reaver Cutter Contact suspended for KillVictim / MedFoam; token moves already applied.
+        /// </summary>
+        private DrawnNav? _midNavReaverDrawn;
+        private NavOption? _midNavReaverOption;
+        private NavResolveChoice? _midNavReaverChoice;
+        private bool _resumingGoodsMix;
+        private int _pendingGoodsMixOptionIndex = -1;
+        private NavResolveChoice? _pendingGoodsMixResolveChoice;
+
         public bool HasPending(GameState game) => game.PendingNavDraws.Count > 0 || FaceUp != null;
 
         public DrawnNav DrawNext(GameState game)
@@ -293,7 +303,8 @@ namespace Firefly.Core.Actions
                 && choice?.PayNavCost == null
                 && !_resumingKillVictims
                 && !_resumingBribeOrMedFoam
-                && !_resumingSectorDestination)
+                && !_resumingSectorDestination
+                && !_resumingGoodsMix)
             {
                 error = "Resolve the pending choice before continuing Nav.";
                 return false;
@@ -428,6 +439,37 @@ namespace Firefly.Core.Actions
                     error = "Choose whether to discard Med Foam for a successful Medic Check.";
                     return false;
                 }
+            }
+
+            string? goodsContext = null;
+            string? goodsPrompt = null;
+            if (check != null
+                && NeedsGoodsMixChoice(
+                    player, bandText, option.Details, choice, check != null, out goodsContext, out goodsPrompt))
+            {
+                _frozenSkillReady = true;
+                _frozenSkillCheck = check;
+                _frozenBandText = bandText;
+                _frozenBandEffects = bandEffects;
+                _frozenOutcome = outcome;
+                if (!TrySuspendGoodsMix(game, optionIndex, choice, goodsContext!, goodsPrompt!, out error))
+                {
+                    ClearFrozenKillSkill();
+                    return false;
+                }
+                error = goodsPrompt;
+                return false;
+            }
+
+            if (check == null
+                && NeedsGoodsMixChoice(
+                    player, null, option.Details, choice, skillCheckPresent: false,
+                    out goodsContext, out goodsPrompt))
+            {
+                if (!TrySuspendGoodsMix(game, optionIndex, choice, goodsContext!, goodsPrompt!, out error))
+                    return false;
+                error = goodsPrompt;
+                return false;
             }
 
             if (NeedsSectorDestinationChoice(
@@ -583,6 +625,14 @@ namespace Firefly.Core.Actions
                     out error,
                     choice.Kill))
                 {
+                    if (game.PendingChoice != null)
+                    {
+                        // KillVictim / MedFoam suspend: keep Cutter move + costs; finish via TryResumeMidNavReaver*.
+                        _midNavReaverDrawn = drawn;
+                        _midNavReaverOption = option;
+                        _midNavReaverChoice = choice;
+                        return false;
+                    }
                     RollbackTokens();
                     RollbackResources();
                     return false;
@@ -1199,6 +1249,349 @@ namespace Firefly.Core.Actions
         }
 
         /// <summary>
+        /// Resume mid-Nav Reaver Cutter Contact after KillVictim / MedFoam PendingChoice.
+        /// </summary>
+        public bool TryResumeMidNavReaverKillVictims(
+            GameState game,
+            ChoiceSubmission submission,
+            IRng rng,
+            out NavResolution? resolution,
+            out string? error)
+        {
+            resolution = null;
+            if (_midNavReaverDrawn == null || _midNavReaverOption == null)
+            {
+                error = "No mid-Nav Reaver Contact is pending.";
+                return false;
+            }
+
+            if (!ReaverContact.TryResumeKillVictims(game, submission, rng, out var reaverContact, out error))
+                return false; // may open MedFoam
+
+            return FinishMidNavReaver(game, reaverContact!, out resolution, out error);
+        }
+
+        /// <summary>
+        /// Resume mid-Nav Reaver Cutter Contact after MedFoam PendingChoice.
+        /// </summary>
+        public bool TryResumeMidNavReaverMedFoam(
+            GameState game,
+            ChoiceSubmission submission,
+            IRng rng,
+            out NavResolution? resolution,
+            out string? error)
+        {
+            resolution = null;
+            if (_midNavReaverDrawn == null || _midNavReaverOption == null)
+            {
+                error = "No mid-Nav Reaver Contact is pending.";
+                return false;
+            }
+
+            if (!ReaverContact.TryResumeMedFoam(game, submission, rng, out var reaverContact, out error))
+                return false;
+
+            return FinishMidNavReaver(game, reaverContact!, out resolution, out error);
+        }
+
+        private bool FinishMidNavReaver(
+            GameState game,
+            ReaverContactResult reaverContact,
+            out NavResolution? resolution,
+            out string? error)
+        {
+            error = null;
+            var drawn = _midNavReaverDrawn!;
+            var option = _midNavReaverOption!;
+            _midNavReaverDrawn = null;
+            _midNavReaverOption = null;
+            _midNavReaverChoice = null;
+
+            if (FaceUp != null
+                && string.Equals(FaceUp.Card.Id, drawn.Card.Id, System.StringComparison.OrdinalIgnoreCase))
+            {
+                game.Decks!.For(drawn.Region).ResolveIntoDiscard(drawn.Card);
+                FaceUp = null;
+            }
+
+            resolution = new NavResolution(
+                drawn,
+                option,
+                FlightOutcome.Evade,
+                stopped: true,
+                skillCheck: null,
+                reaverContact: reaverContact);
+            return true;
+        }
+
+        /// <summary>
+        /// Resume after <see cref="PendingChoiceKinds.GoodsMix"/>: merge fuel/parts/cargo/contraband
+        /// (or stash keep) into <see cref="NavResolveChoice"/> and re-enter <see cref="TryResolve"/>.
+        /// Blue Sun: "you may choose which type of Goods you'd like to Load."
+        /// </summary>
+        public bool TryResumeGoodsMix(
+            GameState game,
+            ChoiceSubmission submission,
+            out NavResolution? resolution,
+            out string? error,
+            IRng? rng = null)
+        {
+            resolution = null;
+            error = null;
+            if (FaceUp == null)
+            {
+                error = "No Nav card is face up.";
+                return false;
+            }
+            if (game.PendingChoice == null
+                || !string.Equals(
+                    game.PendingChoice.Kind,
+                    PendingChoiceKinds.GoodsMix,
+                    System.StringComparison.Ordinal))
+            {
+                error = "No Goods mix choice is pending.";
+                return false;
+            }
+
+            var optionIndex = _pendingGoodsMixOptionIndex;
+            var contextId = game.PendingChoice.ContextId ?? "";
+            var chooserId = game.PendingChoice.PlayerId;
+            var choice = _pendingGoodsMixResolveChoice ?? new NavResolveChoice();
+
+            if (!TryMergeGoodsMixSubmission(contextId, submission, choice, out error))
+                return false;
+
+            if (!game.TrySubmitChoice(chooserId, submission, out _, out error))
+                return false;
+
+            _pendingGoodsMixOptionIndex = -1;
+            _pendingGoodsMixResolveChoice = null;
+            _resumingGoodsMix = true;
+            _resumingKillVictims = _frozenSkillReady; // reuse frozen skill band on re-enter
+            try
+            {
+                return TryResolve(game, optionIndex, out resolution, out error, rng, choice);
+            }
+            finally
+            {
+                _resumingGoodsMix = false;
+                _resumingKillVictims = false;
+            }
+        }
+
+        private bool TrySuspendGoodsMix(
+            GameState game,
+            int optionIndex,
+            NavResolveChoice? choice,
+            string contextId,
+            string prompt,
+            out string? error)
+        {
+            var pending = new PendingChoice(
+                game.CurrentPlayer.Id,
+                PendingChoiceKinds.GoodsMix,
+                contextId: contextId,
+                prompt: prompt);
+            if (!game.TrySetPendingChoice(pending, out error))
+                return false;
+            _pendingGoodsMixOptionIndex = optionIndex;
+            _pendingGoodsMixResolveChoice = choice;
+            return true;
+        }
+
+        private static bool TryMergeGoodsMixSubmission(
+            string contextId,
+            ChoiceSubmission submission,
+            NavResolveChoice choice,
+            out string? error)
+        {
+            error = null;
+            if (submission.Values == null || submission.Values.Count < 2)
+            {
+                error = "Goods mix requires Values counts.";
+                return false;
+            }
+
+            if (GoodsMixContexts.TryParseStashKeep(contextId, out _))
+            {
+                if (submission.Values.Count < 2
+                    || !int.TryParse(submission.Values[0], out var contra)
+                    || !int.TryParse(submission.Values[1], out var fugi))
+                {
+                    error = "Stash keep Values must be contraband, fugitives counts.";
+                    return false;
+                }
+                choice.KeepInStashContraband = contra;
+                choice.KeepInStashFugitives = fugi;
+                return true;
+            }
+
+            if (submission.Values.Count < 4
+                || !int.TryParse(submission.Values[0], out var fuel)
+                || !int.TryParse(submission.Values[1], out var parts)
+                || !int.TryParse(submission.Values[2], out var cargo)
+                || !int.TryParse(submission.Values[3], out var contra2))
+            {
+                error = "Goods mix Values must be fuel, parts, cargo, contraband counts.";
+                return false;
+            }
+
+            if (GoodsMixContexts.TryParseLoad(contextId, out _))
+            {
+                choice.LoadGoodsFuel = fuel;
+                choice.LoadGoodsParts = parts;
+                choice.LoadGoodsCargo = cargo;
+                choice.LoadGoodsContraband = contra2;
+                return true;
+            }
+
+            if (GoodsMixContexts.TryParseSeize(contextId, out _))
+            {
+                choice.SeizeGoodsFuel = fuel;
+                choice.SeizeGoodsParts = parts;
+                choice.SeizeGoodsCargo = cargo;
+                choice.SeizeGoodsContraband = contra2;
+                return true;
+            }
+
+            error = "Unknown Goods mix context.";
+            return false;
+        }
+
+        /// <summary>
+        /// Blue Sun Goods mix / Customs stash keep / Seize Goods — suspend when thin hooks unset.
+        /// </summary>
+        private static bool NeedsGoodsMixChoice(
+            PlayerState player,
+            string? bandText,
+            string? optionDetails,
+            NavResolveChoice? choice,
+            bool skillCheckPresent,
+            out string contextId,
+            out string prompt)
+        {
+            contextId = "";
+            prompt = "";
+
+            // Skill-band Load N Goods
+            if (skillCheckPresent && !string.IsNullOrWhiteSpace(bandText))
+            {
+                if (TryNeedsLoadGoods(player, bandText!, choice, out contextId, out prompt))
+                    return true;
+                if (TryNeedsSeizeGoods(player, bandText!, choice, out contextId, out prompt))
+                    return true;
+            }
+
+            var text = optionDetails ?? "";
+            if (!skillCheckPresent)
+            {
+                if (TryNeedsLoadGoods(player, text, choice, out contextId, out prompt))
+                    return true;
+            }
+
+            if (IsCustomsStashSeize(text)
+                && TryNeedsStashKeep(player, choice, out contextId, out prompt))
+                return true;
+
+            if (TryNeedsSeizeGoods(player, text, choice, out contextId, out prompt))
+                return true;
+
+            if (skillCheckPresent
+                && !string.IsNullOrWhiteSpace(bandText)
+                && TryNeedsSeizeGoods(player, bandText!, choice, out contextId, out prompt))
+                return true;
+
+            return false;
+        }
+
+        private static bool TryNeedsLoadGoods(
+            PlayerState player,
+            string text,
+            NavResolveChoice? choice,
+            out string contextId,
+            out string prompt)
+        {
+            contextId = "";
+            prompt = "";
+            if (Contains(text, "If you have FAKE ID") && Contains(text, "Otherwise"))
+                return false;
+            if (Contains(text, "Load no Goods"))
+                return false;
+            var goods = LoadGoodsCount.Match(text);
+            if (!goods.Success)
+                return false;
+            var n = int.Parse(goods.Groups[1].Value);
+            if (n <= 0)
+                return false;
+            var sum = (choice?.LoadGoodsFuel ?? 0)
+                + (choice?.LoadGoodsParts ?? 0)
+                + (choice?.LoadGoodsCargo ?? 0)
+                + (choice?.LoadGoodsContraband ?? 0);
+            if (sum == n)
+                return false;
+            if (sum != 0)
+                return false; // invalid partial — CanApply will error
+            contextId = GoodsMixContexts.Load(n);
+            prompt = $"Choose a mix of {n} Goods (Fuel/Parts/Cargo/Contraband).";
+            return true;
+        }
+
+        private static bool TryNeedsSeizeGoods(
+            PlayerState player,
+            string text,
+            NavResolveChoice? choice,
+            out string contextId,
+            out string prompt)
+        {
+            contextId = "";
+            prompt = "";
+            var match = SeizeGoodsNotInStash.Match(text);
+            if (!match.Success)
+                return false;
+            var n = int.Parse(match.Groups[1].Value);
+            var unprotected = GoodsTokensNotInStash(player);
+            var toSeize = System.Math.Min(n, unprotected);
+            if (toSeize <= 0)
+                return false;
+            var choiceFuel = choice?.SeizeGoodsFuel ?? -1;
+            var choiceParts = choice?.SeizeGoodsParts ?? -1;
+            var choiceCargo = choice?.SeizeGoodsCargo ?? -1;
+            var choiceContra = choice?.SeizeGoodsContraband ?? -1;
+            if (choiceFuel >= 0 || choiceParts >= 0 || choiceCargo >= 0 || choiceContra >= 0)
+                return false;
+            contextId = GoodsMixContexts.Seize(toSeize);
+            prompt = $"Choose which {toSeize} Goods not in Stash are seized.";
+            return true;
+        }
+
+        private static bool TryNeedsStashKeep(
+            PlayerState player,
+            NavResolveChoice? choice,
+            out string contextId,
+            out string prompt)
+        {
+            contextId = "";
+            prompt = "";
+            var choiceContra = choice?.KeepInStashContraband ?? -1;
+            var choiceFug = choice?.KeepInStashFugitives ?? -1;
+            if (choiceContra >= 0 || choiceFug >= 0)
+                return false;
+            var stash = System.Math.Max(0, player.StashHold);
+            var total = player.Contraband + player.Fugitives;
+            var keep = System.Math.Min(total, stash);
+            if (keep <= 0)
+                return false;
+            // Real choice when both types are present and keep doesn't force a single type.
+            if (player.Contraband <= 0 || player.Fugitives <= 0)
+                return false;
+            if (keep >= total)
+                return false;
+            contextId = GoodsMixContexts.StashKeep(keep);
+            prompt = $"Choose which {keep} Contraband/Fugitives remain in Stash.";
+            return true;
+        }
+
+        /// <summary>
         /// Resume after <see cref="PendingChoiceKinds.SectorDestination"/>: merge sector id(s)
         /// into <see cref="NavResolveChoice"/> and re-enter <see cref="TryResolve"/>.
         /// </summary>
@@ -1479,6 +1872,11 @@ namespace Firefly.Core.Actions
             bandText = null;
             bandEffects = null;
             error = null;
+
+            // Named Reaver Cutter Contact: Fight / Kill / Evade are applied by ReaverContact.TryApplyImmediate
+            // (GF9 p.8), not as a Nav skill-band before the Cutter moves.
+            if (IsImmediateReaverContactOption(option.Details ?? ""))
+                return true;
 
             SkillCheck? skillCheck = null;
             if (option.SkillCheck != null)
@@ -2497,7 +2895,8 @@ namespace Firefly.Core.Actions
             Contains(details, "1 Sector within") || Contains(details, "1 sector within");
 
         private static bool IsImmediateReaverContactOption(string details) =>
-            Contains(details, "Kill all Passengers") || Contains(details, "Fight 8");
+            Contains(details, "Kill all Passengers")
+            && (Contains(details, "Fight 8") || Contains(details, "Fight 8;"));
 
         private static bool MovesCutterToDrawSector(string details) =>
             Contains(details, "to your current location")

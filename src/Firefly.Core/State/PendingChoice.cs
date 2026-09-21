@@ -66,7 +66,8 @@ namespace Firefly.Core.State
     /// <see cref="HavenSector"/>, <see cref="RivalPlayer"/>, <see cref="SectorDestination"/>,
     /// <see cref="SkillReroll"/>, <see cref="DiscardToReroll"/>, <see cref="MoraleBoosterTarget"/>,
     /// <see cref="ShowdownReroll"/>, <see cref="HavenFuelAmount"/>, <see cref="MedicReroll"/>,
-    /// <see cref="DiscardOrLoseSolid"/>, <see cref="MisbehaveDiscardRedraw"/>.
+    /// <see cref="DiscardOrLoseSolid"/>, <see cref="MisbehaveDiscardRedraw"/>,
+    /// <see cref="AlertAllianceShip"/>, <see cref="AlertReaverCutter"/>, <see cref="GoodsMix"/>.
     /// </summary>
     public static class PendingChoiceKinds
     {
@@ -175,6 +176,59 @@ namespace Firefly.Core.State
         /// may take 1 Fuel (once per Fly Action). Options: <see cref="EmissionsFuelOptions"/>.
         /// </summary>
         public const string EmissionsFuel = "emissions-fuel";
+        /// <summary>
+        /// Alliance Alert Token success (Kalidasa / Blue Sun): PTR chooses Cruiser or Corvette
+        /// in Alliance Space when both are in play. Options: <see cref="AlertAllianceShipOptions"/>.
+        /// </summary>
+        public const string AlertAllianceShip = "alert-alliance-ship";
+        /// <summary>
+        /// Reaver Alert Token success: PTR chooses which Reaver Cutter to move when more than
+        /// one is on the board. Options = cutter indices as strings.
+        /// </summary>
+        public const string AlertReaverCutter = "alert-reaver-cutter";
+        /// <summary>
+        /// Nav Load N Goods / Seize N Goods / Customs stash keep mix.
+        /// <see cref="ChoiceSubmission.Values"/> = fuel, parts, cargo, contraband counts
+        /// (or contraband, fugitives for stash keep). ContextId discriminates the site.
+        /// </summary>
+        public const string GoodsMix = "goods-mix";
+    }
+
+    /// <summary>Discrete option ids for <see cref="PendingChoiceKinds.AlertAllianceShip"/>.</summary>
+    public static class AlertAllianceShipOptions
+    {
+        public const string AllianceCruiser = "alliance-cruiser";
+        public const string OperativeCorvette = "operative-corvette";
+    }
+
+    /// <summary>ContextId prefixes / ids for <see cref="PendingChoiceKinds.GoodsMix"/>.</summary>
+    public static class GoodsMixContexts
+    {
+        public const string LoadPrefix = "load:";
+        public const string SeizePrefix = "seize:";
+        public const string StashKeepPrefix = "stash-keep:";
+
+        public static string Load(int count) => LoadPrefix + count;
+        public static string Seize(int count) => SeizePrefix + count;
+        public static string StashKeep(int keepTotal) => StashKeepPrefix + keepTotal;
+
+        public static bool TryParseLoad(string? contextId, out int count) =>
+            TryParseCount(contextId, LoadPrefix, out count);
+
+        public static bool TryParseSeize(string? contextId, out int count) =>
+            TryParseCount(contextId, SeizePrefix, out count);
+
+        public static bool TryParseStashKeep(string? contextId, out int keepTotal) =>
+            TryParseCount(contextId, StashKeepPrefix, out keepTotal);
+
+        private static bool TryParseCount(string? contextId, string prefix, out int count)
+        {
+            count = 0;
+            if (string.IsNullOrWhiteSpace(contextId)
+                || !contextId.StartsWith(prefix, StringComparison.Ordinal))
+                return false;
+            return int.TryParse(contextId.Substring(prefix.Length), out count) && count >= 0;
+        }
     }
 
     /// <summary>Discrete option ids for <see cref="PendingChoiceKinds.EmissionsFuel"/>.</summary>
@@ -258,9 +312,28 @@ namespace Firefly.Core.State
         public const string ShipNudge = "ship-nudge";
         public const string ReaverCutter = "reaver-cutter";
         public const string OperativeCorvette = "operative-corvette";
+        /// <summary>Cry Baby: deploying player chooses Cruiser destination (1 Sector Alliance).</summary>
+        public const string CryBaby = "cry-baby";
+        /// <summary>Alliance Alert Safe Harbor redirect (PTR) when Cruiser would land on a Haven.</summary>
+        public const string AlertSafeHarborPrefix = "alert-safe-harbor:";
+        /// <summary>Alliance Alert: Corvette drive-off Reaver destination.</summary>
+        public const string AlertDriveOffReaver = "alert-drive-off-reaver";
 
         public static string SafeHarbor(string intendedSectorId) =>
             SafeHarborPrefix + intendedSectorId;
+
+        public static string AlertSafeHarbor(string intendedSectorId) =>
+            AlertSafeHarborPrefix + intendedSectorId;
+
+        public static bool TryParseAlertSafeHarbor(string? contextId, out string intendedSectorId)
+        {
+            intendedSectorId = "";
+            if (string.IsNullOrWhiteSpace(contextId)
+                || !contextId.StartsWith(AlertSafeHarborPrefix, StringComparison.Ordinal))
+                return false;
+            intendedSectorId = contextId.Substring(AlertSafeHarborPrefix.Length);
+            return !string.IsNullOrWhiteSpace(intendedSectorId);
+        }
 
         public static bool TryParseSafeHarbor(string? contextId, out string intendedSectorId)
         {

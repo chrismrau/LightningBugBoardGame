@@ -121,14 +121,36 @@ namespace Firefly.Core.Cards
         /// <summary>
         /// Dice count for this test. Kosherized Fights use crew Fight only
         /// (exclude <see cref="PlayerState.FightBonus"/> gear proxy).
+        /// When <paramref name="job"/> is Illegal and Lawmen are present, they stay onboard (PBH)
+        /// and do not add dice; otherwise the normal roster + bonus path is used.
         /// </summary>
-        public int DiceCount(PlayerState player)
+        public int DiceCount(PlayerState player, GameState? game = null, JobCard? job = null)
         {
-            if (Skill == Skill.Fight)
-                return Kosherized ? player.Roster.Fight : player.Fight;
-            if (Skill == Skill.Tech)
-                return player.Tech;
-            return player.Talk;
+            if (job == null || job.Legal || !HasOnboardLawman(player, job))
+            {
+                if (Skill == Skill.Fight)
+                    return Kosherized ? player.Roster.Fight : player.Fight;
+                if (Skill == Skill.Tech)
+                    return player.Tech;
+                return player.Talk;
+            }
+
+            var crew = LawmanRules.CrewSkillForJob(player, job, Skill);
+            if (Skill == Skill.Fight && Kosherized)
+                return crew;
+            if (game != null)
+                return crew + AbilityDispatcher.CarriedSkillAddend(game, player, Skill, job: job);
+            return crew;
+        }
+
+        private static bool HasOnboardLawman(PlayerState player, JobCard job)
+        {
+            foreach (var member in player.Roster.Members)
+            {
+                if (LawmanRules.StaysOnboardForJob(member, job))
+                    return true;
+            }
+            return false;
         }
 
         /// <summary>
@@ -533,7 +555,8 @@ namespace Firefly.Core.Cards
             out string? error,
             SkillCheckChoice? choice = null,
             GameState? game = null,
-            AbilityContext? abilityContext = null)
+            AbilityContext? abilityContext = null,
+            JobCard? job = null)
         {
             result = null!;
             error = null;
@@ -562,7 +585,7 @@ namespace Firefly.Core.Cards
                 player.Cash -= bribeDollars;
             }
 
-            var roll = Dice.RollD6(DiceCount(player), rng);
+            var roll = Dice.RollD6(DiceCount(player, game, job), rng);
             roll = ApplyRerollOnes(game, player, Skill, roll, rng, abilityContext);
             var total = roll.Sum + bribeBonus;
             var success = total >= Target;
@@ -575,9 +598,10 @@ namespace Firefly.Core.Cards
             IRng rng,
             SkillCheckChoice? choice = null,
             GameState? game = null,
-            AbilityContext? abilityContext = null)
+            AbilityContext? abilityContext = null,
+            JobCard? job = null)
         {
-            if (!TryResolve(player, rng, out var result, out var error, choice, game, abilityContext))
+            if (!TryResolve(player, rng, out var result, out var error, choice, game, abilityContext, job))
                 throw new InvalidOperationException(error ?? "Skill check failed.");
             return result;
         }

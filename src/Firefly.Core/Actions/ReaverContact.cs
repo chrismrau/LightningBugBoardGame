@@ -118,7 +118,7 @@ namespace Firefly.Core.Actions
                 out error,
                 killChoice,
                 isEncounterResolve: false,
-                allowSuspend: false);
+                allowSuspend: true);
         }
 
         /// <summary>
@@ -245,12 +245,10 @@ namespace Firefly.Core.Actions
                 if (!FlightEvade.TryMove(game, player, evadeTo, out error))
                     return false;
 
-                if (isEncounter)
-                {
-                    game.PendingEncounter = null;
-                    game.PendingEncounterSectorId = null;
-                    game.PendingNavDraws.Clear();
-                }
+                // Mid-Nav immediate Contact and encounter resolve both end the Fly Nav queue.
+                game.PendingEncounter = null;
+                game.PendingEncounterSectorId = null;
+                game.PendingNavDraws.Clear();
 
                 result = new ReaverContactResult(passengers, fugitives, fight, crewKilled, evadeTo);
                 return true;
@@ -288,7 +286,7 @@ namespace Firefly.Core.Actions
                 if (!allowSuspend)
                 {
                     error =
-                        "Reaver Contact Kill N requires KillChoice.VictimCrewIds when resolved mid-Nav.";
+                        "Reaver Contact Kill N requires KillChoice.VictimCrewIds.";
                     return false;
                 }
 
@@ -314,7 +312,7 @@ namespace Firefly.Core.Actions
                 if (!allowSuspend)
                 {
                     error =
-                        "Reaver Contact Med Foam requires KillChoice.UseMedFoam when resolved mid-Nav.";
+                        "Reaver Contact Med Foam requires KillChoice.UseMedFoam.";
                     return false;
                 }
 

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Firefly.Core.Cards;
 using Firefly.Core.Map;
 using Firefly.Core.Movement;
@@ -11,6 +12,7 @@ namespace Firefly.Core.Actions
     /// its effects and move the Cruiser 1 Sector within Alliance Space.
     /// FAQ 4.1 p.14: Outlaw enters Cruiser Sector, deploys Cry Baby → Cruiser moves → Nav resolves
     /// as normal (Contact skipped). Multi-ship FAQ: deploying Cry Baby saves everyone in that Sector.
+    /// Destination omitted → <see cref="PendingChoiceKinds.SectorDestination"/>.
     /// </summary>
     public static class CryBabyAction
     {
@@ -20,7 +22,7 @@ namespace Firefly.Core.Actions
         public static bool TryDeploy(
             GameState game,
             string playerId,
-            string cruiserToSectorId,
+            string? cruiserToSectorId,
             out string? error)
         {
             error = null;
@@ -40,30 +42,90 @@ namespace Firefly.Core.Actions
                 return false;
             }
 
-            if (!TryRemoveCryBaby(player, out error))
+            if (!HasCryBaby(player))
+            {
+                error = "Cry Baby ship upgrade is not installed.";
                 return false;
+            }
 
             var cruiserSector = game.Tokens.AllianceCruiserSectorId;
             if (string.IsNullOrEmpty(cruiserSector))
             {
                 error = "Alliance Cruiser is not on the board.";
-                RestoreCryBaby(player);
                 return false;
             }
 
             if (!string.Equals(player.SectorId, cruiserSector, StringComparison.OrdinalIgnoreCase))
             {
                 error = "Cry Baby requires your ship to be in the Alliance Cruiser's Sector.";
-                RestoreCryBaby(player);
                 return false;
             }
 
             if (string.IsNullOrWhiteSpace(cruiserToSectorId))
             {
-                error = "Cry Baby requires a destination Sector for the Alliance Cruiser.";
-                RestoreCryBaby(player);
+                var options = EligibleDestinations(game, cruiserSector!);
+                var pending = new PendingChoice(
+                    player.Id,
+                    PendingChoiceKinds.SectorDestination,
+                    contextId: SectorDestinationContexts.CryBaby,
+                    options: options.Count > 0 ? options : null,
+                    prompt: "Cry Baby: choose an Alliance Sector for the Cruiser (1 Sector).");
+                if (!game.TrySetPendingChoice(pending, out error))
+                    return false;
+                error = pending.Prompt;
                 return false;
             }
+
+            return TryApplyDeploy(game, player, cruiserToSectorId!, out error);
+        }
+
+        /// <summary>
+        /// Resume after <see cref="PendingChoiceKinds.SectorDestination"/> for Cry Baby.
+        /// </summary>
+        public static bool TryResumeDestination(
+            GameState game,
+            ChoiceSubmission submission,
+            out string? error)
+        {
+            error = null;
+            if (game.PendingChoice == null
+                || !string.Equals(
+                    game.PendingChoice.Kind,
+                    PendingChoiceKinds.SectorDestination,
+                    StringComparison.Ordinal)
+                || !string.Equals(
+                    game.PendingChoice.ContextId,
+                    SectorDestinationContexts.CryBaby,
+                    StringComparison.Ordinal))
+            {
+                error = "No Cry Baby destination choice is pending.";
+                return false;
+            }
+
+            var playerId = game.PendingChoice.PlayerId;
+            var sector = submission.Value ?? submission.SelectedOptionId;
+            if (string.IsNullOrWhiteSpace(sector))
+            {
+                error = "Cry Baby requires a destination Sector for the Alliance Cruiser.";
+                return false;
+            }
+
+            if (!game.TrySubmitChoice(playerId, submission, out _, out error))
+                return false;
+
+            return TryDeploy(game, playerId, sector, out error);
+        }
+
+        private static bool TryApplyDeploy(
+            GameState game,
+            PlayerState player,
+            string cruiserToSectorId,
+            out string? error)
+        {
+            if (!TryRemoveCryBaby(player, out error))
+                return false;
+
+            var cruiserSector = game.Tokens.AllianceCruiserSectorId!;
 
             if (!IsAllianceSpace(game, cruiserToSectorId))
             {
@@ -74,7 +136,7 @@ namespace Firefly.Core.Actions
 
             // AllianceAlert.tsv Rapid Response: player may move an Alliance Ship one extra Sector.
             var maxSectors = 1 + ActiveAlertRules.ExtraAllianceShipMove(game);
-            var path = new Pathfinder(game.Map).ShortestPath(cruiserSector!, cruiserToSectorId);
+            var path = new Pathfinder(game.Map).ShortestPath(cruiserSector, cruiserToSectorId);
             if (path == null)
             {
                 error = "No path for Cry Baby Cruiser move.";
@@ -115,6 +177,41 @@ namespace Firefly.Core.Actions
             // Cruiser's new Sector: Outlaws there resolve Contact (same as any Cruiser move).
             AllianceCruiserContact.QueueForOutlawsInSector(game, cruiserToSectorId);
             return true;
+        }
+
+        private static IReadOnlyList<string> EligibleDestinations(GameState game, string fromSectorId)
+        {
+            var maxSectors = 1 + ActiveAlertRules.ExtraAllianceShipMove(game);
+            var result = new List<string>();
+            var pathfinder = new Pathfinder(game.Map);
+            foreach (var sector in game.Map.Sectors.Values)
+            {
+                if (sector.NavRegion != NavRegion.Alliance)
+                    continue;
+                if (string.Equals(sector.Id, fromSectorId, StringComparison.OrdinalIgnoreCase))
+                    continue;
+                var path = pathfinder.ShortestPath(fromSectorId, sector.Id);
+                if (path == null)
+                    continue;
+                var distance = path.Count - 1;
+                if (distance < 1 || distance > maxSectors)
+                    continue;
+                if (!HavenRules.CanChooseCruiserDestination(game, sector.Id, out _))
+                    continue;
+                result.Add(sector.Id);
+            }
+            return result;
+        }
+
+        private static bool HasCryBaby(PlayerState player)
+        {
+            foreach (var id in player.ShipUpgrades)
+            {
+                if (string.Equals(id, CardId, StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(id, CardName, StringComparison.OrdinalIgnoreCase))
+                    return true;
+            }
+            return false;
         }
 
         private static bool TryRemoveCryBaby(PlayerState player, out string? error)
