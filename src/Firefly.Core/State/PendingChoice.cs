@@ -164,6 +164,12 @@ namespace Firefly.Core.State
         /// Options: <see cref="DalinRedrawOptions"/>.
         /// </summary>
         public const string MisbehaveDiscardRedraw = "misbehave-discard-redraw";
+        /// <summary>
+        /// Bree: sell Parts to a Solid Contact during Deal ($Amount each).
+        /// <see cref="ChoiceSubmission.Amount"/> = Parts to sell (0 = decline).
+        /// ContextId = Contact name.
+        /// </summary>
+        public const string DealSellParts = "deal-sell-parts";
     }
 
     /// <summary>Discrete option ids for <see cref="PendingChoiceKinds.MeadowsRedirect"/>.</summary>

@@ -184,5 +184,11 @@ namespace Firefly.Core.Abilities
         /// Kaylee's Fluffy Pink Dress: Buy up to Amount Supply cards (default Buy max is 2).
         /// </summary>
         public const string BuySupplyCardsUpTo = "buySupplyCardsUpTo";
+
+        /// <summary>
+        /// Bree: may sell Parts to any Solid Contact for $Amount each (default 300).
+        /// Optional — suspends DealSellParts when Parts remain and SellParts is unset.
+        /// </summary>
+        public const string SellPartsToSolidContact = "sellPartsToSolidContact";
     }
 }

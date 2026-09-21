@@ -14,7 +14,7 @@ Standard	Kal	Barkeep	Crew	200	Good Times: Giving your Crew Shore Leave at Supply
 Standard	Kal	Barkeep	Crew	200	Good Times: Giving your Crew Shore Leave at Supply Planets is free.	1		1		X						X																		1		1		freeShoreLeaveAtSupply	[{"type":"freeShoreLeaveAtSupply","mandatory":true}]
 Standard	F:tG	Bester	Crew	100	Genius Mechanic: On [Tech] Tests, "Thrillin' Heroics" bonus dice do not apply.		1										X														1					1		Downside	
 Standard	F:tG	Billy	Crew	200	Salvage Pro: +1 Cargo from Salvage Ops.		2			X							X												1							1		Resources (Salvage Op)	
-Standard	F:tG	Bree	Crew	200	Black Market Ties: May sell Parts to any Solid Contact for $300.		2			X							X												1							1		Resources (Sell)	
+Standard	F:tG	Bree	Crew	200	Black Market Ties: May sell Parts to any Solid Contact for $300.		2			X							X												1							1		sellPartsToSolidContact	[{"type":"sellPartsToSolidContact","amount":300,"mandatory":false}]	
 Standard	F:tG	Bridgit	Crew	300	Deceptive: If Yolonda or Saffron are hired by anyone, Remove Bridgit from Play.		1	2								X				X											1					1		Downside	
 Standard	Kal	Busker	Crew	200	Work the Crowd: When you Make-Work, take an extra $100.			1		X				X		X																		1		1		Resources (Make-Work)	
 Standard	PBH	Chari	Crew	200	Turncoat: In a SHOWDOWN, you may force a Rival to re-roll.			2								X														1						1		showdownForceRivalReroll	[{"type":"showdownForceRivalReroll","mandatory":false}]
