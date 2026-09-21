@@ -143,5 +143,46 @@ namespace Firefly.Core.Abilities
         /// Cortex Uplink: Deal from any location — Consider top face-down of any Contact.
         /// </summary>
         public const string ConsiderTopAnyContact = "considerTopAnyContact";
+
+        /// <summary>
+        /// Meadows: may Kill Meadows instead of a crew being Killed / Apprehended / Alliance-seized.
+        /// </summary>
+        public const string RedirectKillApprehendSeize = "redirectKillApprehendSeize";
+
+        /// <summary>
+        /// Sheydra / Stitch: once per job, may treat Skill as Subject skill (Fight↔Talk).
+        /// Job-only. FAQ 4.1 p.9: Stitch never both Bribes and switch; not Boarding.
+        /// </summary>
+        public const string OncePerJobSkillSwitch = "oncePerJobSkillSwitch";
+
+        /// <summary>
+        /// Fess: Deal with named Contact (Subject) from any location; normal consider/accept.
+        /// </summary>
+        public const string DealWithNamedContact = "dealWithNamedContact";
+
+        /// <summary>
+        /// Holder: when Make-Work, may also take a Fugitive Token.
+        /// </summary>
+        public const string MakeWorkTakeFugitive = "makeWorkTakeFugitive";
+
+        /// <summary>
+        /// Wright: when delivering Fugitives, may take Amount extra $ per Fugitive (Immoral).
+        /// </summary>
+        public const string FugitiveDeliverBonus = "fugitiveDeliverBonus";
+
+        /// <summary>
+        /// Early's Datascope: as a Work Action, reveal top Amount Supply at current planet → discard.
+        /// </summary>
+        public const string WorkRevealDiscardSupply = "workRevealDiscardSupply";
+
+        /// <summary>
+        /// Universal Encyclopedia: Deal from any location — look at top Amount Misbehave; reorder.
+        /// </summary>
+        public const string DealReorderMisbehave = "dealReorderMisbehave";
+
+        /// <summary>
+        /// Kaylee's Fluffy Pink Dress: Buy up to Amount Supply cards (default Buy max is 2).
+        /// </summary>
+        public const string BuySupplyCardsUpTo = "buySupplyCardsUpTo";
     }
 }

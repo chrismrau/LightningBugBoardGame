@@ -477,7 +477,7 @@ namespace Firefly.Core.Abilities
             FindCarriedGearAbility(game, player, AbilityTypes.ConsiderTopAnyContact, context) != null;
 
         /// <summary>
-        /// Sync DealModifiers from carried typed gear (Fine Hat / Cortex Uplink).
+        /// Sync DealModifiers from carried typed gear (Fine Hat / Cortex / Fess / Encyclopedia).
         /// </summary>
         public static void RefreshDealModifiers(GameState game, PlayerState player)
         {
@@ -489,8 +489,175 @@ namespace Firefly.Core.Abilities
 
             var cortex = HasConsiderTopAnyContact(game, player);
             player.Deal.ConsiderTopCardFromAnyContact = cortex;
-            if (cortex)
-                player.Deal.CanDealFromAnySector = true;
+
+            var fessContact = FindDealWithNamedContact(player);
+            var encyclopedia = HasDealReorderMisbehave(game, player);
+            player.Deal.CanDealFromAnySector = cortex || fessContact != null || encyclopedia;
+            player.Deal.NamedRemoteContact = fessContact;
+            player.Deal.ReorderMisbehaveTop = encyclopedia
+                ? DealReorderMisbehaveAmount(game, player)
+                : 0;
+        }
+
+        /// <summary>Meadows with redirectKillApprehendSeize.</summary>
+        public static CrewMember? FindMeadowsRedirect(
+            PlayerState player,
+            AbilityContext? context = null)
+        {
+            foreach (var member in player.Roster.Members)
+            {
+                if (member.IsLeader)
+                    continue;
+                foreach (var ability in AllFromCrew(member.Card))
+                {
+                    if (ability.MatchesType(AbilityTypes.RedirectKillApprehendSeize)
+                        && Applies(ability, context, allowOptional: true))
+                        return member;
+                }
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// Sheydra/Stitch once-per-job skill switch. Requires WorkingJob (not Boarding/Nav).
+        /// </summary>
+        public static AbilityDefinition? FindOncePerJobSkillSwitch(
+            PlayerState player,
+            Skill fromSkill,
+            AbilityContext? context = null)
+        {
+            context ??= AbilityContext.None;
+            if (!context.IsWorkingJob || context.IsWorkingGoal)
+                return null;
+            foreach (var member in player.Roster.Members)
+            {
+                foreach (var ability in AllFromCrew(member.Card))
+                {
+                    if (!ability.MatchesType(AbilityTypes.OncePerJobSkillSwitch)
+                        || !Applies(ability, context, allowOptional: true))
+                        continue;
+                    if (!SkillMatches(ability.Skill, fromSkill))
+                        continue;
+                    if (string.IsNullOrWhiteSpace(ability.Subject))
+                        continue;
+                    return ability;
+                }
+            }
+            return null;
+        }
+
+        public static bool TryParseSkillLabel(string? label, out Skill skill)
+        {
+            skill = default;
+            if (string.IsNullOrWhiteSpace(label))
+                return false;
+            if (label.Equals("Negotiate", StringComparison.OrdinalIgnoreCase)
+                || label.Equals("Talk", StringComparison.OrdinalIgnoreCase))
+            {
+                skill = Skill.Talk;
+                return true;
+            }
+            return Enum.TryParse(label, true, out skill);
+        }
+
+        public static string? FindDealWithNamedContact(
+            PlayerState player,
+            AbilityContext? context = null)
+        {
+            foreach (var member in player.Roster.Members)
+            {
+                foreach (var ability in AllFromCrew(member.Card))
+                {
+                    if (!ability.MatchesType(AbilityTypes.DealWithNamedContact)
+                        || !Applies(ability, context, allowOptional: true))
+                        continue;
+                    if (!string.IsNullOrWhiteSpace(ability.Subject))
+                        return ability.Subject;
+                }
+            }
+            return null;
+        }
+
+        public static bool HasMakeWorkTakeFugitive(
+            PlayerState player,
+            AbilityContext? context = null) =>
+            HasAbility(player, AbilityTypes.MakeWorkTakeFugitive, context);
+
+        public static AbilityDefinition? FindFugitiveDeliverBonus(
+            PlayerState player,
+            AbilityContext? context = null)
+        {
+            foreach (var member in player.Roster.Members)
+            {
+                foreach (var ability in AllFromCrew(member.Card))
+                {
+                    if (ability.MatchesType(AbilityTypes.FugitiveDeliverBonus)
+                        && Applies(ability, context, allowOptional: true))
+                        return ability;
+                }
+            }
+            return null;
+        }
+
+        public static bool HasWorkRevealDiscardSupply(
+            GameState game,
+            PlayerState player,
+            AbilityContext? context = null) =>
+            FindCarriedGearAbility(game, player, AbilityTypes.WorkRevealDiscardSupply, context) != null;
+
+        public static int WorkRevealDiscardSupplyAmount(
+            GameState game,
+            PlayerState player,
+            AbilityContext? context = null)
+        {
+            var ability = FindCarriedGearAbility(
+                game, player, AbilityTypes.WorkRevealDiscardSupply, context);
+            return ability != null && ability.Amount > 0 ? ability.Amount : 3;
+        }
+
+        public static bool HasDealReorderMisbehave(
+            GameState game,
+            PlayerState player,
+            AbilityContext? context = null) =>
+            FindCarriedGearAbility(game, player, AbilityTypes.DealReorderMisbehave, context) != null;
+
+        public static int DealReorderMisbehaveAmount(
+            GameState game,
+            PlayerState player,
+            AbilityContext? context = null)
+        {
+            var ability = FindCarriedGearAbility(
+                game, player, AbilityTypes.DealReorderMisbehave, context);
+            return ability != null && ability.Amount > 0 ? ability.Amount : 3;
+        }
+
+        /// <summary>Max Supply cards per Buy. Default 2; Dress may raise.</summary>
+        public static int BuySupplyCardsUpTo(
+            GameState game,
+            PlayerState player,
+            AbilityContext? context = null)
+        {
+            var best = BuyActionDefaults.MaxBuyCards;
+            if (game.Gear == null)
+                return best;
+            context ??= AbilityContext.None;
+            foreach (var gearId in player.Gear)
+            {
+                if (!GearCarriage.IsCarried(player, gearId))
+                    continue;
+                if (!game.Gear.TryGet(gearId, out var gear))
+                    continue;
+                foreach (var ability in AllFromGear(gear))
+                {
+                    if (!ability.MatchesType(AbilityTypes.BuySupplyCardsUpTo)
+                        || !Applies(ability, context, allowOptional: true))
+                        continue;
+                    var n = ability.Amount > 0 ? ability.Amount : BuyActionDefaults.DressBuyUpTo;
+                    if (n > best)
+                        best = n;
+                }
+            }
+            return best;
         }
 
         private static bool RerollOnesWhenMatches(AbilityDefinition ability, AbilityContext context)

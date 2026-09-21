@@ -131,6 +131,30 @@ namespace Firefly.Core.State
         /// </summary>
         public const string MedicReroll = "medic-reroll";
         /// <summary>
+        /// Meadows: Kill Meadows instead of the threatened crew (Kill / Apprehend / Seize).
+        /// Options: <see cref="MeadowsRedirectOptions"/>.
+        /// </summary>
+        public const string MeadowsRedirect = "meadows-redirect";
+        /// <summary>
+        /// Sheydra / Stitch: switch skill for this test (once per job).
+        /// Options: <see cref="SkillSwitchOptions"/>.
+        /// </summary>
+        public const string SkillSwitch = "skill-switch";
+        /// <summary>
+        /// Holder Make-Work: also take a Fugitive Token.
+        /// Options: <see cref="HolderFugitiveOptions"/>.
+        /// </summary>
+        public const string MakeWorkFugitive = "make-work-fugitive";
+        /// <summary>
+        /// Wright: take Immoral +$100 per Fugitive on deliver.
+        /// Options: <see cref="WrightBonusOptions"/>.
+        /// </summary>
+        public const string FugitiveDeliverBonus = "fugitive-deliver-bonus";
+        /// <summary>
+        /// Universal Encyclopedia: reorder top Misbehave ids in <see cref="ChoiceSubmission.Values"/>.
+        /// </summary>
+        public const string MisbehaveReorder = "misbehave-reorder";
+        /// <summary>
         /// Roberta: discard Roberta or lose Solid Rep.
         /// Options: <see cref="DiscardOrLoseSolidOptions"/>. ContextId = contact id.
         /// </summary>
@@ -140,6 +164,34 @@ namespace Firefly.Core.State
         /// Options: <see cref="DalinRedrawOptions"/>.
         /// </summary>
         public const string MisbehaveDiscardRedraw = "misbehave-discard-redraw";
+    }
+
+    /// <summary>Discrete option ids for <see cref="PendingChoiceKinds.MeadowsRedirect"/>.</summary>
+    public static class MeadowsRedirectOptions
+    {
+        public const string KillMeadows = "kill-meadows";
+        public const string Decline = "decline";
+    }
+
+    /// <summary>Discrete option ids for <see cref="PendingChoiceKinds.SkillSwitch"/>.</summary>
+    public static class SkillSwitchOptions
+    {
+        public const string Switch = "switch";
+        public const string Keep = "keep";
+    }
+
+    /// <summary>Discrete option ids for <see cref="PendingChoiceKinds.MakeWorkFugitive"/>.</summary>
+    public static class HolderFugitiveOptions
+    {
+        public const string TakeFugitive = "take-fugitive";
+        public const string Decline = "decline";
+    }
+
+    /// <summary>Discrete option ids for <see cref="PendingChoiceKinds.FugitiveDeliverBonus"/>.</summary>
+    public static class WrightBonusOptions
+    {
+        public const string TakeBonus = "take-bonus";
+        public const string Decline = "decline";
     }
 
     /// <summary>Discrete option ids for <see cref="PendingChoiceKinds.DiscardOrLoseSolid"/>.</summary>

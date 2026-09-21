@@ -1,3 +1,4 @@
+using Firefly.Core.Abilities;
 using Firefly.Core.Cards;
 using Firefly.Core.State;
 
@@ -6,19 +7,23 @@ namespace Firefly.Core.Actions
     public enum WorkKind
     {
         Pickup,
-        Complete
+        Complete,
+        MakeWork,
+        Datascope
     }
 
     public sealed class WorkResult
     {
         public WorkKind Kind { get; }
-        public JobCard Job { get; }
+        public JobCard? Job { get; }
         public bool AwaitingMisbehave { get; }
         public bool BecameActive { get; }
         public int Pay { get; }
         public int MoralDisgruntled { get; }
+        public int FugitivesGained { get; }
+        public int SupplyDiscarded { get; }
 
-        public WorkResult(WorkKind kind, JobCard job, bool awaitingMisbehave, bool becameActive, int pay, int moralDisgruntled)
+        public WorkResult(WorkKind kind, JobCard? job, bool awaitingMisbehave, bool becameActive, int pay, int moralDisgruntled, int fugitivesGained = 0, int supplyDiscarded = 0)
         {
             Kind = kind;
             Job = job;
@@ -26,7 +31,21 @@ namespace Firefly.Core.Actions
             BecameActive = becameActive;
             Pay = pay;
             MoralDisgruntled = moralDisgruntled;
+            FugitivesGained = fugitivesGained;
+            SupplyDiscarded = supplyDiscarded;
         }
+    }
+
+    public sealed class MakeWorkChoice
+    {
+        /// <summary>Holder may: null = undecided, true = take Fugitive, false = decline.</summary>
+        public bool? TakeFugitive { get; set; }
+    }
+
+    public sealed class WrightBonusChoice
+    {
+        /// <summary>Wright may: null = undecided, true = take Immoral bonus, false = decline.</summary>
+        public bool? AcceptBonus { get; set; }
     }
 
     /// <summary>
@@ -37,6 +56,10 @@ namespace Firefly.Core.Actions
     /// </summary>
     public sealed class WorkAction
     {
+        public const int MakeWorkPay = 200;
+        private WrightBonusChoice? _wrightBonusChoice;
+        private MakeWorkChoice? _makeWorkChoice;
+
         public bool TryWork(GameState game, string playerId, string jobId, out WorkResult? result, out string? error)
         {
             result = null;
@@ -187,7 +210,7 @@ namespace Firefly.Core.Actions
                 completeAfter, out result, out error);
         }
 
-        private static bool FinishOrMisbehave(
+        private bool FinishOrMisbehave(
             GameState game,
             PlayerState player,
             JobCard job,
@@ -241,7 +264,7 @@ namespace Firefly.Core.Actions
             return ApplySite(game, player, job, active, terms, kind, completeAfter, becameActive, moral, out result, out error);
         }
 
-        private static bool ApplySite(
+        private bool ApplySite(
             GameState game,
             PlayerState player,
             JobCard job,
@@ -253,7 +276,7 @@ namespace Firefly.Core.Actions
             out string? error) =>
             ApplySite(game, player, job, active, terms, kind, completeAfter, false, 0, out result, out error);
 
-        private static bool ApplySite(
+        private bool ApplySite(
             GameState game,
             PlayerState player,
             JobCard job,
@@ -296,10 +319,29 @@ namespace Firefly.Core.Actions
                 return true;
             }
 
-            if (!UnloadGoods(player, active ?? new ActiveJob(job.Id), JobTerms.HasDropoff(job) ? JobTerms.Dropoff(job) : terms, out error))
+            var deliveredActive = active ?? new ActiveJob(job.Id);
+            var deliverTerms = JobTerms.HasDropoff(job) ? JobTerms.Dropoff(job) : terms;
+            var fugiDelivered = CountFugitivesDelivered(deliveredActive, deliverTerms);
+            var wright = AbilityDispatcher.FindFugitiveDeliverBonus(player);
+            if (wright != null && fugiDelivered > 0 && _wrightBonusChoice?.AcceptBonus == null)
+            {
+                if (!TrySuspendWrightBonus(game, player, job.Id, fugiDelivered, out error))
+                    return false;
+                error = "Choose whether to take Wright's Immoral Fugitive bonus.";
+                return false;
+            }
+
+            if (!UnloadGoods(player, deliveredActive, deliverTerms, out error))
                 return false;
 
-            var pay = PayOut(game, player, job, active ?? new ActiveJob(job.Id));
+            var pay = PayOut(game, player, job, deliveredActive);
+            if (wright != null && fugiDelivered > 0 && _wrightBonusChoice?.AcceptBonus == true)
+            {
+                var per = wright.Amount > 0 ? wright.Amount : 100;
+                pay += per * fugiDelivered;
+                disgruntled += player.Roster.DisgruntleMoral();
+            }
+            _wrightBonusChoice = null;
             player.Cash += pay;
             if (game.Contacts != null && game.Contacts.TryFindByName(job.ContactName, out var contact))
             {
@@ -414,6 +456,215 @@ namespace Firefly.Core.Actions
             if (partsBonus > 0 && HoldSpace.Fits(player, addParts: partsBonus))
                 player.Parts += partsBonus;
             return pay;
+        }
+
+        /// <summary>
+        /// GF9 Make-Work: Work Action in a Planetary Sector for $200.
+        /// Holder may also take a Fugitive Token.
+        /// </summary>
+        public bool TryMakeWork(
+            GameState game,
+            string playerId,
+            out WorkResult? result,
+            out string? error,
+            MakeWorkChoice? choice = null)
+        {
+            result = null;
+            if (!CanStart(game, playerId, out var player, out error))
+                return false;
+            if (game.PendingMisbehave != null)
+            {
+                error = "Finish the pending Misbehave before working again.";
+                return false;
+            }
+            if (!game.Map.TryGet(player.SectorId, out var sector) || !sector.IsPlanetary)
+            {
+                error = "Make-Work requires a Planetary Sector.";
+                return false;
+            }
+
+            var working = choice ?? _makeWorkChoice ?? new MakeWorkChoice();
+            var holder = AbilityDispatcher.HasMakeWorkTakeFugitive(player);
+            if (holder && working.TakeFugitive == null)
+            {
+                _makeWorkChoice = working;
+                var pending = new PendingChoice(
+                    player.Id,
+                    PendingChoiceKinds.MakeWorkFugitive,
+                    options: new[] { HolderFugitiveOptions.TakeFugitive, HolderFugitiveOptions.Decline },
+                    prompt: "Take a Fugitive Token with Make-Work?");
+                if (!game.TrySetPendingChoice(pending, out error))
+                    return false;
+                error = "Choose whether to take a Fugitive Token.";
+                return false;
+            }
+
+            var fugitives = 0;
+            if (holder && working.TakeFugitive == true)
+            {
+                if (!HoldSpace.Fits(player, addFugitives: 1))
+                {
+                    error = "No hold space for a Fugitive Token.";
+                    return false;
+                }
+                player.Fugitives += 1;
+                fugitives = 1;
+            }
+
+            player.Cash += MakeWorkPay;
+            _makeWorkChoice = null;
+            game.TryConsumeAction(TurnAction.Work, out _);
+            result = new WorkResult(WorkKind.MakeWork, null, false, false, MakeWorkPay, 0, fugitives);
+            error = null;
+            return true;
+        }
+
+        public bool TryResumeMakeWorkFugitive(
+            GameState game,
+            ChoiceSubmission submission,
+            out WorkResult? result,
+            out string? error)
+        {
+            result = null;
+            if (game.PendingChoice == null
+                || !string.Equals(
+                    game.PendingChoice.Kind,
+                    PendingChoiceKinds.MakeWorkFugitive,
+                    System.StringComparison.Ordinal))
+            {
+                error = "No Make-Work Fugitive choice is pending.";
+                return false;
+            }
+
+            var take = false;
+            if (submission.Accepted != null)
+                take = submission.Accepted.Value;
+            else if (string.Equals(
+                         submission.SelectedOptionId,
+                         HolderFugitiveOptions.TakeFugitive,
+                         System.StringComparison.Ordinal))
+                take = true;
+            else if (string.Equals(
+                         submission.SelectedOptionId,
+                         HolderFugitiveOptions.Decline,
+                         System.StringComparison.Ordinal))
+                take = false;
+            else
+            {
+                error = "Take Fugitive or decline.";
+                return false;
+            }
+
+            if (!game.TrySubmitChoice(game.PendingChoice.PlayerId, submission, out _, out error))
+                return false;
+
+            _makeWorkChoice = new MakeWorkChoice { TakeFugitive = take };
+            return TryMakeWork(game, game.CurrentPlayer.Id, out result, out error, _makeWorkChoice);
+        }
+
+        /// <summary>
+        /// Early's Datascope: Work Action — reveal top 3 Supply at current planet into discard.
+        /// </summary>
+        public bool TryDatascope(
+            GameState game,
+            string playerId,
+            out WorkResult? result,
+            out string? error)
+        {
+            result = null;
+            if (!CanStart(game, playerId, out var player, out error))
+                return false;
+            if (!AbilityDispatcher.HasWorkRevealDiscardSupply(game, player))
+            {
+                error = "Early's Datascope must be carried to use this Work Action.";
+                return false;
+            }
+            if (!game.Map.TryGet(player.SectorId, out var sector)
+                || string.IsNullOrWhiteSpace(sector.Planet)
+                || game.SupplyDecks == null
+                || !game.SupplyDecks.TryGet(sector.Planet, out var market))
+            {
+                error = "Datascope requires a Supply planet sector.";
+                return false;
+            }
+
+            var n = AbilityDispatcher.WorkRevealDiscardSupplyAmount(game, player);
+            var before = market.Discard.Count;
+            market.PrimeToDiscard(n);
+            var discarded = market.Discard.Count - before;
+            game.TryConsumeAction(TurnAction.Work, out _);
+            result = new WorkResult(WorkKind.Datascope, null, false, false, 0, 0, supplyDiscarded: discarded);
+            error = null;
+            return true;
+        }
+
+        public bool TryResumeWrightBonus(
+            GameState game,
+            ChoiceSubmission submission,
+            out WorkResult? result,
+            out string? error)
+        {
+            result = null;
+            if (game.PendingChoice == null
+                || !string.Equals(
+                    game.PendingChoice.Kind,
+                    PendingChoiceKinds.FugitiveDeliverBonus,
+                    System.StringComparison.Ordinal))
+            {
+                error = "No Wright bonus choice is pending.";
+                return false;
+            }
+
+            var accept = false;
+            if (submission.Accepted != null)
+                accept = submission.Accepted.Value;
+            else if (string.Equals(
+                         submission.SelectedOptionId,
+                         WrightBonusOptions.TakeBonus,
+                         System.StringComparison.Ordinal))
+                accept = true;
+            else if (string.Equals(
+                         submission.SelectedOptionId,
+                         WrightBonusOptions.Decline,
+                         System.StringComparison.Ordinal))
+                accept = false;
+            else
+            {
+                error = "Take Wright bonus or decline.";
+                return false;
+            }
+
+            var jobId = game.PendingChoice.ContextId;
+            if (!game.TrySubmitChoice(game.PendingChoice.PlayerId, submission, out _, out error))
+                return false;
+
+            _wrightBonusChoice = new WrightBonusChoice { AcceptBonus = accept };
+            return TryWork(game, game.CurrentPlayer.Id, jobId ?? "", out result, out error);
+        }
+
+        private static bool TrySuspendWrightBonus(
+            GameState game,
+            PlayerState player,
+            string jobId,
+            int fugitives,
+            out string? error)
+        {
+            var pending = new PendingChoice(
+                player.Id,
+                PendingChoiceKinds.FugitiveDeliverBonus,
+                contextId: jobId,
+                options: new[] { WrightBonusOptions.TakeBonus, WrightBonusOptions.Decline },
+                prompt: $"Take ${100 * fugitives} Immoral bonus for delivering Fugitives?");
+            return game.TrySetPendingChoice(pending, out error);
+        }
+
+        private static int CountFugitivesDelivered(ActiveJob active, JobSiteTerms terms)
+        {
+            if (terms.FugitivesUnlimited)
+                return active.Fugitives;
+            if (terms.Fugitives > 0)
+                return terms.Fugitives;
+            return active.Fugitives;
         }
 
         /// <summary>

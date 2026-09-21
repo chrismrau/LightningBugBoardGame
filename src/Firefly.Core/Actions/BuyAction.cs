@@ -44,9 +44,10 @@ namespace Firefly.Core.Actions
 
     /// <summary>
     /// Buy at a Supply planet. One action may purchase any mix of:
-    /// Fuel ($100), Parts ($300), and any of the 3 face-up Supply cards
-    /// (Gear, Crew, Ship Upgrades, Drive Cores). Bought cards are replaced
-    /// from that planet's Supply deck.
+    /// Fuel ($100), Parts ($300), and face-up Supply cards (Gear, Crew,
+    /// Ship Upgrades, Drive Cores). GF9: Consider 3 / Buy 2 — kernel enforces
+    /// max <see cref="BuyActionDefaults.MaxBuyCards"/> cards unless Dress raises it.
+    /// Bought cards are replaced from that planet's Supply deck.
     /// </summary>
     public sealed class BuyAction
     {
@@ -170,6 +171,16 @@ namespace Firefly.Core.Actions
                     return false;
                 }
                 wanted.Add(onTable);
+            }
+
+            // GF9 Buy Actions: Consider 3 / Buy 2. Dress may raise to 3.
+            var maxCards = AbilityDispatcher.BuySupplyCardsUpTo(game, player);
+            if (maxCards <= 0)
+                maxCards = BuyActionDefaults.MaxBuyCards;
+            if (wanted.Count > maxCards)
+            {
+                error = $"May Buy at most {maxCards} Supply card(s) per Buy Action.";
+                return false;
             }
 
             var cost = request.Fuel * FuelPrice + request.Parts * PartsPrice;

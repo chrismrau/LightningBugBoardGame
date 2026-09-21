@@ -588,9 +588,16 @@
         "Space Bazaar": 1
       },
       "count": 1,
-      "specialAbilityType": null,
+      "specialAbilityType": "workRevealDiscardSupply",
       "ability": null,
-      "id": "gear_earlys-datascope_piratesbountyhunters"
+      "id": "gear_earlys-datascope_piratesbountyhunters",
+      "abilities": [
+        {
+          "type": "workRevealDiscardSupply",
+          "amount": 3,
+          "mandatory": false
+        }
+      ]
     },
     {
       "class": "Standard",
@@ -1051,9 +1058,16 @@
         "Persephone": 1
       },
       "count": 1,
-      "specialAbilityType": null,
+      "specialAbilityType": "buySupplyCardsUpTo",
       "ability": null,
-      "id": "gear_kaylees-fluffy-pink-dress"
+      "id": "gear_kaylees-fluffy-pink-dress",
+      "abilities": [
+        {
+          "type": "buySupplyCardsUpTo",
+          "amount": 3,
+          "mandatory": false
+        }
+      ]
     },
     {
       "class": "Standard",
@@ -1929,9 +1943,16 @@
         "Osiris": 1
       },
       "count": 1,
-      "specialAbilityType": null,
+      "specialAbilityType": "dealReorderMisbehave",
       "ability": null,
-      "id": "gear_universal-encyclopedia_breakinatmo"
+      "id": "gear_universal-encyclopedia_breakinatmo",
+      "abilities": [
+        {
+          "type": "dealReorderMisbehave",
+          "amount": 3,
+          "mandatory": false
+        }
+      ]
     },
     {
       "class": "Standard",

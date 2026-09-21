@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Firefly.Core.Abilities;
 using Firefly.Core.Cards;
 using Firefly.Core.State;
 
@@ -23,6 +24,10 @@ namespace Firefly.Core.Actions
         /// FAQ 4.1: when Solid with Harken, buy Fuel for $100 each while Dealing with Harken.
         /// </summary>
         public int BuyFuel { get; set; }
+        /// <summary>
+        /// Universal Encyclopedia: reorder top Misbehave ids (first = new top). Empty = skip.
+        /// </summary>
+        public IList<string> MisbehaveReorderIds { get; set; } = new List<string>();
     }
 
     public sealed class DealResult
@@ -171,6 +176,32 @@ namespace Firefly.Core.Actions
             {
                 error = $"May take at most {maxKeep} jobs from those considered.";
                 return false;
+            }
+
+            var reorder = request.MisbehaveReorderIds;
+            if (reorder != null && reorder.Count > 0)
+            {
+                var reorderMax = player.Deal.ReorderMisbehaveTop;
+                if (reorderMax <= 0)
+                    reorderMax = AbilityDispatcher.DealReorderMisbehaveAmount(game, player);
+                if (reorderMax <= 0)
+                {
+                    error = "Universal Encyclopedia is required to reorder Misbehave cards.";
+                    return false;
+                }
+                if (game.Misbehave == null)
+                {
+                    error = "Misbehave deck is not loaded.";
+                    return false;
+                }
+                var peeked = game.Misbehave.PeekTop(reorderMax);
+                if (reorder.Count != peeked.Count)
+                {
+                    error = $"Misbehave reorder expects {peeked.Count} card id(s).";
+                    return false;
+                }
+                if (!game.Misbehave.TryReorderTop(reorder, out error))
+                    return false;
             }
 
             var drawn = considering
@@ -467,13 +498,38 @@ namespace Firefly.Core.Actions
                 return true;
             if (contact.IsMrUniverse && player.IsSolidWith(contact.Id))
                 return true;
-            if (player.Deal.CanDealFromAnySector || player.Deal.ConsiderTopCardFromAnyContact)
+            // Cortex Uplink (modifier or live gear query).
+            if (player.Deal.ConsiderTopCardFromAnyContact
+                || AbilityDispatcher.HasConsiderTopAnyContact(game, player))
+                return true;
+            // Universal Encyclopedia.
+            if (player.Deal.ReorderMisbehaveTop > 0
+                || AbilityDispatcher.HasDealReorderMisbehave(game, player))
+                return true;
+            // Fess: remote Deal only with the named Contact (Higgins).
+            var named = player.Deal.NamedRemoteContact
+                ?? AbilityDispatcher.FindDealWithNamedContact(player);
+            if (!string.IsNullOrWhiteSpace(named) && ContactMatchesName(contact, named))
+                return true;
+            // Legacy remote Deal without a named-contact restriction.
+            if (player.Deal.CanDealFromAnySector && string.IsNullOrWhiteSpace(named))
                 return true;
 
             error = contact.IsHarken
                 ? "Harken can only be Dealt with on the Alliance Cruiser."
                 : $"Must be in {contact.Name}'s sector to Deal.";
             return false;
+        }
+
+        private static bool ContactMatchesName(ContactCard contact, string name)
+        {
+            if (contact.Name.Equals(name, System.StringComparison.OrdinalIgnoreCase))
+                return true;
+            if (contact.Id.Equals(name, System.StringComparison.OrdinalIgnoreCase))
+                return true;
+            if (name.Equals("Higgins", System.StringComparison.OrdinalIgnoreCase) && contact.IsHiggins)
+                return true;
+            return contact.Id.IndexOf(name.Replace(" ", "-"), System.StringComparison.OrdinalIgnoreCase) >= 0;
         }
 
         public static bool IsAtContact(GameState game, PlayerState player, ContactCard contact)

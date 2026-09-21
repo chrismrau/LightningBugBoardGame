@@ -43,6 +43,7 @@ namespace Firefly.Core.Actions
         /// <summary>
         /// Fully Equipped Med Bay may: null = undecided (PendingChoice), true = re-roll the
         /// current Medic Check die once, false = keep the first die.
+        /// GF9: one Medic Check per Crew Killed; Med Bay may re-roll each Medic Check.
         /// </summary>
         public bool? AcceptMedicReroll { get; set; }
 
@@ -51,6 +52,18 @@ namespace Firefly.Core.Actions
 
         /// <summary>Victim id whose Medic Check is awaiting Med Bay re-roll.</summary>
         public string? MedicPendingVictimId { get; set; }
+
+        /// <summary>
+        /// Meadows Hero Worship may: null = undecided, true = Kill Meadows instead of the
+        /// first threatened victim this batch, false = decline for the whole Kill N batch.
+        /// </summary>
+        public bool? AcceptMeadowsRedirect { get; set; }
+
+        /// <summary>True after Meadows was offered once this Kill N batch.</summary>
+        public bool MeadowsOfferedThisBatch { get; set; }
+
+        /// <summary>Victim ids already fully resolved in this Kill N (Med Bay multi-check).</summary>
+        public IList<string>? ResolvedVictimIds { get; set; }
     }
 
     public sealed class KillResult
@@ -274,8 +287,7 @@ namespace Firefly.Core.Actions
             if (!game.TrySubmitChoice(player.Id, submission, out _, out error))
                 return false;
 
-            killed = ApplyKillUpTo(game, player, count, rng, merged);
-            return true;
+            return TryKillUpTo(game, player, count, rng, out killed, out error, merged);
         }
 
         /// <summary>
@@ -434,8 +446,7 @@ namespace Firefly.Core.Actions
             if (!game.TrySubmitChoice(player.Id, submission, out _, out error))
                 return false;
 
-            killed = ApplyKillUpTo(game, player, count, rng, merged);
-            return true;
+            return TryKillUpTo(game, player, count, rng, out killed, out error, merged);
         }
 
         public static KillResult Apply(
@@ -495,7 +506,8 @@ namespace Firefly.Core.Actions
         }
 
         /// <summary>
-        /// FAQ 4.1 p.8 may: after the first Medic die, always suspend when Med Bay is present.
+        /// FAQ 4.1 p.8 may: after the Medic die for the pending victim, suspend when Med Bay present.
+        /// GF9: one Medic Check per Crew Killed — each check may be re-rolled.
         /// </summary>
         public static bool NeedsMedicRerollChoice(
             GameState game,
@@ -513,6 +525,16 @@ namespace Firefly.Core.Actions
             return AbilityDispatcher.HasMedicCheckReroll(game, player);
         }
 
+        public static bool NeedsMeadowsRedirectChoice(PlayerState player, KillChoice? choice = null)
+        {
+            if (choice?.MeadowsOfferedThisBatch == true)
+                return false;
+            if (choice?.AcceptMeadowsRedirect != null)
+                return false;
+            var meadows = AbilityDispatcher.FindMeadowsRedirect(player);
+            return meadows != null;
+        }
+
         public static bool TrySuspendMedicRerollChoice(
             GameState game,
             PlayerState player,
@@ -527,6 +549,23 @@ namespace Firefly.Core.Actions
                 contextId: count.ToString(),
                 options: new[] { SkillRerollOptions.Keep, SkillRerollOptions.Reroll },
                 prompt: prompt ?? "Re-roll this Medic Check?");
+            return game.TrySetPendingChoice(pending, out error);
+        }
+
+        public static bool TrySuspendMeadowsRedirectChoice(
+            GameState game,
+            PlayerState player,
+            int count,
+            out string? error,
+            string? prompt = null)
+        {
+            error = null;
+            var pending = new PendingChoice(
+                player.Id,
+                PendingChoiceKinds.MeadowsRedirect,
+                contextId: count.ToString(),
+                options: new[] { MeadowsRedirectOptions.KillMeadows, MeadowsRedirectOptions.Decline },
+                prompt: prompt ?? "Kill Meadows instead?");
             return game.TrySetPendingChoice(pending, out error);
         }
 
@@ -575,14 +614,90 @@ namespace Firefly.Core.Actions
             return true;
         }
 
+        public static bool TryMergeMeadowsRedirectSubmission(
+            ChoiceSubmission submission,
+            KillChoice? choice,
+            out KillChoice merged,
+            out string? error)
+        {
+            merged = CloneKillChoice(choice);
+            error = null;
+            if (submission == null)
+            {
+                error = "A choice submission is required.";
+                return false;
+            }
+
+            bool accept;
+            if (submission.Accepted != null)
+                accept = submission.Accepted.Value;
+            else if (!string.IsNullOrWhiteSpace(submission.SelectedOptionId))
+            {
+                if (string.Equals(
+                        submission.SelectedOptionId,
+                        MeadowsRedirectOptions.KillMeadows,
+                        StringComparison.Ordinal))
+                    accept = true;
+                else if (string.Equals(
+                             submission.SelectedOptionId,
+                             MeadowsRedirectOptions.Decline,
+                             StringComparison.Ordinal))
+                    accept = false;
+                else
+                {
+                    error = $"Unknown Meadows option '{submission.SelectedOptionId}'.";
+                    return false;
+                }
+            }
+            else
+            {
+                error = "Accept (Kill Meadows) or decline.";
+                return false;
+            }
+
+            merged.AcceptMeadowsRedirect = accept;
+            merged.MeadowsOfferedThisBatch = true;
+            return true;
+        }
+
+        /// <summary>
+        /// Apply Meadows redirect: replace the first non-Meadows victim with Meadows.
+        /// Original victim is spared; remaining victims stay on the list.
+        /// </summary>
+        public static void ApplyMeadowsRedirectToVictims(PlayerState player, KillChoice choice)
+        {
+            var meadows = AbilityDispatcher.FindMeadowsRedirect(player);
+            if (meadows == null || choice.AcceptMeadowsRedirect != true)
+                return;
+
+            var victims = SelectVictims(player, choice.VictimCrewIds?.Count ?? player.Roster.Count, choice);
+            if (victims.Count == 0)
+            {
+                choice.VictimCrewIds = new List<string> { meadows.Id };
+                return;
+            }
+
+            var ids = new List<string>();
+            var replaced = false;
+            foreach (var v in victims)
+            {
+                if (!replaced && v.Id != meadows.Id)
+                {
+                    ids.Add(meadows.Id);
+                    replaced = true;
+                }
+                else if (v.Id != meadows.Id)
+                    ids.Add(v.Id);
+            }
+            if (!replaced)
+                ids.Insert(0, meadows.Id);
+            choice.VictimCrewIds = ids;
+        }
+
         /// <summary>
         /// Subject up to <paramref name="count"/> crew to kill events.
-        /// When victim selection is required and <see cref="KillChoice.VictimCrewIds"/> is
-        /// unset, suspends via PendingChoice and returns false (killed = 0).
-        /// When Med Foam is usable and undecided, suspends via
-        /// <see cref="PendingChoiceKinds.MedFoamDiscard"/>.
-        /// When Med Bay may re-roll is undecided, rolls the first Medic die then suspends
-        /// via <see cref="PendingChoiceKinds.MedicReroll"/>.
+        /// Meadows: offer redirect once per Kill N batch, then mandatory resolution.
+        /// Med Bay: one re-roll offer per Medic Check (per Crew Killed).
         /// </summary>
         public static bool TryKillUpTo(
             GameState game,
@@ -606,7 +721,30 @@ namespace Firefly.Core.Actions
                 return false;
             }
 
-            if (NeedsMedFoamChoice(game, player, count, choice))
+            var working = CloneKillChoice(choice);
+
+            if (NeedsMeadowsRedirectChoice(player, working))
+            {
+                if (!TrySuspendMeadowsRedirectChoice(game, player, count, out error))
+                    return false;
+                // Mirror die/victim fields back for callers holding the same choice object.
+                if (choice != null)
+                    choice.MeadowsOfferedThisBatch = working.MeadowsOfferedThisBatch;
+                error = "Choose whether to Kill Meadows instead.";
+                return false;
+            }
+
+            if (working.AcceptMeadowsRedirect == true)
+                ApplyMeadowsRedirectToVictims(player, working);
+            if (choice != null)
+            {
+                choice.AcceptMeadowsRedirect = working.AcceptMeadowsRedirect;
+                choice.MeadowsOfferedThisBatch = working.MeadowsOfferedThisBatch;
+                if (working.VictimCrewIds != null)
+                    choice.VictimCrewIds = working.VictimCrewIds;
+            }
+
+            if (NeedsMedFoamChoice(game, player, count, working))
             {
                 if (!TrySuspendMedFoamChoice(game, player, count, out error))
                     return false;
@@ -614,51 +752,99 @@ namespace Firefly.Core.Actions
                 return false;
             }
 
-            // Med Bay: roll first Medic die for the pending/first victim, then always suspend.
-            if (NeedsMedicRerollChoice(game, player, choice)
-                && (choice?.MedicFirstDie == null || choice.AcceptMedicReroll == null))
+            // Process victims sequentially; suspend Med Bay per Medic Check.
+            var victims = SelectVictims(player, count, working);
+            var resolved = new HashSet<string>(StringComparer.Ordinal);
+            if (working.ResolvedVictimIds != null)
             {
-                var working = CloneKillChoice(choice);
-                if (working.MedicFirstDie == null)
+                foreach (var id in working.ResolvedVictimIds)
+                    resolved.Add(id);
+            }
+
+            var foamForFirst = false;
+            if (working.UseMedFoam == true && !working.CountAsSuccessfulMedicCheck)
+            {
+                if (TryDiscardMedFoam(game, player, out _))
+                    foamForFirst = true;
+            }
+
+            var firstMedicSlot = true;
+            foreach (var victim in victims)
+            {
+                if (resolved.Contains(victim.Id))
+                    continue;
+                var member = player.Roster.Find(victim.Id);
+                if (member == null)
                 {
-                    var victims = SelectVictims(player, count, working);
-                    CrewMember? medicVictim = null;
-                    foreach (var v in victims)
+                    MarkResolved(working, choice, victim.Id);
+                    continue;
+                }
+
+                KillChoice applyChoice = CloneKillChoice(working);
+                if (foamForFirst && firstMedicSlot && (working.AttemptMedicCheck ?? true) && HasMedic(player))
+                {
+                    applyChoice.CountAsSuccessfulMedicCheck = true;
+                    applyChoice.UseMedFoam = false;
+                    firstMedicSlot = false;
+                }
+                else if (NeedsMedicRerollChoice(game, player, applyChoice)
+                         && (applyChoice.MedicFirstDie == null
+                             || !string.Equals(applyChoice.MedicPendingVictimId, member.Id, StringComparison.Ordinal)
+                             || applyChoice.AcceptMedicReroll == null))
+                {
+                    // New Medic Check for this victim — roll and suspend.
+                    if (applyChoice.MedicFirstDie == null
+                        || !string.Equals(applyChoice.MedicPendingVictimId, member.Id, StringComparison.Ordinal))
                     {
-                        if (player.Roster.Find(v.Id) != null)
+                        applyChoice.MedicFirstDie = Dice.D6(rng);
+                        applyChoice.MedicPendingVictimId = member.Id;
+                        applyChoice.AcceptMedicReroll = null;
+                        if (choice != null)
                         {
-                            medicVictim = v;
-                            break;
+                            choice.MedicFirstDie = applyChoice.MedicFirstDie;
+                            choice.MedicPendingVictimId = applyChoice.MedicPendingVictimId;
+                            choice.AcceptMedicReroll = null;
+                            choice.ResolvedVictimIds = working.ResolvedVictimIds;
+                            choice.VictimCrewIds = working.VictimCrewIds;
                         }
                     }
-                    if (medicVictim == null)
-                    {
-                        killed = ApplyKillUpTo(game, player, count, rng, working);
-                        return true;
-                    }
 
-                    working.MedicFirstDie = Dice.D6(rng);
-                    working.MedicPendingVictimId = medicVictim.Id;
-                    // Copy back so resume can merge onto the same choice object when provided.
-                    if (choice != null)
+                    if (applyChoice.AcceptMedicReroll == null)
                     {
-                        choice.MedicFirstDie = working.MedicFirstDie;
-                        choice.MedicPendingVictimId = working.MedicPendingVictimId;
+                        if (!TrySuspendMedicRerollChoice(game, player, count, out error))
+                            return false;
+                        error = "Choose whether to re-roll this Medic Check.";
+                        return false;
                     }
                 }
 
-                if (!TrySuspendMedicRerollChoice(game, player, count, out error))
-                    return false;
-                error = "Choose whether to re-roll this Medic Check.";
-                return false;
+                var result = Apply(game, player, member, rng, applyChoice);
+                MarkResolved(working, choice, victim.Id);
+                // Clear Med Bay pending fields. Keep AcceptMedicReroll=false only for
+                // scripted batch-wide decline (no MedicPendingVictimId).
+                var keepBatchDecline = applyChoice.AcceptMedicReroll == false
+                    && string.IsNullOrEmpty(applyChoice.MedicPendingVictimId);
+                working.MedicFirstDie = null;
+                working.MedicPendingVictimId = null;
+                working.AcceptMedicReroll = keepBatchDecline ? false : (bool?)null;
+                if (choice != null)
+                {
+                    choice.AcceptMedicReroll = working.AcceptMedicReroll;
+                    choice.MedicFirstDie = null;
+                    choice.MedicPendingVictimId = null;
+                    choice.ResolvedVictimIds = working.ResolvedVictimIds;
+                }
+                if (result.Outcome == CrewOutcome.Killed)
+                    killed++;
+                firstMedicSlot = false;
             }
 
-            killed = ApplyKillUpTo(game, player, count, rng, choice);
             return true;
         }
 
         /// <summary>
-        /// Resume after <see cref="PendingChoiceKinds.MedicReroll"/>.
+        /// Resume after <see cref="PendingChoiceKinds.MedicReroll"/>. Continues the Kill N batch
+        /// so later victims may each receive their own Med Bay offer.
         /// </summary>
         public static bool TryResumeMedicRerollKillUpTo(
             GameState game,
@@ -693,23 +879,111 @@ namespace Firefly.Core.Actions
             if (!game.TrySubmitChoice(player.Id, submission, out _, out error))
                 return false;
 
-            // Preserve first-die / victim from the pre-suspend roll on baseChoice.
             if (baseChoice != null)
             {
                 merged.MedicFirstDie ??= baseChoice.MedicFirstDie;
                 merged.MedicPendingVictimId ??= baseChoice.MedicPendingVictimId;
                 if (baseChoice.VictimCrewIds != null && merged.VictimCrewIds == null)
                     merged.VictimCrewIds = baseChoice.VictimCrewIds;
+                if (baseChoice.ResolvedVictimIds != null && merged.ResolvedVictimIds == null)
+                    merged.ResolvedVictimIds = baseChoice.ResolvedVictimIds;
+                merged.AcceptMeadowsRedirect ??= baseChoice.AcceptMeadowsRedirect;
+                merged.MeadowsOfferedThisBatch |= baseChoice.MeadowsOfferedThisBatch;
             }
 
-            killed = ApplyKillUpTo(game, player, count, rng, merged);
+            // Apply the pending Medic Check victim, then continue the batch.
+            if (!string.IsNullOrEmpty(merged.MedicPendingVictimId))
+            {
+                var member = player.Roster.Find(merged.MedicPendingVictimId);
+                if (member != null)
+                {
+                    var result = Apply(game, player, member, rng, merged);
+                    MarkResolved(merged, baseChoice, member.Id);
+                    if (result.Outcome == CrewOutcome.Killed)
+                        killed++;
+                }
+                else
+                    MarkResolved(merged, baseChoice, merged.MedicPendingVictimId!);
+            }
+
+            merged.AcceptMedicReroll = null;
+            merged.MedicFirstDie = null;
+            merged.MedicPendingVictimId = null;
+            if (baseChoice != null)
+            {
+                baseChoice.AcceptMedicReroll = null;
+                baseChoice.MedicFirstDie = null;
+                baseChoice.MedicPendingVictimId = null;
+                baseChoice.ResolvedVictimIds = merged.ResolvedVictimIds;
+            }
+
+            if (!TryKillUpTo(game, player, count, rng, out var moreKilled, out error, merged))
+            {
+                // Suspended again (next Med Bay / etc.) — killed so far still counts.
+                if (baseChoice != null)
+                {
+                    baseChoice.MedicFirstDie = merged.MedicFirstDie;
+                    baseChoice.MedicPendingVictimId = merged.MedicPendingVictimId;
+                    baseChoice.AcceptMedicReroll = merged.AcceptMedicReroll;
+                    baseChoice.ResolvedVictimIds = merged.ResolvedVictimIds;
+                    baseChoice.VictimCrewIds = merged.VictimCrewIds;
+                }
+                killed += moreKilled;
+                return false;
+            }
+
+            killed += moreKilled;
             return true;
+        }
+
+        /// <summary>Resume after <see cref="PendingChoiceKinds.MeadowsRedirect"/> on Kill N.</summary>
+        public static bool TryResumeMeadowsRedirectKillUpTo(
+            GameState game,
+            ChoiceSubmission submission,
+            IRng rng,
+            out int killed,
+            out string? error,
+            KillChoice? baseChoice = null)
+        {
+            killed = 0;
+            error = null;
+            if (game.PendingChoice == null
+                || !string.Equals(
+                    game.PendingChoice.Kind,
+                    PendingChoiceKinds.MeadowsRedirect,
+                    StringComparison.Ordinal))
+            {
+                error = "No Meadows redirect choice is pending.";
+                return false;
+            }
+
+            var player = game.GetPlayer(game.PendingChoice.PlayerId);
+            if (!TryParseKillCount(game.PendingChoice.ContextId, out var count))
+            {
+                error = "Meadows redirect context is missing the kill count.";
+                return false;
+            }
+
+            if (!TryMergeMeadowsRedirectSubmission(submission, baseChoice, out var merged, out error))
+                return false;
+
+            if (!game.TrySubmitChoice(player.Id, submission, out _, out error))
+                return false;
+
+            if (baseChoice != null)
+            {
+                if (baseChoice.VictimCrewIds != null && merged.VictimCrewIds == null)
+                    merged.VictimCrewIds = baseChoice.VictimCrewIds;
+                baseChoice.AcceptMeadowsRedirect = merged.AcceptMeadowsRedirect;
+                baseChoice.MeadowsOfferedThisBatch = true;
+            }
+
+            return TryKillUpTo(game, player, count, rng, out killed, out error, merged);
         }
 
         /// <summary>
         /// Apply Kill N when victims are already chosen or no choice is required.
-        /// Throws if a PendingChoice victim / Med Foam / Med Bay pick is still required — use
-        /// <see cref="TryKillUpTo"/>.
+        /// Scripted path auto-declines undecided Meadows / Med Bay may (use TryKillUpTo to ask).
         /// </summary>
         public static int KillUpTo(
             GameState game,
@@ -728,13 +1002,22 @@ namespace Firefly.Core.Actions
                 throw new InvalidOperationException(
                     "Med Foam discard requires PendingChoice or KillChoice.UseMedFoam.");
             }
-            if (NeedsMedicRerollChoice(game, player, choice)
-                && choice?.AcceptMedicReroll == null)
+
+            var working = CloneKillChoice(choice);
+            if (NeedsMeadowsRedirectChoice(player, working))
+            {
+                working.AcceptMeadowsRedirect = false;
+                working.MeadowsOfferedThisBatch = true;
+            }
+            if (NeedsMedicRerollChoice(game, player, working))
+                working.AcceptMedicReroll = false;
+
+            if (!TryKillUpTo(game, player, count, rng, out var killed, out var error, working))
             {
                 throw new InvalidOperationException(
-                    "Med Bay Medic re-roll requires PendingChoice or KillChoice.AcceptMedicReroll.");
+                    error ?? "KillUpTo suspended unexpectedly; use TryKillUpTo.");
             }
-            return ApplyKillUpTo(game, player, count, rng, choice);
+            return killed;
         }
 
         public static int KillAll(
@@ -763,73 +1046,22 @@ namespace Firefly.Core.Actions
             return !string.IsNullOrWhiteSpace(contextId) && int.TryParse(contextId, out count) && count > 0;
         }
 
-        private static int ApplyKillUpTo(
-            GameState game,
-            PlayerState player,
-            int count,
-            IRng rng,
-            KillChoice? choice)
+        private static void MarkResolved(KillChoice working, KillChoice? mirror, string victimId)
         {
-            if (count <= 0)
-                return 0;
-
-            // Printed Med Foam: one discard = one successful Medic Check. When the player
-            // accepts foam for a Kill N batch, discard once and succeed the first victim's
-            // Medic Check; remaining victims roll normally.
-            var foamForFirst = false;
-            if (choice?.UseMedFoam == true && !choice.CountAsSuccessfulMedicCheck)
+            working.ResolvedVictimIds ??= new List<string>();
+            var found = false;
+            foreach (var id in working.ResolvedVictimIds)
             {
-                if (!TryDiscardMedFoam(game, player, out _))
+                if (string.Equals(id, victimId, StringComparison.Ordinal))
                 {
-                    // Declared use but foam gone — fall through to normal Medic rolls.
-                    foamForFirst = false;
+                    found = true;
+                    break;
                 }
-                else
-                    foamForFirst = true;
             }
-
-            var victims = SelectVictims(player, count, choice);
-            var killed = 0;
-            var firstMedicDone = false;
-            foreach (var victim in victims)
-            {
-                var member = player.Roster.Find(victim.Id);
-                if (member == null)
-                    continue;
-
-                KillChoice? applyChoice = choice;
-                if (foamForFirst && !firstMedicDone && (choice?.AttemptMedicCheck ?? true) && HasMedic(player))
-                {
-                    applyChoice = CloneKillChoice(choice);
-                    applyChoice.CountAsSuccessfulMedicCheck = true;
-                    applyChoice.UseMedFoam = false;
-                    firstMedicDone = true;
-                }
-                else if (choice != null
-                         && string.Equals(
-                             choice.MedicPendingVictimId, member.Id, StringComparison.Ordinal)
-                         && choice.AcceptMedicReroll != null)
-                {
-                    applyChoice = CloneKillChoice(choice);
-                }
-                else if (choice != null
-                         && !string.IsNullOrEmpty(choice.MedicPendingVictimId)
-                         && !string.Equals(
-                             choice.MedicPendingVictimId, member.Id, StringComparison.Ordinal))
-                {
-                    // Later victims in the same batch: Med Bay may already consumed for the
-                    // pending victim — subsequent Medic Checks keep first die (no second suspend).
-                    applyChoice = CloneKillChoice(choice);
-                    applyChoice.AcceptMedicReroll = false;
-                    applyChoice.MedicFirstDie = null;
-                    applyChoice.MedicPendingVictimId = null;
-                }
-
-                var result = Apply(game, player, member, rng, applyChoice);
-                if (result.Outcome == CrewOutcome.Killed)
-                    killed++;
-            }
-            return killed;
+            if (!found)
+                working.ResolvedVictimIds.Add(victimId);
+            if (mirror != null)
+                mirror.ResolvedVictimIds = working.ResolvedVictimIds;
         }
 
         private static KillChoice CloneKillChoice(KillChoice? source)
@@ -844,7 +1076,12 @@ namespace Firefly.Core.Actions
                 UseMedFoam = source.UseMedFoam,
                 AcceptMedicReroll = source.AcceptMedicReroll,
                 MedicFirstDie = source.MedicFirstDie,
-                MedicPendingVictimId = source.MedicPendingVictimId
+                MedicPendingVictimId = source.MedicPendingVictimId,
+                AcceptMeadowsRedirect = source.AcceptMeadowsRedirect,
+                MeadowsOfferedThisBatch = source.MeadowsOfferedThisBatch,
+                ResolvedVictimIds = source.ResolvedVictimIds == null
+                    ? null
+                    : new List<string>(source.ResolvedVictimIds)
             };
         }
 

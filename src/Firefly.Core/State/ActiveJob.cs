@@ -9,6 +9,8 @@ namespace Firefly.Core.State
         public int Fugitives { get; set; }
         public int Passengers { get; set; }
         public int Parts { get; set; }
+        /// <summary>Sheydra / Stitch: once-per-job skill switch already used on this Active Job.</summary>
+        public bool SkillSwitchUsedThisJob { get; set; }
 
         public ActiveJob(string jobId)
         {

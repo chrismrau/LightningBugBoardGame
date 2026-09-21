@@ -857,9 +857,16 @@
         "Beaumonde": 1
       },
       "count": 1,
-      "specialAbilityType": "Constant bonus",
+      "specialAbilityType": "dealWithNamedContact",
       "ability": "1",
-      "id": "crew_fess_kalidasa"
+      "id": "crew_fess_kalidasa",
+      "abilities": [
+        {
+          "type": "dealWithNamedContact",
+          "subject": "Higgins",
+          "mandatory": false
+        }
+      ]
     },
     {
       "class": "Standard",
@@ -1119,9 +1126,15 @@
         "Beaumonde": 1
       },
       "count": 1,
-      "specialAbilityType": "Resources (Make-Work)",
+      "specialAbilityType": "makeWorkTakeFugitive",
       "ability": "0",
-      "id": "crew_holder_kalidasa"
+      "id": "crew_holder_kalidasa",
+      "abilities": [
+        {
+          "type": "makeWorkTakeFugitive",
+          "mandatory": false
+        }
+      ]
     },
     {
       "class": "Standard",
@@ -1363,9 +1376,15 @@
         "Silverhold": 1
       },
       "count": 1,
-      "specialAbilityType": "Constant bonus",
+      "specialAbilityType": "redirectKillApprehendSeize",
       "ability": "1",
-      "id": "crew_meadows_piratesbountyhunters"
+      "id": "crew_meadows_piratesbountyhunters",
+      "abilities": [
+        {
+          "type": "redirectKillApprehendSeize",
+          "mandatory": false
+        }
+      ]
     },
     {
       "class": "Standard",
@@ -1671,9 +1690,18 @@
         "Meridian": 1
       },
       "count": 1,
-      "specialAbilityType": "Boost (tests), switch",
+      "specialAbilityType": "oncePerJobSkillSwitch",
       "ability": "1",
-      "id": "crew_sheydra_bluesun"
+      "id": "crew_sheydra_bluesun",
+      "abilities": [
+        {
+          "type": "oncePerJobSkillSwitch",
+          "skill": "Fight",
+          "subject": "Talk",
+          "mandatory": false,
+          "jobOnly": true
+        }
+      ]
     },
     {
       "class": "Standard",
@@ -1794,9 +1822,18 @@
         "Silverhold": 1
       },
       "count": 1,
-      "specialAbilityType": "Boost (tests), switch",
+      "specialAbilityType": "oncePerJobSkillSwitch",
       "ability": "1",
-      "id": "crew_stitch"
+      "id": "crew_stitch",
+      "abilities": [
+        {
+          "type": "oncePerJobSkillSwitch",
+          "skill": "Talk",
+          "subject": "Fight",
+          "mandatory": false,
+          "jobOnly": true
+        }
+      ]
     },
     {
       "class": "Standard",
