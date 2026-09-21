@@ -240,9 +240,21 @@
         "Beaumonde": 1
       },
       "count": 3,
-      "specialAbilityType": null,
+      "specialAbilityType": "fullBurnRangeBonus+takeFuelOnDoubleBigBlack",
       "ability": null,
-      "id": "ship-upgrade_emissions-recycler_kalidasa"
+      "id": "ship-upgrade_emissions-recycler_kalidasa",
+      "abilities": [
+        {
+          "type": "fullBurnRangeBonus",
+          "amount": 1,
+          "mandatory": true
+        },
+        {
+          "type": "takeFuelOnDoubleBigBlack",
+          "amount": 1,
+          "mandatory": false
+        }
+      ]
     },
     {
       "class": "Standard",
@@ -316,9 +328,15 @@
         "YCTtS": 1
       },
       "count": 2,
-      "specialAbilityType": null,
+      "specialAbilityType": "discardGoodsClearDisgruntled",
       "ability": null,
-      "id": "ship-upgrade_full-mess-deck_esmeralda"
+      "id": "ship-upgrade_full-mess-deck_esmeralda",
+      "abilities": [
+        {
+          "type": "discardGoodsClearDisgruntled",
+          "mandatory": false
+        }
+      ]
     },
     {
       "class": "Standard",
@@ -448,9 +466,15 @@
         "Meridian": 1
       },
       "count": 1,
-      "specialAbilityType": null,
+      "specialAbilityType": "resolveAdjacentAlertTokens",
       "ability": null,
-      "id": "ship-upgrade_long-range-scanner-array_bluesun"
+      "id": "ship-upgrade_long-range-scanner-array_bluesun",
+      "abilities": [
+        {
+          "type": "resolveAdjacentAlertTokens",
+          "mandatory": false
+        }
+      ]
     },
     {
       "class": "Standard",

@@ -51,15 +51,24 @@ namespace Firefly.Core.State
         public int UsedHolds => HoldSpace.UsedGeneral(this);
         public int FreeHolds => HoldSpace.FreeGeneral(this);
 
-        public int EffectiveDriveRange
+        /// <summary>
+        /// Drive range + roster Full Burn bonuses (Wash). Ship-upgrade bonuses need
+        /// <see cref="GetEffectiveDriveRange"/>.
+        /// </summary>
+        public int EffectiveDriveRange => GetEffectiveDriveRange(game: null);
+
+        /// <summary>
+        /// Full Burn range including roster and installed ship-upgrade bonuses
+        /// (Emissions Recycler +1). Interceptor Optimal Spec −1 per upgrade.
+        /// </summary>
+        public int GetEffectiveDriveRange(GameState? game)
         {
-            get
-            {
-                var range = DriveRange + AbilityDispatcher.FullBurnRangeBonus(this);
-                if (string.Equals(ShipId, "ship_interceptor", StringComparison.OrdinalIgnoreCase))
-                    range -= ShipUpgrades.Count;
-                return range < 1 ? 1 : range;
-            }
+            var range = DriveRange + AbilityDispatcher.FullBurnRangeBonus(this);
+            if (game != null)
+                range += AbilityDispatcher.ShipUpgradeFullBurnRangeBonus(game, this);
+            if (string.Equals(ShipId, "ship_interceptor", StringComparison.OrdinalIgnoreCase))
+                range -= ShipUpgrades.Count;
+            return range < 1 ? 1 : range;
         }
 
         public void ApplyShip(ShipCard ship)

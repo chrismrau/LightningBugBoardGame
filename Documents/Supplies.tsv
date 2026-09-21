@@ -22,7 +22,7 @@ Standard	BS	Cortland	Crew	300	Laws Are For the Poor: May pay Bribes before any N
 Standard	F:tG	Crow	Crew	200	Knife Fighter: +[Fight] When Carrying a Knife. May not Carry a Firearm.	2				X	X																				1					1		Conditional bonus (Gear)	
 Standard	PBH	Dalin	Crew	200	Intel Broker: Once per Work Action, you may pay $200 to discard and re-draw a Misbehave Card.		1	1		X																		1								1		misbehaveDiscardRedraw	[{"type":"misbehaveDiscardRedraw","amount":200,"mandatory":false}]
 Standard	PBH	Deputy	Crew	0	Posse: +1 Fight in SHOWDOWN. Bounty Bonus: +$300. Will not work Illegal Jobs.			1	X			X																			1					1		Conditional bonus (Showdown)	
-Standard	PBH	Dobson	Crew	0	Mole: In Alliance Space, you may move Alliance Cruiser to your Sector as a Fly Action. Bounty Bonus +$500. Will not work Illegal Jobs.	1	1					X																	1							1		Constant bonus	
+Standard	PBH	Dobson	Crew	0	Mole: In Alliance Space, you may move Alliance Cruiser to your Sector as a Fly Action. Bounty Bonus +$500. Will not work Illegal Jobs.	1	1					X																	1							1		moveCruiserAsFly	[{"type":"moveCruiserAsFly","mandatory":false}]
 Standard	F:tG	Doralee	Crew	100	Angry Mob: +[Fighting] when you have at least 3 Hill Folk in your crew. Hill Folk.				X				X						X											1						1		Conditional bonus (Crew)	
 Standard	BA	Elder Gommen	Crew	0	Devout: If Working Immoral Job, Elder Gommen must stay Onboard Ship.			2	X				X																	1						1		Downside	
 Standard	F:tG	Emma	Crew	200	Morale Booster: You may use an Action on your turn to remove Disgruntled from a Crew other than Emma.			2	X							X													1							1		moraleBooster	[{"type":"moraleBooster","mandatory":false,"subject":"Emma"}]
@@ -166,15 +166,15 @@ Standard	F:tG	Cry Baby	Ship Upgrade	400	When in a Sector with Alliance Cruiser, 
 Standard	PBH	Cryo Stasis Chamber	Ship Upgrade	600	Rivals may not Jump your Bounties. 1 Crew aboard ship may ignore Alliance Wanted Crew Rolls.																								1							1			
 Standard	Jet	Decoy Nav Sat Cluster	Ship Upgrade	400	Discard at the beginning of a Move Action to treat all Nav Cards that would normally move a Reaver or Alliance Ship as a "Big Black" card instead.																							1							1	2			
 Standard	PBH	Electronic Defense Suite	Ship Upgrade	800	Rivals boarding your ship may not use Tech Skill for Boarding Tests. Spend 1 Fuel to Evade Reaver Cutter. Ignore the effects of either the Reaver Cutter Nav Card or Contact Event.																											2				2			
-Standard	Kal	Emissions Recycler	Ship Upgrade	800	+1 to Full Burn Range. If you draw two "Big Black" Nav Cards in a row while Full Burning, you may take 1 Fuel. Limit once per Fly Action.																							1			1			1		3			
+Standard	Kal	Emissions Recycler	Ship Upgrade	800	+1 to Full Burn Range. If you draw two "Big Black" Nav Cards in a row while Full Burning, you may take 1 Fuel. Limit once per Fly Action.																							1			1			1		3		fullBurnRangeBonus+takeFuelOnDoubleBigBlack	[{"type":"fullBurnRangeBonus","amount":1,"mandatory":true},{"type":"takeFuelOnDoubleBigBlack","amount":1,"mandatory":false}]
 Standard	PBH	EVA Suit	Ship Upgrade	600	+1 Tech for Boarding Tests. +1 Cargo from Salvage Ops. 1 Crew aboard ship may ignore Alliance Wanted Crew rolls.																							2								2			
 Standard	F:tG	Expanded Crew Quarters	Ship Upgrade	600	+3 to Ship's Max Crew.																											2				2			
-Standard	Esm	Full Mess Deck	Ship Upgrade	400	During a Fly Action, you may discard a Cargo or Contraband to remove Disgruntled from all your Crew.																								1						1	2			
+Standard	Esm	Full Mess Deck	Ship Upgrade	400	During a Fly Action, you may discard a Cargo or Contraband to remove Disgruntled from all your Crew.																								1						1	2		discardGoodsClearDisgruntled	[{"type":"discardGoodsClearDisgruntled","mandatory":false}]
 Standard	F:tG	Full Tune-Up & Retro-Fit	Ship Upgrade	800	Ignore all Breakdowns.																											1				1			
 Standard	F:tG	Fully Equipped Med Bay	Ship Upgrade	600	May re-roll Medic Checks.																											2				2		medicCheckReroll	[{"type":"medicCheckReroll","mandatory":false}]
 Standard	BS	Hull-Mounted Flak Gun	Ship Upgrade	400	When in a Sector with a Reaver Cutter, discard to ignore Reaver Cutter's effects and move that Reaver Cutter 1 Sector within Rim or Border Space.																												2			2			
 Standard	Kal	Hydraulic Docking Clamps	Ship Upgrade	600	Crime Jobs also count as Salvage Ops.																								1					1		2			
-Standard	BS	Long-Range Scanner Array	Ship Upgrade	800	During a Fly Action you may resolve Reaver or Alliance Alert Tokens in adjacent Sectors.																												1			1			
+Standard	BS	Long-Range Scanner Array	Ship Upgrade	800	During a Fly Action you may resolve Reaver or Alliance Alert Tokens in adjacent Sectors.																												1			1		resolveAdjacentAlertTokens	[{"type":"resolveAdjacentAlertTokens","mandatory":false}]
 Standard	PBH	Mag-Grappler Launchers	Ship Upgrade	800	+3 Tech for Boarding Tests. After Salvage Ops, Roll: Tech 8 - 1-7: Nothing Shiny. 8+ Take 1 Ship Upgrade from any discard pile.																										1					1			
 Standard	BS	Modded Fuel Catalyzer	Ship Upgrade	600	When initiating a Full Burn, Spend 1 additional Fuel to add +2 to your Drive Core's Max Range this turn.																												1			1			
 Standard	F:tG	Onboard Chop Shop	Ship Upgrade	1600	After any Salvage Op, take $500 and Load 1 Contraband.																										2					2			
