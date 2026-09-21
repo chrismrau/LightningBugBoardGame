@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Firefly.Core.Actions;
 using Firefly.Core.Cards;
 using Firefly.Core.Map;
 using Firefly.Core.Movement;
@@ -212,6 +213,7 @@ namespace Firefly.Core.State
             PendingEncounterDeferredNav = false;
             PendingMisbehave = null;
             PendingChoice = null;
+            AlertTokenResolver.ClearSuspend(this);
             FlyRangeBonusThisAction = 0;
             DiscardFuelPerExtraSectorThisFly = false;
             ConsecutiveBigBlackNavThisFly = 0;
