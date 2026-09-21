@@ -443,6 +443,49 @@ namespace Firefly.Core.Actions
         }
 
         /// <summary>
+        /// Resume after <see cref="PendingChoiceKinds.SkillSwitch"/> (Sheydra / Stitch).
+        /// </summary>
+        public bool TryResumeSkillSwitch(
+            GameState game,
+            string playerId,
+            ChoiceSubmission submission,
+            MisbehaveChoice choice,
+            out MisbehaveResolution? resolution,
+            out string? error,
+            IRng? rng = null)
+        {
+            resolution = null;
+            error = null;
+            if (game.PendingChoice == null
+                || !string.Equals(
+                    game.PendingChoice.Kind,
+                    PendingChoiceKinds.SkillSwitch,
+                    StringComparison.Ordinal))
+            {
+                error = "No skill-switch choice is pending.";
+                return false;
+            }
+
+            if (!SkillCheck.TryMergeSkillSwitchSubmission(
+                    submission, choice.SkillCheck, out var merged, out error))
+                return false;
+            choice.SkillCheck = merged;
+
+            if (!game.TrySubmitChoice(playerId, submission, out _, out error))
+                return false;
+
+            _resumingBribeOrMedFoam = true;
+            try
+            {
+                return TryResolve(game, playerId, choice, out resolution, out error, rng);
+            }
+            finally
+            {
+                _resumingBribeOrMedFoam = false;
+            }
+        }
+
+        /// <summary>
         /// Resume after <see cref="PendingChoiceKinds.SkillReroll"/>: keep or re-roll the first attempt
         /// (Kaylee / Zoe / Inara). FAQ 4.1 p.8 — may abilities always suspend.
         /// </summary>
@@ -943,6 +986,24 @@ namespace Firefly.Core.Actions
                     structuredEffects = option.Effects;
                 return true;
             }
+
+            var activeJob = player.FindActive(pending.JobId);
+            // Sheydra / Stitch: once per job, before Bribes (FAQ 4.1 p.9 — never both).
+            if (SkillCheck.NeedsSkillSwitchChoice(
+                    player, skillCheck, choice.SkillCheck, activeJob, AbilityContext.Misbehaving))
+            {
+                if (!SkillCheck.TrySuspendSkillSwitch(
+                        game,
+                        player,
+                        contextId: $"{card.Id}:{pending.SelectedOptionIndex}:{pending.CurrentStepIndex}",
+                        out error))
+                    return false;
+                error = "Choose whether to switch this skill test.";
+                return false;
+            }
+
+            skillCheck = SkillCheck.ApplySkillSwitchIfChosen(
+                player, skillCheck, choice.SkillCheck, activeJob, AbilityContext.Misbehaving);
 
             // GF9 p.6 / Cortland: "Before you roll a dice, you may choose to pay Bribes."
             if (SkillCheck.NeedsBribeChoice(player, skillCheck, choice.SkillCheck))

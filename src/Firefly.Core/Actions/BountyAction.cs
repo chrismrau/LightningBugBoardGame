@@ -1,5 +1,6 @@
 using System;
 using System.Text.RegularExpressions;
+using Firefly.Core.Abilities;
 using Firefly.Core.Cards;
 using Firefly.Core.Map;
 using Firefly.Core.State;
@@ -101,7 +102,8 @@ namespace Firefly.Core.Actions
             out BountyResult? result,
             out string? error,
             KillChoice? killChoice = null,
-            SkillCheckChoice? boardingSkillCheck = null)
+            SkillCheckChoice? boardingSkillCheck = null,
+            bool? acceptMeadowsRedirect = null)
         {
             result = null;
             if (!_resuming)
@@ -174,11 +176,125 @@ namespace Firefly.Core.Actions
                 return true;
             }
 
+            // Meadows on the defender: may Kill Meadows instead of Apprehend.
+            if (MeadowsRedirect.NeedsChoice(rival, acceptMeadowsRedirect))
+            {
+                RememberMeadowsConfront(
+                    playerId, bounty.Id, rivalId, crewId,
+                    attackSkill, defendSkill, boardSkill, killChoice, boardingSkillCheck);
+                if (!MeadowsRedirect.TrySuspend(
+                        game, rival, $"bounty-apprehend:{bounty.Id}", out error))
+                    return false;
+                error = "Choose whether to Kill Meadows instead of Apprehend.";
+                return false;
+            }
+            if (acceptMeadowsRedirect == true)
+            {
+                MeadowsRedirect.KillMeadowsInstead(game, rival, rng, killChoice);
+                if (!game.TryConsumeAction(TurnAction.Work, out error))
+                    return false;
+                result = new BountyResult(BountyHuntKind.Confrontation, bounty.Id, false, showdown: showdown);
+                return true;
+            }
+
             rival.Roster.Remove(member.Id);
             Bind(game, player, bounty, member.Card);
             if (!game.TryConsumeAction(TurnAction.Work, out error))
                 return false;
             result = new BountyResult(BountyHuntKind.Confrontation, bounty.Id, true, showdown: showdown);
+            return true;
+        }
+
+        private PendingBountyKind _pendingMeadowsKind;
+
+        private void RememberMeadowsConfront(
+            string playerId,
+            string bountyId,
+            string rivalId,
+            string crewId,
+            Skill attack,
+            Skill defend,
+            Skill board,
+            KillChoice? killChoice,
+            SkillCheckChoice? boarding)
+        {
+            _pendingMeadowsKind = PendingBountyKind.Confront;
+            _pendingPlayerId = playerId;
+            _pendingBountyId = bountyId;
+            _pendingRivalId = rivalId;
+            _pendingCrewId = crewId;
+            _pendingAttack = attack;
+            _pendingDefend = defend;
+            _pendingBoard = board;
+            _pendingKillChoice = killChoice;
+            _pendingBoardingSkillCheck = boarding;
+        }
+
+        /// <summary>Resume Meadows redirect on Confrontation Apprehend (after Showdown already won).</summary>
+        public bool TryResumeMeadowsRedirect(
+            GameState game,
+            ChoiceSubmission submission,
+            IRng rng,
+            out BountyResult? result,
+            out string? error)
+        {
+            result = null;
+            error = null;
+            if (game.PendingChoice == null
+                || !string.Equals(
+                    game.PendingChoice.Kind,
+                    PendingChoiceKinds.MeadowsRedirect,
+                    StringComparison.Ordinal))
+            {
+                error = "No Meadows redirect choice is pending.";
+                return false;
+            }
+            if (_pendingMeadowsKind != PendingBountyKind.Confront
+                || string.IsNullOrWhiteSpace(_pendingPlayerId)
+                || string.IsNullOrWhiteSpace(_pendingBountyId)
+                || string.IsNullOrWhiteSpace(_pendingRivalId)
+                || string.IsNullOrWhiteSpace(_pendingCrewId))
+            {
+                error = "Meadows bounty resume state is missing.";
+                return false;
+            }
+            if (!MeadowsRedirect.TryParseAccept(submission, out var accept, out error))
+                return false;
+            if (!game.TrySubmitChoice(game.PendingChoice.PlayerId, submission, out _, out error))
+                return false;
+
+            var player = game.GetPlayer(_pendingPlayerId!);
+            var rival = game.GetPlayer(_pendingRivalId!);
+            if (game.Bounties == null || !game.Bounties.TryResolve(_pendingBountyId!, out var bounty))
+            {
+                error = $"Unknown bounty '{_pendingBountyId}'.";
+                return false;
+            }
+
+            if (accept)
+            {
+                MeadowsRedirect.KillMeadowsInstead(game, rival, rng, _pendingKillChoice);
+                ClearPending();
+                _pendingMeadowsKind = PendingBountyKind.None;
+                if (!game.TryConsumeAction(TurnAction.Work, out error))
+                    return false;
+                result = new BountyResult(BountyHuntKind.Confrontation, bounty.Id, false);
+                return true;
+            }
+
+            var member = rival.Roster.Find(_pendingCrewId!);
+            if (member == null)
+            {
+                error = "Wanted crew is no longer on that ship.";
+                return false;
+            }
+            rival.Roster.Remove(member.Id);
+            Bind(game, player, bounty, member.Card);
+            ClearPending();
+            _pendingMeadowsKind = PendingBountyKind.None;
+            if (!game.TryConsumeAction(TurnAction.Work, out error))
+                return false;
+            result = new BountyResult(BountyHuntKind.Confrontation, bounty.Id, true);
             return true;
         }
 
@@ -332,7 +448,9 @@ namespace Firefly.Core.Actions
             string bountyId,
             string crewId,
             out BountyResult? result,
-            out string? error)
+            out string? error,
+            IRng? rng = null,
+            bool? acceptMeadowsRedirect = null)
         {
             result = null;
             if (!BeginWork(game, playerId, bountyId, out var player, out var bounty, out error))
@@ -347,6 +465,23 @@ namespace Firefly.Core.Actions
             {
                 error = "Cannot bind a Leader.";
                 return false;
+            }
+
+            if (MeadowsRedirect.NeedsChoice(player, acceptMeadowsRedirect))
+            {
+                if (!MeadowsRedirect.TrySuspend(
+                        game, player, $"bounty-betray:{bounty.Id}:{crewId}", out error))
+                    return false;
+                error = "Choose whether to Kill Meadows instead of Betrayal Apprehend.";
+                return false;
+            }
+            if (acceptMeadowsRedirect == true)
+            {
+                MeadowsRedirect.KillMeadowsInstead(game, player, rng ?? new SystemRng(), null);
+                if (!game.TryConsumeAction(TurnAction.Work, out error))
+                    return false;
+                result = new BountyResult(BountyHuntKind.Betrayal, bounty.Id, false);
+                return true;
             }
 
             player.Roster.Remove(member.Id);

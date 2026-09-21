@@ -1,3 +1,4 @@
+using Firefly.Core.Abilities;
 using Firefly.Core.Cards;
 using Firefly.Core.Movement;
 using Firefly.Core.State;
@@ -51,6 +52,11 @@ namespace Firefly.Core.Actions
     {
         public bool UseIncarcerationOrder { get; set; }
         public string? RemoveWantedCrewId { get; set; }
+        /// <summary>
+        /// Meadows: null = offer once when a Wanted would be seized; true = Kill Meadows instead
+        /// of the first seized Wanted; false = decline for the boarding.
+        /// </summary>
+        public bool? AcceptMeadowsRedirect { get; set; }
     }
 
     /// <summary>
@@ -110,9 +116,25 @@ namespace Firefly.Core.Actions
                     error = "Incarceration Order requires a Wanted crew member to remove from play.";
                     return false;
                 }
-                player.Roster.Remove(target.Id);
-                game.RemovedFromPlay.Add(target.Id);
-                waivedWarrants = 1;
+                if (MeadowsRedirect.NeedsChoice(player, choice.AcceptMeadowsRedirect))
+                {
+                    if (!MeadowsRedirect.TrySuspend(
+                            game, player, "cruiser-incarceration", out error))
+                        return false;
+                    error = "Choose whether to Kill Meadows instead of Incarceration seize.";
+                    return false;
+                }
+                if (choice.AcceptMeadowsRedirect == true)
+                {
+                    MeadowsRedirect.KillMeadowsInstead(game, player, rng, null);
+                    waivedWarrants = 1;
+                }
+                else
+                {
+                    player.Roster.Remove(target.Id);
+                    game.RemovedFromPlay.Add(target.Id);
+                    waivedWarrants = 1;
+                }
             }
 
             game.Tokens = game.Tokens.WithAllianceCruiser(sector);
@@ -130,13 +152,37 @@ namespace Firefly.Core.Actions
 
             var wanted = player.Roster.WantedMembers();
             var rolls = new WantedCrewFate[wanted.Count];
+            // Once decision is known: redirect only the first seize; later seizes are mandatory.
+            var meadowsUsed = false;
             for (var i = 0; i < wanted.Count; i++)
             {
                 var die = Dice.D6(rng);
                 var removed = ActiveAlertRules.WantedCrewCaptured(game, die, warrantsAtEncounter);
                 rolls[i] = new WantedCrewFate(die, removed);
-                if (removed)
-                    player.Roster.Remove(wanted[i].Id);
+                if (!removed)
+                    continue;
+
+                if (choice?.AcceptMeadowsRedirect == null
+                    && AbilityDispatcher.FindMeadowsRedirect(player) != null
+                    && !meadowsUsed)
+                {
+                    if (!MeadowsRedirect.TrySuspend(
+                            game, player, $"cruiser-seize:{wanted[i].Id}", out error))
+                        return false;
+                    error = "Choose whether to Kill Meadows instead of Alliance seize.";
+                    return false;
+                }
+
+                if (choice?.AcceptMeadowsRedirect == true && !meadowsUsed)
+                {
+                    MeadowsRedirect.KillMeadowsInstead(game, player, rng, null);
+                    rolls[i] = new WantedCrewFate(die, removedFromGame: false);
+                    meadowsUsed = true;
+                    continue;
+                }
+
+                meadowsUsed = true;
+                player.Roster.Remove(wanted[i].Id);
             }
 
             // FAQ 4.1 p.14: Contact Full Stop ends the flyer's Fly. Interrupt Contact on another

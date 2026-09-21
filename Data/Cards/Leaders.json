@@ -390,9 +390,16 @@
         "YCTtS": 1
       },
       "count": 1,
-      "specialAbilityType": null,
+      "specialAbilityType": "fugitiveDeliverBonus",
       "ability": null,
-      "id": "leader_wright_kalidasa"
+      "id": "leader_wright_kalidasa",
+      "abilities": [
+        {
+          "type": "fugitiveDeliverBonus",
+          "amount": 100,
+          "mandatory": false
+        }
+      ]
     },
     {
       "class": "Standard",

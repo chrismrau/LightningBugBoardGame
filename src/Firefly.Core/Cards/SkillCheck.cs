@@ -40,6 +40,11 @@ namespace Firefly.Core.Cards
 
         /// <summary>Gear id discarded when <see cref="AcceptDiscardReroll"/> is true.</summary>
         public string? DiscardRerollGearId { get; set; }
+
+        /// <summary>
+        /// Sheydra / Stitch once-per-job skill switch: null = undecided, true = switch, false = keep.
+        /// </summary>
+        public bool? AcceptSkillSwitch { get; set; }
     }
 
     public sealed class SkillCheck
@@ -70,6 +75,10 @@ namespace Firefly.Core.Cards
             Kosherized = kosherized;
             BribesAllowed = bribesAllowed;
         }
+
+        /// <summary>Copy with a substituted skill (Sheydra / Stitch once-per-job switch).</summary>
+        public SkillCheck WithSkill(Skill skill) =>
+            new SkillCheck(skill, Target, Kosherized, skill == Skill.Talk && BribesAllowed);
 
         public static bool TryParse(string? text, out SkillCheck check)
         {
@@ -196,6 +205,101 @@ namespace Firefly.Core.Cards
                 options: new[] { SkillRerollOptions.Keep, SkillRerollOptions.Reroll },
                 prompt: prompt ?? "Re-roll this skill test?");
             return game.TrySetPendingChoice(pending, out error);
+        }
+
+        /// <summary>
+        /// Sheydra / Stitch: suspend once-per-job skill switch may.
+        /// FAQ 4.1 p.9: never both Bribes and Stitch switch.
+        /// </summary>
+        public static bool NeedsSkillSwitchChoice(
+            PlayerState player,
+            SkillCheck check,
+            SkillCheckChoice? choice,
+            ActiveJob? activeJob,
+            AbilityContext? context = null)
+        {
+            if (choice?.AcceptSkillSwitch != null)
+                return false;
+            if (activeJob != null && activeJob.SkillSwitchUsedThisJob)
+                return false;
+            // FAQ: either bribable Negotiate or Fight switch — never both.
+            if (choice?.BribeDollars != null && choice.BribeDollars > 0)
+                return false;
+            return AbilityDispatcher.FindOncePerJobSkillSwitch(player, check.Skill, context) != null;
+        }
+
+        public static bool TrySuspendSkillSwitch(
+            GameState game,
+            PlayerState player,
+            string? contextId,
+            out string? error,
+            string? prompt = null)
+        {
+            var pending = new PendingChoice(
+                player.Id,
+                PendingChoiceKinds.SkillSwitch,
+                contextId: contextId,
+                options: new[] { SkillSwitchOptions.Switch, SkillSwitchOptions.Keep },
+                prompt: prompt ?? "Switch this skill test once per job?");
+            return game.TrySetPendingChoice(pending, out error);
+        }
+
+        public static bool TryMergeSkillSwitchSubmission(
+            ChoiceSubmission submission,
+            SkillCheckChoice? existing,
+            out SkillCheckChoice merged,
+            out string? error)
+        {
+            merged = existing ?? new SkillCheckChoice();
+            error = null;
+            if (submission == null)
+            {
+                error = "A choice submission is required.";
+                return false;
+            }
+
+            bool accept;
+            if (submission.Accepted != null)
+                accept = submission.Accepted.Value;
+            else if (string.Equals(
+                         submission.SelectedOptionId,
+                         SkillSwitchOptions.Switch,
+                         StringComparison.Ordinal))
+                accept = true;
+            else if (string.Equals(
+                         submission.SelectedOptionId,
+                         SkillSwitchOptions.Keep,
+                         StringComparison.Ordinal))
+                accept = false;
+            else
+            {
+                error = "Switch or keep the printed skill.";
+                return false;
+            }
+
+            merged.AcceptSkillSwitch = accept;
+            return true;
+        }
+
+        /// <summary>
+        /// Apply once-per-job skill switch when accepted; marks ActiveJob latch; clears Bribes.
+        /// </summary>
+        public static SkillCheck ApplySkillSwitchIfChosen(
+            PlayerState player,
+            SkillCheck check,
+            SkillCheckChoice? choice,
+            ActiveJob? activeJob,
+            AbilityContext? context = null)
+        {
+            if (choice?.AcceptSkillSwitch != true)
+                return check;
+            var ability = AbilityDispatcher.FindOncePerJobSkillSwitch(player, check.Skill, context);
+            if (ability == null || !AbilityDispatcher.TryParseSkillLabel(ability.Subject, out var to))
+                return check;
+            if (activeJob != null)
+                activeJob.SkillSwitchUsedThisJob = true;
+            // FAQ 4.1 p.9: switched Fight is not a bribable Negotiate.
+            return check.WithSkill(to);
         }
 
         /// <summary>
