@@ -170,6 +170,18 @@ namespace Firefly.Core.State
         /// ContextId = Contact name.
         /// </summary>
         public const string DealSellParts = "deal-sell-parts";
+        /// <summary>
+        /// Emissions Recycler: after two Big Black Nav cards in a row while Full Burning,
+        /// may take 1 Fuel (once per Fly Action). Options: <see cref="EmissionsFuelOptions"/>.
+        /// </summary>
+        public const string EmissionsFuel = "emissions-fuel";
+    }
+
+    /// <summary>Discrete option ids for <see cref="PendingChoiceKinds.EmissionsFuel"/>.</summary>
+    public static class EmissionsFuelOptions
+    {
+        public const string TakeFuel = "take-fuel";
+        public const string Decline = "decline";
     }
 
     /// <summary>Discrete option ids for <see cref="PendingChoiceKinds.MeadowsRedirect"/>.</summary>

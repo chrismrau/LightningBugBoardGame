@@ -190,5 +190,26 @@ namespace Firefly.Core.Abilities
         /// Optional — suspends DealSellParts when Parts remain and SellParts is unset.
         /// </summary>
         public const string SellPartsToSolidContact = "sellPartsToSolidContact";
+
+        /// <summary>
+        /// Dobson Mole: in Alliance Space, may move Alliance Cruiser to your Sector as a Fly Action.
+        /// </summary>
+        public const string MoveCruiserAsFly = "moveCruiserAsFly";
+
+        /// <summary>
+        /// Emissions Recycler: after two Big Black Nav cards in a row while Full Burning,
+        /// may take 1 Fuel (once per Fly Action).
+        /// </summary>
+        public const string TakeFuelOnDoubleBigBlack = "takeFuelOnDoubleBigBlack";
+
+        /// <summary>
+        /// Full Mess Deck: during a Fly Action, may discard Cargo or Contraband to clear all Disgruntled.
+        /// </summary>
+        public const string DiscardGoodsClearDisgruntled = "discardGoodsClearDisgruntled";
+
+        /// <summary>
+        /// Long-Range Scanner Array: during a Fly Action, may resolve Alert Tokens in adjacent Sectors.
+        /// </summary>
+        public const string ResolveAdjacentAlertTokens = "resolveAdjacentAlertTokens";
     }
 }

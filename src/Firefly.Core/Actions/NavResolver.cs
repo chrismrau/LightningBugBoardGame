@@ -160,6 +160,11 @@ namespace Firefly.Core.Actions
         /// Null when affordable suspends via <see cref="PendingChoiceKinds.NavPayOrDecline"/>.
         /// </summary>
         public bool? PayNavCost { get; set; }
+        /// <summary>
+        /// Emissions Recycler: after two Big Black in a row while Full Burning, true = take 1 Fuel,
+        /// false = decline. Null → PendingChoice when the may applies.
+        /// </summary>
+        public bool? TakeEmissionsFuel { get; set; }
     }
 
     /// <summary>Discrete option ids for <see cref="PendingChoiceKinds.NavPayOrDecline"/>.</summary>
@@ -680,6 +685,13 @@ namespace Firefly.Core.Actions
             game.Decks!.For(drawn.Region).ResolveIntoDiscard(drawn.Card);
             FaceUp = null;
             ClearFrozenKillSkill();
+
+            if (!TryOfferEmissionsRecyclerFuel(game, player, drawn, choice, out error))
+            {
+                // Card already discarded; roll back is not needed — choice suspends mid-Fly.
+                return false;
+            }
+
             resolution = new NavResolution(
                 drawn,
                 option,
@@ -699,6 +711,59 @@ namespace Firefly.Core.Actions
                 fugitivesSeized: fugitivesSeized,
                 goodsSeized: goodsSeized);
             return true;
+        }
+
+        /// <summary>
+        /// Emissions Recycler: two Big Black in a row while Full Burning → may take 1 Fuel once per Fly.
+        /// </summary>
+        private static bool TryOfferEmissionsRecyclerFuel(
+            GameState game,
+            PlayerState player,
+            DrawnNav drawn,
+            NavResolveChoice? choice,
+            out string? error)
+        {
+            error = null;
+            var isBigBlack = string.Equals(
+                drawn.Card.Type, "The Big Black", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(drawn.Card.Name, "The Big Black", StringComparison.OrdinalIgnoreCase);
+
+            if (!isBigBlack)
+            {
+                game.ConsecutiveBigBlackNavThisFly = 0;
+                return true;
+            }
+
+            game.ConsecutiveBigBlackNavThisFly++;
+            if (game.ConsecutiveBigBlackNavThisFly < 2)
+                return true;
+            if (game.EmissionsFuelTakenThisFly)
+                return true;
+            if (!AbilityDispatcher.HasTakeFuelOnDoubleBigBlack(game, player, AbilityContext.Flying))
+                return true;
+            if (!HoldSpace.Fits(player, addFuel: 1))
+                return true;
+
+            if (choice?.TakeEmissionsFuel != null)
+            {
+                game.ConsecutiveBigBlackNavThisFly = 0;
+                if (choice.TakeEmissionsFuel.Value)
+                {
+                    player.Fuel++;
+                    game.EmissionsFuelTakenThisFly = true;
+                }
+                return true;
+            }
+
+            var pending = new PendingChoice(
+                player.Id,
+                PendingChoiceKinds.EmissionsFuel,
+                options: new[] { EmissionsFuelOptions.TakeFuel, EmissionsFuelOptions.Decline },
+                prompt: "Emissions Recycler: take 1 Fuel after two Big Black Nav cards?");
+            if (!game.TrySetPendingChoice(pending, out error))
+                return false;
+            error = pending.Prompt;
+            return false;
         }
 
         private static bool TryApplyAlertTokenEffects(

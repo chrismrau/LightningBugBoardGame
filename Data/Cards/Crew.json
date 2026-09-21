@@ -633,9 +633,15 @@
         "Persephone": 1
       },
       "count": 1,
-      "specialAbilityType": "Constant bonus",
+      "specialAbilityType": "moveCruiserAsFly",
       "ability": "1",
-      "id": "crew_dobson_piratesbountyhunters"
+      "id": "crew_dobson_piratesbountyhunters",
+      "abilities": [
+        {
+          "type": "moveCruiserAsFly",
+          "mandatory": false
+        }
+      ]
     },
     {
       "class": "Standard",

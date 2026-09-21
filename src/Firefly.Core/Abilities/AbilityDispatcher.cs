@@ -781,6 +781,85 @@ namespace Firefly.Core.Abilities
             SumAmount(player, AbilityTypes.FullBurnRangeBonus, context);
 
         /// <summary>
+        /// Ship-upgrade Full Burn range addend (Emissions Recycler +1). Requires catalog on game.
+        /// </summary>
+        public static int ShipUpgradeFullBurnRangeBonus(
+            GameState game,
+            PlayerState player,
+            AbilityContext? context = null)
+        {
+            context ??= AbilityContext.None;
+            var catalog = game.ShipUpgradeCatalog;
+            if (catalog == null)
+                return 0;
+            var total = 0;
+            foreach (var upgradeId in player.ShipUpgrades)
+            {
+                if (!catalog.TryGet(upgradeId, out var upgrade))
+                    continue;
+                foreach (var ability in AllFromShipUpgrade(upgrade))
+                {
+                    if (!ability.MatchesType(AbilityTypes.FullBurnRangeBonus)
+                        || !Applies(ability, context, allowOptional: false))
+                        continue;
+                    total += ability.Amount;
+                }
+            }
+            return total;
+        }
+
+        /// <summary>Dobson Mole on the roster.</summary>
+        public static bool HasMoveCruiserAsFly(
+            PlayerState player,
+            AbilityContext? context = null) =>
+            HasAbility(player, AbilityTypes.MoveCruiserAsFly, context);
+
+        /// <summary>Emissions Recycler double-Big-Black fuel may.</summary>
+        public static bool HasTakeFuelOnDoubleBigBlack(
+            GameState game,
+            PlayerState player,
+            AbilityContext? context = null) =>
+            HasShipUpgradeAbility(game, player, AbilityTypes.TakeFuelOnDoubleBigBlack, context);
+
+        /// <summary>Full Mess Deck mid-Fly clear Disgruntled.</summary>
+        public static bool HasDiscardGoodsClearDisgruntled(
+            GameState game,
+            PlayerState player,
+            AbilityContext? context = null) =>
+            HasShipUpgradeAbility(game, player, AbilityTypes.DiscardGoodsClearDisgruntled, context);
+
+        /// <summary>Long-Range Scanner Array adjacent Alert Token resolve.</summary>
+        public static bool HasResolveAdjacentAlertTokens(
+            GameState game,
+            PlayerState player,
+            AbilityContext? context = null) =>
+            HasShipUpgradeAbility(game, player, AbilityTypes.ResolveAdjacentAlertTokens, context);
+
+        private static bool HasShipUpgradeAbility(
+            GameState game,
+            PlayerState player,
+            string type,
+            AbilityContext? context,
+            bool allowOptional = true)
+        {
+            context ??= AbilityContext.None;
+            var catalog = game.ShipUpgradeCatalog;
+            if (catalog == null)
+                return false;
+            foreach (var upgradeId in player.ShipUpgrades)
+            {
+                if (!catalog.TryGet(upgradeId, out var upgrade))
+                    continue;
+                foreach (var ability in AllFromShipUpgrade(upgrade))
+                {
+                    if (ability.MatchesType(type) && Applies(ability, context, allowOptional))
+                        return true;
+                }
+            }
+            return false;
+        }
+
+        /// <summary>
         /// Big Damn Heroes Proceed cash. Job-only (does not apply while Working Goals).
         /// </summary>
         public static int MisbehaveProceedCash(PlayerState player, AbilityContext? context = null)

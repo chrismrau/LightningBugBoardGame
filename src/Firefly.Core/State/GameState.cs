@@ -52,6 +52,15 @@ namespace Firefly.Core.State
         /// </summary>
         public bool DiscardFuelPerExtraSectorThisFly { get; set; }
         /// <summary>
+        /// Consecutive "The Big Black" Nav resolves during the current Full Burn Fly Action
+        /// (Emissions Recycler). Cleared on new Fly / EndTurn.
+        /// </summary>
+        public int ConsecutiveBigBlackNavThisFly { get; set; }
+        /// <summary>
+        /// Emissions Recycler already took its once-per-Fly Fuel this Fly Action.
+        /// </summary>
+        public bool EmissionsFuelTakenThisFly { get; set; }
+        /// <summary>
         /// Sectors entered during Fly that still need Alert Token resolution before their Nav draw.
         /// </summary>
         public IList<string> PendingAlertSectors { get; }
@@ -205,6 +214,8 @@ namespace Firefly.Core.State
             PendingChoice = null;
             FlyRangeBonusThisAction = 0;
             DiscardFuelPerExtraSectorThisFly = false;
+            ConsecutiveBigBlackNavThisFly = 0;
+            EmissionsFuelTakenThisFly = false;
         }
 
         /// <summary>
@@ -325,6 +336,8 @@ namespace Firefly.Core.State
             {
                 FlyRangeBonusThisAction = 0;
                 DiscardFuelPerExtraSectorThisFly = false;
+                ConsecutiveBigBlackNavThisFly = 0;
+                EmissionsFuelTakenThisFly = false;
             }
             _used.Add(action);
             ActionsUsedThisTurn++;
