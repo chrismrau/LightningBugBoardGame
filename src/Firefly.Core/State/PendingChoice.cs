@@ -192,6 +192,20 @@ namespace Firefly.Core.State
         /// (or contraband, fugitives for stash keep). ContextId discriminates the site.
         /// </summary>
         public const string GoodsMix = "goods-mix";
+        /// <summary>
+        /// Regulated Salvage: with FAKE ID, may Load 3 Cargo (no Warrant) or take Otherwise
+        /// (Load 3 Contraband, Warrant Issued). Options: <see cref="NavFakeIdSalvageOptions"/>.
+        /// </summary>
+        public const string NavFakeIdSalvage = "nav-fake-id-salvage";
+    }
+
+    /// <summary>Discrete option ids for <see cref="PendingChoiceKinds.NavFakeIdSalvage"/>.</summary>
+    public static class NavFakeIdSalvageOptions
+    {
+        /// <summary>Use FAKE ID: Load 3 Cargo and Full Stop (no Warrant).</summary>
+        public const string UseFakeId = "use-fake-id";
+        /// <summary>Otherwise: Load 3 Contraband, Warrant Issued, Full Stop.</summary>
+        public const string Otherwise = "otherwise";
     }
 
     /// <summary>Discrete option ids for <see cref="PendingChoiceKinds.AlertAllianceShip"/>.</summary>
