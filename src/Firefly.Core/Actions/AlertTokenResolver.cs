@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using Firefly.Core.Cards;
 using Firefly.Core.Map;
 using Firefly.Core.Movement;
@@ -81,12 +82,44 @@ namespace Firefly.Core.Actions
     /// </summary>
     public static class AlertTokenResolver
     {
-        private static bool _resuming;
-        private static string? _stashSectorId;
-        private static int? _stashAllianceDie;
-        private static int? _stashReaverDie;
-        private static AlertResolveChoice? _stashChoice;
-        private static List<AlertKindResolution>? _stashCompletedRolls;
+        /// <summary>
+        /// Per-game mid-resolve stash. Must not be process-wide static fields — parallel
+        /// games / xUnit classes were clearing each other's Alliance/Reaver die + sector.
+        /// </summary>
+        private static readonly ConditionalWeakTable<GameState, SuspendBag> Bags = new ConditionalWeakTable<GameState, SuspendBag>();
+
+        private sealed class SuspendBag
+        {
+            public bool Resuming;
+            public string? SectorId;
+            public int? AllianceDie;
+            public int? ReaverDie;
+            public AlertResolveChoice? Choice;
+            public List<AlertKindResolution>? CompletedRolls;
+
+            public void Clear()
+            {
+                Resuming = false;
+                SectorId = null;
+                AllianceDie = null;
+                ReaverDie = null;
+                Choice = null;
+                CompletedRolls = null;
+            }
+        }
+
+        private static SuspendBag Bag(GameState game) => Bags.GetOrCreateValue(game);
+
+        /// <summary>
+        /// Drop mid-resolve stash (EndTurn / ClearPendingEvents / abort).
+        /// </summary>
+        public static void ClearSuspend(GameState game)
+        {
+            if (game == null)
+                return;
+            if (Bags.TryGetValue(game, out var bag))
+                bag.Clear();
+        }
 
         public static bool TryResolvePending(
             GameState game,
@@ -97,12 +130,13 @@ namespace Firefly.Core.Actions
         {
             result = null;
             error = null;
+            var bag = Bag(game);
             if (!game.UseAlertTokens)
             {
                 error = "Alert Tokens are not in use.";
                 return false;
             }
-            if (game.PendingChoice != null && !_resuming)
+            if (game.PendingChoice != null && !bag.Resuming)
             {
                 error = "Resolve the pending choice before continuing Alert Token resolution.";
                 return false;
@@ -114,7 +148,7 @@ namespace Firefly.Core.Actions
             }
 
             var sectorId = game.PendingAlertSectors[0];
-            if (!TryResolveSector(game, sectorId, rng, choice ?? _stashChoice, out result, out error))
+            if (!TryResolveSector(game, sectorId, rng, choice ?? bag.Choice, out result, out error))
                 return false;
 
             if (game.PendingAlertSectors.Count > 0
@@ -138,14 +172,15 @@ namespace Firefly.Core.Actions
         {
             result = null;
             error = null;
-            if (game.PendingChoice == null || string.IsNullOrWhiteSpace(_stashSectorId))
+            var bag = Bag(game);
+            if (game.PendingChoice == null || string.IsNullOrWhiteSpace(bag.SectorId))
             {
                 error = "No Alert Token choice is pending.";
                 return false;
             }
 
             var kind = game.PendingChoice.Kind;
-            var choice = _stashChoice ?? new AlertResolveChoice();
+            var choice = bag.Choice ?? new AlertResolveChoice();
             var chooserId = game.PendingChoice.PlayerId;
 
             if (string.Equals(kind, PendingChoiceKinds.AlertAllianceShip, StringComparison.Ordinal))
@@ -189,15 +224,15 @@ namespace Firefly.Core.Actions
             if (!game.TrySubmitChoice(chooserId, submission, out _, out error))
                 return false;
 
-            _stashChoice = choice;
-            _resuming = true;
+            bag.Choice = choice;
+            bag.Resuming = true;
             try
             {
                 return TryResolvePending(game, rng, out result, out error, choice);
             }
             finally
             {
-                _resuming = false;
+                bag.Resuming = false;
             }
         }
 
@@ -211,21 +246,22 @@ namespace Firefly.Core.Actions
         {
             result = null;
             error = null;
+            var bag = Bag(game);
             if (rng == null)
             {
                 error = "Alert Token resolution requires a die roll.";
                 return false;
             }
             if (!AlertTokenRules.SectorHasAlerts(game.Tokens, sectorId, game.UseAlertTokens)
-                && !_resuming)
+                && !bag.Resuming)
             {
                 error = "That Sector has no Alert Tokens to resolve.";
                 return false;
             }
 
             choice ??= new AlertResolveChoice();
-            var rolls = _stashCompletedRolls != null
-                ? new List<AlertKindResolution>(_stashCompletedRolls)
+            var rolls = bag.CompletedRolls != null
+                ? new List<AlertKindResolution>(bag.CompletedRolls)
                 : new List<AlertKindResolution>();
             var endedFly = false;
             var allianceDone = rolls.Exists(r => r.Kind == AlertTokenKind.Alliance);
@@ -272,7 +308,7 @@ namespace Firefly.Core.Actions
             }
 
             game.Tokens = game.Tokens.ClearRemovableAlerts(sectorId);
-            ClearStash();
+            bag.Clear();
             result = new AlertResolution(sectorId, rolls, endedFly);
             return true;
         }
@@ -290,12 +326,13 @@ namespace Firefly.Core.Actions
         {
             endedFly = false;
             error = null;
+            var bag = Bag(game);
 
             int die;
-            if (kind == AlertTokenKind.Alliance && _stashAllianceDie != null)
-                die = _stashAllianceDie.Value;
-            else if (kind == AlertTokenKind.Reaver && _stashReaverDie != null)
-                die = _stashReaverDie.Value;
+            if (kind == AlertTokenKind.Alliance && bag.AllianceDie != null)
+                die = bag.AllianceDie.Value;
+            else if (kind == AlertTokenKind.Reaver && bag.ReaverDie != null)
+                die = bag.ReaverDie.Value;
             else
                 die = Dice.D6(rng);
 
@@ -308,14 +345,14 @@ namespace Firefly.Core.Actions
                 {
                     if (NeedsAllianceShipChoice(game, sectorId, choice))
                     {
-                        StashForSuspend(sectorId, kind, die, rolls, choice);
+                        StashForSuspend(bag, sectorId, kind, die, rolls, choice);
                         return SuspendAllianceShip(game, sectorId, out error);
                     }
 
                     if (!TryMoveAllianceAlertShip(game, sectorId, choice, out ship, out error))
                     {
                         if (game.PendingChoice != null)
-                            StashForSuspend(sectorId, kind, die, rolls, choice);
+                            StashForSuspend(bag, sectorId, kind, die, rolls, choice);
                         return false;
                     }
 
@@ -333,7 +370,7 @@ namespace Firefly.Core.Actions
                 {
                     if (NeedsReaverCutterChoice(game, choice))
                     {
-                        StashForSuspend(sectorId, kind, die, rolls, choice);
+                        StashForSuspend(bag, sectorId, kind, die, rolls, choice);
                         return SuspendReaverCutter(game, sectorId, out error);
                     }
 
@@ -346,9 +383,9 @@ namespace Firefly.Core.Actions
             rolls.Add(new AlertKindResolution(kind, tokenCount, die, arrived, ship));
             // Kind complete — clear that die so a later kind rolls fresh.
             if (kind == AlertTokenKind.Alliance)
-                _stashAllianceDie = null;
+                bag.AllianceDie = null;
             else
-                _stashReaverDie = null;
+                bag.ReaverDie = null;
             return true;
         }
 
@@ -371,28 +408,20 @@ namespace Firefly.Core.Actions
             choice.ReaverCutterIndex == null && game.Tokens.ReaverCutterSectorIds.Count > 1;
 
         private static void StashForSuspend(
+            SuspendBag bag,
             string sectorId,
             AlertTokenKind kind,
             int die,
             List<AlertKindResolution> rolls,
             AlertResolveChoice choice)
         {
-            _stashSectorId = sectorId;
-            _stashChoice = choice;
-            _stashCompletedRolls = new List<AlertKindResolution>(rolls);
+            bag.SectorId = sectorId;
+            bag.Choice = choice;
+            bag.CompletedRolls = new List<AlertKindResolution>(rolls);
             if (kind == AlertTokenKind.Alliance)
-                _stashAllianceDie = die;
+                bag.AllianceDie = die;
             else
-                _stashReaverDie = die;
-        }
-
-        private static void ClearStash()
-        {
-            _stashSectorId = null;
-            _stashAllianceDie = null;
-            _stashReaverDie = null;
-            _stashChoice = null;
-            _stashCompletedRolls = null;
+                bag.ReaverDie = die;
         }
 
         private static bool SuspendAllianceShip(GameState game, string sectorId, out string? error)

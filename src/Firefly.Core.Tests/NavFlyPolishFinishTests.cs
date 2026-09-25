@@ -58,6 +58,83 @@ namespace Firefly.Core.Tests
         }
 
         [Fact]
+        public void Alert_Token_suspend_stash_is_isolated_per_GameState()
+        {
+            // Regression: process-wide static stash was cleared by parallel Alert resolves
+            // (CorvetteTests / AlertTokenTests), breaking TryResume with
+            // "No Alert Token choice is pending."
+            var map = SectorMap.LoadFromDirectory(GameData.MapDirectory);
+            var allianceTokens = new MapTokens(
+                    allianceCruiserSectorId: Persephone,
+                    operativeCorvetteSectorId: CorvetteStart)
+                .PlaceAlertToken(Pelorum, AlertTokenKind.Alliance, 3);
+            var alliance = new GameState(
+                map,
+                new[]
+                {
+                    new PlayerState("a1", "Mal", Pelorum) { Contraband = 1 },
+                    new PlayerState("a2", "Zoe", Londinium)
+                },
+                allianceTokens) { UseAlertTokens = true };
+            alliance.PendingAlertSectors.Add(Pelorum);
+
+            var reaverTokens = new MapTokens(reaverCutterSectorIds: new[] { CutterAdjacent, CutterAdjacentAlt })
+                .PlaceAlertToken(CutterStart, AlertTokenKind.Reaver, 3);
+            var reaver = new GameState(
+                map,
+                new[]
+                {
+                    new PlayerState("r1", "Wash", CutterStart),
+                    new PlayerState("r2", "Kaylee", Persephone)
+                },
+                reaverTokens) { UseAlertTokens = true };
+            reaver.PendingAlertSectors.Add(CutterStart);
+
+            Assert.False(AlertTokenResolver.TryResolvePending(
+                alliance, ScriptedRng.FromDieFaces(2), out _, out _));
+            Assert.False(AlertTokenResolver.TryResolvePending(
+                reaver, ScriptedRng.FromDieFaces(1), out _, out _));
+
+            // Completing an unrelated game must not wipe the other suspend bag.
+            var noiseTokens = new MapTokens(allianceCruiserSectorId: Londinium)
+                .PlaceAlertToken(Pelorum, AlertTokenKind.Alliance, 1);
+            var noise = new GameState(
+                map,
+                new[] { new PlayerState("n1", "Book", Pelorum) },
+                noiseTokens) { UseAlertTokens = true };
+            Assert.True(AlertTokenResolver.TryResolveSector(
+                noise,
+                Pelorum,
+                ScriptedRng.FromDieFaces(6),
+                new AlertResolveChoice(),
+                out _,
+                out var noiseErr),
+                noiseErr);
+
+            Assert.True(
+                AlertTokenResolver.TryResume(
+                    alliance,
+                    new ChoiceSubmission { SelectedOptionId = AlertAllianceShipOptions.OperativeCorvette },
+                    ScriptedRng.FromDieFaces(2),
+                    out var allianceRes,
+                    out var allianceErr),
+                allianceErr);
+            Assert.Equal(TokenKind.OperativeCorvette, allianceRes!.Rolls[0].ArrivedShip);
+            Assert.Equal(Pelorum, alliance.Tokens.OperativeCorvetteSectorId);
+
+            Assert.True(
+                AlertTokenResolver.TryResume(
+                    reaver,
+                    new ChoiceSubmission { SelectedOptionId = "1" },
+                    ScriptedRng.FromDieFaces(1),
+                    out var reaverRes,
+                    out var reaverErr),
+                reaverErr);
+            Assert.True(reaverRes!.Rolls[0].ShipArrived);
+            Assert.Equal(CutterStart, reaver.Tokens.ReaverCutterSectorIds[1]);
+        }
+
+        [Fact]
         public void Reaver_Alert_with_multiple_Cutters_suspends_PTR_index_choice()
         {
             // Blue Sun p.5: player to the right chooses and moves a Reaver ship.
