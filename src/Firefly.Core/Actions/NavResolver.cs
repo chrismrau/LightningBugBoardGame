@@ -165,6 +165,13 @@ namespace Firefly.Core.Actions
         /// false = decline. Null → PendingChoice when the may applies.
         /// </summary>
         public bool? TakeEmissionsFuel { get; set; }
+        /// <summary>
+        /// Regulated Salvage: with FAKE ID, true = Load 3 Cargo (no Warrant); false = Otherwise
+        /// (Load 3 Contraband, Warrant Issued). Null when Fake ID is present suspends via
+        /// <see cref="PendingChoiceKinds.NavFakeIdSalvage"/>. Without Fake ID the resolver
+        /// forces false (Otherwise) without suspending.
+        /// </summary>
+        public bool? UseFakeIdSalvage { get; set; }
     }
 
     /// <summary>Discrete option ids for <see cref="PendingChoiceKinds.NavPayOrDecline"/>.</summary>
@@ -190,6 +197,9 @@ namespace Firefly.Core.Actions
     /// Printed pay-vs-decline (Spend … to Keep Flying. Otherwise, Full Stop) suspends via
     /// <see cref="PendingChoiceKinds.NavPayOrDecline"/> when the cost is affordable unless
     /// <see cref="NavResolveChoice.PayNavCost"/> is already set; decline → Full Stop.
+    /// Regulated Salvage FAKE ID vs Otherwise suspends via
+    /// <see cref="PendingChoiceKinds.NavFakeIdSalvage"/> when Fake ID is present unless
+    /// <see cref="NavResolveChoice.UseFakeIdSalvage"/> is set; without Fake ID → Otherwise.
     /// Skill-band Kill N suspends via <see cref="PendingChoiceKinds.KillVictim"/> when the
     /// player must pick victims unless <see cref="KillChoice.VictimCrewIds"/> is set.
     /// Marked Negotiate Bribes suspend via <see cref="PendingChoiceKinds.BribeAmount"/>;
@@ -239,6 +249,9 @@ namespace Firefly.Core.Actions
         private bool _resumingGoodsMix;
         private int _pendingGoodsMixOptionIndex = -1;
         private NavResolveChoice? _pendingGoodsMixResolveChoice;
+        private bool _resumingFakeIdSalvage;
+        private int _pendingFakeIdSalvageOptionIndex = -1;
+        private NavResolveChoice? _pendingFakeIdSalvageResolveChoice;
 
         public bool HasPending(GameState game) => game.PendingNavDraws.Count > 0 || FaceUp != null;
 
@@ -298,13 +311,14 @@ namespace Firefly.Core.Actions
                 return false;
             }
 
-            // Pay-vs-decline / kill-victim / bribe / Med Foam / sector-dest resume clears PendingChoice before re-entering.
+            // Pay-vs-decline / kill-victim / bribe / Med Foam / sector-dest / Fake ID resume clears PendingChoice before re-entering.
             if (game.PendingChoice != null
                 && choice?.PayNavCost == null
                 && !_resumingKillVictims
                 && !_resumingBribeOrMedFoam
                 && !_resumingSectorDestination
-                && !_resumingGoodsMix)
+                && !_resumingGoodsMix
+                && !_resumingFakeIdSalvage)
             {
                 error = "Resolve the pending choice before continuing Nav.";
                 return false;
@@ -470,6 +484,23 @@ namespace Firefly.Core.Actions
                     return false;
                 error = goodsPrompt;
                 return false;
+            }
+
+            // Regulated Salvage: "If you have FAKE ID, you may: … Otherwise: …"
+            if (NeedsFakeIdSalvageChoice(game, player, option.Details, choice))
+            {
+                if (!TrySuspendFakeIdSalvage(game, optionIndex, choice, out error))
+                    return false;
+                error = "Choose whether to use FAKE ID for Regulated Salvage.";
+                return false;
+            }
+
+            if (IsFakeIdSalvageBranch(option.Details ?? "")
+                && !MisbehaveResolver.HasTag(game, player, "Fake ID")
+                && choice?.UseFakeIdSalvage == null)
+            {
+                choice ??= new NavResolveChoice();
+                choice.UseFakeIdSalvage = false;
             }
 
             if (NeedsSectorDestinationChoice(
@@ -1378,6 +1409,108 @@ namespace Firefly.Core.Actions
                 _resumingKillVictims = false;
             }
         }
+
+        /// <summary>
+        /// Resume after <see cref="PendingChoiceKinds.NavFakeIdSalvage"/>: use FAKE ID → Load 3 Cargo;
+        /// Otherwise → Load 3 Contraband and Warrant Issued.
+        /// </summary>
+        public bool TryResumeFakeIdSalvage(
+            GameState game,
+            ChoiceSubmission submission,
+            out NavResolution? resolution,
+            out string? error,
+            IRng? rng = null)
+        {
+            resolution = null;
+            error = null;
+            if (FaceUp == null)
+            {
+                error = "No Nav card is face up.";
+                return false;
+            }
+            if (game.PendingChoice == null
+                || !string.Equals(
+                    game.PendingChoice.Kind,
+                    PendingChoiceKinds.NavFakeIdSalvage,
+                    StringComparison.Ordinal))
+            {
+                error = "No Regulated Salvage FAKE ID choice is pending.";
+                return false;
+            }
+
+            var optionIndex = _pendingFakeIdSalvageOptionIndex;
+            if (optionIndex < 0)
+            {
+                error = "FAKE ID salvage context is missing the option index.";
+                return false;
+            }
+
+            if (!game.TrySubmitChoice(game.CurrentPlayer.Id, submission, out _, out error))
+                return false;
+
+            var useFakeId = string.Equals(
+                submission.SelectedOptionId,
+                NavFakeIdSalvageOptions.UseFakeId,
+                StringComparison.Ordinal);
+            if (!useFakeId
+                && !string.Equals(
+                    submission.SelectedOptionId,
+                    NavFakeIdSalvageOptions.Otherwise,
+                    StringComparison.Ordinal))
+            {
+                error = "Select use-fake-id or otherwise for Regulated Salvage.";
+                return false;
+            }
+
+            var choice = _pendingFakeIdSalvageResolveChoice ?? new NavResolveChoice();
+            choice.UseFakeIdSalvage = useFakeId;
+            _pendingFakeIdSalvageOptionIndex = -1;
+            _pendingFakeIdSalvageResolveChoice = null;
+            _resumingFakeIdSalvage = true;
+            try
+            {
+                return TryResolve(game, optionIndex, out resolution, out error, rng, choice);
+            }
+            finally
+            {
+                _resumingFakeIdSalvage = false;
+            }
+        }
+
+        private bool TrySuspendFakeIdSalvage(
+            GameState game,
+            int optionIndex,
+            NavResolveChoice? choice,
+            out string? error)
+        {
+            var pending = new PendingChoice(
+                game.CurrentPlayer.Id,
+                PendingChoiceKinds.NavFakeIdSalvage,
+                contextId: FaceUp?.Card.Id ?? "nav_regulated-salvage",
+                options: new[] { NavFakeIdSalvageOptions.UseFakeId, NavFakeIdSalvageOptions.Otherwise },
+                prompt: "FAKE ID: Load 3 Cargo, or Otherwise Load 3 Contraband and Warrant Issued?");
+            if (!game.TrySetPendingChoice(pending, out error))
+                return false;
+            _pendingFakeIdSalvageOptionIndex = optionIndex;
+            _pendingFakeIdSalvageResolveChoice = choice;
+            return true;
+        }
+
+        private static bool NeedsFakeIdSalvageChoice(
+            GameState game,
+            PlayerState player,
+            string? details,
+            NavResolveChoice? choice)
+        {
+            if (!IsFakeIdSalvageBranch(details ?? ""))
+                return false;
+            if (choice?.UseFakeIdSalvage != null)
+                return false;
+            return MisbehaveResolver.HasTag(game, player, "Fake ID");
+        }
+
+        private static bool IsFakeIdSalvageBranch(string text) =>
+            Contains(text, "If you have FAKE ID") && Contains(text, "Otherwise");
 
         private bool TrySuspendGoodsMix(
             GameState game,
@@ -3002,7 +3135,7 @@ namespace Firefly.Core.Actions
 
             var shared = option.HasStructuredEffects
                 ? FilterOptionSharedEffects(option.Effects, skillCheckPresent)
-                : ParseSharedOptionMicroEffects(text, skillCheckPresent, player);
+                : ParseSharedOptionMicroEffects(text, skillCheckPresent, player, choice);
             var context = new CardEffectContext(CardEffectSource.Nav, choice?.Kill, enforceHoldSpace: true);
             if (!CardEffectApplicator.CanApply(player, shared, context, out error))
                 return false;
@@ -3154,7 +3287,7 @@ namespace Firefly.Core.Actions
 
             var shared = option.HasStructuredEffects
                 ? FilterOptionSharedEffects(option.Effects, skillCheckPresent)
-                : ParseSharedOptionMicroEffects(text, skillCheckPresent, player);
+                : ParseSharedOptionMicroEffects(text, skillCheckPresent, player, choice);
             if (shared.Count > 0)
             {
                 var context = new CardEffectContext(CardEffectSource.Nav, choice?.Kill, enforceHoldSpace: true);
@@ -3309,7 +3442,8 @@ namespace Firefly.Core.Actions
         private static IReadOnlyList<CardEffect> ParseSharedOptionMicroEffects(
             string text,
             bool skillCheckPresent,
-            PlayerState player)
+            PlayerState player,
+            NavResolveChoice? choice)
         {
             var effects = new List<CardEffect>();
             if (IsDisgruntleMoral(text))
@@ -3319,7 +3453,7 @@ namespace Firefly.Core.Actions
                 && !Contains(text, "Remove Disgruntled from all Moral Crew"))
                 effects.Add(new CardEffect(CardEffectType.ClearDisgruntled));
 
-            if (!skillCheckPresent && ShouldIssueWarrant(text, player))
+            if (!skillCheckPresent && ShouldIssueWarrant(text, player, choice))
                 effects.Add(new CardEffect(CardEffectType.WarrantIssued));
 
             return effects;
@@ -3337,13 +3471,13 @@ namespace Firefly.Core.Actions
                 && Contains(text, "not in your Stash")
                 && Contains(text, "seized"));
 
-        private static bool ShouldIssueWarrant(string text, PlayerState player)
+        private static bool ShouldIssueWarrant(string text, PlayerState player, NavResolveChoice? choice)
         {
             if (!Contains(text, "Warrant Issued"))
                 return false;
-            // Regulated Salvage FAKE ID branch is deferred (Otherwise: … Warrant Issued).
-            if (Contains(text, "If you have FAKE ID") && Contains(text, "Otherwise"))
-                return false;
+            // Regulated Salvage: Warrant only on Otherwise (not when using FAKE ID cargo path).
+            if (IsFakeIdSalvageBranch(text))
+                return choice?.UseFakeIdSalvage == false;
             if (Contains(text, "If you are an Outlaw Ship"))
                 return AlertTokenRules.IsOutlawShip(player);
             return true;
@@ -3585,9 +3719,29 @@ namespace Firefly.Core.Actions
             loaded = 0;
             error = null;
 
-            // Regulated Salvage FAKE ID vs Otherwise Load branch is deferred.
-            if (Contains(text, "If you have FAKE ID") && Contains(text, "Otherwise"))
+            // Regulated Salvage: FAKE ID may Load 3 Cargo; Otherwise Load 3 Contraband (+ Warrant elsewhere).
+            if (IsFakeIdSalvageBranch(text))
+            {
+                if (choice?.UseFakeIdSalvage == null)
+                {
+                    error = "Choose whether to use FAKE ID for Regulated Salvage.";
+                    return false;
+                }
+                if (choice.UseFakeIdSalvage == true)
+                    AssignTypedLoad("Cargo", 3, ref addFuel, ref addParts, ref addCargo, ref addContra);
+                else
+                    AssignTypedLoad("Contraband", 3, ref addFuel, ref addParts, ref addCargo, ref addContra);
+                if (!HoldSpace.TryExplain(
+                    player,
+                    out error,
+                    addFuel: addFuel,
+                    addParts: addParts,
+                    addCargo: addCargo,
+                    addContraband: addContra))
+                    return false;
+                loaded = 3;
                 return true;
+            }
 
             if (Contains(text, "Load no Goods"))
                 return true;
