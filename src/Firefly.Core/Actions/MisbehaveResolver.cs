@@ -904,7 +904,7 @@ namespace Firefly.Core.Actions
             if (outcome != MisbehaveOutcome.Botched
                 && MisbehaveSteps.IsContinueToNext(effectBand, stepIndex, steps.Count))
             {
-                ApplyStepCarryForward(pending, effectBand);
+                ApplyStepCarryForward(pending, effectBand, useStructured ? structuredEffects : null);
                 pending.CurrentStepIndex = stepIndex + 1;
                 pending.AwaitingNextStep = true;
                 choice.SkillCheck = null;
@@ -1109,7 +1109,9 @@ namespace Firefly.Core.Actions
             }
 
             bribeCash = check.BribeDollarsPaid;
-            var sum = check.Total + BonusFromGear(game, player, details) + pending.NextTalkBonus;
+            var sum = check.Total
+                + BonusFromSkillCheck(game, player, option, details)
+                + pending.NextTalkBonus;
             check = check.WithTotal(sum);
             // Next-test talk bonus is consumed by this roll.
             pending.NextTalkBonus = 0;
@@ -1308,10 +1310,27 @@ namespace Firefly.Core.Actions
             return game.TrySetPendingChoice(pending, out error);
         }
 
-        private static void ApplyStepCarryForward(PendingMisbehave pending, string effectBand)
+        private static void ApplyStepCarryForward(
+            PendingMisbehave pending,
+            string effectBand,
+            IReadOnlyList<MisbehaveEffect>? structuredEffects)
         {
-            if (Contains(effectBand, "next Fight Test is Kosherized"))
+            if (Contains(effectBand, "next Fight Test is Kosherized")
+                || HasLocalEffect(structuredEffects, MisbehaveLocalEffectType.NextFightKosherized))
                 pending.NextFightKosherized = true;
+
+            // Prefer structured nextTalkBonus so band.Text can keep the printed phrase
+            // without double-counting the prose regex.
+            if (HasLocalEffect(structuredEffects, MisbehaveLocalEffectType.NextTalkBonus))
+            {
+                foreach (var effect in structuredEffects!)
+                {
+                    if (!effect.Is(MisbehaveLocalEffectType.NextTalkBonus))
+                        continue;
+                    pending.NextTalkBonus += effect.Count > 0 ? effect.Count : 1;
+                }
+                return;
+            }
 
             var bonus = Regex.Match(
                 effectBand,
@@ -1385,6 +1404,9 @@ namespace Firefly.Core.Actions
                     case MisbehaveLocalEffectType.DisgruntleTech:
                         player.Roster.DisgruntleWhere(m => m.Card.Tech > 0);
                         break;
+                    case MisbehaveLocalEffectType.DisgruntleAllCrew:
+                        player.Roster.DisgruntleWhere(_ => true);
+                        break;
                     case MisbehaveLocalEffectType.LoseSolid:
                         break;
                     case MisbehaveLocalEffectType.DiscardWarrants:
@@ -1396,6 +1418,10 @@ namespace Firefly.Core.Actions
                         player.Warrants -= discard;
                         break;
                     case MisbehaveLocalEffectType.ReplaceCard:
+                        break;
+                    case MisbehaveLocalEffectType.NextFightKosherized:
+                    case MisbehaveLocalEffectType.NextTalkBonus:
+                        // Carry-forward applied in ApplyStepCarryForward on Continue.
                         break;
                 }
             }
@@ -1614,6 +1640,25 @@ namespace Firefly.Core.Actions
             return true;
         }
 
+        private static int BonusFromSkillCheck(
+            GameState game,
+            PlayerState player,
+            MisbehaveOption option,
+            string details)
+        {
+            if (option.SkillCheck != null && option.SkillCheck.Bonuses.Count > 0)
+            {
+                var bonus = 0;
+                foreach (var entry in option.SkillCheck.Bonuses)
+                {
+                    if (entry.Amount != 0 && HasTag(game, player, entry.Tag))
+                        bonus += entry.Amount;
+                }
+                return bonus;
+            }
+            return BonusFromGear(game, player, details);
+        }
+
         private static int BonusFromGear(GameState game, PlayerState player, string details)
         {
             var bonus = 0;
@@ -1754,6 +1799,14 @@ namespace Firefly.Core.Actions
 
             if (Contains(text, "Disgruntle all Mercs"))
                 player.Roster.DisgruntleWhere(m => m.Card.HasProfession("Merc") || m.Card.HasProfession("Soldier"));
+
+            // "Disgruntle all Crew" / "Disgruntled all Crew" — full roster (Gun Play, etc.).
+            // Narrower "all Crew with Tech" / Moral / Mercs handled above; skip those here.
+            if ((Contains(text, "Disgruntle all Crew") || Contains(text, "Disgruntled all Crew"))
+                && !Contains(text, "all Crew with Tech")
+                && !Contains(text, "all Moral")
+                && !Contains(text, "all Mercs"))
+                player.Roster.DisgruntleWhere(_ => true);
         }
 
         private static void ApplyClearDisgruntled(PlayerState player, string text)

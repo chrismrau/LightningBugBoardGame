@@ -16,9 +16,30 @@ namespace Firefly.Core.Cards
         Wanted,
         DisgruntleMercs,
         DisgruntleTech,
+        DisgruntleAllCrew,
         LoseSolid,
         DiscardWarrants,
-        ReplaceCard
+        ReplaceCard,
+        /// <summary>FIRST-step carry: next Fight Test is Kosherized (C&amp;P Secure Perimeter).</summary>
+        NextFightKosherized,
+        /// <summary>FIRST-step carry: +N Negotiate to next Test (count = N).</summary>
+        NextTalkBonus
+    }
+
+    /// <summary>
+    /// Printed "+N Skill with TAG" gear/profession bonus on a structured skill check
+    /// (e.g. "+ 2 Tech with HACKING RIG"). Applied when <see cref="MisbehaveResolver.HasTag"/> matches.
+    /// </summary>
+    public sealed class MisbehaveSkillBonus
+    {
+        public int Amount { get; }
+        public string Tag { get; }
+
+        public MisbehaveSkillBonus(int amount, string tag)
+        {
+            Amount = amount;
+            Tag = tag ?? "";
+        }
     }
 
     /// <summary>
@@ -113,13 +134,21 @@ namespace Firefly.Core.Cards
         public int Target { get; }
         public bool Kosherized { get; }
         public bool BribesAllowed { get; }
+        /// <summary>Optional structured "+N with TAG" bonuses; preferred over parsing details.</summary>
+        public IReadOnlyList<MisbehaveSkillBonus> Bonuses { get; }
 
-        public MisbehaveSkillCheckSpec(Skill skill, int target, bool kosherized = false, bool bribesAllowed = false)
+        public MisbehaveSkillCheckSpec(
+            Skill skill,
+            int target,
+            bool kosherized = false,
+            bool bribesAllowed = false,
+            IReadOnlyList<MisbehaveSkillBonus>? bonuses = null)
         {
             Skill = skill;
             Target = target;
             Kosherized = kosherized;
             BribesAllowed = bribesAllowed;
+            Bonuses = bonuses ?? Array.Empty<MisbehaveSkillBonus>();
         }
 
         public SkillCheck ToSkillCheck() => new SkillCheck(Skill, Target, Kosherized, BribesAllowed);

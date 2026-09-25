@@ -23,7 +23,8 @@ namespace Firefly.Core.Tests
             Assert.Equal(5, affair.SkillThresholds!.Talk);
             Assert.Null(affair.Other);
             Assert.Equal("Negotiate 6; 1-5 Attempt Botched. 6+ Proceed.", affair.Options[1].Details);
-            Assert.False(affair.Options[1].HasStructuredBands);
+            // Batch 1 migration: Work the Crowd now has structured skillCheck / bands.
+            Assert.True(affair.Options[1].HasStructuredBands);
 
             Assert.True(catalog.TryGet("misbehave_a-vote-of-no-confidence", out var vote));
             Assert.Equal("No Disgruntled", vote.Other);
@@ -117,19 +118,20 @@ namespace Firefly.Core.Tests
         [Fact]
         public void Prose_only_cards_still_resolve_via_shared_SkillCheck_BandText()
         {
+            // ambush still prose-only after batch 1 (inverted "8+ Fight" syntax deferred).
             var game = NewCrimeGame();
-            game.CurrentPlayer.TalkBonus = 2;
+            game.CurrentPlayer.FightBonus = 1;
             StartCrime(game);
-            game.Misbehave!.PlaceOnTop(game.Misbehave.Catalog.Get("misbehave_a-formal-affair"));
+            game.Misbehave!.PlaceOnTop(game.Misbehave.Catalog.Get("misbehave_ambush"));
             var resolver = new MisbehaveResolver();
             resolver.DrawNext(game);
 
             Assert.True(resolver.TryResolve(
                 game, "p1",
-                new MisbehaveChoice { OptionIndex = 1 },
+                new MisbehaveChoice { OptionIndex = 0 },
                 out var resolution, out var error,
-                ScriptedRng.FromDieFaces(3, 3)), error);
-            Assert.Equal(MisbehaveOutcome.Proceed, resolution!.Outcome);
+                ScriptedRng.FromDieFaces(6, 6)), error);
+            Assert.Equal(MisbehaveOutcome.Botched, resolution!.Outcome);
             Assert.False(resolution.Option!.HasStructuredBands);
         }
 

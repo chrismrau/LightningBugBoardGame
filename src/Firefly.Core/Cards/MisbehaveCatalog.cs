@@ -99,7 +99,22 @@ namespace Firefly.Core.Cards
             else if (!Enum.TryParse(label, true, out skill))
                 throw new InvalidDataException($"Unknown Misbehave skillCheck.skill '{dto.Skill}'.");
             var bribes = dto.Bribes == true && skill == Skill.Talk;
-            return new MisbehaveSkillCheckSpec(skill, dto.Target, dto.Kosherized == true, bribes);
+            return new MisbehaveSkillCheckSpec(
+                skill, dto.Target, dto.Kosherized == true, bribes, ParseBonuses(dto.Bonuses));
+        }
+
+        private static List<MisbehaveSkillBonus>? ParseBonuses(List<SkillBonusDto>? dtos)
+        {
+            if (dtos == null || dtos.Count == 0)
+                return null;
+            var bonuses = new List<MisbehaveSkillBonus>(dtos.Count);
+            foreach (var dto in dtos)
+            {
+                if (string.IsNullOrWhiteSpace(dto.Tag))
+                    throw new InvalidDataException("Misbehave skillCheck.bonuses[].tag is required.");
+                bonuses.Add(new MisbehaveSkillBonus(dto.Amount, dto.Tag.Trim()));
+            }
+            return bonuses;
         }
 
         private static List<MisbehaveBand>? ParseBands(List<BandDto>? dtos)
@@ -184,6 +199,18 @@ namespace Firefly.Core.Cards
                 type = MisbehaveLocalEffectType.Botched;
                 return true;
             }
+            if (key.Equals("continue", StringComparison.OrdinalIgnoreCase))
+            {
+                // FIRST–NEXT mid-card Continue uses Proceed outcome + band text / step index.
+                type = MisbehaveLocalEffectType.Proceed;
+                return true;
+            }
+            if (key.Equals("disgruntleAll", StringComparison.OrdinalIgnoreCase)
+                || key.Equals("disgruntleCrew", StringComparison.OrdinalIgnoreCase))
+            {
+                type = MisbehaveLocalEffectType.DisgruntleAllCrew;
+                return true;
+            }
             type = default;
             return false;
         }
@@ -233,6 +260,12 @@ namespace Firefly.Core.Cards
             public int Target { get; set; }
             public bool? Kosherized { get; set; }
             public bool? Bribes { get; set; }
+            public List<SkillBonusDto>? Bonuses { get; set; }
+        }
+        private sealed class SkillBonusDto
+        {
+            public int Amount { get; set; }
+            public string Tag { get; set; } = "";
         }
         private sealed class BandDto
         {

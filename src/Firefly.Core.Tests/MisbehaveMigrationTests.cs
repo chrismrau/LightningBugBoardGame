@@ -29,6 +29,28 @@ namespace Firefly.Core.Tests
         [InlineData("misbehave_all-out-brawl_2")]
         [InlineData("misbehave_packed-market")]
         [InlineData("misbehave_it-was-the-best-day-ever")]
+        // Batch 1 — FIRST–NEXT / 2 Steps
+        [InlineData("misbehave_central-data-access")]
+        [InlineData("misbehave_unification-day-festivities")]
+        [InlineData("misbehave_secure-perimeter")]
+        [InlineData("misbehave_alliance-restricted-activity-zone")]
+        [InlineData("misbehave_recalcitrant-official")]
+        [InlineData("misbehave_theyve-got-us-dead-to-rights")]
+        // Batch 1 — simple skill / require family
+        [InlineData("misbehave_a-formal-affair")]
+        [InlineData("misbehave_alliance-operatives")]
+        [InlineData("misbehave_gun-play")]
+        [InlineData("misbehave_gun-play_2")]
+        [InlineData("misbehave_kill-the-alarm")]
+        [InlineData("misbehave_kill-the-alarm_2")]
+        [InlineData("misbehave_tight-security")]
+        [InlineData("misbehave_tight-security_2")]
+        [InlineData("misbehave_we-need-a-distraction")]
+        [InlineData("misbehave_old-fashioned-shoot-out")]
+        [InlineData("misbehave_hired-local-goons")]
+        [InlineData("misbehave_disable-the-cortex-uplink")]
+        [InlineData("misbehave_the-sheriffs-justice")]
+        [InlineData("misbehave_purple-bellies")]
         public void Migrated_cards_load_structured_overlay_without_stripping_prose(string id)
         {
             var catalog = MisbehaveCatalog.LoadDefault();
@@ -40,8 +62,20 @@ namespace Firefly.Core.Tests
                 Assert.True(
                     option.HasStructuredBands
                     || option.HasStructuredEffects
+                    || option.HasStructuredSteps
                     || !string.IsNullOrWhiteSpace(option.ProceedIfTag),
                     $"{id}/{option.Name} missing structured overlay");
+                if (option.HasStructuredSteps)
+                {
+                    foreach (var step in option.Steps)
+                    {
+                        Assert.True(
+                            step.HasStructuredBands
+                            || step.HasStructuredEffects
+                            || step.SkillCheck != null,
+                            $"{id}/{option.Name}/{step.Name} step missing structured overlay");
+                    }
+                }
             }
         }
 
@@ -347,6 +381,129 @@ namespace Firefly.Core.Tests
             Assert.Null(resolution.SkillCheck);
         }
 
+        [Fact]
+        public void Batch1_central_data_access_loads_structured_steps()
+        {
+            var catalog = MisbehaveCatalog.LoadDefault();
+            var card = catalog.Get("misbehave_central-data-access");
+            var option = Assert.Single(card.Options);
+            Assert.True(option.HasStructuredSteps);
+            Assert.Equal(2, option.Steps.Count);
+            Assert.Equal(Skill.Talk, option.Steps[0].SkillCheck!.Skill);
+            Assert.True(option.Steps[0].SkillCheck.BribesAllowed);
+            Assert.Equal(Skill.Tech, option.Steps[1].SkillCheck!.Skill);
+            Assert.Single(option.Steps[1].SkillCheck.Bonuses);
+            Assert.Equal(2, option.Steps[1].SkillCheck.Bonuses[0].Amount);
+            Assert.Equal("HACKING RIG", option.Steps[1].SkillCheck.Bonuses[0].Tag);
+        }
+
+        [Fact]
+        public void Batch1_secure_perimeter_nextFightKosherized_carry_on_Continue()
+        {
+            // FIRST Tech 7 fail band: next Fight Test is Kosherized, Continue → NEXT Fight 10 Kosherized.
+            var game = NewCrimeGame();
+            Assert.True(game.CurrentPlayer.Roster.TryHire(game.Crew!.Get("crew_jayne"), out _));
+            game.CurrentPlayer.TechBonus = 0;
+            game.CurrentPlayer.FightBonus = 20; // gear proxy — Kosherized must ignore on NEXT
+            StartCrime(game);
+            game.Misbehave!.PlaceOnTop(game.Misbehave.Catalog.Get("misbehave_secure-perimeter"));
+            var resolver = new MisbehaveResolver();
+            resolver.DrawNext(game);
+
+            // FIRST: die 1 + Tech 0 = 1 → nextFightKosherized + Continue
+            Assert.False(resolver.TryResolve(
+                game, "p1",
+                new MisbehaveChoice { OptionIndex = 0 },
+                out _, out var firstError,
+                ScriptedRng.FromDieFaces(1)));
+            Assert.Contains("next", firstError, StringComparison.OrdinalIgnoreCase);
+            Assert.True(game.PendingMisbehave!.NextFightKosherized);
+
+            // NEXT Fight 10 Kosherized: Jayne dice only; faces 1,1 → kill+botch
+            Assert.True(resolver.TryResumeMisbehaveOption(
+                game, "p1",
+                new ChoiceSubmission { SelectedOptionId = MisbehaveSteps.StepOptionId(1) },
+                new MisbehaveChoice { OptionIndex = 0 },
+                out var resolution, out var error,
+                ScriptedRng.FromDieFaces(1, 1)), error);
+            Assert.True(resolution!.SkillCheck!.Check.Kosherized);
+            Assert.Equal(MisbehaveOutcome.Botched, resolution.Outcome);
+            Assert.Equal(1, resolution.CrewKilled);
+        }
+
+        [Fact]
+        public void Batch1_recalcitrant_official_nextTalkBonus_from_structured_effects()
+        {
+            // FIRST Tech 10 → 5-9: +1 Negotiate to next Test, Continue.
+            // DiceCount uses Tech/Talk skill — set bonuses so scripted faces are consumed.
+            var game = NewCrimeGame();
+            game.CurrentPlayer.TechBonus = 1;
+            game.CurrentPlayer.TalkBonus = 1;
+            StartCrime(game);
+            game.Misbehave!.PlaceOnTop(game.Misbehave.Catalog.Get("misbehave_recalcitrant-official"));
+            var resolver = new MisbehaveResolver();
+            resolver.DrawNext(game);
+
+            // FIRST: die 6 + Tech 1 = 7 → +1 nextTalk, Continue (5-9 band)
+            Assert.False(resolver.TryResolve(
+                game, "p1",
+                new MisbehaveChoice { OptionIndex = 0 },
+                out _, out var firstError,
+                ScriptedRng.FromDieFaces(6)));
+            Assert.Contains("next", firstError, StringComparison.OrdinalIgnoreCase);
+            Assert.Equal(1, game.PendingMisbehave!.NextTalkBonus);
+
+            // NEXT Negotiate 10: die 5 + carry 1 = 6 → Attempt Botched (6-9).
+            // Without the +1 carry, die 5 alone hits 1-5 Warrant Issued.
+            Assert.True(resolver.TryResumeMisbehaveOption(
+                game, "p1",
+                new ChoiceSubmission { SelectedOptionId = MisbehaveSteps.StepOptionId(1) },
+                new MisbehaveChoice { OptionIndex = 0 },
+                out var resolution, out var error,
+                ScriptedRng.FromDieFaces(5)), error);
+            Assert.Equal(MisbehaveOutcome.Botched, resolution!.Outcome);
+            Assert.Equal(0, resolution.WarrantsIssued);
+            Assert.Equal(0, game.PendingMisbehave?.NextTalkBonus ?? 0);
+        }
+
+        [Fact]
+        public void Batch1_gun_play_disgruntleAllCrew_via_structured_effects()
+        {
+            var game = NewCrimeGame();
+            Assert.True(game.CurrentPlayer.Roster.TryHire(game.Crew!.Get("crew_jayne"), out _));
+            Assert.True(game.CurrentPlayer.Roster.TryHire(game.Crew.Get("crew_zoe"), out _));
+            StartCrime(game);
+            game.Misbehave!.PlaceOnTop(game.Misbehave.Catalog.Get("misbehave_gun-play"));
+            var resolver = new MisbehaveResolver();
+            resolver.DrawNext(game);
+
+            Assert.True(resolver.TryResolve(
+                game, "p1",
+                new MisbehaveChoice { OptionIndex = 1 },
+                out var resolution, out var error), error);
+            Assert.Equal(MisbehaveOutcome.Botched, resolution!.Outcome);
+            Assert.All(game.CurrentPlayer.Roster.Members, m => Assert.True(m.Disgruntled));
+        }
+
+        [Fact]
+        public void Batch1_kill_the_alarm_tech_proceed_via_structured_bands()
+        {
+            var game = NewCrimeGame();
+            game.CurrentPlayer.TechBonus = 4;
+            StartCrime(game);
+            game.Misbehave!.PlaceOnTop(game.Misbehave.Catalog.Get("misbehave_kill-the-alarm"));
+            var resolver = new MisbehaveResolver();
+            resolver.DrawNext(game);
+
+            Assert.True(resolver.TryResolve(
+                game, "p1",
+                new MisbehaveChoice { OptionIndex = 0 },
+                out var resolution, out var error,
+                ScriptedRng.FromDieFaces(2)), error);
+            Assert.True(resolution!.Option!.HasStructuredBands);
+            Assert.Equal(MisbehaveOutcome.Proceed, resolution.Outcome);
+        }
+
         private static GameState NewCrimeGame(int cash = 500)
         {
             var map = SectorMap.LoadFromDirectory(GameData.MapDirectory);
@@ -371,3 +528,4 @@ namespace Firefly.Core.Tests
         }
     }
 }
+// temp
