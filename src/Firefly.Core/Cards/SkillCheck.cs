@@ -124,9 +124,18 @@ namespace Firefly.Core.Cards
         /// When <paramref name="job"/> is Illegal and Lawmen are present, they stay onboard (PBH)
         /// and do not add dice; otherwise the normal roster + bonus path is used.
         /// Director's Cut C&amp;P p.49: crew Returned to Ship (and their Gear) do not count.
+        /// When <paramref name="onlyCrewId"/> is set (Old Vendetta Choose 1 Crew), only that
+        /// Crew's skill (+ their carried Gear unless Kosherized) counts.
         /// </summary>
-        public int DiceCount(PlayerState player, GameState? game = null, JobCard? job = null)
+        public int DiceCount(
+            PlayerState player,
+            GameState? game = null,
+            JobCard? job = null,
+            string? onlyCrewId = null)
         {
+            if (!string.IsNullOrWhiteSpace(onlyCrewId))
+                return DiceCountForOneCrew(player, game, job, onlyCrewId!);
+
             if (JobWorkCrew.HasAnyoneReturnedToShip(player))
                 return DiceCountExcludingReturned(player, game, job);
 
@@ -145,6 +154,32 @@ namespace Firefly.Core.Cards
             if (game != null)
                 return crew + AbilityDispatcher.CarriedSkillAddend(game, player, Skill, job: job);
             return crew;
+        }
+
+        private int DiceCountForOneCrew(
+            PlayerState player,
+            GameState? game,
+            JobCard? job,
+            string onlyCrewId)
+        {
+            var member = player.Roster.Find(onlyCrewId);
+            if (member == null || JobWorkCrew.IsUnavailable(player, member))
+                return 0;
+            if (job != null && LawmanRules.StaysOnboardForJob(member, job))
+                return 0;
+
+            var crew = Skill switch
+            {
+                Skill.Fight => member.Card.Fight,
+                Skill.Tech => member.Card.Tech,
+                _ => member.Card.Talk
+            };
+            if (Skill == Skill.Fight && Kosherized)
+                return crew;
+            if (game == null)
+                return crew;
+            return crew + AbilityDispatcher.CarriedSkillAddendForCrew(
+                game, player, Skill, onlyCrewId, job: job);
         }
 
         private int DiceCountExcludingReturned(PlayerState player, GameState? game, JobCard? job)
@@ -483,11 +518,13 @@ namespace Firefly.Core.Cards
             IRng rng,
             SkillCheckResult previous,
             GameState? game = null,
-            AbilityContext? abilityContext = null)
+            AbilityContext? abilityContext = null,
+            JobCard? job = null,
+            string? onlyCrewId = null)
         {
             if (previous == null)
                 throw new ArgumentNullException(nameof(previous));
-            var roll = Dice.RollD6(DiceCount(player), rng);
+            var roll = Dice.RollD6(DiceCount(player, game, job, onlyCrewId), rng);
             roll = ApplyRerollOnes(game, player, Skill, roll, rng, abilityContext);
             var total = roll.Sum + previous.BribeBonus;
             return new SkillCheckResult(
@@ -589,7 +626,8 @@ namespace Firefly.Core.Cards
             SkillCheckChoice? choice = null,
             GameState? game = null,
             AbilityContext? abilityContext = null,
-            JobCard? job = null)
+            JobCard? job = null,
+            string? onlyCrewId = null)
         {
             result = null!;
             error = null;
@@ -618,7 +656,7 @@ namespace Firefly.Core.Cards
                 player.Cash -= bribeDollars;
             }
 
-            var roll = Dice.RollD6(DiceCount(player, game, job), rng);
+            var roll = Dice.RollD6(DiceCount(player, game, job, onlyCrewId), rng);
             roll = ApplyRerollOnes(game, player, Skill, roll, rng, abilityContext);
             var total = roll.Sum + bribeBonus;
             var success = total >= Target;

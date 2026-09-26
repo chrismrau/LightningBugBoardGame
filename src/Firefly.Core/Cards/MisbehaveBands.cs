@@ -114,7 +114,36 @@ namespace Firefly.Core.Cards
         /// Mark Wanted on Crew carrying Gear matching <see cref="MisbehaveEffect.Tags"/>
         /// (Packed Market FIREARM carriers). Leader excluded per DC C&amp;P p.49 Wanted Tokens.
         /// </summary>
-        WantedCarrying
+        WantedCarrying,
+        /// <summary>
+        /// Discard all Merc profession Crew (Interesting Day). Leaders cannot be discarded.
+        /// Gear they carried becomes Onboard Ship (unused).
+        /// </summary>
+        DiscardAllMercs,
+        /// <summary>
+        /// FAQ 4.1 p.12 Interesting Day: if Mercs' Fight (crew + carried Gear) &gt; rest of Crew,
+        /// discard all Mercs. No Mercs → Proceed (Merc total 0 is not higher).
+        /// </summary>
+        DiscardMercsIfFightHigher,
+        /// <summary>Disgruntle all Crew except the Leader (Manure's hit the Turbine).</summary>
+        DisgruntleAllExceptLeader,
+        /// <summary>
+        /// Vote of No Confidence: pay each Disgruntled Crew their Cut (hiring cost) or discard
+        /// them. <see cref="Actions.MisbehaveChoice.PayDisgruntledCuts"/> selects pay vs discard.
+        /// Leaders excluded (GF9 Entrepreneur — Leaders do not receive a Cut).
+        /// </summary>
+        PayDisgruntledCutsOrDiscard,
+        /// <summary>
+        /// Rival Crew: Proceed; if this Job attempt succeeds, cut Pay in half (rounded down).
+        /// Profession / keyword / Contact bonuses are unaffected (FAQ 4.1 p.7).
+        /// </summary>
+        HalveJobPayOnSuccess,
+        /// <summary>
+        /// Manure: Lose 1 Solid Rep and Proceed OR Attempt Botched.
+        /// <see cref="Actions.MisbehaveChoice.AcceptPay"/> true = lose Solid path; false = Botched.
+        /// Unaffordable / no Solid with AcceptPay → Botched (same as optional Pay OR Botched).
+        /// </summary>
+        LoseSolidOrBotched
     }
 
     /// <summary>
@@ -300,13 +329,20 @@ namespace Firefly.Core.Cards
         /// </summary>
         public IReadOnlyList<MisbehaveTargetModifier> TargetModifiers { get; }
 
+        /// <summary>
+        /// Old Vendetta / Hotel: only the chosen Crew's skill (+ their carried Gear unless
+        /// Kosherized) counts. Requires <see cref="Actions.MisbehaveChoice.TargetCrewId"/>.
+        /// </summary>
+        public bool ChooseOneCrew { get; }
+
         public MisbehaveSkillCheckSpec(
             Skill skill,
             int target,
             bool kosherized = false,
             bool bribesAllowed = false,
             IReadOnlyList<MisbehaveSkillBonus>? bonuses = null,
-            IReadOnlyList<MisbehaveTargetModifier>? targetModifiers = null)
+            IReadOnlyList<MisbehaveTargetModifier>? targetModifiers = null,
+            bool chooseOneCrew = false)
         {
             Skill = skill;
             Target = target;
@@ -314,6 +350,7 @@ namespace Firefly.Core.Cards
             BribesAllowed = bribesAllowed;
             Bonuses = bonuses ?? Array.Empty<MisbehaveSkillBonus>();
             TargetModifiers = targetModifiers ?? Array.Empty<MisbehaveTargetModifier>();
+            ChooseOneCrew = chooseOneCrew;
         }
 
         public SkillCheck ToSkillCheck() => new SkillCheck(Skill, Target, Kosherized, BribesAllowed);

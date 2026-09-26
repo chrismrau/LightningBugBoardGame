@@ -162,6 +162,7 @@ namespace Firefly.Core.Actions
         private MisbehaveChoice? _pendingWarrantOrWantedChoice;
         private MisbehaveChoice? _pendingDiscardCargoChoice;
         private MisbehaveChoice? _pendingWantedRollChoice;
+        private MisbehaveChoice? _pendingChooseCrewChoice;
         /// <summary>Frozen Wanted-seize crew ids after dice, awaiting Meadows PendingChoice.</summary>
         private List<string>? _frozenWantedSeizeIds;
         private bool _frozenSkillReady;
@@ -861,6 +862,55 @@ namespace Firefly.Core.Actions
         }
 
         /// <summary>
+        /// Resume after <see cref="PendingChoiceKinds.MisbehaveChooseCrew"/> (Old Vendetta /
+        /// Hotel Choose 1 Crew for the Test).
+        /// </summary>
+        public bool TryResumeChooseCrew(
+            GameState game,
+            string playerId,
+            ChoiceSubmission submission,
+            MisbehaveChoice choice,
+            out MisbehaveResolution? resolution,
+            out string? error,
+            IRng? rng = null)
+        {
+            resolution = null;
+            error = null;
+            if (game.PendingChoice == null
+                || !string.Equals(
+                    game.PendingChoice.Kind,
+                    PendingChoiceKinds.MisbehaveChooseCrew,
+                    StringComparison.Ordinal))
+            {
+                error = "No Misbehave Choose-Crew choice is pending.";
+                return false;
+            }
+
+            var merged = _pendingChooseCrewChoice ?? choice;
+            var crewId = submission.SelectedOptionId;
+            if (string.IsNullOrWhiteSpace(crewId)
+                || game.PendingChoice.Options == null
+                || !ContainsOption(game.PendingChoice.Options, crewId))
+            {
+                error = "Choose a Crew for this Skill Test.";
+                return false;
+            }
+
+            merged.TargetCrewId = crewId;
+            choice.TargetCrewId = crewId;
+            if (choice.OptionIndex == null)
+                choice.OptionIndex = merged.OptionIndex;
+            if (choice.StepIndex == null)
+                choice.StepIndex = merged.StepIndex;
+
+            if (!game.TrySubmitChoice(playerId, submission, out _, out error))
+                return false;
+
+            _pendingChooseCrewChoice = null;
+            return TryResolve(game, playerId, choice, out resolution, out error, rng);
+        }
+
+        /// <summary>
         /// Resume after Scan-Proof Shades / ship-upgrade ignore Wanted Crew Roll PendingChoice.
         /// </summary>
         public bool TryResumeWantedRollIgnore(
@@ -1153,9 +1203,17 @@ namespace Firefly.Core.Actions
                 return Finish(game, playerId, card, option, MisbehaveOutcome.Replaced, check, 0, 0, 0, 0, false, out resolution, out error);
             }
 
-            var optionalPay = Contains(details, "OR Attempt Botched");
-            var pay = PayAmount(player, details, choice.PayDisgruntledCuts);
-            var paying = pay > 0 && choice.AcceptPay && (!optionalPay || player.Cash >= pay);
+            var optionalOrBotched = Contains(details, "OR Attempt Botched")
+                || HasLocalEffect(structuredEffects, MisbehaveLocalEffectType.LoseSolidOrBotched);
+            var payCutsEffect = HasLocalEffect(
+                structuredEffects, MisbehaveLocalEffectType.PayDisgruntledCutsOrDiscard);
+            var pay = payCutsEffect
+                ? DisgruntledCutsTotal(player)
+                : PayAmount(player, details, choice.PayDisgruntledCuts);
+            // Vote structured: pay when PayDisgruntledCuts; else discard path (pay=0).
+            if (payCutsEffect && !choice.PayDisgruntledCuts)
+                pay = 0;
+            var paying = pay > 0 && choice.AcceptPay && (!optionalOrBotched || player.Cash >= pay);
             if (paying && player.Cash < pay)
             {
                 error = $"Need ${pay} to pick this option.";
@@ -1166,17 +1224,32 @@ namespace Firefly.Core.Actions
             var effectBand = bandText ?? details;
             var effectText = check == null ? details : effectBand;
 
-            if (optionalPay && !paying)
+            // Optional "... OR Attempt Botched" (pay or lose-Solid): decline → Botched.
+            var acceptLoseSolid = choice.AcceptPay
+                && (WouldLoseSolid(details)
+                    || HasLocalEffect(structuredEffects, MisbehaveLocalEffectType.LoseSolidOrBotched))
+                && ResolveLoseSolidId(player, choice.LoseSolidId) != null;
+            if (optionalOrBotched && !paying && !acceptLoseSolid)
             {
                 effectBand = "Attempt Botched";
                 effectText = effectBand;
-                useStructured = false;
+                // Structured LoseSolidOrBotched still applies as botched-only below.
+                if (!HasLocalEffect(structuredEffects, MisbehaveLocalEffectType.LoseSolidOrBotched))
+                    useStructured = false;
             }
 
             // Suspend for Kill N victim pick before mutating cash / warrants / crew.
             var plannedKill = PlannedKillCount(
                 useStructured ? structuredEffects : null,
                 effectText);
+            // Old Vendetta: Kill Chosen Crew — TargetCrewId is the victim (Tracey may redirect).
+            if (IsKillChosenCrew(useStructured ? structuredEffects : null, effectText, details)
+                && !string.IsNullOrWhiteSpace(choice.TargetCrewId))
+            {
+                choice.Kill ??= new KillChoice();
+                if (choice.Kill.VictimCrewIds == null || choice.Kill.VictimCrewIds.Count == 0)
+                    choice.Kill.VictimCrewIds = new List<string> { choice.TargetCrewId! };
+            }
             if (CrewKill.NeedsVictimChoice(player, plannedKill, choice.Kill))
             {
                 FreezeSkill(check, bandText, structuredEffects, bribeCash);
@@ -1258,9 +1331,15 @@ namespace Firefly.Core.Actions
 
             // Validate Solid-loss discard hooks before mutating crew / warrants.
             // LoseSolidIfAble skips when not Solid (printed "if able").
-            if (WouldLoseSolid(details)
-                || WouldLoseSolid(effectBand)
-                || (useStructured && HasLocalEffect(structuredEffects, MisbehaveLocalEffectType.LoseSolid)))
+            // LoseSolidOrBotched only validates when accepting the lose-Solid path.
+            var structuredLoseSolidOrBotched = useStructured
+                && HasLocalEffect(structuredEffects, MisbehaveLocalEffectType.LoseSolidOrBotched);
+            var takingLoseSolidOrBotched = structuredLoseSolidOrBotched && acceptLoseSolid
+                && !string.Equals(effectBand, "Attempt Botched", StringComparison.Ordinal);
+            if ((WouldLoseSolid(details) || WouldLoseSolid(effectBand)
+                    || (useStructured && HasLocalEffect(structuredEffects, MisbehaveLocalEffectType.LoseSolid))
+                    || takingLoseSolidOrBotched)
+                && !(structuredLoseSolidOrBotched && !takingLoseSolidOrBotched))
             {
                 var lostId = ResolveLoseSolidId(player, choice.LoseSolidId);
                 if (lostId == null)
@@ -1289,7 +1368,9 @@ namespace Firefly.Core.Actions
                 cashDelta -= pay;
             }
 
-            if (Contains(details, "Pay each Disgruntled") && !choice.PayDisgruntledCuts)
+            if ((Contains(details, "Pay each Disgruntled") || payCutsEffect)
+                && !choice.PayDisgruntledCuts
+                && !useStructured)
                 DiscardDisgruntled(player);
 
             ClearFrozenSkill();
@@ -1336,6 +1417,18 @@ namespace Firefly.Core.Actions
                 ApplyWanted(player, effectText, choice.TargetCrewId);
                 ApplyDisgruntle(player, effectText);
                 ApplyClearDisgruntled(player, effectText);
+                if (Contains(effectText, "Discard All Mercs") || Contains(effectText, "Discard all Mercs"))
+                    DiscardAllMercs(player);
+                if (Contains(details, "Mercs' Fight total") || Contains(details, "Mercs' Fight"))
+                    DiscardMercsIfFightHigher(game, player);
+                if (Contains(details, "cut Pay in half") || Contains(effectText, "cut Pay in half"))
+                {
+                    var activeHalf = game.PendingMisbehave != null
+                        ? player.FindActive(game.PendingMisbehave.JobId)
+                        : null;
+                    if (activeHalf != null)
+                        activeHalf.HalvePayOnSuccess = true;
+                }
                 if (Contains(effectText, "Discard all Jobs in Hand")
                     || Contains(details, "Discard all Jobs in Hand"))
                     DiscardAllInactiveJobsInHand(game, player);
@@ -1474,6 +1567,27 @@ namespace Firefly.Core.Actions
             skillCheck = SkillCheck.ApplySkillSwitchIfChosen(
                 player, skillCheck, choice.SkillCheck, activeJob, AbilityContext.Misbehaving);
 
+            // Old Vendetta / Hotel: Choose 1 Crew for the Test before Bribes / roll.
+            var chooseOne = option.SkillCheck?.ChooseOneCrew == true
+                || Contains(details, "Choose 1 Crew");
+            if (chooseOne && string.IsNullOrWhiteSpace(choice.TargetCrewId))
+            {
+                if (!TrySuspendChooseCrew(game, player, choice, out error))
+                    return false;
+                error = "Choose a Crew for this Skill Test.";
+                return false;
+            }
+            if (chooseOne && !string.IsNullOrWhiteSpace(choice.TargetCrewId))
+            {
+                var chosen = player.Roster.Find(choice.TargetCrewId!);
+                if (chosen == null || JobWorkCrew.IsUnavailable(player, chosen))
+                {
+                    error = "Chosen Crew is not available for this Skill Test.";
+                    return false;
+                }
+            }
+            var onlyCrewId = chooseOne ? choice.TargetCrewId : null;
+
             // GF9 p.6 / Cortland: "Before you roll a dice, you may choose to pay Bribes."
             if (SkillCheck.NeedsBribeChoice(player, skillCheck, choice.SkillCheck))
             {
@@ -1503,7 +1617,7 @@ namespace Firefly.Core.Actions
                         return false;
                     }
                     check = _pendingRerollResult.Check.RerollKeepingBribes(
-                        player, rng, _pendingRerollResult, game, AbilityContext.Misbehaving);
+                        player, rng, _pendingRerollResult, game, AbilityContext.Misbehaving, job, onlyCrewId);
                 }
                 else
                     check = _pendingRerollResult;
@@ -1513,7 +1627,7 @@ namespace Firefly.Core.Actions
             {
                 check = acceptReroll
                     ? _pendingRerollResult.Check.RerollKeepingBribes(
-                        player, rng, _pendingRerollResult, game, AbilityContext.Misbehaving)
+                        player, rng, _pendingRerollResult, game, AbilityContext.Misbehaving, job, onlyCrewId)
                     : _pendingRerollResult;
                 _pendingRerollResult = null;
 
@@ -1537,7 +1651,7 @@ namespace Firefly.Core.Actions
             {
                 if (!skillCheck.TryResolve(
                         player, rng, out check, out error, choice.SkillCheck,
-                        game, AbilityContext.Misbehaving, job))
+                        game, AbilityContext.Misbehaving, job, onlyCrewId))
                     return false;
 
                 // FAQ 4.1 p.8 may: always suspend take/decline re-roll when skillReroll matches.
@@ -1998,6 +2112,34 @@ namespace Firefly.Core.Actions
                     case MisbehaveLocalEffectType.WantedCarrying:
                         ApplyWantedCarrying(game, player, effect.Tags);
                         break;
+                    case MisbehaveLocalEffectType.DiscardAllMercs:
+                        DiscardAllMercs(player);
+                        break;
+                    case MisbehaveLocalEffectType.DiscardMercsIfFightHigher:
+                        DiscardMercsIfFightHigher(game, player);
+                        break;
+                    case MisbehaveLocalEffectType.DisgruntleAllExceptLeader:
+                        player.Roster.DisgruntleWhere(m => !m.IsLeader);
+                        break;
+                    case MisbehaveLocalEffectType.PayDisgruntledCutsOrDiscard:
+                        if (!choice.PayDisgruntledCuts)
+                            DiscardDisgruntled(player);
+                        break;
+                    case MisbehaveLocalEffectType.HalveJobPayOnSuccess:
+                        var activeForHalf = game.PendingMisbehave != null
+                            ? player.FindActive(game.PendingMisbehave.JobId)
+                            : null;
+                        if (activeForHalf != null)
+                            activeForHalf.HalvePayOnSuccess = true;
+                        break;
+                    case MisbehaveLocalEffectType.LoseSolidOrBotched:
+                        // AcceptPay + Solid → Proceed (lose Solid after loop); else Botched.
+                        if (!choice.AcceptPay
+                            || ResolveLoseSolidId(player, choice.LoseSolidId) == null)
+                            outcome = MisbehaveOutcome.Botched;
+                        else
+                            outcome = MisbehaveOutcome.Proceed;
+                        break;
                     case MisbehaveLocalEffectType.ReplaceCard:
                         break;
                     case MisbehaveLocalEffectType.NextFightKosherized:
@@ -2008,9 +2150,13 @@ namespace Firefly.Core.Actions
             }
 
             if (HasLocalEffect(effects, MisbehaveLocalEffectType.LoseSolid)
-                || HasLocalEffect(effects, MisbehaveLocalEffectType.LoseSolidIfAble))
+                || HasLocalEffect(effects, MisbehaveLocalEffectType.LoseSolidIfAble)
+                || (HasLocalEffect(effects, MisbehaveLocalEffectType.LoseSolidOrBotched)
+                    && outcome == MisbehaveOutcome.Proceed))
             {
-                var requireSolid = HasLocalEffect(effects, MisbehaveLocalEffectType.LoseSolid);
+                var requireSolid = HasLocalEffect(effects, MisbehaveLocalEffectType.LoseSolid)
+                    || (HasLocalEffect(effects, MisbehaveLocalEffectType.LoseSolidOrBotched)
+                        && outcome == MisbehaveOutcome.Proceed);
                 var solidId = ResolveLoseSolidId(player, choice.LoseSolidId);
                 if (solidId == null)
                 {
@@ -2336,8 +2482,24 @@ namespace Firefly.Core.Actions
             if (cash.Success)
                 return int.Parse(cash.Groups[1].Value);
             if (Contains(details, "Pay each Disgruntled") && payCuts)
-                return 100 * player.Roster.DisgruntledCount;
+                return DisgruntledCutsTotal(player);
             return 0;
+        }
+
+        /// <summary>
+        /// GF9 p.11 / p.15: Cut = hiring cost on the Crew card. Leaders do not receive a Cut
+        /// (Entrepreneur). Vote of No Confidence pays each Disgruntled non-Leader their Cut.
+        /// </summary>
+        private static int DisgruntledCutsTotal(PlayerState player)
+        {
+            var total = 0;
+            foreach (var member in player.Roster.Members)
+            {
+                if (!member.Disgruntled || member.IsLeader)
+                    continue;
+                total += Math.Max(0, member.Card.Cost);
+            }
+            return total;
         }
 
         private static int TakeCash(PlayerState player, string text)
@@ -2356,8 +2518,99 @@ namespace Firefly.Core.Actions
             {
                 var member = player.Roster.Members[i];
                 if (member.Disgruntled && !member.IsLeader)
+                {
+                    ClearGearCarriedBy(player, member.Id);
                     player.Roster.Remove(member.Id);
+                }
             }
+        }
+
+        private static void DiscardAllMercs(PlayerState player)
+        {
+            for (var i = player.Roster.Count - 1; i >= 0; i--)
+            {
+                var member = player.Roster.Members[i];
+                if (member.IsLeader || !member.Card.HasProfession("Merc"))
+                    continue;
+                ClearGearCarriedBy(player, member.Id);
+                player.Roster.Remove(member.Id);
+            }
+        }
+
+        /// <summary>
+        /// FAQ 4.1 p.12: Merc Fight vs rest (include Gear). No Mercs → Proceed (0 is not higher).
+        /// </summary>
+        private static void DiscardMercsIfFightHigher(GameState game, PlayerState player)
+        {
+            var mercFight = 0;
+            var restFight = 0;
+            foreach (var member in player.Roster.Members)
+            {
+                if (JobWorkCrew.IsUnavailable(player, member))
+                    continue;
+                var fight = member.Card.Fight
+                    + AbilityDispatcher.CarriedSkillAddendForCrew(
+                        game, player, Skill.Fight, member.Id);
+                if (member.Card.HasProfession("Merc"))
+                    mercFight += fight;
+                else
+                    restFight += fight;
+            }
+            if (mercFight > restFight)
+                DiscardAllMercs(player);
+        }
+
+        private static void ClearGearCarriedBy(PlayerState player, string crewId)
+        {
+            if (player.GearCarriers.Count == 0)
+                return;
+            var drop = new List<string>();
+            foreach (var pair in player.GearCarriers)
+            {
+                if (pair.Value.Equals(crewId, StringComparison.OrdinalIgnoreCase))
+                    drop.Add(pair.Key);
+            }
+            foreach (var gearId in drop)
+                player.GearCarriers.Remove(gearId);
+        }
+
+        private static bool IsKillChosenCrew(
+            IReadOnlyList<MisbehaveEffect>? effects,
+            string effectText,
+            string details)
+        {
+            if (Contains(effectText, "Kill Chosen Crew") || Contains(details, "Kill Chosen Crew"))
+                return true;
+            return Contains(details, "Choose 1 Crew")
+                && PlannedKillCount(effects, effectText) == 1;
+        }
+
+        private bool TrySuspendChooseCrew(
+            GameState game,
+            PlayerState player,
+            MisbehaveChoice choice,
+            out string? error)
+        {
+            var options = new List<string>();
+            foreach (var member in player.Roster.Members)
+            {
+                if (JobWorkCrew.IsUnavailable(player, member))
+                    continue;
+                options.Add(member.Id);
+            }
+            if (options.Count == 0)
+            {
+                error = "No Crew available for this Skill Test.";
+                return false;
+            }
+
+            _pendingChooseCrewChoice = choice;
+            var pending = new PendingChoice(
+                player.Id,
+                PendingChoiceKinds.MisbehaveChooseCrew,
+                options: options,
+                prompt: "Choose 1 Crew for this Skill Test.");
+            return game.TrySetPendingChoice(pending, out error);
         }
 
         private static bool TryKillCrew(
@@ -2391,6 +2644,8 @@ namespace Firefly.Core.Actions
             if (numbered.Success)
                 return int.Parse(numbered.Groups[1].Value);
             if (Regex.IsMatch(text, @"Kill\s+(a|1)\s+Crew", RegexOptions.IgnoreCase))
+                return 1;
+            if (Contains(text, "Kill Chosen Crew"))
                 return 1;
             return 0;
         }
@@ -3398,6 +3653,12 @@ namespace Firefly.Core.Actions
             if (Contains(text, "Disgruntle all Mercs"))
                 player.Roster.DisgruntleWhere(m => m.Card.HasProfession("Merc") || m.Card.HasProfession("Soldier"));
 
+            if (Contains(text, "except Leader"))
+            {
+                player.Roster.DisgruntleWhere(m => !m.IsLeader);
+                return;
+            }
+
             // "Disgruntle all Crew" / "Disgruntled all Crew" — full roster (Gun Play, etc.).
             // Narrower "all Crew with Tech" / Moral / Mercs handled above; skip those here.
             if ((Contains(text, "Disgruntle all Crew") || Contains(text, "Disgruntled all Crew"))
@@ -3622,5 +3883,15 @@ namespace Firefly.Core.Actions
 
         private static void CycleAllianceAlert(GameState game) =>
             game.AllianceAlertDeck?.DrawAndActivate();
+        private static bool ContainsOption(IReadOnlyList<string> options, string id)
+        {
+            foreach (var option in options)
+            {
+                if (option.Equals(id, StringComparison.OrdinalIgnoreCase))
+                    return true;
+            }
+            return false;
+        }
+
     }
 }

@@ -20,6 +20,11 @@ namespace Firefly.Core.State
         /// </summary>
         public ISet<string> ReturnedToShipCrewIds { get; } =
             new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        /// <summary>
+        /// FAQ 4.1 p.7 Rival Crew "Maybe We Can Make a Deal": cut Job Pay in half (rounded down)
+        /// on successful completion. Profession / keyword / Contact bonuses are unaffected.
+        /// </summary>
+        public bool HalvePayOnSuccess { get; set; }
 
         public ActiveJob(string jobId)
         {

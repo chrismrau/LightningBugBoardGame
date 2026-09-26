@@ -105,7 +105,8 @@ namespace Firefly.Core.Cards
                 dto.Kosherized == true,
                 bribes,
                 ParseBonuses(dto.Bonuses),
-                ParseTargetModifiers(dto.TargetModifiers));
+                ParseTargetModifiers(dto.TargetModifiers),
+                dto.ChooseOneCrew == true);
         }
 
         private static List<MisbehaveSkillBonus>? ParseBonuses(List<SkillBonusDto>? dtos)
@@ -284,6 +285,25 @@ namespace Firefly.Core.Cards
                 type = MisbehaveLocalEffectType.LoseSolidIfAble;
                 return true;
             }
+            if (key.Equals("disgruntleExceptLeader", StringComparison.OrdinalIgnoreCase)
+                || key.Equals("disgruntleAllExceptLeader", StringComparison.OrdinalIgnoreCase))
+            {
+                type = MisbehaveLocalEffectType.DisgruntleAllExceptLeader;
+                return true;
+            }
+            if (key.Equals("discardMercs", StringComparison.OrdinalIgnoreCase)
+                || key.Equals("discardAllMercs", StringComparison.OrdinalIgnoreCase))
+            {
+                type = MisbehaveLocalEffectType.DiscardAllMercs;
+                return true;
+            }
+            if (key.Equals("halvePay", StringComparison.OrdinalIgnoreCase)
+                || key.Equals("halveJobPayOnSuccess", StringComparison.OrdinalIgnoreCase)
+                || key.Equals("cutPayInHalf", StringComparison.OrdinalIgnoreCase))
+            {
+                type = MisbehaveLocalEffectType.HalveJobPayOnSuccess;
+                return true;
+            }
             type = default;
             return false;
         }
@@ -333,6 +353,7 @@ namespace Firefly.Core.Cards
             public int Target { get; set; }
             public bool? Kosherized { get; set; }
             public bool? Bribes { get; set; }
+            public bool? ChooseOneCrew { get; set; }
             public List<SkillBonusDto>? Bonuses { get; set; }
             public List<TargetModifierDto>? TargetModifiers { get; set; }
         }
