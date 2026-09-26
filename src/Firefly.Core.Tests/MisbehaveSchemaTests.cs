@@ -118,11 +118,25 @@ namespace Firefly.Core.Tests
         [Fact]
         public void Prose_only_cards_still_resolve_via_shared_SkillCheck_BandText()
         {
-            // ambush still prose-only after batch 1 (inverted "8+ Fight" syntax deferred).
+            // Inverted "8+ Fight" prose (Ambush wording) without structured overlay.
+            var card = new MisbehaveCard(
+                "misbehave_prose_invert",
+                "Prose Invert",
+                "Clubs",
+                null,
+                null,
+                false,
+                new[]
+                {
+                    new MisbehaveOption(
+                        "Surrounded",
+                        "8+ Fight; 1-7 Kill a Crew, Warrant Issued. 8+ Attempt Botched.")
+                });
+
             var game = NewCrimeGame();
             game.CurrentPlayer.FightBonus = 1;
             StartCrime(game);
-            game.Misbehave!.PlaceOnTop(game.Misbehave.Catalog.Get("misbehave_ambush"));
+            game.Misbehave!.PlaceOnTop(card);
             var resolver = new MisbehaveResolver();
             resolver.DrawNext(game);
 

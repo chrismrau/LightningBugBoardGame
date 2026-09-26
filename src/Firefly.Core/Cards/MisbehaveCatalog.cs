@@ -94,11 +94,18 @@ namespace Firefly.Core.Cards
                 throw new InvalidDataException("Misbehave option skillCheck.skill is required.");
             var label = dto.Skill.Trim();
             Skill skill;
-            if (label.Equals("Negotiate", StringComparison.OrdinalIgnoreCase))
+            var randomSkill = label.Equals("random", StringComparison.OrdinalIgnoreCase);
+            if (randomSkill)
+            {
+                // Placeholder until MisbehaveResolver rolls 1–2 Negotiate / 3–4 Tech / 5–6 Fight.
+                skill = Skill.Fight;
+            }
+            else if (label.Equals("Negotiate", StringComparison.OrdinalIgnoreCase))
                 skill = Skill.Talk;
             else if (!Enum.TryParse(label, true, out skill))
                 throw new InvalidDataException($"Unknown Misbehave skillCheck.skill '{dto.Skill}'.");
-            var bribes = dto.Bribes == true && skill == Skill.Talk;
+            // Random skill may land on Negotiate; Bribes only apply if that roll is Talk.
+            var bribes = dto.Bribes == true && (skill == Skill.Talk || randomSkill);
             return new MisbehaveSkillCheckSpec(
                 skill,
                 dto.Target,
@@ -106,7 +113,8 @@ namespace Firefly.Core.Cards
                 bribes,
                 ParseBonuses(dto.Bonuses),
                 ParseTargetModifiers(dto.TargetModifiers),
-                dto.ChooseOneCrew == true);
+                dto.ChooseOneCrew == true,
+                randomSkill);
         }
 
         private static List<MisbehaveSkillBonus>? ParseBonuses(List<SkillBonusDto>? dtos)
@@ -302,6 +310,37 @@ namespace Firefly.Core.Cards
                 || key.Equals("cutPayInHalf", StringComparison.OrdinalIgnoreCase))
             {
                 type = MisbehaveLocalEffectType.HalveJobPayOnSuccess;
+                return true;
+            }
+            if (key.Equals("gamblingDoubles", StringComparison.OrdinalIgnoreCase)
+                || key.Equals("gambling", StringComparison.OrdinalIgnoreCase))
+            {
+                type = MisbehaveLocalEffectType.GamblingDoubles;
+                return true;
+            }
+            if (key.Equals("extraActionThisTurn", StringComparison.OrdinalIgnoreCase)
+                || key.Equals("thirdAction", StringComparison.OrdinalIgnoreCase)
+                || key.Equals("grantExtraAction", StringComparison.OrdinalIgnoreCase))
+            {
+                type = MisbehaveLocalEffectType.ExtraActionThisTurn;
+                return true;
+            }
+            if (key.Equals("cycleAllianceAlert", StringComparison.OrdinalIgnoreCase)
+                || key.Equals("drawAllianceAlert", StringComparison.OrdinalIgnoreCase))
+            {
+                type = MisbehaveLocalEffectType.CycleAllianceAlert;
+                return true;
+            }
+            if (key.Equals("rollDieVsWarrants", StringComparison.OrdinalIgnoreCase)
+                || key.Equals("rollVsWarrants", StringComparison.OrdinalIgnoreCase))
+            {
+                type = MisbehaveLocalEffectType.RollDieVsWarrants;
+                return true;
+            }
+            if (key.Equals("buySilverholdFirearmExplosiveHalf", StringComparison.OrdinalIgnoreCase)
+                || key.Equals("buySilverholdDiscardHalf", StringComparison.OrdinalIgnoreCase))
+            {
+                type = MisbehaveLocalEffectType.BuySilverholdFirearmExplosiveHalf;
                 return true;
             }
             type = default;

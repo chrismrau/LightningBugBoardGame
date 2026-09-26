@@ -1,6 +1,6 @@
 {
   "meta": {
-    "description": "Firefly: The Game – Misbehave cards",
+    "description": "Firefly: The Game \u2013 Misbehave cards",
     "count": 80,
     "schemaVersion": "1.0"
   },
@@ -122,7 +122,7 @@
           ]
         },
         {
-          "name": "Trouble You've Not Known…",
+          "name": "Trouble You've Not Known\u2026",
           "details": "Fight 10; 1-5 Kill all Crew; Warrant Issued. 6-9 Kill 2 Crew, Warrant Issued. 10+ Attempt Botched.",
           "skillCheck": {
             "skill": "fight",
@@ -186,11 +186,45 @@
       "options": [
         {
           "name": "They've Got Us Surrounded",
-          "details": "8+ Fight; 1-7 Kill a Crew, Warrant Issued. 8+ Attempt Botched."
+          "details": "8+ Fight; 1-7 Kill a Crew, Warrant Issued. 8+ Attempt Botched.",
+          "skillCheck": {
+            "skill": "fight",
+            "target": 8
+          },
+          "bands": [
+            {
+              "range": "1-7",
+              "text": "1-7 Kill a Crew, Warrant Issued",
+              "effects": [
+                {
+                  "type": "killCrew",
+                  "count": 1
+                },
+                {
+                  "type": "warrantIssued"
+                }
+              ]
+            },
+            {
+              "min": 8,
+              "max": null,
+              "text": "8+ Attempt Botched",
+              "effects": [
+                {
+                  "type": "botched"
+                }
+              ]
+            }
+          ]
         },
         {
           "name": "We've Got Ya Outnumbered!",
-          "details": "Requires 5 or more Crew on Job: Proceed."
+          "details": "Requires 5 or more Crew on Job: Proceed.",
+          "effects": [
+            {
+              "type": "proceed"
+            }
+          ]
         }
       ],
       "isReshuffle": false,
@@ -675,7 +709,7 @@
           ]
         },
         {
-          "name": "We Will Blow a New Crater in This Little Moon…",
+          "name": "We Will Blow a New Crater in This Little Moon\u2026",
           "details": "Negotiate 6; 1-5 Attempt Botched. 6+ Proceed.",
           "skillCheck": {
             "skill": "negotiate",
@@ -755,7 +789,7 @@
           ]
         },
         {
-          "name": "We Will Blow a New Crater in This Little Moon…",
+          "name": "We Will Blow a New Crater in This Little Moon\u2026",
           "details": "Negotiate 6; 1-5 Attempt Botched. 6+ Proceed.",
           "skillCheck": {
             "skill": "negotiate",
@@ -802,7 +836,7 @@
       "ace": null,
       "options": [
         {
-          "name": "Getting Awfully Crowded in My Sky…",
+          "name": "Getting Awfully Crowded in My Sky\u2026",
           "details": "Fight 9; 1-8 Kill a Crew, Warrant Issued. 9+ Proceed.",
           "skillCheck": {
             "skill": "fight",
@@ -991,7 +1025,7 @@
       "ace": "Sniper Rifle",
       "options": [
         {
-          "name": "Take the Guards Out… Quiet Like",
+          "name": "Take the Guards Out\u2026 Quiet Like",
           "details": "Fight 6 Kosherized Rules; 1-5 Kill a Crew, Attempt Botched. 6+ Proceed.",
           "skillCheck": {
             "skill": "fight",
@@ -1073,7 +1107,7 @@
       "ace": "Sniper Rifle",
       "options": [
         {
-          "name": "Take the Guards Out… Quiet Like",
+          "name": "Take the Guards Out\u2026 Quiet Like",
           "details": "Fight 6 Kosherized Rules; 1-5 Kill a Crew, Attempt Botched. 6+ Proceed.",
           "skillCheck": {
             "skill": "fight",
@@ -1578,7 +1612,7 @@
           ]
         },
         {
-          "name": "These Are Not the Crooks You're Looking For…",
+          "name": "These Are Not the Crooks You're Looking For\u2026",
           "details": "Tech 6; 1-5 Warrant Issued. 6+ Proceed.",
           "skillCheck": {
             "skill": "tech",
@@ -1955,7 +1989,7 @@
           ]
         },
         {
-          "name": "An' Hell Followed With Him…",
+          "name": "An' Hell Followed With Him\u2026",
           "details": "Fight 9; 1-4 Kill all Crew, Warrant Issued. 5-8 Kill 2 Crew, Warrant Issued. 9+ Kill 1 Crew, Proceed.",
           "skillCheck": {
             "skill": "fight",
@@ -2055,7 +2089,7 @@
           ]
         },
         {
-          "name": "Stay on Target…",
+          "name": "Stay on Target\u2026",
           "details": "Proceed.",
           "effects": [
             {
@@ -2143,7 +2177,7 @@
       "ace": "Simon Tam",
       "options": [
         {
-          "name": "I Was Pompous…",
+          "name": "I Was Pompous\u2026",
           "details": "If you have FANCY DUDS, Proceed. Otherwise, Negotiate 6; 1-5 Attempt Botched. 6+ Proceed.",
           "proceedIfTag": "FANCY DUDS",
           "skillCheck": {
@@ -2173,7 +2207,7 @@
           ]
         },
         {
-          "name": "My Sister Was Crazy…",
+          "name": "My Sister Was Crazy\u2026",
           "details": "If you have Medic, Proceed. Otherwise, Tech 6; 1-5 Attempt Botched. 6+ Proceed.",
           "proceedIfTag": "Medic",
           "skillCheck": {
@@ -2374,11 +2408,52 @@
       "options": [
         {
           "name": "Run for Your Gorram Life!",
-          "details": "Requires TRANSPORT. Kill a Crew, Attempt Botched."
+          "details": "Requires TRANSPORT. Kill a Crew, Attempt Botched.",
+          "effects": [
+            {
+              "type": "killCrew",
+              "count": 1
+            },
+            {
+              "type": "botched"
+            }
+          ]
         },
         {
           "name": "Hide in the Vault",
-          "details": "Tech 5; 1-4 Kill all Crew, Attempt Botched. 5+ Take $1000, Attempt Botched."
+          "details": "Tech 5; 1-4 Kill all Crew, Attempt Botched. 5+ Take $1000, Attempt Botched.",
+          "skillCheck": {
+            "skill": "tech",
+            "target": 5
+          },
+          "bands": [
+            {
+              "range": "1-4",
+              "text": "1-4 Kill all Crew, Attempt Botched",
+              "effects": [
+                {
+                  "type": "killAllCrew"
+                },
+                {
+                  "type": "botched"
+                }
+              ]
+            },
+            {
+              "min": 5,
+              "max": null,
+              "text": "5+ Take $1000, Attempt Botched",
+              "effects": [
+                {
+                  "type": "takeCash",
+                  "amount": 1000
+                },
+                {
+                  "type": "botched"
+                }
+              ]
+            }
+          ]
         }
       ],
       "isReshuffle": false,
@@ -2461,7 +2536,7 @@
       "ace": "Hacking Rig",
       "options": [
         {
-          "name": "See What You Can Do…",
+          "name": "See What You Can Do\u2026",
           "details": "Tech 7; 1-6 Attempt Botched. 7+ Proceed.",
           "skillCheck": {
             "skill": "tech",
@@ -2490,7 +2565,7 @@
           ]
         },
         {
-          "name": "Oh, Real Subtle Guys…",
+          "name": "Oh, Real Subtle Guys\u2026",
           "details": "Fight 9; 1-8 Kill a Crew, Warrant Issued. 9+ Proceed.",
           "skillCheck": {
             "skill": "fight",
@@ -2541,7 +2616,7 @@
       "ace": "Hacking Rig",
       "options": [
         {
-          "name": "See What You Can Do…",
+          "name": "See What You Can Do\u2026",
           "details": "Tech 7; 1-6 Attempt Botched. 7+ Proceed.",
           "skillCheck": {
             "skill": "tech",
@@ -2570,7 +2645,7 @@
           ]
         },
         {
-          "name": "Oh, Real Subtle Guys…",
+          "name": "Oh, Real Subtle Guys\u2026",
           "details": "Fight 9; 1-8 Kill a Crew, Warrant Issued. 9+ Proceed.",
           "skillCheck": {
             "skill": "fight",
@@ -2765,11 +2840,24 @@
       "options": [
         {
           "name": "Job Will Keep: Can't pass up a Bargain",
-          "details": "You may Buy any Firearms and Explosives from the Silverhold Discard Pile at half price. Attempt Botched."
+          "details": "You may Buy any Firearms and Explosives from the Silverhold Discard Pile at half price. Attempt Botched.",
+          "effects": [
+            {
+              "type": "buySilverholdFirearmExplosiveHalf"
+            },
+            {
+              "type": "botched"
+            }
+          ]
         },
         {
           "name": "Lead us not into Temptation...",
-          "details": "Draw Another Misbehave Card to replace this card. Discard this card."
+          "details": "Draw Another Misbehave Card to replace this card. Discard this card.",
+          "effects": [
+            {
+              "type": "replaceCard"
+            }
+          ]
         }
       ],
       "isReshuffle": false,
@@ -2841,7 +2929,7 @@
           ]
         },
         {
-          "name": "青蛙操的流氓! We're Boned...",
+          "name": "\u9752\u86d9\u64cd\u7684\u6d41\u6c13! We're Boned...",
           "details": "Roll for all Wanted Crew. If any Crew are Seized, Warrant Issued. Otherwise, Proceed.",
           "effects": [
             {
@@ -3027,11 +3115,53 @@
       "options": [
         {
           "name": "Rollin's with the High Rollers",
-          "details": "GAMBLING. Pay $1000, roll 2 dice: if you roll Doubles, take $2000. Proceed"
+          "details": "GAMBLING. Pay $1000, roll 2 dice: if you roll Doubles, take $2000. Proceed",
+          "effects": [
+            {
+              "type": "gamblingDoubles",
+              "amount": 2000
+            },
+            {
+              "type": "proceed"
+            }
+          ]
         },
         {
           "name": "Thieves & Cheaters. All!",
-          "details": "Fight 8 Kosherized; 1-7 Crew Wanted, Attempt Botched. 8+ Take $1000. Proceed."
+          "details": "Fight 8 Kosherized; 1-7 Crew Wanted, Attempt Botched. 8+ Take $1000. Proceed.",
+          "skillCheck": {
+            "skill": "fight",
+            "target": 8,
+            "kosherized": true
+          },
+          "bands": [
+            {
+              "range": "1-7",
+              "text": "1-7 Crew Wanted, Attempt Botched",
+              "effects": [
+                {
+                  "type": "wanted"
+                },
+                {
+                  "type": "botched"
+                }
+              ]
+            },
+            {
+              "min": 8,
+              "max": null,
+              "text": "8+ Take $1000. Proceed",
+              "effects": [
+                {
+                  "type": "takeCash",
+                  "amount": 1000
+                },
+                {
+                  "type": "proceed"
+                }
+              ]
+            }
+          ]
         }
       ],
       "isReshuffle": false,
@@ -3804,11 +3934,53 @@
       "options": [
         {
           "name": "We'll make it up on the Fly",
-          "details": "First determine which Skill to use. Roll a die: 1-2: Negotiate, 3-4: Tech, 5-6 Fight. Then, roll your Skill Test 8; 1-4 Warrant Issued. 5-7 Attempt Botched. 8+ Proceed."
+          "details": "First determine which Skill to use. Roll a die: 1-2: Negotiate, 3-4: Tech, 5-6 Fight. Then, roll your Skill Test 8; 1-4 Warrant Issued. 5-7 Attempt Botched. 8+ Proceed.",
+          "skillCheck": {
+            "skill": "random",
+            "target": 8
+          },
+          "bands": [
+            {
+              "range": "1-4",
+              "text": "1-4 Warrant Issued",
+              "effects": [
+                {
+                  "type": "warrantIssued"
+                }
+              ]
+            },
+            {
+              "range": "5-7",
+              "text": "5-7 Attempt Botched",
+              "effects": [
+                {
+                  "type": "botched"
+                }
+              ]
+            },
+            {
+              "min": 8,
+              "max": null,
+              "text": "8+ Proceed",
+              "effects": [
+                {
+                  "type": "proceed"
+                }
+              ]
+            }
+          ]
         },
         {
           "name": "Best head back to the Ship, Rethink our life Choices",
-          "details": "Attempt Botched. You may take a third Action this turn."
+          "details": "Attempt Botched. You may take a third Action this turn.",
+          "effects": [
+            {
+              "type": "extraActionThisTurn"
+            },
+            {
+              "type": "botched"
+            }
+          ]
         }
       ],
       "isReshuffle": false,
@@ -4673,11 +4845,45 @@
       "options": [
         {
           "name": "A Gaggle of Folks is Gonna Raise Eyebrows",
-          "details": "Tech 6 Choose 1 Crew for the Test;1-5 Chosen Crew is now Wanted. Attempt Botched. 6+ Proceed."
+          "details": "Tech 6 Choose 1 Crew for the Test;1-5 Chosen Crew is now Wanted. Attempt Botched. 6+ Proceed.",
+          "skillCheck": {
+            "skill": "tech",
+            "target": 6,
+            "chooseOneCrew": true
+          },
+          "bands": [
+            {
+              "range": "1-5",
+              "text": "1-5 Chosen Crew is now Wanted. Attempt Botched",
+              "effects": [
+                {
+                  "type": "wanted"
+                },
+                {
+                  "type": "botched"
+                }
+              ]
+            },
+            {
+              "min": 6,
+              "max": null,
+              "text": "6+ Proceed",
+              "effects": [
+                {
+                  "type": "proceed"
+                }
+              ]
+            }
+          ]
         },
         {
           "name": "Well, This'll make everything Harder...",
-          "details": "Draw two Misbehave Cards. If you Proceed past both cards, Proceed."
+          "details": "Draw two Misbehave Cards. If you Proceed past both cards, Proceed.",
+          "effects": [
+            {
+              "type": "replaceCard"
+            }
+          ]
         }
       ],
       "isReshuffle": false,
@@ -4957,7 +5163,15 @@
       "options": [
         {
           "name": "System-Wide Bulletin",
-          "details": "Draw a new Alliance Alert Card; this rule is now in effect. If there is already an Alert Card in play, replace it with the new Alert. Roll a die: If you roll equal to or lower than the number of Warrants you currently have, Attempt Botched. If you roll higher, Proceed."
+          "details": "Draw a new Alliance Alert Card; this rule is now in effect. If there is already an Alert Card in play, replace it with the new Alert. Roll a die: If you roll equal to or lower than the number of Warrants you currently have, Attempt Botched. If you roll higher, Proceed.",
+          "effects": [
+            {
+              "type": "cycleAllianceAlert"
+            },
+            {
+              "type": "rollDieVsWarrants"
+            }
+          ]
         }
       ],
       "isReshuffle": false,
@@ -4979,7 +5193,15 @@
       "options": [
         {
           "name": "System-Wide Bulletin",
-          "details": "Draw a new Alliance Alert Card; this rule is now in effect. If there is already an Alert Card in play, replace it with the new Alert. Roll a die: If you roll equal to or lower than the number of Warrants you currently have, Attempt Botched. If you roll higher, Proceed."
+          "details": "Draw a new Alliance Alert Card; this rule is now in effect. If there is already an Alert Card in play, replace it with the new Alert. Roll a die: If you roll equal to or lower than the number of Warrants you currently have, Attempt Botched. If you roll higher, Proceed.",
+          "effects": [
+            {
+              "type": "cycleAllianceAlert"
+            },
+            {
+              "type": "rollDieVsWarrants"
+            }
+          ]
         }
       ],
       "isReshuffle": false,
