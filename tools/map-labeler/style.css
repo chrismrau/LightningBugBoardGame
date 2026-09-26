@@ -70,6 +70,14 @@ body {
   color: var(--muted);
   font-size: 0.85rem;
 }
+.mode-group {
+  display: inline-flex;
+  gap: 0.25rem;
+}
+.mode-btn.active {
+  border-color: var(--accent);
+  background: #1c3a52;
+}
 select, input, button {
   font: inherit;
   color: var(--ink);
@@ -88,6 +96,23 @@ button:disabled {
   cursor: not-allowed;
 }
 #search { min-width: 12rem; }
+.toast {
+  position: fixed;
+  right: 1rem;
+  bottom: 1rem;
+  background: #1e3d2f;
+  border: 1px solid #3ecf8e;
+  color: var(--ink);
+  padding: 0.65rem 0.9rem;
+  border-radius: 8px;
+  z-index: 50;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+}
+.toast.error {
+  background: #3d1e1e;
+  border-color: #ff6b4a;
+}
+.toast.hidden { display: none; }
 .wizard-bar {
   background: #243018;
   border-bottom-color: #4a5c28;

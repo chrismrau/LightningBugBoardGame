@@ -16,14 +16,11 @@
   </header>
 
   <div class="toolbar">
-    <label class="mode">
-      Mode
-      <select id="modeSelect">
-        <option value="drag">Drag &amp; drop</option>
-        <option value="wizard">Wizard (click face for prompted id)</option>
-        <option value="pick">Pick face, then click id</option>
-      </select>
-    </label>
+    <div class="mode-group" role="group" aria-label="Mode">
+      <button type="button" class="mode-btn active" data-mode="pick">Click id → face</button>
+      <button type="button" class="mode-btn" data-mode="drag">Drag &amp; drop</button>
+      <button type="button" class="mode-btn" data-mode="wizard">Wizard</button>
+    </div>
     <label>
       Palette
       <select id="paletteFilter">
@@ -63,6 +60,8 @@
       <div class="detail" id="detail">Select a face or drag an id onto the board.</div>
     </section>
   </main>
+
+  <div id="toast" class="toast hidden" role="status"></div>
 
   <script src="/app.js"></script>
 </body>

@@ -13,7 +13,7 @@
     assignments: {},
     selectedFaceId: null,
     selectedSectorId: null,
-    mode: "drag",
+    mode: "pick",
     wizardQueue: [],
     wizardIndex: 0,
     imageOffset: [4, 4],
@@ -28,7 +28,6 @@
     boardImg: document.getElementById("boardImg"),
     board: document.getElementById("board"),
     detail: document.getElementById("detail"),
-    modeSelect: document.getElementById("modeSelect"),
     paletteFilter: document.getElementById("paletteFilter"),
     zoneFilter: document.getElementById("zoneFilter"),
     search: document.getElementById("search"),
@@ -40,7 +39,16 @@
     btnReload: document.getElementById("btnReload"),
     btnWizardSkip: document.getElementById("btnWizardSkip"),
     btnWizardPrev: document.getElementById("btnWizardPrev"),
+    toast: document.getElementById("toast"),
   };
+
+  function showToast(msg, { error = false } = {}) {
+    els.toast.textContent = msg;
+    els.toast.classList.toggle("error", !!error);
+    els.toast.classList.remove("hidden");
+    clearTimeout(showToast._t);
+    showToast._t = setTimeout(() => els.toast.classList.add("hidden"), 3500);
+  }
 
   function buildNeighborMap(edges) {
     const m = new Map();
@@ -287,15 +295,55 @@
           advanceWizard(0);
         }
       }
-    } else if (state.mode === "pick" && state.selectedSectorId) {
+    } else if (state.selectedSectorId) {
+      // Click-id-then-face works in pick and drag modes.
       assign(faceId, state.selectedSectorId);
     }
     refreshAll();
     setDetail(describeFace(faceId));
   }
 
+  function faceIdFromPoint(clientX, clientY) {
+    const stack = document.elementsFromPoint(clientX, clientY);
+    for (const el of stack) {
+      if (el.tagName === "polygon" && el.dataset.face) return el.dataset.face;
+    }
+    return null;
+  }
+
+  function onBoardDragOver(e) {
+    if (!e.dataTransfer.types.includes("text/plain")) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "copy";
+    const faceId = faceIdFromPoint(e.clientX, e.clientY);
+    els.overlay.querySelectorAll("polygon.drop-target").forEach((p) => p.classList.remove("drop-target"));
+    if (faceId) {
+      const poly = els.overlay.querySelector(`polygon[data-face="${faceId}"]`);
+      if (poly) poly.classList.add("drop-target");
+    }
+  }
+
+  function onBoardDrop(e) {
+    e.preventDefault();
+    const sectorId = e.dataTransfer.getData("text/plain");
+    const faceId = faceIdFromPoint(e.clientX, e.clientY);
+    els.overlay.querySelectorAll("polygon.drop-target").forEach((p) => p.classList.remove("drop-target"));
+    if (!sectorId || !faceId) {
+      showToast("Drop onto a sector face", { error: true });
+      return;
+    }
+    if (assign(faceId, sectorId)) {
+      state.selectedFaceId = faceId;
+      state.selectedSectorId = sectorId;
+      refreshAll();
+      setDetail(describeFace(faceId));
+      showToast(`Assigned ${sectorId} → ${faceId}`);
+    }
+  }
+
   function onFaceDrop(e) {
     e.preventDefault();
+    e.stopPropagation();
     const faceId = e.currentTarget.getAttribute("data-face");
     const sectorId = e.dataTransfer.getData("text/plain");
     e.currentTarget.classList.remove("drop-target");
@@ -304,12 +352,13 @@
       state.selectedSectorId = sectorId;
       refreshAll();
       setDetail(describeFace(faceId));
+      showToast(`Assigned ${sectorId} → ${faceId}`);
     }
   }
 
   function onSectorClick(sectorId) {
     state.selectedSectorId = sectorId;
-    if (state.mode === "pick" && state.selectedFaceId) {
+    if (state.selectedFaceId && state.mode !== "wizard") {
       assign(state.selectedFaceId, sectorId);
     }
     const faceId = assignedFaceOf(sectorId);
@@ -320,7 +369,7 @@
         ? describeFace(faceId)
         : `<strong>${escapeXml(displayName(state.sectorById.get(sectorId)))}</strong> <code>${escapeXml(
             sectorId
-          )}</code> not placed yet.`
+          )}</code> selected — click a face on the board to place it.`
     );
   }
 
@@ -546,20 +595,35 @@
   }
 
   async function saveLayout() {
-    const payload = layoutPayload();
-    const res = await fetch("/api/layout", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      setDetail(`Save failed: ${data.error || res.status}`);
-      return;
+    try {
+      const payload = layoutPayload();
+      const res = await fetch("/api/layout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setDetail(`Save failed: ${data.error || res.status}`);
+        showToast(`Save failed: ${data.error || res.status}`, { error: true });
+        return;
+      }
+      state.dirty = false;
+      updateStats();
+      setDetail(`Saved <strong>${data.assignments}</strong> assignments to <code>${data.path}</code>.`);
+      showToast(`Saved ${data.assignments} assignments`);
+    } catch (err) {
+      setDetail(`Save failed: ${err}`);
+      showToast(String(err), { error: true });
     }
-    state.dirty = false;
-    updateStats();
-    setDetail(`Saved <strong>${data.assignments}</strong> assignments to <code>${data.path}</code>.`);
+  }
+
+  function setMode(mode) {
+    state.mode = mode;
+    document.querySelectorAll(".mode-btn").forEach((btn) => {
+      btn.classList.toggle("active", btn.dataset.mode === mode);
+    });
+    refreshAll();
   }
 
   function populateZones() {
@@ -603,15 +667,14 @@
     els.boardImg.src = data.paths.boardImage;
     populateZones();
     rebuildWizardQueue();
-    refreshAll();
+    setMode(state.mode);
     setDetail(
-      `Loaded ${state.faces.length} faces and ${state.sectors.length} sector ids. Start with planetary chips (gold), then Propagate.`
+      `Loaded ${state.faces.length} faces and ${state.sectors.length} sector ids. Click a planetary id, then click its face. Use Propagate after a few planets.`
     );
   }
 
-  els.modeSelect.addEventListener("change", () => {
-    state.mode = els.modeSelect.value;
-    refreshAll();
+  document.querySelectorAll(".mode-btn").forEach((btn) => {
+    btn.addEventListener("click", () => setMode(btn.dataset.mode));
   });
   els.paletteFilter.addEventListener("change", renderPalette);
   els.zoneFilter.addEventListener("change", renderPalette);
@@ -622,7 +685,9 @@
     refreshAll();
     setDetail(describeFace(state.selectedFaceId));
   });
-  els.btnSave.addEventListener("click", () => saveLayout().catch((e) => setDetail(String(e))));
+  els.btnSave.addEventListener("click", () => {
+    saveLayout();
+  });
   els.btnReload.addEventListener("click", () => load().catch((e) => setDetail(String(e))));
   els.btnWizardSkip.addEventListener("click", () => {
     state.wizardIndex = Math.min(state.wizardQueue.length - 1, state.wizardIndex + 1);
@@ -632,6 +697,10 @@
     state.wizardIndex = Math.max(0, state.wizardIndex - 1);
     updateWizardBar();
   });
+
+  // Board-level DnD so drops work even when the pointer is over labels/gaps.
+  els.board.addEventListener("dragover", onBoardDragOver);
+  els.board.addEventListener("drop", onBoardDrop);
 
   window.addEventListener("beforeunload", (e) => {
     if (state.dirty) {
