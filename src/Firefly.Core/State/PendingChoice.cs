@@ -227,6 +227,12 @@ namespace Firefly.Core.State
         /// Options = eligible crew ids; submission <see cref="ChoiceSubmission.SelectedOptionId"/>.
         /// </summary>
         public const string MisbehaveChooseCrew = "misbehave-choose-crew";
+        /// <summary>
+        /// Director's Cut C&amp;P p.49 Splitting Up: divide available Crew into two teams.
+        /// <see cref="ChoiceSubmission.Values"/> = Team A (Fork) or non-Leader team (Tails);
+        /// remaining available Crew form the other team. ContextId = parent Misbehave id.
+        /// </summary>
+        public const string MisbehaveSplitCrew = "misbehave-split-crew";
     }
 
     /// <summary>Discrete option ids for <see cref="PendingChoiceKinds.MisbehaveWarrantOrWanted"/>.</summary>

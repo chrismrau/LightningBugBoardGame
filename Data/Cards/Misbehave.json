@@ -2796,7 +2796,12 @@
       "options": [
         {
           "name": "Meet Back on the After",
-          "details": "Divide your Crew into two teams: Draw 2 Misbehave Cards, one for each team. If neither team has a Warrant Issued, Proceed Past this card. Any team with Botches their card must return to the Ship. If all Crew Return to the Ship, this Job Attempt is Botched."
+          "details": "Divide your Crew into two teams: Draw 2 Misbehave Cards, one for each team. If neither team has a Warrant Issued, Proceed Past this card. Any team with Botches their card must return to the Ship. If all Crew Return to the Ship, this Job Attempt is Botched.",
+          "effects": [
+            {
+              "type": "splitCrewFork"
+            }
+          ]
         }
       ],
       "isReshuffle": false,
@@ -2818,7 +2823,12 @@
       "options": [
         {
           "name": "Meet Back on the After",
-          "details": "Divide your Crew into two teams: Draw 2 Misbehave Cards, one for each team. If neither team has a Warrant Issued, Proceed Past this card. Any team with Botches their card must return to the Ship. If all Crew Return to the Ship, this Job Attempt is Botched."
+          "details": "Divide your Crew into two teams: Draw 2 Misbehave Cards, one for each team. If neither team has a Warrant Issued, Proceed Past this card. Any team with Botches their card must return to the Ship. If all Crew Return to the Ship, this Job Attempt is Botched.",
+          "effects": [
+            {
+              "type": "splitCrewFork"
+            }
+          ]
         }
       ],
       "isReshuffle": false,
@@ -4061,7 +4071,12 @@
       "options": [
         {
           "name": "That's not Heroics, that's Suicide!",
-          "details": "Split your Crew in to two teams. First, the team without your Leader must: Fight 12; 1-11 Kill all Crew in Team. 12+ Return Team to Ship. Next, Proceed with the Team which includes your Leader."
+          "details": "Split your Crew in to two teams. First, the team without your Leader must: Fight 12; 1-11 Kill all Crew in Team. 12+ Return Team to Ship. Next, Proceed with the Team which includes your Leader.",
+          "effects": [
+            {
+              "type": "splitCrewTails"
+            }
+          ]
         }
       ],
       "isReshuffle": false,

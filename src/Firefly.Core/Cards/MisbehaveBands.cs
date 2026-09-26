@@ -166,7 +166,17 @@ namespace Firefly.Core.Cards
         /// Black Market Express: may buy Firearm/Explosives Gear from the Silverhold discard at
         /// half price (<see cref="Actions.MisbehaveChoice.BuyGearIds"/>; empty/null = buy none).
         /// </summary>
-        BuySilverholdFirearmExplosiveHalf
+        BuySilverholdFirearmExplosiveHalf,
+        /// <summary>
+        /// Fork in the Road: Split Crew into two teams; draw/resolve one Misbehave each;
+        /// aggregate Warrant / Botch→Return / No one left (Director's Cut C&amp;P p.49).
+        /// </summary>
+        SplitCrewFork,
+        /// <summary>
+        /// They're right on our Tails: Split Crew; non-Leader team Fight 12 (kill/return team);
+        /// then Proceed with Leader team (Director's Cut C&amp;P p.49 Splitting Up).
+        /// </summary>
+        SplitCrewTails
     }
 
     /// <summary>

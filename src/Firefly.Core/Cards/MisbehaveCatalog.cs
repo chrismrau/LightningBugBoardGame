@@ -343,6 +343,18 @@ namespace Firefly.Core.Cards
                 type = MisbehaveLocalEffectType.BuySilverholdFirearmExplosiveHalf;
                 return true;
             }
+            if (key.Equals("splitCrewFork", StringComparison.OrdinalIgnoreCase)
+                || key.Equals("forkInTheRoad", StringComparison.OrdinalIgnoreCase))
+            {
+                type = MisbehaveLocalEffectType.SplitCrewFork;
+                return true;
+            }
+            if (key.Equals("splitCrewTails", StringComparison.OrdinalIgnoreCase)
+                || key.Equals("rightOnOurTails", StringComparison.OrdinalIgnoreCase))
+            {
+                type = MisbehaveLocalEffectType.SplitCrewTails;
+                return true;
+            }
             type = default;
             return false;
         }
