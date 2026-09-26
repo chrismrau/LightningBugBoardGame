@@ -5,7 +5,8 @@ namespace Firefly.Core.Cards
 {
     /// <summary>
     /// Shared card-effect vocabulary understood by both Nav and Misbehave applicators.
-    /// Intersection only — Nav-only / Misbehave-only effects stay in local adapters.
+    /// Core intersection (PR #37) plus promoted leftovers (ClearDisgruntledMoral, LoadParts,
+    /// LoadGoods). Nav-only / Misbehave-only effects stay in local adapters.
     /// JSON type names are camelCase of these identifiers (e.g. <c>killCrew</c>).
     /// </summary>
     public enum CardEffectType
@@ -16,7 +17,16 @@ namespace Firefly.Core.Cards
         LoadContraband,
         TakeCash,
         DisgruntleMoral,
-        ClearDisgruntled
+        ClearDisgruntled,
+        /// <summary>Clear Disgruntled from Moral crew only (printed "Moral Crew").</summary>
+        ClearDisgruntledMoral,
+        /// <summary>Load / Take N Parts into the hold (count = N).</summary>
+        LoadParts,
+        /// <summary>
+        /// Load N Goods (Blue Sun: Fuel/Parts/Cargo/Contraband mix). Count = N; mix via
+        /// <see cref="Actions.CardEffectContext"/> Goods fields / PendingChoice GoodsMix.
+        /// </summary>
+        LoadGoods
     }
 
     /// <summary>
@@ -52,11 +62,14 @@ namespace Firefly.Core.Cards
         public int CrewKilled { get; set; }
         public int CargoLoaded { get; set; }
         public int ContrabandLoaded { get; set; }
+        public int PartsLoaded { get; set; }
+        public int FuelLoaded { get; set; }
         public int CashGained { get; set; }
         public int MoralDisgruntled { get; set; }
         public int DisgruntledCleared { get; set; }
 
-        public int GoodsLoaded => CargoLoaded + ContrabandLoaded;
+        /// <summary>All hold goods deltas (Cargo + Contraband + Parts + Fuel).</summary>
+        public int GoodsLoaded => CargoLoaded + ContrabandLoaded + PartsLoaded + FuelLoaded;
     }
 
     /// <summary>

@@ -3093,7 +3093,15 @@ namespace Firefly.Core.Actions
                 return true;
 
             var shared = ResolveSharedBandEffects(bandText, bandEffects);
-            var context = new CardEffectContext(CardEffectSource.Nav, choice?.Kill, enforceHoldSpace: true);
+            var context = new CardEffectContext(
+                CardEffectSource.Nav,
+                choice?.Kill,
+                enforceHoldSpace: true,
+                skipLoadIfNoSpace: true,
+                loadGoodsFuel: choice?.LoadGoodsFuel ?? 0,
+                loadGoodsParts: choice?.LoadGoodsParts ?? 0,
+                loadGoodsCargo: choice?.LoadGoodsCargo ?? 0,
+                loadGoodsContraband: choice?.LoadGoodsContraband ?? 0);
             if (!CardEffectApplicator.CanApply(player, shared, context, out error))
                 return false;
 
@@ -3102,11 +3110,15 @@ namespace Firefly.Core.Actions
                 && !TryPlanGoodsLoad(player, text, choice, out _, out _, out _, out _, out _, out error))
                 return false;
 
-            var parts = PlannedTakeParts(text);
-            if (parts > 0 && !HoldSpace.Fits(player, addParts: parts))
+            if (!HasSharedEffect(shared, CardEffectType.LoadParts))
             {
-                error = "Not enough cargo/stash space for Parts.";
-                return false;
+                var parts = PlannedTakeParts(text);
+                if (parts > 0 && !HoldSpace.Fits(player, addParts: parts)
+                    && !context.SkipLoadIfNoSpace)
+                {
+                    error = "Not enough cargo/stash space for Parts.";
+                    return false;
+                }
             }
 
             if (!TryPlanGoodsSeize(player, text, choice, out _, out _, out _, out _, out _, out error))
@@ -3136,7 +3148,15 @@ namespace Firefly.Core.Actions
             var shared = option.HasStructuredEffects
                 ? FilterOptionSharedEffects(option.Effects, skillCheckPresent)
                 : ParseSharedOptionMicroEffects(text, skillCheckPresent, player, choice);
-            var context = new CardEffectContext(CardEffectSource.Nav, choice?.Kill, enforceHoldSpace: true);
+            var context = new CardEffectContext(
+                CardEffectSource.Nav,
+                choice?.Kill,
+                enforceHoldSpace: true,
+                skipLoadIfNoSpace: true,
+                loadGoodsFuel: choice?.LoadGoodsFuel ?? 0,
+                loadGoodsParts: choice?.LoadGoodsParts ?? 0,
+                loadGoodsCargo: choice?.LoadGoodsCargo ?? 0,
+                loadGoodsContraband: choice?.LoadGoodsContraband ?? 0);
             if (!CardEffectApplicator.CanApply(player, shared, context, out error))
                 return false;
 
@@ -3191,7 +3211,15 @@ namespace Firefly.Core.Actions
 
             var text = bandText ?? "";
             var shared = ResolveSharedBandEffects(bandText, bandEffects);
-            var context = new CardEffectContext(CardEffectSource.Nav, choice?.Kill, enforceHoldSpace: true);
+            var context = new CardEffectContext(
+                CardEffectSource.Nav,
+                choice?.Kill,
+                enforceHoldSpace: true,
+                skipLoadIfNoSpace: true,
+                loadGoodsFuel: choice?.LoadGoodsFuel ?? 0,
+                loadGoodsParts: choice?.LoadGoodsParts ?? 0,
+                loadGoodsCargo: choice?.LoadGoodsCargo ?? 0,
+                loadGoodsContraband: choice?.LoadGoodsContraband ?? 0);
             if (!CardEffectApplicator.TryApply(
                     game, player, shared, rng, context, out var sharedResult, out error))
                 return false;
@@ -3201,7 +3229,8 @@ namespace Firefly.Core.Actions
             cashGained = sharedResult.CashGained;
             goodsLoaded = sharedResult.GoodsLoaded;
 
-            // Nav-only adapters: fuel lose, Parts take, Goods mix load/seize, discard grab.
+            // Nav-only adapters: fuel lose, Goods seize, discard grab.
+            // Take/Load Parts and Load N Goods go through shared when parsed.
             var fuel = LoseOrDiscardFuel.Match(text);
             if (fuel.Success)
             {
@@ -3210,11 +3239,14 @@ namespace Firefly.Core.Actions
                 player.Fuel -= fuelLost;
             }
 
-            var parts = PlannedTakeParts(text);
-            if (parts > 0 && HoldSpace.Fits(player, addParts: parts))
-                player.Parts += parts;
+            if (!HasSharedEffect(shared, CardEffectType.LoadParts))
+            {
+                var parts = PlannedTakeParts(text);
+                if (parts > 0 && HoldSpace.Fits(player, addParts: parts))
+                    player.Parts += parts;
+            }
 
-            // Typed Load Cargo/Contraband already applied via shared; Goods mix remains Nav-local.
+            // Typed Load Cargo/Contraband/Parts/Goods already applied via shared when present.
             if (!HasTypedSharedLoad(shared)
                 && TryPlanGoodsLoad(
                     player,
@@ -3290,7 +3322,15 @@ namespace Firefly.Core.Actions
                 : ParseSharedOptionMicroEffects(text, skillCheckPresent, player, choice);
             if (shared.Count > 0)
             {
-                var context = new CardEffectContext(CardEffectSource.Nav, choice?.Kill, enforceHoldSpace: true);
+                var context = new CardEffectContext(
+                    CardEffectSource.Nav,
+                    choice?.Kill,
+                    enforceHoldSpace: true,
+                    skipLoadIfNoSpace: true,
+                    loadGoodsFuel: choice?.LoadGoodsFuel ?? 0,
+                    loadGoodsParts: choice?.LoadGoodsParts ?? 0,
+                    loadGoodsCargo: choice?.LoadGoodsCargo ?? 0,
+                    loadGoodsContraband: choice?.LoadGoodsContraband ?? 0);
                 if (!CardEffectApplicator.TryApply(
                         game,
                         player,
@@ -3304,14 +3344,6 @@ namespace Firefly.Core.Actions
                 moralDisgruntled += sharedResult.MoralDisgruntled;
                 disgruntledCleared += sharedResult.DisgruntledCleared;
                 goodsLoaded += sharedResult.GoodsLoaded;
-            }
-
-            // Nav-only: clear Moral Disgruntled only (shared ClearDisgruntled = all Crew).
-            if (!option.HasStructuredEffects
-                && Contains(text, "Remove Disgruntled from all Moral Crew")
-                && !Contains(text, "Remove Disgruntled from all Crew"))
-            {
-                disgruntledCleared += player.Roster.ClearDisgruntledMoral();
             }
 
             if (IsCustomsStashSeize(text)
@@ -3367,7 +3399,20 @@ namespace Firefly.Core.Actions
         {
             foreach (var effect in effects)
             {
-                if (effect.Type == CardEffectType.LoadCargo || effect.Type == CardEffectType.LoadContraband)
+                if (effect.Type == CardEffectType.LoadCargo
+                    || effect.Type == CardEffectType.LoadContraband
+                    || effect.Type == CardEffectType.LoadParts
+                    || effect.Type == CardEffectType.LoadGoods)
+                    return true;
+            }
+            return false;
+        }
+
+        private static bool HasSharedEffect(IReadOnlyList<CardEffect> effects, CardEffectType type)
+        {
+            foreach (var effect in effects)
+            {
+                if (effect.Type == type)
                     return true;
             }
             return false;
@@ -3386,6 +3431,8 @@ namespace Firefly.Core.Actions
                 if (effect.Type == CardEffectType.WarrantIssued
                     || effect.Type == CardEffectType.LoadCargo
                     || effect.Type == CardEffectType.LoadContraband
+                    || effect.Type == CardEffectType.LoadParts
+                    || effect.Type == CardEffectType.LoadGoods
                     || effect.Type == CardEffectType.TakeCash
                     || effect.Type == CardEffectType.KillCrew)
                     continue;
@@ -3418,7 +3465,15 @@ namespace Firefly.Core.Actions
             if (cash.Success)
                 effects.Add(new CardEffect(CardEffectType.TakeCash, int.Parse(cash.Groups[1].Value)));
 
-            // Typed Load only (Goods mix stays Nav-local).
+            var goods = LoadGoodsCount.Match(text!);
+            if (goods.Success)
+                effects.Add(new CardEffect(CardEffectType.LoadGoods, int.Parse(goods.Groups[1].Value)));
+
+            var takeParts = PlannedTakeParts(text!);
+            if (takeParts > 0)
+                effects.Add(new CardEffect(CardEffectType.LoadParts, takeParts));
+
+            // Typed Load Cargo / Contraband / Parts (exact N).
             foreach (System.Text.RegularExpressions.Match m in LoadTypedGoods.Matches(text!))
             {
                 var n = int.Parse(m.Groups[1].Value);
@@ -3427,13 +3482,18 @@ namespace Firefly.Core.Actions
                     effects.Add(new CardEffect(CardEffectType.LoadCargo, n));
                 else if (kind.Equals("Contraband", System.StringComparison.OrdinalIgnoreCase))
                     effects.Add(new CardEffect(CardEffectType.LoadContraband, n));
+                else if (kind.StartsWith("Part", System.StringComparison.OrdinalIgnoreCase)
+                         && takeParts == 0)
+                    effects.Add(new CardEffect(CardEffectType.LoadParts, n));
             }
 
             if (IsDisgruntleMoral(text!))
                 effects.Add(new CardEffect(CardEffectType.DisgruntleMoral));
 
-            if (Contains(text!, "Remove Disgruntled from all Crew")
-                && !Contains(text!, "Remove Disgruntled from all Moral Crew"))
+            if (Contains(text!, "Remove Disgruntled from all Moral Crew")
+                && !Contains(text!, "Remove Disgruntled from all Crew"))
+                effects.Add(new CardEffect(CardEffectType.ClearDisgruntledMoral));
+            else if (Contains(text!, "Remove Disgruntled from all Crew"))
                 effects.Add(new CardEffect(CardEffectType.ClearDisgruntled));
 
             return effects;
@@ -3449,8 +3509,10 @@ namespace Firefly.Core.Actions
             if (IsDisgruntleMoral(text))
                 effects.Add(new CardEffect(CardEffectType.DisgruntleMoral));
 
-            if (Contains(text, "Remove Disgruntled from all Crew")
-                && !Contains(text, "Remove Disgruntled from all Moral Crew"))
+            if (Contains(text, "Remove Disgruntled from all Moral Crew")
+                && !Contains(text, "Remove Disgruntled from all Crew"))
+                effects.Add(new CardEffect(CardEffectType.ClearDisgruntledMoral));
+            else if (Contains(text, "Remove Disgruntled from all Crew"))
                 effects.Add(new CardEffect(CardEffectType.ClearDisgruntled));
 
             if (!skillCheckPresent && ShouldIssueWarrant(text, player, choice))
