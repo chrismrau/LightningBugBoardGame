@@ -143,7 +143,30 @@ namespace Firefly.Core.Cards
         /// <see cref="Actions.MisbehaveChoice.AcceptPay"/> true = lose Solid path; false = Botched.
         /// Unaffordable / no Solid with AcceptPay → Botched (same as optional Pay OR Botched).
         /// </summary>
-        LoseSolidOrBotched
+        LoseSolidOrBotched,
+        /// <summary>
+        /// Gambling Den: after Pay stake (prose Pay $N), roll 2 dice; Doubles → take Count dollars.
+        /// Outcome is separate (usually Proceed).
+        /// </summary>
+        GamblingDoubles,
+        /// <summary>
+        /// We got a Plan option 2: allow a third Action this turn
+        /// (<see cref="State.GameState.ActionsPerTurn"/> raised to at least 3).
+        /// </summary>
+        ExtraActionThisTurn,
+        /// <summary>
+        /// Alliance Alert! Misbehave: draw/activate a new Alert (park previous on deck bottom).
+        /// </summary>
+        CycleAllianceAlert,
+        /// <summary>
+        /// Alliance Alert!: roll a die; ≤ current Warrants → Botched; higher → Proceed.
+        /// </summary>
+        RollDieVsWarrants,
+        /// <summary>
+        /// Black Market Express: may buy Firearm/Explosives Gear from the Silverhold discard at
+        /// half price (<see cref="Actions.MisbehaveChoice.BuyGearIds"/>; empty/null = buy none).
+        /// </summary>
+        BuySilverholdFirearmExplosiveHalf
     }
 
     /// <summary>
@@ -335,6 +358,12 @@ namespace Firefly.Core.Cards
         /// </summary>
         public bool ChooseOneCrew { get; }
 
+        /// <summary>
+        /// We got a Plan: roll a die first — 1–2 Negotiate, 3–4 Tech, 5–6 Fight — then test
+        /// at <see cref="Target"/>. <see cref="Skill"/> is a placeholder until resolved.
+        /// </summary>
+        public bool RandomSkillFromDie { get; }
+
         public MisbehaveSkillCheckSpec(
             Skill skill,
             int target,
@@ -342,7 +371,8 @@ namespace Firefly.Core.Cards
             bool bribesAllowed = false,
             IReadOnlyList<MisbehaveSkillBonus>? bonuses = null,
             IReadOnlyList<MisbehaveTargetModifier>? targetModifiers = null,
-            bool chooseOneCrew = false)
+            bool chooseOneCrew = false,
+            bool randomSkillFromDie = false)
         {
             Skill = skill;
             Target = target;
@@ -351,9 +381,15 @@ namespace Firefly.Core.Cards
             Bonuses = bonuses ?? Array.Empty<MisbehaveSkillBonus>();
             TargetModifiers = targetModifiers ?? Array.Empty<MisbehaveTargetModifier>();
             ChooseOneCrew = chooseOneCrew;
+            RandomSkillFromDie = randomSkillFromDie;
         }
 
         public SkillCheck ToSkillCheck() => new SkillCheck(Skill, Target, Kosherized, BribesAllowed);
+
+        public MisbehaveSkillCheckSpec WithSkill(Skill skill) =>
+            new MisbehaveSkillCheckSpec(
+                skill, Target, Kosherized, BribesAllowed, Bonuses, TargetModifiers,
+                ChooseOneCrew, randomSkillFromDie: false);
     }
 
     /// <summary>

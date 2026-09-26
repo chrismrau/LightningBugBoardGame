@@ -74,6 +74,11 @@ namespace Firefly.Core.Actions
         /// <summary>Unexpected Opportunity: may buy up to N Contraband ($unit each). 0 = buy none.</summary>
         public int BuyContraband { get; set; }
         /// <summary>
+        /// Black Market Express: Gear ids to buy from the Silverhold discard at half price
+        /// (Firearm / Explosives only). Null or empty = buy none ("You may").
+        /// </summary>
+        public IList<string>? BuyGearIds { get; set; }
+        /// <summary>
         /// Food Riots Requires: "cargo" or "contraband". Null when both available suspends
         /// <see cref="PendingChoiceKinds.MisbehaveDiscardCargoOrContraband"/>.
         /// </summary>
@@ -170,6 +175,8 @@ namespace Firefly.Core.Actions
         private string? _frozenBandText;
         private IReadOnlyList<MisbehaveEffect>? _frozenStructuredEffects;
         private int _frozenBribeCash;
+        /// <summary>We got a Plan: skill die result held across Bribe / PendingChoice suspends.</summary>
+        private Skill? _frozenPlanSkill;
         /// <summary>Kill choice held across Med Foam suspend after victim pick.</summary>
         private KillChoice? _pendingKillAfterVictims;
         /// <summary>First skill roll held while <see cref="PendingChoiceKinds.SkillReroll"/> is pending.</summary>
@@ -1177,7 +1184,8 @@ namespace Firefly.Core.Actions
             // Prefer structured step overlay; fall back to option-level structured then prose.
             var stepOption = BuildStepOption(option, step, stepIndex);
             var details = stepOption.Details ?? "";
-            if (IsAllianceAlertUpdate(card, details))
+            if (IsAllianceAlertUpdate(card, details)
+                && !HasLocalEffect(stepOption.Effects, MisbehaveLocalEffectType.CycleAllianceAlert))
             {
                 CycleAllianceAlert(game);
                 var die = Dice.D6(rng);
@@ -1549,6 +1557,18 @@ namespace Firefly.Core.Actions
                 return true;
             }
 
+            // We got a Plan: determine skill by die before Bribes / switch / roll.
+            if (option.SkillCheck?.RandomSkillFromDie == true)
+            {
+                if (_frozenPlanSkill == null)
+                    _frozenPlanSkill = SkillFromPlanDie(Dice.D6(rng));
+                var planSkill = _frozenPlanSkill.Value;
+                var bribes = option.SkillCheck.BribesAllowed && planSkill == Skill.Talk;
+                skillCheck = new SkillCheck(
+                    planSkill, skillCheck.Target, skillCheck.Kosherized, bribes);
+                skillCheck = SkillCheck.WithAbilityBribes(skillCheck, player);
+            }
+
             var activeJob = player.FindActive(pending.JobId);
             // Sheydra / Stitch: once per job, before Bribes (FAQ 4.1 p.9 — never both).
             if (SkillCheck.NeedsSkillSwitchChoice(
@@ -1773,10 +1793,23 @@ namespace Firefly.Core.Actions
             _frozenBandText = null;
             _frozenStructuredEffects = null;
             _frozenBribeCash = 0;
+            _frozenPlanSkill = null;
             _pendingKillAfterVictims = null;
             _pendingRerollResult = null;
             // Keep _frozenWantedSeizeIds / _pendingWantedRollChoice across ClearFrozenSkill —
             // WantedCrewRoll Meadows resume re-enters TryResolve after ClearFrozenSkill.
+        }
+
+        /// <summary>
+        /// We got a Plan printed die: 1–2 Negotiate, 3–4 Tech, 5–6 Fight.
+        /// </summary>
+        private static Skill SkillFromPlanDie(int face)
+        {
+            if (face <= 2)
+                return Skill.Talk;
+            if (face <= 4)
+                return Skill.Tech;
+            return Skill.Fight;
         }
 
         private static bool NeedsOptionChoice(
@@ -2139,6 +2172,29 @@ namespace Firefly.Core.Actions
                             outcome = MisbehaveOutcome.Botched;
                         else
                             outcome = MisbehaveOutcome.Proceed;
+                        break;
+                    case MisbehaveLocalEffectType.GamblingDoubles:
+                        if (!TryApplyGamblingDoubles(
+                                player, rng, effect.Count, ref cashDelta, out error))
+                            return false;
+                        break;
+                    case MisbehaveLocalEffectType.ExtraActionThisTurn:
+                        // Printed "third Action this turn" — raise the turn action cap to at least 3.
+                        if (game.ActionsPerTurn < 3)
+                            game.ActionsPerTurn = 3;
+                        break;
+                    case MisbehaveLocalEffectType.CycleAllianceAlert:
+                        CycleAllianceAlert(game);
+                        break;
+                    case MisbehaveLocalEffectType.RollDieVsWarrants:
+                        outcome = Dice.D6(rng) <= player.Warrants
+                            ? MisbehaveOutcome.Botched
+                            : MisbehaveOutcome.Proceed;
+                        break;
+                    case MisbehaveLocalEffectType.BuySilverholdFirearmExplosiveHalf:
+                        if (!TryBuySilverholdFirearmExplosiveHalf(
+                                game, player, choice, ref cashDelta, out error))
+                            return false;
                         break;
                     case MisbehaveLocalEffectType.ReplaceCard:
                         break;
@@ -3883,6 +3939,107 @@ namespace Firefly.Core.Actions
 
         private static void CycleAllianceAlert(GameState game) =>
             game.AllianceAlertDeck?.DrawAndActivate();
+
+        /// <summary>
+        /// Gambling Den: roll 2 dice; Doubles → take <paramref name="payout"/> (Count from JSON amount).
+        /// Stake is paid via prose Pay $N / AcceptPay before effects.
+        /// </summary>
+        private static bool TryApplyGamblingDoubles(
+            PlayerState player,
+            IRng rng,
+            int payout,
+            ref int cashDelta,
+            out string? error)
+        {
+            error = null;
+            var roll = Dice.RollD6(2, rng);
+            if (roll.Faces.Count == 2 && roll.Faces[0] == roll.Faces[1] && payout > 0)
+            {
+                player.Cash += payout;
+                cashDelta += payout;
+            }
+            return true;
+        }
+
+        /// <summary>
+        /// Black Market Express: optional buys of Firearm / Explosives Gear from Silverhold discard
+        /// at half price (integer divide, same as BuyAction Marco / Salesman half-price).
+        /// </summary>
+        private static bool TryBuySilverholdFirearmExplosiveHalf(
+            GameState game,
+            PlayerState player,
+            MisbehaveChoice choice,
+            ref int cashDelta,
+            out string? error)
+        {
+            error = null;
+            var ids = choice.BuyGearIds;
+            if (ids == null || ids.Count == 0)
+                return true;
+            if (game.SupplyDecks == null || game.Gear == null)
+            {
+                error = "Supply decks are not available.";
+                return false;
+            }
+            if (!game.SupplyDecks.TryGet("Silverhold", out var market))
+            {
+                error = "Silverhold Supply Deck is not available.";
+                return false;
+            }
+
+            var total = 0;
+            var taken = new List<SupplyCard>();
+            foreach (var id in ids)
+            {
+                if (!market.TryFindInDiscard(id, out var card))
+                {
+                    error = $"'{id}' is not in the Silverhold discard pile.";
+                    return false;
+                }
+                if (card.Kind != SupplyKind.Gear
+                    || !game.Gear.TryGet(card.Id, out var gear)
+                    || !IsFirearmOrExplosive(gear))
+                {
+                    error = $"'{id}' is not Firearm or Explosives Gear in the Silverhold discard.";
+                    return false;
+                }
+                total += card.Cost / 2;
+                taken.Add(card);
+            }
+
+            if (player.Cash < total)
+            {
+                error = $"Need ${total} to buy the selected Gear at half price.";
+                return false;
+            }
+
+            foreach (var card in taken)
+            {
+                if (!market.TryTakeFromDiscard(card.Id, out var removed))
+                {
+                    error = $"Could not take '{card.Id}' from the Silverhold discard.";
+                    return false;
+                }
+                if (!BuyAction.TryGiveSupply(game, player, removed, "Silverhold", out error))
+                    return false;
+            }
+
+            player.Cash -= total;
+            cashDelta -= total;
+            return true;
+        }
+
+        private static bool IsFirearmOrExplosive(GearEntry gear)
+        {
+            foreach (var keyword in gear.Keywords)
+            {
+                if (keyword.StartsWith("Firearm", StringComparison.OrdinalIgnoreCase)
+                    || keyword.StartsWith("Explosives", StringComparison.OrdinalIgnoreCase))
+                    return true;
+            }
+            return false;
+        }
+
         private static bool ContainsOption(IReadOnlyList<string> options, string id)
         {
             foreach (var option in options)
