@@ -2892,11 +2892,11 @@
       "options": [
         {
           "name": "Unfriendly Difference of Opinion",
-          "details": "FIRST, Whiskey & Fisticuffs: Fight 7 Kosherized; 1-6 Crew is not Wanted. Attempt Botched. NEXT, A Round for the House: Negotiate 8 Bribes; 1-7 Attempt Botched. 9+ Proceed.",
+          "details": "FIRST, Whiskey & Fisticuffs: Fight 7 Kosherized; 1-6 Crew is now Wanted. Attempt Botched. NEXT, A Round for the House: Negotiate 8 Bribes; 1-7 Attempt Botched. 8+ Proceed.",
           "steps": [
             {
               "name": "Whiskey & Fisticuffs",
-              "details": "Fight 7 Kosherized; 1-6 Crew is not Wanted. Attempt Botched.",
+              "details": "Fight 7 Kosherized; 1-6 Crew is now Wanted. Attempt Botched.",
               "skillCheck": {
                 "skill": "fight",
                 "target": 7,
@@ -2904,8 +2904,11 @@
               },
               "bands": [
                 {
-                  "text": "1-6 Crew is not Wanted. Attempt Botched",
+                  "text": "1-6 Crew is now Wanted. Attempt Botched",
                   "effects": [
+                    {
+                      "type": "wanted"
+                    },
                     {
                       "type": "botched"
                     }
@@ -2926,7 +2929,7 @@
             },
             {
               "name": "A Round for the House",
-              "details": "Negotiate 8 Bribes; 1-7 Attempt Botched. 9+ Proceed.",
+              "details": "Negotiate 8 Bribes; 1-7 Attempt Botched. 8+ Proceed.",
               "skillCheck": {
                 "skill": "negotiate",
                 "target": 8,
@@ -2943,13 +2946,13 @@
                   "range": "1-7"
                 },
                 {
-                  "text": "9+ Proceed",
+                  "text": "8+ Proceed",
                   "effects": [
                     {
                       "type": "proceed"
                     }
                   ],
-                  "min": 9,
+                  "min": 8,
                   "max": null
                 }
               ]
@@ -3034,6 +3037,10 @@
                 {
                   "text": "10+ Take 2 Goods. Proceed",
                   "effects": [
+                    {
+                      "type": "loadGoods",
+                      "count": 2
+                    },
                     {
                       "type": "proceed"
                     }
@@ -3568,6 +3575,10 @@
                 {
                   "text": "9+ you may discard up to 2 Warrants or 2 Wanted Tokens. Proceed",
                   "effects": [
+                    {
+                      "type": "mayDiscardWarrantsOrWanted",
+                      "count": 2
+                    },
                     {
                       "type": "proceed"
                     }

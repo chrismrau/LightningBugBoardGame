@@ -34,6 +34,21 @@ namespace Firefly.Core.Actions
         public string? LoseSolidId { get; set; }
         public int DiscardWarrants { get; set; }
         /// <summary>
+        /// Blue Sun Goods mix for Take/Load N Goods (Fuel/Parts/Cargo/Contraband).
+        /// Sum must equal the printed N; omit all zeros to suspend GoodsMix.
+        /// </summary>
+        public int LoadGoodsFuel { get; set; }
+        public int LoadGoodsParts { get; set; }
+        public int LoadGoodsCargo { get; set; }
+        public int LoadGoodsContraband { get; set; }
+        /// <summary>
+        /// Dead to Rights path: <see cref="MisbehaveWarrantOrWantedOptions"/> id, or null to suspend.
+        /// Exclusive or — warrants path and wanted-tokens path cannot mix.
+        /// </summary>
+        public string? DiscardWarrantsOrWantedPath { get; set; }
+        /// <summary>Crew ids to clear Wanted on (wanted-tokens path; player chooses).</summary>
+        public IList<string>? ClearWantedCrewIds { get; set; }
+        /// <summary>
         /// Kill / Medic hooks. Victim ids come from PendingChoice resume or tests.
         /// </summary>
         public KillChoice? Kill { get; set; }
@@ -109,6 +124,12 @@ namespace Firefly.Core.Actions
         private bool _resumingMisbehaveOption;
         /// <summary>True while Dalin redraw resume re-enters <see cref="TryResolve"/>.</summary>
         private bool _resumingDalin;
+        /// <summary>True while GoodsMix resume re-enters <see cref="TryResolve"/>.</summary>
+        private bool _resumingGoodsMix;
+        /// <summary>True while warrant/Wanted discard resume re-enters <see cref="TryResolve"/>.</summary>
+        private bool _resumingWarrantOrWanted;
+        private MisbehaveChoice? _pendingGoodsMixChoice;
+        private MisbehaveChoice? _pendingWarrantOrWantedChoice;
         private bool _frozenSkillReady;
         private SkillCheckResult? _frozenSkillCheck;
         private string? _frozenBandText;
@@ -635,6 +656,120 @@ namespace Firefly.Core.Actions
             }
         }
 
+        /// <summary>
+        /// Resume after <see cref="PendingChoiceKinds.GoodsMix"/>: merge Fuel/Parts/Cargo/Contraband
+        /// into <see cref="MisbehaveChoice"/> and re-enter with the frozen skill band.
+        /// Blue Sun: "Goods are Cargo, Contraband, Fuel and Parts... you may choose to Load a mix."
+        /// </summary>
+        public bool TryResumeGoodsMix(
+            GameState game,
+            string playerId,
+            ChoiceSubmission submission,
+            MisbehaveChoice choice,
+            out MisbehaveResolution? resolution,
+            out string? error,
+            IRng? rng = null)
+        {
+            resolution = null;
+            error = null;
+            if (game.PendingChoice == null
+                || !string.Equals(
+                    game.PendingChoice.Kind,
+                    PendingChoiceKinds.GoodsMix,
+                    StringComparison.Ordinal))
+            {
+                error = "No Goods mix choice is pending.";
+                return false;
+            }
+
+            var contextId = game.PendingChoice.ContextId ?? "";
+            var merged = _pendingGoodsMixChoice ?? choice;
+            if (!TryMergeGoodsMixSubmission(contextId, submission, merged, out error))
+                return false;
+
+            // Copy mix onto the caller's choice for re-enter.
+            choice.LoadGoodsFuel = merged.LoadGoodsFuel;
+            choice.LoadGoodsParts = merged.LoadGoodsParts;
+            choice.LoadGoodsCargo = merged.LoadGoodsCargo;
+            choice.LoadGoodsContraband = merged.LoadGoodsContraband;
+            if (choice.OptionIndex == null)
+                choice.OptionIndex = merged.OptionIndex;
+            if (choice.StepIndex == null)
+                choice.StepIndex = merged.StepIndex;
+
+            if (!game.TrySubmitChoice(playerId, submission, out _, out error))
+                return false;
+
+            _pendingGoodsMixChoice = null;
+            _resumingGoodsMix = true;
+            try
+            {
+                return TryResolve(game, playerId, choice, out resolution, out error, rng);
+            }
+            finally
+            {
+                _resumingGoodsMix = false;
+            }
+        }
+
+        /// <summary>
+        /// Resume after <see cref="PendingChoiceKinds.MisbehaveWarrantOrWanted"/>: merge path
+        /// (none / warrants / wanted-tokens) and re-enter with the frozen skill band.
+        /// </summary>
+        public bool TryResumeWarrantOrWanted(
+            GameState game,
+            string playerId,
+            ChoiceSubmission submission,
+            MisbehaveChoice choice,
+            out MisbehaveResolution? resolution,
+            out string? error,
+            IRng? rng = null)
+        {
+            resolution = null;
+            error = null;
+            if (game.PendingChoice == null
+                || !string.Equals(
+                    game.PendingChoice.Kind,
+                    PendingChoiceKinds.MisbehaveWarrantOrWanted,
+                    StringComparison.Ordinal))
+            {
+                error = "No Warrant/Wanted discard choice is pending.";
+                return false;
+            }
+
+            var max = 2;
+            if (!string.IsNullOrWhiteSpace(game.PendingChoice.ContextId)
+                && int.TryParse(game.PendingChoice.ContextId, out var parsed)
+                && parsed > 0)
+                max = parsed;
+
+            var merged = _pendingWarrantOrWantedChoice ?? choice;
+            if (!TryMergeWarrantOrWantedSubmission(submission, merged, max, out error))
+                return false;
+
+            choice.DiscardWarrantsOrWantedPath = merged.DiscardWarrantsOrWantedPath;
+            choice.DiscardWarrants = merged.DiscardWarrants;
+            choice.ClearWantedCrewIds = merged.ClearWantedCrewIds;
+            if (choice.OptionIndex == null)
+                choice.OptionIndex = merged.OptionIndex;
+            if (choice.StepIndex == null)
+                choice.StepIndex = merged.StepIndex;
+
+            if (!game.TrySubmitChoice(playerId, submission, out _, out error))
+                return false;
+
+            _pendingWarrantOrWantedChoice = null;
+            _resumingWarrantOrWanted = true;
+            try
+            {
+                return TryResolve(game, playerId, choice, out resolution, out error, rng);
+            }
+            finally
+            {
+                _resumingWarrantOrWanted = false;
+            }
+        }
+
         public bool TryResolve(
             GameState game,
             string playerId,
@@ -659,7 +794,9 @@ namespace Firefly.Core.Actions
                 && !_resumingKillVictims
                 && !_resumingBribeOrMedFoam
                 && !_resumingMisbehaveOption
-                && !_resumingDalin)
+                && !_resumingDalin
+                && !_resumingGoodsMix
+                && !_resumingWarrantOrWanted)
             {
                 error = "Resolve the pending choice before continuing Misbehave.";
                 return false;
@@ -818,6 +955,41 @@ namespace Firefly.Core.Actions
                 return false;
             }
 
+            // Blue Sun Goods: Take/Load N Goods → PendingChoice GoodsMix (Fuel/Parts/Cargo/Contraband).
+            if (NeedsGoodsMixChoice(
+                    useStructured ? structuredEffects : null,
+                    effectText,
+                    choice,
+                    out var goodsContext,
+                    out var goodsPrompt))
+            {
+                FreezeSkill(check, bandText, structuredEffects, bribeCash);
+                if (!TrySuspendGoodsMix(game, player, choice, goodsContext, goodsPrompt, out error))
+                {
+                    ClearFrozenSkill();
+                    return false;
+                }
+                error = goodsPrompt;
+                return false;
+            }
+
+            // Dead to Rights: optional exclusive discard of Warrants or Wanted Tokens.
+            if (NeedsWarrantOrWantedChoice(
+                    useStructured ? structuredEffects : null,
+                    choice,
+                    out var discardMax,
+                    out var discardPrompt))
+            {
+                FreezeSkill(check, bandText, structuredEffects, bribeCash);
+                if (!TrySuspendWarrantOrWanted(game, player, choice, discardMax, discardPrompt, out error))
+                {
+                    ClearFrozenSkill();
+                    return false;
+                }
+                error = discardPrompt;
+                return false;
+            }
+
             // Validate Solid-loss discard hooks before mutating crew / warrants.
             if (WouldLoseSolid(details)
                 || WouldLoseSolid(effectBand)
@@ -868,7 +1040,14 @@ namespace Firefly.Core.Actions
 
                 if (!TryKillCrew(game, player, effectText, rng, choice.Kill, out killed, out error))
                     return false;
-                loaded = LoadGoods(player, effectText);
+                var goodsN = PlannedGoodsLoadCount(null, effectText);
+                if (goodsN > 0)
+                {
+                    if (!TryApplyLoadGoods(player, goodsN, choice, out loaded, out error))
+                        return false;
+                }
+                else
+                    loaded = LoadGoods(player, effectText);
                 cashDelta += TakeCash(player, effectText);
                 ApplyWanted(player, effectText, choice.TargetCrewId);
                 ApplyDisgruntle(player, effectText);
@@ -1417,6 +1596,15 @@ namespace Firefly.Core.Actions
                             discard = player.Warrants;
                         player.Warrants -= discard;
                         break;
+                    case MisbehaveLocalEffectType.LoadGoods:
+                        if (!TryApplyLoadGoods(player, effect.Count, choice, out var goodsLoaded, out error))
+                            return false;
+                        loaded += goodsLoaded;
+                        break;
+                    case MisbehaveLocalEffectType.MayDiscardWarrantsOrWanted:
+                        if (!TryApplyMayDiscardWarrantsOrWanted(player, effect.Count, choice, out error))
+                            return false;
+                        break;
                     case MisbehaveLocalEffectType.ReplaceCard:
                         break;
                     case MisbehaveLocalEffectType.NextFightKosherized:
@@ -1774,6 +1962,340 @@ namespace Firefly.Core.Actions
                 loaded += n;
             }
             return loaded;
+        }
+
+        /// <summary>
+        /// Structured / choice-backed Take N Goods. Blue Sun: Cargo, Contraband, Fuel, Parts;
+        /// mix allowed via <see cref="MisbehaveChoice"/> Goods fields.
+        /// </summary>
+        private static bool TryApplyLoadGoods(
+            PlayerState player,
+            int count,
+            MisbehaveChoice choice,
+            out int loaded,
+            out string? error)
+        {
+            loaded = 0;
+            error = null;
+            var n = count > 0 ? count : 1;
+            var fuel = choice.LoadGoodsFuel;
+            var parts = choice.LoadGoodsParts;
+            var cargo = choice.LoadGoodsCargo;
+            var contra = choice.LoadGoodsContraband;
+            var sum = fuel + parts + cargo + contra;
+            if (sum != n)
+            {
+                error = $"Load {n} Goods requires a Goods composition choice totaling {n}.";
+                return false;
+            }
+            if (!HoldSpace.TryExplain(
+                    player,
+                    out error,
+                    addFuel: fuel,
+                    addParts: parts,
+                    addCargo: cargo,
+                    addContraband: contra))
+                return false;
+            player.Fuel += fuel;
+            player.Parts += parts;
+            player.Cargo += cargo;
+            player.Contraband += contra;
+            loaded = n;
+            return true;
+        }
+
+        private static bool NeedsGoodsMixChoice(
+            IReadOnlyList<MisbehaveEffect>? effects,
+            string effectText,
+            MisbehaveChoice choice,
+            out string contextId,
+            out string prompt)
+        {
+            contextId = "";
+            prompt = "";
+            var n = PlannedGoodsLoadCount(effects, effectText);
+            if (n <= 0)
+                return false;
+            var sum = choice.LoadGoodsFuel
+                + choice.LoadGoodsParts
+                + choice.LoadGoodsCargo
+                + choice.LoadGoodsContraband;
+            if (sum == n)
+                return false;
+            if (sum != 0)
+                return false; // invalid partial — TryApplyLoadGoods will error
+            contextId = GoodsMixContexts.Load(n);
+            prompt = $"Choose a mix of {n} Goods (Fuel/Parts/Cargo/Contraband).";
+            return true;
+        }
+
+        private static int PlannedGoodsLoadCount(
+            IReadOnlyList<MisbehaveEffect>? effects,
+            string effectText)
+        {
+            if (effects != null && effects.Count > 0)
+            {
+                foreach (var effect in effects)
+                {
+                    if (effect.Is(MisbehaveLocalEffectType.LoadGoods))
+                        return effect.Count > 0 ? effect.Count : 1;
+                }
+                return 0;
+            }
+            var match = Regex.Match(
+                effectText ?? "",
+                @"(?:Take|Load)\s+(\d+)\s+Goods",
+                RegexOptions.IgnoreCase);
+            return match.Success ? int.Parse(match.Groups[1].Value) : 0;
+        }
+
+        private bool TrySuspendGoodsMix(
+            GameState game,
+            PlayerState player,
+            MisbehaveChoice choice,
+            string contextId,
+            string prompt,
+            out string? error)
+        {
+            var pending = new PendingChoice(
+                player.Id,
+                PendingChoiceKinds.GoodsMix,
+                contextId: contextId,
+                prompt: prompt);
+            if (!game.TrySetPendingChoice(pending, out error))
+                return false;
+            _pendingGoodsMixChoice = choice;
+            return true;
+        }
+
+        private static bool TryMergeGoodsMixSubmission(
+            string contextId,
+            ChoiceSubmission submission,
+            MisbehaveChoice choice,
+            out string? error)
+        {
+            error = null;
+            if (submission.Values == null || submission.Values.Count < 4
+                || !int.TryParse(submission.Values[0], out var fuel)
+                || !int.TryParse(submission.Values[1], out var parts)
+                || !int.TryParse(submission.Values[2], out var cargo)
+                || !int.TryParse(submission.Values[3], out var contra))
+            {
+                error = "Goods mix Values must be fuel, parts, cargo, contraband counts.";
+                return false;
+            }
+
+            if (!GoodsMixContexts.TryParseLoad(contextId, out var n))
+            {
+                error = "Unsupported Misbehave Goods mix context.";
+                return false;
+            }
+
+            if (fuel + parts + cargo + contra != n)
+            {
+                error = $"Load {n} Goods requires Values totaling {n}.";
+                return false;
+            }
+
+            choice.LoadGoodsFuel = fuel;
+            choice.LoadGoodsParts = parts;
+            choice.LoadGoodsCargo = cargo;
+            choice.LoadGoodsContraband = contra;
+            return true;
+        }
+
+        private static bool NeedsWarrantOrWantedChoice(
+            IReadOnlyList<MisbehaveEffect>? effects,
+            MisbehaveChoice choice,
+            out int max,
+            out string prompt)
+        {
+            max = 0;
+            prompt = "";
+            if (effects == null || effects.Count == 0)
+                return false;
+            foreach (var effect in effects)
+            {
+                if (!effect.Is(MisbehaveLocalEffectType.MayDiscardWarrantsOrWanted))
+                    continue;
+                if (!string.IsNullOrWhiteSpace(choice.DiscardWarrantsOrWantedPath))
+                    return false;
+                max = effect.Count > 0 ? effect.Count : 2;
+                prompt =
+                    $"You may discard up to {max} Warrants or up to {max} Wanted Tokens (exclusive), or none.";
+                return true;
+            }
+            return false;
+        }
+
+        private bool TrySuspendWarrantOrWanted(
+            GameState game,
+            PlayerState player,
+            MisbehaveChoice choice,
+            int max,
+            string prompt,
+            out string? error)
+        {
+            var pending = new PendingChoice(
+                player.Id,
+                PendingChoiceKinds.MisbehaveWarrantOrWanted,
+                contextId: max.ToString(),
+                options: new[]
+                {
+                    MisbehaveWarrantOrWantedOptions.None,
+                    MisbehaveWarrantOrWantedOptions.Warrants,
+                    MisbehaveWarrantOrWantedOptions.WantedTokens
+                },
+                prompt: prompt);
+            if (!game.TrySetPendingChoice(pending, out error))
+                return false;
+            _pendingWarrantOrWantedChoice = choice;
+            return true;
+        }
+
+        private static bool TryMergeWarrantOrWantedSubmission(
+            ChoiceSubmission submission,
+            MisbehaveChoice choice,
+            int max,
+            out string? error)
+        {
+            error = null;
+            var path = submission.SelectedOptionId;
+            if (string.IsNullOrWhiteSpace(path))
+            {
+                error = "Choose none, warrants, or wanted-tokens.";
+                return false;
+            }
+
+            if (string.Equals(path, MisbehaveWarrantOrWantedOptions.None, StringComparison.Ordinal))
+            {
+                choice.DiscardWarrantsOrWantedPath = MisbehaveWarrantOrWantedOptions.None;
+                choice.DiscardWarrants = 0;
+                choice.ClearWantedCrewIds = null;
+                return true;
+            }
+
+            if (string.Equals(path, MisbehaveWarrantOrWantedOptions.Warrants, StringComparison.Ordinal))
+            {
+                var amount = submission.Amount ?? 0;
+                if (amount < 0 || amount > max)
+                {
+                    error = $"Warrant discard Amount must be between 0 and {max}.";
+                    return false;
+                }
+                if (submission.Values != null && submission.Values.Count > 0)
+                {
+                    error = "Cannot mix Warrants and Wanted Tokens in one discard.";
+                    return false;
+                }
+                choice.DiscardWarrantsOrWantedPath = MisbehaveWarrantOrWantedOptions.Warrants;
+                choice.DiscardWarrants = amount;
+                choice.ClearWantedCrewIds = null;
+                return true;
+            }
+
+            if (string.Equals(path, MisbehaveWarrantOrWantedOptions.WantedTokens, StringComparison.Ordinal))
+            {
+                var ids = submission.Values ?? Array.Empty<string>();
+                if (ids.Count > max)
+                {
+                    error = $"Wanted Token discard allows at most {max} crew.";
+                    return false;
+                }
+                if (submission.Amount is int warrantAmount && warrantAmount > 0)
+                {
+                    error = "Cannot mix Warrants and Wanted Tokens in one discard.";
+                    return false;
+                }
+                choice.DiscardWarrantsOrWantedPath = MisbehaveWarrantOrWantedOptions.WantedTokens;
+                choice.DiscardWarrants = 0;
+                choice.ClearWantedCrewIds = new List<string>(ids);
+                return true;
+            }
+
+            error = $"Unknown Warrant/Wanted option '{path}'.";
+            return false;
+        }
+
+        private static bool TryApplyMayDiscardWarrantsOrWanted(
+            PlayerState player,
+            int count,
+            MisbehaveChoice choice,
+            out string? error)
+        {
+            error = null;
+            var max = count > 0 ? count : 2;
+            var path = choice.DiscardWarrantsOrWantedPath;
+            if (string.IsNullOrWhiteSpace(path)
+                || string.Equals(path, MisbehaveWarrantOrWantedOptions.None, StringComparison.Ordinal))
+            {
+                if (choice.DiscardWarrants > 0
+                    || (choice.ClearWantedCrewIds != null && choice.ClearWantedCrewIds.Count > 0))
+                {
+                    error = "Cannot mix Warrants and Wanted Tokens in one discard.";
+                    return false;
+                }
+                return true;
+            }
+
+            if (string.Equals(path, MisbehaveWarrantOrWantedOptions.Warrants, StringComparison.Ordinal))
+            {
+                if (choice.ClearWantedCrewIds != null && choice.ClearWantedCrewIds.Count > 0)
+                {
+                    error = "Cannot mix Warrants and Wanted Tokens in one discard.";
+                    return false;
+                }
+                var discard = choice.DiscardWarrants;
+                if (discard < 0 || discard > max)
+                {
+                    error = $"Warrant discard must be between 0 and {max}.";
+                    return false;
+                }
+                if (discard > player.Warrants)
+                    discard = player.Warrants;
+                player.Warrants -= discard;
+                return true;
+            }
+
+            if (string.Equals(path, MisbehaveWarrantOrWantedOptions.WantedTokens, StringComparison.Ordinal))
+            {
+                if (choice.DiscardWarrants > 0)
+                {
+                    error = "Cannot mix Warrants and Wanted Tokens in one discard.";
+                    return false;
+                }
+                var ids = choice.ClearWantedCrewIds;
+                if (ids == null || ids.Count == 0)
+                    return true;
+                if (ids.Count > max)
+                {
+                    error = $"Wanted Token discard allows at most {max} crew.";
+                    return false;
+                }
+                foreach (var id in ids)
+                {
+                    var member = player.Roster.Find(id);
+                    if (member == null)
+                    {
+                        error = $"Crew '{id}' is not on the roster.";
+                        return false;
+                    }
+                    if (!member.Wanted)
+                    {
+                        error = $"Crew '{id}' is not Wanted.";
+                        return false;
+                    }
+                    if (!player.Roster.TryClearWanted(id))
+                    {
+                        error = $"Cannot clear Wanted on '{id}'.";
+                        return false;
+                    }
+                }
+                return true;
+            }
+
+            error = $"Unknown Warrant/Wanted path '{path}'.";
+            return false;
         }
 
         private static void ApplyWanted(PlayerState player, string text, string? targetCrewId)

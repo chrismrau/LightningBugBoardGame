@@ -23,7 +23,17 @@ namespace Firefly.Core.Cards
         /// <summary>FIRST-step carry: next Fight Test is Kosherized (C&amp;P Secure Perimeter).</summary>
         NextFightKosherized,
         /// <summary>FIRST-step carry: +N Negotiate to next Test (count = N).</summary>
-        NextTalkBonus
+        NextTalkBonus,
+        /// <summary>
+        /// Take/Load N Goods (count = N). Blue Sun: Cargo, Contraband, Fuel, Parts — mix via
+        /// <see cref="State.PendingChoiceKinds.GoodsMix"/>.
+        /// </summary>
+        LoadGoods,
+        /// <summary>
+        /// Optional exclusive discard: up to N Warrants <em>or</em> up to N Wanted Tokens
+        /// (count = N). Proceed with zero discards is legal.
+        /// </summary>
+        MayDiscardWarrantsOrWanted
     }
 
     /// <summary>

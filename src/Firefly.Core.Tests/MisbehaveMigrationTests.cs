@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using Firefly.Core.Abilities;
 using Firefly.Core.Actions;
 using Firefly.Core.Cards;
@@ -504,6 +506,320 @@ namespace Firefly.Core.Tests
             Assert.Equal(MisbehaveOutcome.Proceed, resolution.Outcome);
         }
 
+        [Fact]
+        public void Batch1_unification_day_fail_marks_Crew_now_Wanted()
+        {
+            // Locked: typo fix — "Crew is now Wanted" (not "not Wanted").
+            var game = NewCrimeGame();
+            Assert.True(game.CurrentPlayer.Roster.TryHire(game.Crew!.Get("crew_jayne"), out _));
+            StartCrime(game);
+            game.Misbehave!.PlaceOnTop(game.Misbehave.Catalog.Get("misbehave_unification-day-festivities"));
+            var resolver = new MisbehaveResolver();
+            resolver.DrawNext(game);
+
+            Assert.True(resolver.TryResolve(
+                game, "p1",
+                new MisbehaveChoice { OptionIndex = 0 },
+                out var resolution, out var error,
+                ScriptedRng.FromDieFaces(1, 1)), error);
+            Assert.Equal(MisbehaveOutcome.Botched, resolution!.Outcome);
+            Assert.True(game.CurrentPlayer.Roster.Find("crew_jayne")!.Wanted);
+            var failBand = Assert.Single(
+                resolution.Option!.Steps[0].Bands,
+                b => b.Min == 1 && b.Max == 6);
+            Assert.Contains("now Wanted", failBand.Text, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains(failBand.Effects, e => e.Is(MisbehaveLocalEffectType.Wanted));
+        }
+
+        [Fact]
+        public void Batch1_unification_day_Negotiate_success_is_8_plus()
+        {
+            // Locked: 1–7 Botched, 8+ Proceed (printed 9+ was inverted/wrong).
+            var catalog = MisbehaveCatalog.LoadDefault();
+            var step = catalog.Get("misbehave_unification-day-festivities").Options[0].Steps[1];
+            Assert.Equal(8, step.SkillCheck!.Target);
+            var success = Assert.Single(step.Bands, b => b.Min == 8 && b.Max == null);
+            Assert.Contains("8+", success.Text);
+            Assert.DoesNotContain(step.Bands, b => b.Min == 9);
+
+            var game = NewCrimeGame(cash: 700);
+            Assert.True(game.CurrentPlayer.Roster.TryHire(game.Crew!.Get("crew_jayne"), out _));
+            Assert.True(game.CurrentPlayer.Roster.TryHire(game.Crew.Get("crew_wash"), out _));
+            StartCrime(game);
+            game.Misbehave!.PlaceOnTop(game.Misbehave.Catalog.Get("misbehave_unification-day-festivities"));
+            var resolver = new MisbehaveResolver();
+            resolver.DrawNext(game);
+
+            // FIRST Fight 7 Kosherized: Jayne Fight 2 → Continue
+            Assert.False(resolver.TryResolve(
+                game, "p1",
+                new MisbehaveChoice { OptionIndex = 0 },
+                out _, out var firstError,
+                ScriptedRng.FromDieFaces(6, 6)));
+            Assert.Contains("next", firstError, StringComparison.OrdinalIgnoreCase);
+
+            // NEXT step resume clears SkillCheck → Bribe PendingChoice (GF9 p.6).
+            Assert.False(resolver.TryResumeMisbehaveOption(
+                game, "p1",
+                new ChoiceSubmission { SelectedOptionId = MisbehaveSteps.StepOptionId(1) },
+                new MisbehaveChoice { OptionIndex = 0 },
+                out _, out var bribeError,
+                ScriptedRng.FromDieFaces(1)));
+            Assert.Equal(PendingChoiceKinds.BribeAmount, game.PendingChoice!.Kind);
+            Assert.Contains("Bribes", bribeError);
+
+            // Wash Talk 1 + bribe $700 = 1+7 → 8 Proceed (was a gap under literal 9+)
+            Assert.True(resolver.TryResumeBribeAmount(
+                game, "p1",
+                new ChoiceSubmission { Amount = 700 },
+                new MisbehaveChoice { OptionIndex = 0 },
+                out var resolution, out var error,
+                ScriptedRng.FromDieFaces(1)), error);
+            Assert.Equal(MisbehaveOutcome.Proceed, resolution!.Outcome);
+            Assert.Equal(8, resolution.SkillCheck!.Total);
+        }
+
+        [Fact]
+        public void Batch1_secure_perimeter_Take_2_Goods_suspends_GoodsMix_then_Proceed()
+        {
+            // Blue Sun: "Goods are Cargo, Contraband, Fuel and Parts… you may choose to Load a mix."
+            // Fess has Tech 2 without skillReroll may (Kaylee would suspend re-roll).
+            var game = NewCrimeGame();
+            Assert.True(game.CurrentPlayer.Roster.TryHire(game.Crew!.Get("crew_fess_kalidasa"), out _));
+            Assert.True(game.CurrentPlayer.Roster.TryHire(game.Crew.Get("crew_jayne"), out _));
+            game.CurrentPlayer.Cargo = 0;
+            game.CurrentPlayer.Fuel = 0;
+            game.CurrentPlayer.Parts = 0;
+            game.CurrentPlayer.Contraband = 0;
+            StartCrime(game);
+            game.Misbehave!.PlaceOnTop(game.Misbehave.Catalog.Get("misbehave_secure-perimeter"));
+            var resolver = new MisbehaveResolver();
+            resolver.DrawNext(game);
+
+            // FIRST Tech 7: Fess Tech 2 → 7+ Continue (no nextFightKosherized)
+            Assert.False(resolver.TryResolve(
+                game, "p1",
+                new MisbehaveChoice { OptionIndex = 0 },
+                out _, out var firstError,
+                ScriptedRng.FromDieFaces(4, 3)));
+            Assert.Contains("next", firstError, StringComparison.OrdinalIgnoreCase);
+            Assert.False(game.PendingMisbehave!.NextFightKosherized);
+
+            // NEXT Fight 10: Jayne Fight 2 → 10 → Take 2 Goods → GoodsMix
+            Assert.False(resolver.TryResumeMisbehaveOption(
+                game, "p1",
+                new ChoiceSubmission { SelectedOptionId = MisbehaveSteps.StepOptionId(1) },
+                new MisbehaveChoice { OptionIndex = 0 },
+                out _, out var goodsError,
+                ScriptedRng.FromDieFaces(5, 5)));
+            Assert.Contains("Goods", goodsError, StringComparison.OrdinalIgnoreCase);
+            Assert.Equal(PendingChoiceKinds.GoodsMix, game.PendingChoice!.Kind);
+            Assert.Equal(GoodsMixContexts.Load(2), game.PendingChoice.ContextId);
+
+            Assert.True(
+                resolver.TryResumeGoodsMix(
+                    game,
+                    "p1",
+                    new ChoiceSubmission
+                    {
+                        Values = new List<string> { "1", "0", "1", "0" }
+                    },
+                    new MisbehaveChoice { OptionIndex = 0 },
+                    out var resolution,
+                    out var error),
+                error);
+            Assert.Equal(MisbehaveOutcome.Proceed, resolution!.Outcome);
+            Assert.Equal(2, resolution.GoodsLoaded);
+            Assert.Equal(1, game.CurrentPlayer.Fuel);
+            Assert.Equal(1, game.CurrentPlayer.Cargo);
+            Assert.Equal(0, game.CurrentPlayer.Parts);
+            Assert.Equal(0, game.CurrentPlayer.Contraband);
+        }
+
+        [Fact]
+        public void Batch1_dead_to_rights_may_skip_discard_and_Proceed()
+        {
+            var game = NewCrimeGame();
+            game.CurrentPlayer.Warrants = 3;
+            Assert.True(game.CurrentPlayer.Roster.TryHire(game.Crew!.Get("crew_jayne"), out _));
+            Assert.True(game.CurrentPlayer.Roster.TryHire(game.Crew.Get("crew_fess_kalidasa"), out _));
+            Assert.True(game.CurrentPlayer.Roster.TryHire(game.Crew.Get("crew_wash"), out _));
+            game.CurrentPlayer.Roster.MarkWanted("crew_wash");
+            StartCrime(game);
+            game.Misbehave!.PlaceOnTop(game.Misbehave.Catalog.Get("misbehave_theyve-got-us-dead-to-rights"));
+            var resolver = new MisbehaveResolver();
+            resolver.DrawNext(game);
+
+            // FIRST Fight 8 Kosherized: Jayne Fight 2 → Continue
+            Assert.False(resolver.TryResolve(
+                game, "p1",
+                new MisbehaveChoice { OptionIndex = 0 },
+                out _, out var firstError,
+                ScriptedRng.FromDieFaces(6, 6)));
+            Assert.Contains("next", firstError, StringComparison.OrdinalIgnoreCase);
+
+            // NEXT Tech 9: Fess Tech 2 → 9 → may discard → suspend
+            Assert.False(resolver.TryResumeMisbehaveOption(
+                game, "p1",
+                new ChoiceSubmission { SelectedOptionId = MisbehaveSteps.StepOptionId(1) },
+                new MisbehaveChoice { OptionIndex = 0 },
+                out _, out var choiceError,
+                ScriptedRng.FromDieFaces(6, 3)));
+            Assert.Equal(PendingChoiceKinds.MisbehaveWarrantOrWanted, game.PendingChoice!.Kind);
+            Assert.Contains("discard", choiceError, StringComparison.OrdinalIgnoreCase);
+
+            Assert.True(
+                resolver.TryResumeWarrantOrWanted(
+                    game,
+                    "p1",
+                    new ChoiceSubmission { SelectedOptionId = MisbehaveWarrantOrWantedOptions.None },
+                    new MisbehaveChoice { OptionIndex = 0 },
+                    out var resolution,
+                    out var error),
+                error);
+            Assert.Equal(MisbehaveOutcome.Proceed, resolution!.Outcome);
+            Assert.Equal(3, game.CurrentPlayer.Warrants);
+            Assert.True(game.CurrentPlayer.Roster.Find("crew_wash")!.Wanted);
+        }
+
+        [Fact]
+        public void Batch1_dead_to_rights_discard_up_to_2_Warrants()
+        {
+            var game = NewCrimeGame();
+            game.CurrentPlayer.Warrants = 3;
+            Assert.True(game.CurrentPlayer.Roster.TryHire(game.Crew!.Get("crew_jayne"), out _));
+            Assert.True(game.CurrentPlayer.Roster.TryHire(game.Crew.Get("crew_fess_kalidasa"), out _));
+            StartCrime(game);
+            game.Misbehave!.PlaceOnTop(game.Misbehave.Catalog.Get("misbehave_theyve-got-us-dead-to-rights"));
+            var resolver = new MisbehaveResolver();
+            resolver.DrawNext(game);
+
+            Assert.False(resolver.TryResolve(
+                game, "p1",
+                new MisbehaveChoice { OptionIndex = 0 },
+                out _, out _,
+                ScriptedRng.FromDieFaces(6, 6)));
+
+            Assert.False(resolver.TryResumeMisbehaveOption(
+                game, "p1",
+                new ChoiceSubmission { SelectedOptionId = MisbehaveSteps.StepOptionId(1) },
+                new MisbehaveChoice { OptionIndex = 0 },
+                out _, out _,
+                ScriptedRng.FromDieFaces(6, 3)));
+
+            Assert.True(
+                resolver.TryResumeWarrantOrWanted(
+                    game,
+                    "p1",
+                    new ChoiceSubmission
+                    {
+                        SelectedOptionId = MisbehaveWarrantOrWantedOptions.Warrants,
+                        Amount = 2
+                    },
+                    new MisbehaveChoice { OptionIndex = 0 },
+                    out var resolution,
+                    out var error),
+                error);
+            Assert.Equal(MisbehaveOutcome.Proceed, resolution!.Outcome);
+            Assert.Equal(1, game.CurrentPlayer.Warrants);
+        }
+
+        [Fact]
+        public void Batch1_dead_to_rights_discard_up_to_2_Wanted_Tokens_chosen_crew()
+        {
+            var game = NewCrimeGame();
+            game.CurrentPlayer.Warrants = 2;
+            Assert.True(game.CurrentPlayer.Roster.TryHire(game.Crew!.Get("crew_jayne"), out _));
+            Assert.True(game.CurrentPlayer.Roster.TryHire(game.Crew.Get("crew_fess_kalidasa"), out _));
+            Assert.True(game.CurrentPlayer.Roster.TryHire(game.Crew.Get("crew_wash"), out _));
+            Assert.True(game.CurrentPlayer.Roster.TryHire(game.Crew.Get("crew_accountant_breakinatmo"), out _));
+            game.CurrentPlayer.Roster.MarkWanted("crew_fess_kalidasa");
+            game.CurrentPlayer.Roster.MarkWanted("crew_wash");
+            game.CurrentPlayer.Roster.MarkWanted("crew_accountant_breakinatmo");
+            StartCrime(game);
+            game.Misbehave!.PlaceOnTop(game.Misbehave.Catalog.Get("misbehave_theyve-got-us-dead-to-rights"));
+            var resolver = new MisbehaveResolver();
+            resolver.DrawNext(game);
+
+            Assert.False(resolver.TryResolve(
+                game, "p1",
+                new MisbehaveChoice { OptionIndex = 0 },
+                out _, out _,
+                ScriptedRng.FromDieFaces(6, 6)));
+
+            Assert.False(resolver.TryResumeMisbehaveOption(
+                game, "p1",
+                new ChoiceSubmission { SelectedOptionId = MisbehaveSteps.StepOptionId(1) },
+                new MisbehaveChoice { OptionIndex = 0 },
+                out _, out _,
+                ScriptedRng.FromDieFaces(6, 2, 1)));
+
+            Assert.True(
+                resolver.TryResumeWarrantOrWanted(
+                    game,
+                    "p1",
+                    new ChoiceSubmission
+                    {
+                        SelectedOptionId = MisbehaveWarrantOrWantedOptions.WantedTokens,
+                        Values = new List<string> { "crew_fess_kalidasa", "crew_accountant_breakinatmo" }
+                    },
+                    new MisbehaveChoice { OptionIndex = 0 },
+                    out var resolution,
+                    out var error),
+                error);
+            Assert.Equal(MisbehaveOutcome.Proceed, resolution!.Outcome);
+            Assert.Equal(2, game.CurrentPlayer.Warrants); // warrants untouched
+            Assert.False(game.CurrentPlayer.Roster.Find("crew_fess_kalidasa")!.Wanted);
+            Assert.True(game.CurrentPlayer.Roster.Find("crew_wash")!.Wanted);
+            Assert.False(game.CurrentPlayer.Roster.Find("crew_accountant_breakinatmo")!.Wanted);
+        }
+
+        [Fact]
+        public void Batch1_dead_to_rights_rejects_mixing_Warrants_and_Wanted()
+        {
+            var game = NewCrimeGame();
+            game.CurrentPlayer.Warrants = 3;
+            Assert.True(game.CurrentPlayer.Roster.TryHire(game.Crew!.Get("crew_jayne"), out _));
+            Assert.True(game.CurrentPlayer.Roster.TryHire(game.Crew.Get("crew_fess_kalidasa"), out _));
+            Assert.True(game.CurrentPlayer.Roster.TryHire(game.Crew.Get("crew_wash"), out _));
+            game.CurrentPlayer.Roster.MarkWanted("crew_wash");
+            StartCrime(game);
+            game.Misbehave!.PlaceOnTop(game.Misbehave.Catalog.Get("misbehave_theyve-got-us-dead-to-rights"));
+            var resolver = new MisbehaveResolver();
+            resolver.DrawNext(game);
+
+            Assert.False(resolver.TryResolve(
+                game, "p1",
+                new MisbehaveChoice { OptionIndex = 0 },
+                out _, out _,
+                ScriptedRng.FromDieFaces(6, 6)));
+
+            Assert.False(resolver.TryResumeMisbehaveOption(
+                game, "p1",
+                new ChoiceSubmission { SelectedOptionId = MisbehaveSteps.StepOptionId(1) },
+                new MisbehaveChoice { OptionIndex = 0 },
+                out _, out _,
+                ScriptedRng.FromDieFaces(6, 3)));
+
+            Assert.False(
+                resolver.TryResumeWarrantOrWanted(
+                    game,
+                    "p1",
+                    new ChoiceSubmission
+                    {
+                        SelectedOptionId = MisbehaveWarrantOrWantedOptions.Warrants,
+                        Amount = 1,
+                        Values = new List<string> { "crew_wash" }
+                    },
+                    new MisbehaveChoice { OptionIndex = 0 },
+                    out _,
+                    out var error));
+            Assert.Contains("mix", error, StringComparison.OrdinalIgnoreCase);
+            Assert.Equal(3, game.CurrentPlayer.Warrants);
+            Assert.True(game.CurrentPlayer.Roster.Find("crew_wash")!.Wanted);
+            Assert.Equal(PendingChoiceKinds.MisbehaveWarrantOrWanted, game.PendingChoice!.Kind);
+        }
+
         private static GameState NewCrimeGame(int cash = 500)
         {
             var map = SectorMap.LoadFromDirectory(GameData.MapDirectory);
@@ -528,4 +844,3 @@ namespace Firefly.Core.Tests
         }
     }
 }
-// temp
