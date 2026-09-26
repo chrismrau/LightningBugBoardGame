@@ -5,8 +5,9 @@ namespace Firefly.Core.Cards
 {
     /// <summary>
     /// Misbehave-only structured effects (outcome markers, Wanted, Solid loss, etc.).
-    /// Shared Kill / Warrant / Load / TakeCash / DisgruntleMoral / ClearDisgruntled live on
-    /// <see cref="CardEffectType"/> — do not duplicate them here.
+    /// Shared Kill / Warrant / Load / TakeCash / DisgruntleMoral / ClearDisgruntled /
+    /// ClearDisgruntledMoral / LoadParts / LoadGoods live on <see cref="CardEffectType"/> —
+    /// do not duplicate them here.
     /// </summary>
     public enum MisbehaveLocalEffectType
     {
@@ -25,11 +26,6 @@ namespace Firefly.Core.Cards
         /// <summary>FIRST-step carry: +N Negotiate to next Test (count = N).</summary>
         NextTalkBonus,
         /// <summary>
-        /// Take/Load N Goods (count = N). Blue Sun: Cargo, Contraband, Fuel, Parts — mix via
-        /// <see cref="State.PendingChoiceKinds.GoodsMix"/>.
-        /// </summary>
-        LoadGoods,
-        /// <summary>
         /// Optional exclusive discard: up to N Warrants <em>or</em> up to N Wanted Tokens
         /// (count = N). Proceed with zero discards is legal.
         /// </summary>
@@ -46,8 +42,6 @@ namespace Firefly.Core.Cards
         /// Suspends <see cref="State.PendingChoiceKinds.MisbehaveWarrantOrWanted"/> (none / warrants).
         /// </summary>
         MayDiscardWarrants,
-        /// <summary>Clear Disgruntled from Moral crew only (printed "Moral Crew").</summary>
-        ClearDisgruntledMoral,
         /// <summary>
         /// Director's Cut C&amp;P p.49 Equipment Seizures: remove matching carried Gear from the
         /// game (may not be repurchased). Tags select keyword/name (FIREARM, SNIPER RIFLE, …).
@@ -103,8 +97,6 @@ namespace Firefly.Core.Cards
         /// <see cref="MisbehaveChoice.BuyContraband"/> selects 0..N.
         /// </summary>
         BuyContraband,
-        /// <summary>Take/Load N Parts (count = N). Hold packing enforced when space is short.</summary>
-        LoadParts,
         /// <summary>
         /// You may return any number of Crew to the Ship, then roll a die: higher than remaining
         /// Crew → Proceed; else Botched (Food Riots). <see cref="MisbehaveChoice.ReturnToShipCrewIds"/>.

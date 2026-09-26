@@ -2053,7 +2053,13 @@ namespace Firefly.Core.Actions
             error = null;
 
             var context = new CardEffectContext(
-                CardEffectSource.Misbehave, choice.Kill, onlyCrewIds: _activeTeamCrewIds);
+                CardEffectSource.Misbehave,
+                choice.Kill,
+                onlyCrewIds: _activeTeamCrewIds,
+                loadGoodsFuel: choice.LoadGoodsFuel,
+                loadGoodsParts: choice.LoadGoodsParts,
+                loadGoodsCargo: choice.LoadGoodsCargo,
+                loadGoodsContraband: choice.LoadGoodsContraband);
 
             foreach (var effect in effects)
             {
@@ -2116,11 +2122,6 @@ namespace Firefly.Core.Actions
                             discard = player.Warrants;
                         player.Warrants -= discard;
                         break;
-                    case MisbehaveLocalEffectType.LoadGoods:
-                        if (!TryApplyLoadGoods(player, effect.Count, choice, out var goodsLoaded, out error))
-                            return false;
-                        loaded += goodsLoaded;
-                        break;
                     case MisbehaveLocalEffectType.MayDiscardWarrantsOrWanted:
                         if (!TryApplyMayDiscardWarrantsOrWanted(player, effect.Count, choice, out error))
                             return false;
@@ -2142,9 +2143,6 @@ namespace Firefly.Core.Actions
                     case MisbehaveLocalEffectType.MayDiscardWarrants:
                         if (!TryApplyMayDiscardWarrants(player, effect.Count, choice, out error))
                             return false;
-                        break;
-                    case MisbehaveLocalEffectType.ClearDisgruntledMoral:
-                        player.Roster.ClearDisgruntledMoral();
                         break;
                     case MisbehaveLocalEffectType.SeizeGear:
                         ApplySeizeGear(game, player, effect);
@@ -2211,13 +2209,6 @@ namespace Firefly.Core.Actions
                                 choice.BuyContraband, ref cashDelta, out var boughtContra, out error))
                             return false;
                         loaded += boughtContra;
-                        break;
-                    case MisbehaveLocalEffectType.LoadParts:
-                        var partsN = effect.Count > 0 ? effect.Count : 1;
-                        if (!HoldSpace.TryExplain(player, out error, addParts: partsN))
-                            return false;
-                        player.Parts += partsN;
-                        loaded += partsN;
                         break;
                     case MisbehaveLocalEffectType.ReturnCrewThenRollVsRemaining:
                         if (!TryApplyReturnCrewThenRoll(
@@ -2855,8 +2846,8 @@ namespace Firefly.Core.Actions
         }
 
         /// <summary>
-        /// Structured / choice-backed Take N Goods. Blue Sun: Cargo, Contraband, Fuel, Parts;
-        /// mix allowed via <see cref="MisbehaveChoice"/> Goods fields.
+        /// Prose / choice-backed Take N Goods. Structured <see cref="CardEffectType.LoadGoods"/>
+        /// goes through <see cref="CardEffectApplicator"/>; this helper remains for prose bands.
         /// </summary>
         private static bool TryApplyLoadGoods(
             PlayerState player,
@@ -2927,7 +2918,7 @@ namespace Firefly.Core.Actions
             {
                 foreach (var effect in effects)
                 {
-                    if (effect.Is(MisbehaveLocalEffectType.LoadGoods))
+                    if (effect.Is(CardEffectType.LoadGoods))
                         return effect.Count > 0 ? effect.Count : 1;
                 }
                 return 0;
