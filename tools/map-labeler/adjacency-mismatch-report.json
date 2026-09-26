@@ -5,10 +5,10 @@
     "snapTol": 3.0,
     "labeledSectors": 155,
     "sectorCount": 155,
-    "geoEdgeCount": 362,
+    "geoEdgeCount": 363,
     "jsonEdgeCount": 397,
     "missingEdgeCount": 15,
-    "extraEdgeCount": 50,
+    "extraEdgeCount": 49,
     "unlabeledCount": 0,
     "unknownLabelCount": 0,
     "sectorsWithDegreeMismatch": 61
@@ -321,14 +321,6 @@
       "bPlanet": null,
       "aZone": "Georgia",
       "bZone": "Rim Space"
-    },
-    {
-      "a": "border-himinbjorg-r1-01",
-      "b": "border-himinbjorg-r1-02",
-      "aPlanet": "Aesir",
-      "bPlanet": "Brisingamen",
-      "aZone": "Himinbjorg",
-      "bZone": "Himinbjorg"
     },
     {
       "a": "border-red-sun-r2-01",
@@ -848,15 +840,15 @@
       ]
     },
     {
-      "id": "border-himinbjorg-r1-02",
-      "planet": "Brisingamen",
+      "id": "border-himinbjorg-r1-01",
+      "planet": "Aesir",
       "zone": "Himinbjorg",
-      "geoDegree": 3,
-      "jsonDegree": 4,
-      "missingNeighbors": [],
-      "extraNeighbors": [
-        "border-himinbjorg-r1-01"
-      ]
+      "geoDegree": 7,
+      "jsonDegree": 6,
+      "missingNeighbors": [
+        "border-space-r2-08"
+      ],
+      "extraNeighbors": []
     },
     {
       "id": "border-red-sun-r2-01",
@@ -1257,7 +1249,7 @@
     "Georgia": 16,
     "Border Space": 7,
     "Rim Space": 12,
-    "Himinbjorg": 2,
+    "Himinbjorg": 1,
     "Special": 2,
     "Penglai": 9,
     "Kalidasa": 11,

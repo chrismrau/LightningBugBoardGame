@@ -5,10 +5,10 @@ Geometry from `Data/Map/SectorLayout.json` vs edges in `Data/Map/Adjacency.json`
 ## Summary
 
 - Labeled sectors: **155** / 155
-- Geometry edges: **362**
+- Geometry edges: **363**
 - Adjacency.json edges: **397**
 - Missing in Adjacency.json (geometry has, JSON lacks): **15**
-- Extra in Adjacency.json (JSON has, geometry lacks): **50**
+- Extra in Adjacency.json (JSON has, geometry lacks): **49**
 - Sectors with degree mismatch: **61**
 
 Interpretation:
@@ -63,7 +63,6 @@ Interpretation:
 | `border-georgia-r3-06` (Three Hills) | `border-space-r2-24` (border-space-r2-24) | Georgia / Border Space |
 | `border-georgia-r3-07` (Kerry) | `rim-space-r1-26` (rim-space-r1-26) | Georgia / Rim Space |
 | `border-georgia-r3-07` (Kerry) | `rim-space-r1-27` (rim-space-r1-27) | Georgia / Rim Space |
-| `border-himinbjorg-r1-01` (Aesir) | `border-himinbjorg-r1-02` (Brisingamen) | Himinbjorg / Himinbjorg |
 | `border-red-sun-r2-01` (border-red-sun-r2-01) | `border-red-sun-r2-02` (Harvest) | Red Sun / Red Sun |
 | `border-red-sun-r2-01` (border-red-sun-r2-01) | `border-red-sun-r2-04` (border-red-sun-r2-04) | Red Sun / Red Sun |
 | `border-red-sun-r2-02` (Harvest) | `border-red-sun-r2-03` (St. Albans) | Red Sun / Red Sun |
@@ -148,8 +147,8 @@ Interpretation:
 - **Three Hills** `border-georgia-r3-06` (Georgia): geo=3 json=6
   - missing neighbors: `rim-space-r1-27`
   - extra neighbors: `border-georgia-r2-03`, `border-georgia-r2-04`, `border-georgia-r3-05`, `border-space-r2-24`
-- **Brisingamen** `border-himinbjorg-r1-02` (Himinbjorg): geo=3 json=4
-  - extra neighbors: `border-himinbjorg-r1-01`
+- **Aesir** `border-himinbjorg-r1-01` (Himinbjorg): geo=7 json=6
+  - missing neighbors: `border-space-r2-08`
 - **border-red-sun-r2-01** `border-red-sun-r2-01` (Red Sun): geo=5 json=7
   - extra neighbors: `border-red-sun-r2-02`, `border-red-sun-r2-04`
 - **Harvest** `border-red-sun-r2-02` (Red Sun): geo=4 json=6
