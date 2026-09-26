@@ -206,6 +206,16 @@ namespace Firefly.Core.Cards
                 }
                 if (!TryParseLocalEffectType(dto.Type, out var local))
                     throw new InvalidDataException($"Unknown Misbehave effect.type '{dto.Type}'.");
+                if (local == MisbehaveLocalEffectType.SeizeGear)
+                {
+                    if (dto.Tags == null || dto.Tags.Count == 0)
+                        throw new InvalidDataException("seizeGear requires non-empty tags[].");
+                    effects.Add(MisbehaveEffect.SeizeGear(
+                        dto.Tags,
+                        dto.DisgruntleCarriers == true,
+                        dto.DisgruntleWantedIfAny == true));
+                    continue;
+                }
                 effects.Add(MisbehaveEffect.Of(local, count));
             }
             return effects;
@@ -239,6 +249,12 @@ namespace Firefly.Core.Cards
                 || key.Equals("disgruntleCrew", StringComparison.OrdinalIgnoreCase))
             {
                 type = MisbehaveLocalEffectType.DisgruntleAllCrew;
+                return true;
+            }
+            if (key.Equals("loseRepIfAble", StringComparison.OrdinalIgnoreCase)
+                || key.Equals("loseSolidIfAble", StringComparison.OrdinalIgnoreCase))
+            {
+                type = MisbehaveLocalEffectType.LoseSolidIfAble;
                 return true;
             }
             type = default;
@@ -316,6 +332,9 @@ namespace Firefly.Core.Cards
             public string Type { get; set; } = "";
             public int? Count { get; set; }
             public int? Amount { get; set; }
+            public List<string>? Tags { get; set; }
+            public bool? DisgruntleCarriers { get; set; }
+            public bool? DisgruntleWantedIfAny { get; set; }
         }
     }
 }

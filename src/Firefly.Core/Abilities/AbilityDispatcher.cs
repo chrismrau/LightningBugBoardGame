@@ -940,6 +940,9 @@ namespace Firefly.Core.Abilities
             var total = 0;
             foreach (var member in player.Roster.Members)
             {
+                // Director's Cut C&P p.49: Returned to Ship crew (and abilities) unused.
+                if (JobWorkCrew.IsUnavailable(player, member))
+                    continue;
                 if (job != null && LawmanRules.StaysOnboardForJob(member, job))
                     continue;
                 foreach (var ability in AllFromCrew(member.Card))
@@ -962,11 +965,16 @@ namespace Firefly.Core.Abilities
                 if (!game.Gear.TryGet(gearId, out var gear))
                     continue;
                 var carrierId = GearCarriage.CarrierOf(player, gearId);
-                if (carrierId != null && job != null)
+                if (carrierId != null)
                 {
-                    var carrier = player.Roster.Find(carrierId);
-                    if (carrier != null && LawmanRules.StaysOnboardForJob(carrier, job))
+                    if (JobWorkCrew.IsReturnedToShip(player, carrierId))
                         continue;
+                    if (job != null)
+                    {
+                        var carrier = player.Roster.Find(carrierId);
+                        if (carrier != null && LawmanRules.StaysOnboardForJob(carrier, job))
+                            continue;
+                    }
                 }
 
                 total += skill switch

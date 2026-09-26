@@ -993,6 +993,7 @@ namespace Firefly.Core.Actions
             }
 
             // Validate Solid-loss discard hooks before mutating crew / warrants.
+            // LoseSolidIfAble skips when not Solid (printed "if able").
             if (WouldLoseSolid(details)
                 || WouldLoseSolid(effectBand)
                 || (useStructured && HasLocalEffect(structuredEffects, MisbehaveLocalEffectType.LoseSolid)))
@@ -1005,6 +1006,15 @@ namespace Firefly.Core.Actions
                 }
                 if (!ContactSolidBenefits.CanDiscardDownAfterLosing(
                     game, player, lostId, choice.SolidRep, out error))
+                    return false;
+            }
+            else if (useStructured
+                && HasLocalEffect(structuredEffects, MisbehaveLocalEffectType.LoseSolidIfAble))
+            {
+                var lostId = ResolveLoseSolidId(player, choice.LoseSolidId);
+                if (lostId != null
+                    && !ContactSolidBenefits.CanDiscardDownAfterLosing(
+                        game, player, lostId, choice.SolidRep, out error))
                     return false;
             }
 
@@ -1631,6 +1641,35 @@ namespace Firefly.Core.Actions
                     case MisbehaveLocalEffectType.ClearDisgruntledMoral:
                         player.Roster.ClearDisgruntledMoral();
                         break;
+                    case MisbehaveLocalEffectType.SeizeGear:
+                        ApplySeizeGear(game, player, effect);
+                        break;
+                    case MisbehaveLocalEffectType.WantedCrewRoll:
+                        if (!TryApplyWantedCrewRoll(
+                                game, player, rng, choice, out var anySeized, out error))
+                            return false;
+                        if (anySeized)
+                        {
+                            player.Warrants++;
+                            warrants++;
+                        }
+                        else
+                            outcome = MisbehaveOutcome.Proceed;
+                        break;
+                    case MisbehaveLocalEffectType.DisgruntleWanted:
+                        player.Roster.DisgruntleWhere(m => m.Wanted);
+                        break;
+                    case MisbehaveLocalEffectType.ReturnWantedToShip:
+                        ReturnWantedCrewToShip(game, player);
+                        break;
+                    case MisbehaveLocalEffectType.DisgruntleNonDisgruntled:
+                        player.Roster.DisgruntleWhere(m => !m.Disgruntled);
+                        break;
+                    case MisbehaveLocalEffectType.ReturnHighestFightToShip:
+                        ReturnHighestFightToShip(game, player);
+                        break;
+                    case MisbehaveLocalEffectType.LoseSolidIfAble:
+                        break;
                     case MisbehaveLocalEffectType.ReplaceCard:
                         break;
                     case MisbehaveLocalEffectType.NextFightKosherized:
@@ -1640,14 +1679,36 @@ namespace Firefly.Core.Actions
                 }
             }
 
-            if (HasLocalEffect(effects, MisbehaveLocalEffectType.LoseSolid))
+            if (HasLocalEffect(effects, MisbehaveLocalEffectType.LoseSolid)
+                || HasLocalEffect(effects, MisbehaveLocalEffectType.LoseSolidIfAble))
             {
-                var solidChoice = choice.SolidRep ?? new SolidRepChoice();
-                if (solidChoice.Kill == null && choice.Kill != null)
-                    solidChoice.Kill = choice.Kill;
-                if (!ContactSolidBenefits.TryLoseSolid(game, player, choice.LoseSolidId, solidChoice, out error))
-                    return false;
+                var requireSolid = HasLocalEffect(effects, MisbehaveLocalEffectType.LoseSolid);
+                var solidId = ResolveLoseSolidId(player, choice.LoseSolidId);
+                if (solidId == null)
+                {
+                    if (requireSolid)
+                    {
+                        error = "Not Solid with a Contact to lose.";
+                        return false;
+                    }
+                }
+                else
+                {
+                    var solidChoice = choice.SolidRep ?? new SolidRepChoice();
+                    if (solidChoice.Kill == null && choice.Kill != null)
+                        solidChoice.Kill = choice.Kill;
+                    if (!ContactSolidBenefits.TryLoseSolid(
+                            game, player, choice.LoseSolidId, solidChoice, out error))
+                        return false;
+                }
             }
+
+            // Director's Cut C&P p.49 No one left: all Crew Killed or Returned to Ship → Botched.
+            // Only when someone was Working and none remain (do not Botch empty-roster scripted tests).
+            if (game.PendingMisbehave != null
+                && JobWorkCrew.AvailableCount(player) == 0
+                && (JobWorkCrew.HasAnyoneReturnedToShip(player) || killed > 0))
+                outcome = MisbehaveOutcome.Botched;
 
             return true;
         }
@@ -1719,7 +1780,22 @@ namespace Firefly.Core.Actions
             }
 
             if (player.Roster.HasName(tag))
-                return true;
+            {
+                // Returned-to-Ship crew do not satisfy name tags while Working.
+                var named = false;
+                foreach (var member in player.Roster.Members)
+                {
+                    if (!NamesMatch(member.Name, tag) && !NamesMatch(member.Id, tag))
+                        continue;
+                    if (JobWorkCrew.IsUnavailable(player, member))
+                        continue;
+                    named = true;
+                    break;
+                }
+                if (named)
+                    return true;
+                // Fall through — profession/keyword/gear may still match.
+            }
             if (LawmanRules.HasProfessionForJob(player, job, tag))
                 return true;
             if (LawmanRules.HasKeywordForJob(player, job, tag))
@@ -1732,6 +1808,7 @@ namespace Firefly.Core.Actions
             {
                 // FAQ 4.1 p.2 / GF9 p.14: Onboard Ship Gear may not be used — only carried Gear.
                 // PBH: Lawmen stay onboard on Illegal Jobs — their carried gear is unused.
+                // Director's Cut C&P p.49: Returned to Ship crew's Gear unused.
                 if (job != null && !job.Legal)
                 {
                     foreach (var gearId in player.Gear)
@@ -1741,6 +1818,8 @@ namespace Firefly.Core.Actions
                         var carrierId = GearCarriage.CarrierOf(player, gearId);
                         if (carrierId != null)
                         {
+                            if (JobWorkCrew.IsReturnedToShip(player, carrierId))
+                                continue;
                             var carrier = player.Roster.Find(carrierId);
                             if (carrier != null && LawmanRules.StaysOnboardForJob(carrier, job))
                                 continue;
@@ -1756,7 +1835,26 @@ namespace Firefly.Core.Actions
                     }
                 }
                 else if (GearCarriage.HasUsableGearTag(game, player, tag))
-                    return true;
+                {
+                    // Still exclude Returned-to-Ship carriers.
+                    foreach (var gearId in player.Gear)
+                    {
+                        if (!GearCarriage.IsCarried(player, gearId))
+                            continue;
+                        var carrierId = GearCarriage.CarrierOf(player, gearId);
+                        if (carrierId != null && JobWorkCrew.IsReturnedToShip(player, carrierId))
+                            continue;
+                        if (!game.Gear.TryGet(gearId, out var gear))
+                            continue;
+                        if (NamesMatch(gear.Id, tag) || NamesMatch(gear.Name, tag))
+                            return true;
+                        foreach (var keyword in gear.Keywords)
+                        {
+                            if (NamesMatch(keyword, tag))
+                                return true;
+                        }
+                    }
+                }
             }
 
             foreach (var upgradeId in player.ShipUpgrades)
@@ -2380,6 +2478,167 @@ namespace Firefly.Core.Actions
             }
             if (player.Roster.Count > 0)
                 player.Roster.MarkWanted(player.Roster.Members[0].Id);
+        }
+
+        /// <summary>
+        /// Director's Cut C&amp;P p.49 Equipment Seizures: matching carried Gear is removed from
+        /// the game and may not be repurchased.
+        /// </summary>
+        private static int ApplySeizeGear(GameState game, PlayerState player, MisbehaveEffect effect)
+        {
+            if (game.Gear == null || effect.Tags.Count == 0)
+                return 0;
+
+            var toSeize = new List<(string GearId, string? CarrierId)>();
+            foreach (var gearId in player.Gear)
+            {
+                if (!GearCarriage.IsCarried(player, gearId))
+                    continue;
+                if (!game.Gear.TryGet(gearId, out var gear))
+                    continue;
+                if (!GearMatchesAnyTag(gear, effect.Tags))
+                    continue;
+                toSeize.Add((gearId, GearCarriage.CarrierOf(player, gearId)));
+            }
+
+            var carrierIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var (_, carrierId) in toSeize)
+            {
+                if (!string.IsNullOrWhiteSpace(carrierId))
+                    carrierIds.Add(carrierId!);
+            }
+
+            foreach (var (gearId, _) in toSeize)
+            {
+                if (GearCarriage.TryDiscardGear(player, gearId, out _))
+                    game.RemovedFromPlay.Add(gearId);
+            }
+
+            if (toSeize.Count > 0)
+                GearCarriage.RefreshSkillBonuses(game, player);
+
+            if (effect.DisgruntleCarriers)
+            {
+                foreach (var carrierId in carrierIds)
+                {
+                    var member = player.Roster.Find(carrierId);
+                    if (member != null && !member.Disgruntled)
+                        member.Disgruntled = true;
+                }
+            }
+
+            if (effect.DisgruntleWantedIfAny && toSeize.Count > 0)
+                player.Roster.DisgruntleWhere(m => m.Wanted);
+
+            return toSeize.Count;
+        }
+
+        private static bool GearMatchesAnyTag(GearEntry gear, IReadOnlyList<string> tags)
+        {
+            foreach (var tag in tags)
+            {
+                if (string.IsNullOrWhiteSpace(tag))
+                    continue;
+                if (NamesMatch(gear.Id, tag) || NamesMatch(gear.Name, tag))
+                    return true;
+                foreach (var keyword in gear.Keywords)
+                {
+                    if (NamesMatch(keyword, tag))
+                        return true;
+                }
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Alliance Wanted Crew Roll (same capture table as Cruiser Contact / Background Checks).
+        /// Seized crew are removed from play. Meadows redirect deferred (thin PendingChoice).
+        /// </summary>
+        private static bool TryApplyWantedCrewRoll(
+            GameState game,
+            PlayerState player,
+            IRng rng,
+            MisbehaveChoice choice,
+            out bool anySeized,
+            out string? error)
+        {
+            anySeized = false;
+            error = null;
+            _ = choice;
+            var warrantsAtRoll = player.Warrants;
+            var wanted = player.Roster.WantedMembers();
+            for (var i = 0; i < wanted.Count; i++)
+            {
+                var member = wanted[i];
+                if (JobWorkCrew.IsUnavailable(player, member))
+                    continue;
+                var die = Dice.D6(rng);
+                if (!ActiveAlertRules.WantedCrewCaptured(game, die, warrantsAtRoll))
+                    continue;
+
+                if (member.IsLeader)
+                {
+                    // Leaders are REALLY Lucky: Disgruntle instead of remove (FAQ 4.1 p.3).
+                    if (!member.Disgruntled)
+                        member.Disgruntled = true;
+                    anySeized = true;
+                    continue;
+                }
+
+                player.Roster.Remove(member.Id);
+                game.RemovedFromPlay.Add(member.Id);
+                anySeized = true;
+            }
+
+            return true;
+        }
+
+        private static void ReturnWantedCrewToShip(GameState game, PlayerState player)
+        {
+            var pending = game.PendingMisbehave;
+            if (pending == null)
+                return;
+            foreach (var member in player.Roster.WantedMembers())
+            {
+                if (JobWorkCrew.IsUnavailable(player, member))
+                    continue;
+                JobWorkCrew.ReturnToShip(player, pending.JobId, member.Id);
+            }
+        }
+
+        private static void ReturnHighestFightToShip(GameState game, PlayerState player)
+        {
+            var pending = game.PendingMisbehave;
+            if (pending == null)
+                return;
+
+            CrewMember? best = null;
+            var bestFight = int.MinValue;
+            foreach (var member in player.Roster.Members)
+            {
+                if (JobWorkCrew.IsUnavailable(player, member))
+                    continue;
+                var fight = member.Card.Fight;
+                if (game.Gear != null)
+                {
+                    foreach (var gearId in GearCarriage.CarriedBy(player, member.Id))
+                    {
+                        if (game.Gear.TryGet(gearId, out var gear))
+                            fight += gear.Fight;
+                    }
+                }
+                if (best == null || fight > bestFight)
+                {
+                    best = member;
+                    bestFight = fight;
+                }
+            }
+
+            if (best == null)
+                return;
+            JobWorkCrew.ReturnToShip(player, pending.JobId, best.Id);
+            if (!best.Disgruntled)
+                best.Disgruntled = true;
         }
 
         private static void ApplyDisgruntle(PlayerState player, string text)
