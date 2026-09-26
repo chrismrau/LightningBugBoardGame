@@ -1605,6 +1605,17 @@ namespace Firefly.Core.Actions
                         if (!TryApplyMayDiscardWarrantsOrWanted(player, effect.Count, choice, out error))
                             return false;
                         break;
+                    case MisbehaveLocalEffectType.DiscardCargo:
+                        var cargoN = effect.Count > 0 ? effect.Count : 1;
+                        if (player.Cargo < cargoN)
+                        {
+                            error = cargoN == 1
+                                ? "Need 1 Cargo to discard."
+                                : $"Need {cargoN} Cargo to discard.";
+                            return false;
+                        }
+                        player.Cargo -= cargoN;
+                        break;
                     case MisbehaveLocalEffectType.ReplaceCard:
                         break;
                     case MisbehaveLocalEffectType.NextFightKosherized:
@@ -1834,9 +1845,15 @@ namespace Firefly.Core.Actions
             MisbehaveOption option,
             string details)
         {
-            if (option.SkillCheck != null && option.SkillCheck.Bonuses.Count > 0)
+            if (option.SkillCheck != null
+                && (option.SkillCheck.Bonuses.Count > 0 || option.SkillCheck.TargetModifiers.Count > 0))
             {
                 var bonus = 0;
+                foreach (var mod in option.SkillCheck.TargetModifiers)
+                {
+                    if (mod.Type == MisbehaveTargetModifierType.MinusPerWarrant && mod.Amount != 0)
+                        bonus += mod.Amount * player.Warrants;
+                }
                 foreach (var entry in option.SkillCheck.Bonuses)
                 {
                     if (entry.Amount != 0 && HasTag(game, player, entry.Tag))
@@ -1844,7 +1861,7 @@ namespace Firefly.Core.Actions
                 }
                 return bonus;
             }
-            return BonusFromGear(game, player, details);
+            return BonusFromGear(game, player, details) + BonusFromWarrantTargetMod(player, details);
         }
 
         private static int BonusFromGear(GameState game, PlayerState player, string details)
@@ -1856,6 +1873,21 @@ namespace Firefly.Core.Actions
                     bonus += int.Parse(match.Groups[1].Value);
             }
             return bonus;
+        }
+
+        /// <summary>
+        /// Prose fallback for printed "Negotiate 8 - 1 for each of your Warrants":
+        /// add (amount × warrants) to the total so absolute bands (8+) stay correct.
+        /// </summary>
+        private static int BonusFromWarrantTargetMod(PlayerState player, string details)
+        {
+            var match = Regex.Match(
+                details ?? "",
+                @"-\s*(\d+)\s+for each of your Warrants",
+                RegexOptions.IgnoreCase);
+            if (!match.Success || player.Warrants <= 0)
+                return 0;
+            return int.Parse(match.Groups[1].Value) * player.Warrants;
         }
 
         private static int PayAmount(PlayerState player, string details, bool payCuts)

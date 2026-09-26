@@ -100,7 +100,12 @@ namespace Firefly.Core.Cards
                 throw new InvalidDataException($"Unknown Misbehave skillCheck.skill '{dto.Skill}'.");
             var bribes = dto.Bribes == true && skill == Skill.Talk;
             return new MisbehaveSkillCheckSpec(
-                skill, dto.Target, dto.Kosherized == true, bribes, ParseBonuses(dto.Bonuses));
+                skill,
+                dto.Target,
+                dto.Kosherized == true,
+                bribes,
+                ParseBonuses(dto.Bonuses),
+                ParseTargetModifiers(dto.TargetModifiers));
         }
 
         private static List<MisbehaveSkillBonus>? ParseBonuses(List<SkillBonusDto>? dtos)
@@ -115,6 +120,31 @@ namespace Firefly.Core.Cards
                 bonuses.Add(new MisbehaveSkillBonus(dto.Amount, dto.Tag.Trim()));
             }
             return bonuses;
+        }
+
+        private static List<MisbehaveTargetModifier>? ParseTargetModifiers(List<TargetModifierDto>? dtos)
+        {
+            if (dtos == null || dtos.Count == 0)
+                return null;
+            var mods = new List<MisbehaveTargetModifier>(dtos.Count);
+            foreach (var dto in dtos)
+            {
+                if (string.IsNullOrWhiteSpace(dto.Type))
+                    throw new InvalidDataException("Misbehave skillCheck.targetModifiers[].type is required.");
+                var key = CardEffectParsing.Normalize(dto.Type);
+                MisbehaveTargetModifierType type;
+                if (key.Equals("minusPerWarrant", StringComparison.OrdinalIgnoreCase))
+                    type = MisbehaveTargetModifierType.MinusPerWarrant;
+                else
+                    throw new InvalidDataException(
+                        $"Unknown Misbehave skillCheck.targetModifiers type '{dto.Type}'.");
+                var amount = dto.Amount ?? 1;
+                if (amount < 0)
+                    throw new InvalidDataException(
+                        "Misbehave skillCheck.targetModifiers[].amount must be >= 0.");
+                mods.Add(new MisbehaveTargetModifier(type, amount));
+            }
+            return mods;
         }
 
         private static List<MisbehaveBand>? ParseBands(List<BandDto>? dtos)
@@ -261,11 +291,17 @@ namespace Firefly.Core.Cards
             public bool? Kosherized { get; set; }
             public bool? Bribes { get; set; }
             public List<SkillBonusDto>? Bonuses { get; set; }
+            public List<TargetModifierDto>? TargetModifiers { get; set; }
         }
         private sealed class SkillBonusDto
         {
             public int Amount { get; set; }
             public string Tag { get; set; } = "";
+        }
+        private sealed class TargetModifierDto
+        {
+            public string Type { get; set; } = "";
+            public int? Amount { get; set; }
         }
         private sealed class BandDto
         {

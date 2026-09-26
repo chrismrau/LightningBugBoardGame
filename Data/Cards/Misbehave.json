@@ -1,6 +1,6 @@
 {
   "meta": {
-    "description": "Firefly: The Game – Misbehave cards",
+    "description": "Firefly: The Game \u2013 Misbehave cards",
     "count": 80,
     "schemaVersion": "1.0"
   },
@@ -105,7 +105,7 @@
           ]
         },
         {
-          "name": "Trouble You've Not Known…",
+          "name": "Trouble You've Not Known\u2026",
           "details": "Fight 10; 1-5 Kill all Crew; Warrant Issued. 6-9 Kill 2 Crew, Warrant Issued. 10+ Attempt Botched.",
           "skillCheck": {
             "skill": "fight",
@@ -273,11 +273,73 @@
       "options": [
         {
           "name": "Poise and Grace",
-          "details": "Negotiate 7 +3 Negotiate with FANCY DUDS; 1-6 Attempt Botched. 7+ Proceed."
+          "details": "Negotiate 7 +3 Negotiate with FANCY DUDS; 1-6 Attempt Botched. 7+ Proceed.",
+          "skillCheck": {
+            "skill": "negotiate",
+            "target": 7,
+            "bonuses": [
+              {
+                "amount": 3,
+                "tag": "FANCY DUDS"
+              }
+            ]
+          },
+          "bands": [
+            {
+              "range": "1-6",
+              "text": "1-6 Attempt Botched",
+              "effects": [
+                {
+                  "type": "botched"
+                }
+              ]
+            },
+            {
+              "min": 7,
+              "max": null,
+              "text": "7+ Proceed",
+              "effects": [
+                {
+                  "type": "proceed"
+                }
+              ]
+            }
+          ]
         },
         {
           "name": "Subtlety and Subterfuge",
-          "details": "Tech 7 +3 Tech with HACKING RIG; 1-6 Attempt Botched. 7+ Proceed."
+          "details": "Tech 7 +3 Tech with HACKING RIG; 1-6 Attempt Botched. 7+ Proceed.",
+          "skillCheck": {
+            "skill": "tech",
+            "target": 7,
+            "bonuses": [
+              {
+                "amount": 3,
+                "tag": "HACKING RIG"
+              }
+            ]
+          },
+          "bands": [
+            {
+              "range": "1-6",
+              "text": "1-6 Attempt Botched",
+              "effects": [
+                {
+                  "type": "botched"
+                }
+              ]
+            },
+            {
+              "min": 7,
+              "max": null,
+              "text": "7+ Proceed",
+              "effects": [
+                {
+                  "type": "proceed"
+                }
+              ]
+            }
+          ]
         }
       ],
       "isReshuffle": false,
@@ -299,11 +361,47 @@
       "options": [
         {
           "name": "Brought a Gun, Eh?",
-          "details": "Requires FIREARM. Proceed."
+          "details": "Requires FIREARM. Proceed.",
+          "effects": [
+            {
+              "type": "proceed"
+            }
+          ]
         },
         {
           "name": "Slice & Dice",
-          "details": "Fight 8 +3 Fight with any Knife. 1-7 Attempt Botched. 8+ Proceed."
+          "details": "Fight 8 +3 Fight with any Knife. 1-7 Attempt Botched. 8+ Proceed.",
+          "skillCheck": {
+            "skill": "fight",
+            "target": 8,
+            "bonuses": [
+              {
+                "amount": 3,
+                "tag": "Knife"
+              }
+            ]
+          },
+          "bands": [
+            {
+              "range": "1-7",
+              "text": "1-7 Attempt Botched",
+              "effects": [
+                {
+                  "type": "botched"
+                }
+              ]
+            },
+            {
+              "min": 8,
+              "max": null,
+              "text": "8+ Proceed",
+              "effects": [
+                {
+                  "type": "proceed"
+                }
+              ]
+            }
+          ]
         }
       ],
       "isReshuffle": false,
@@ -325,11 +423,51 @@
       "options": [
         {
           "name": "Feed Some Mouths",
-          "details": "Discard 1 Cargo. Remove Disgruntled from all Moral Crew. Proceed."
+          "details": "Discard 1 Cargo. Remove Disgruntled from all Moral Crew. Proceed.",
+          "effects": [
+            {
+              "type": "discardCargo",
+              "count": 1
+            },
+            {
+              "type": "clearDisgruntled"
+            },
+            {
+              "type": "proceed"
+            }
+          ]
         },
         {
           "name": "We Don't Have Time for This",
-          "details": "Fight 3; 1-2 Attempt Botched. 3+ Disgruntle all Moral Crew. Proceed."
+          "details": "Fight 3; 1-2 Attempt Botched. 3+ Disgruntle all Moral Crew. Proceed.",
+          "skillCheck": {
+            "skill": "fight",
+            "target": 3
+          },
+          "bands": [
+            {
+              "range": "1-2",
+              "text": "1-2 Attempt Botched",
+              "effects": [
+                {
+                  "type": "botched"
+                }
+              ]
+            },
+            {
+              "min": 3,
+              "max": null,
+              "text": "3+ Disgruntle all Moral Crew. Proceed",
+              "effects": [
+                {
+                  "type": "disgruntleMoral"
+                },
+                {
+                  "type": "proceed"
+                }
+              ]
+            }
+          ]
         }
       ],
       "isReshuffle": false,
@@ -377,11 +515,65 @@
       "options": [
         {
           "name": "Bar Fight!",
-          "details": "Fight 6 Kosherized Rules; 1-5 Disgruntle all Crew on Job. Attempt Botched. 6+ Proceed."
+          "details": "Fight 6 Kosherized Rules; 1-5 Disgruntle all Crew on Job. Attempt Botched. 6+ Proceed.",
+          "skillCheck": {
+            "skill": "fight",
+            "target": 6,
+            "kosherized": true
+          },
+          "bands": [
+            {
+              "range": "1-5",
+              "text": "1-5 Disgruntle all Crew on Job. Attempt Botched",
+              "effects": [
+                {
+                  "type": "disgruntleAllCrew"
+                },
+                {
+                  "type": "botched"
+                }
+              ]
+            },
+            {
+              "min": 6,
+              "max": null,
+              "text": "6+ Proceed",
+              "effects": [
+                {
+                  "type": "proceed"
+                }
+              ]
+            }
+          ]
         },
         {
-          "name": "We Will Blow a New Crater in This Little Moon…",
-          "details": "Negotiate 6; 1-5 Attempt Botched. 6+ Proceed."
+          "name": "We Will Blow a New Crater in This Little Moon\u2026",
+          "details": "Negotiate 6; 1-5 Attempt Botched. 6+ Proceed.",
+          "skillCheck": {
+            "skill": "negotiate",
+            "target": 6
+          },
+          "bands": [
+            {
+              "range": "1-5",
+              "text": "1-5 Attempt Botched",
+              "effects": [
+                {
+                  "type": "botched"
+                }
+              ]
+            },
+            {
+              "min": 6,
+              "max": null,
+              "text": "6+ Proceed",
+              "effects": [
+                {
+                  "type": "proceed"
+                }
+              ]
+            }
+          ]
         }
       ],
       "isReshuffle": false,
@@ -403,11 +595,65 @@
       "options": [
         {
           "name": "Bar Fight!",
-          "details": "Fight 6 Kosherized Rules; 1-5 Disgruntle all Crew on Job. Attempt Botched. 6+ Proceed."
+          "details": "Fight 6 Kosherized Rules; 1-5 Disgruntle all Crew on Job. Attempt Botched. 6+ Proceed.",
+          "skillCheck": {
+            "skill": "fight",
+            "target": 6,
+            "kosherized": true
+          },
+          "bands": [
+            {
+              "range": "1-5",
+              "text": "1-5 Disgruntle all Crew on Job. Attempt Botched",
+              "effects": [
+                {
+                  "type": "disgruntleAllCrew"
+                },
+                {
+                  "type": "botched"
+                }
+              ]
+            },
+            {
+              "min": 6,
+              "max": null,
+              "text": "6+ Proceed",
+              "effects": [
+                {
+                  "type": "proceed"
+                }
+              ]
+            }
+          ]
         },
         {
-          "name": "We Will Blow a New Crater in This Little Moon…",
-          "details": "Negotiate 6; 1-5 Attempt Botched. 6+ Proceed."
+          "name": "We Will Blow a New Crater in This Little Moon\u2026",
+          "details": "Negotiate 6; 1-5 Attempt Botched. 6+ Proceed.",
+          "skillCheck": {
+            "skill": "negotiate",
+            "target": 6
+          },
+          "bands": [
+            {
+              "range": "1-5",
+              "text": "1-5 Attempt Botched",
+              "effects": [
+                {
+                  "type": "botched"
+                }
+              ]
+            },
+            {
+              "min": 6,
+              "max": null,
+              "text": "6+ Proceed",
+              "effects": [
+                {
+                  "type": "proceed"
+                }
+              ]
+            }
+          ]
         }
       ],
       "isReshuffle": false,
@@ -428,7 +674,7 @@
       "ace": null,
       "options": [
         {
-          "name": "Getting Awfully Crowded in My Sky…",
+          "name": "Getting Awfully Crowded in My Sky\u2026",
           "details": "Fight 9; 1-8 Kill a Crew, Warrant Issued. 9+ Proceed."
         },
         {
@@ -580,7 +826,7 @@
       "ace": "Sniper Rifle",
       "options": [
         {
-          "name": "Take the Guards Out… Quiet Like",
+          "name": "Take the Guards Out\u2026 Quiet Like",
           "details": "Fight 6 Kosherized Rules; 1-5 Kill a Crew, Attempt Botched. 6+ Proceed.",
           "skillCheck": {
             "skill": "fight",
@@ -662,7 +908,7 @@
       "ace": "Sniper Rifle",
       "options": [
         {
-          "name": "Take the Guards Out… Quiet Like",
+          "name": "Take the Guards Out\u2026 Quiet Like",
           "details": "Fight 6 Kosherized Rules; 1-5 Kill a Crew, Attempt Botched. 6+ Proceed.",
           "skillCheck": {
             "skill": "fight",
@@ -805,11 +1051,51 @@
       "options": [
         {
           "name": "Savin' the Day",
-          "details": "Fight 7; 1-6 Kill a Crew, Warrant Issued. 7+ Remove Disgruntled from Moral Crew, Proceed."
+          "details": "Fight 7; 1-6 Kill a Crew, Warrant Issued. 7+ Remove Disgruntled from Moral Crew, Proceed.",
+          "skillCheck": {
+            "skill": "fight",
+            "target": 7
+          },
+          "bands": [
+            {
+              "range": "1-6",
+              "text": "1-6 Kill a Crew, Warrant Issued",
+              "effects": [
+                {
+                  "type": "killCrew",
+                  "count": 1
+                },
+                {
+                  "type": "warrantIssued"
+                }
+              ]
+            },
+            {
+              "min": 7,
+              "max": null,
+              "text": "7+ Remove Disgruntled from Moral Crew, Proceed",
+              "effects": [
+                {
+                  "type": "clearDisgruntled"
+                },
+                {
+                  "type": "proceed"
+                }
+              ]
+            }
+          ]
         },
         {
           "name": "Hump 'Em",
-          "details": "Disgruntle all Moral Crew. Proceed."
+          "details": "Disgruntle all Moral Crew. Proceed.",
+          "effects": [
+            {
+              "type": "disgruntleMoral"
+            },
+            {
+              "type": "proceed"
+            }
+          ]
         }
       ],
       "isReshuffle": false,
@@ -831,11 +1117,47 @@
       "options": [
         {
           "name": "Identification Please",
-          "details": "Negotiate 8 - 1 for each of your Warrants. 1-7 Warrant Issued. 8+ Proceed."
+          "details": "Negotiate 8 - 1 for each of your Warrants. 1-7 Warrant Issued. 8+ Proceed.",
+          "skillCheck": {
+            "skill": "negotiate",
+            "target": 8,
+            "targetModifiers": [
+              {
+                "type": "minusPerWarrant",
+                "amount": 1
+              }
+            ]
+          },
+          "bands": [
+            {
+              "range": "1-7",
+              "text": "1-7 Warrant Issued",
+              "effects": [
+                {
+                  "type": "warrantIssued"
+                }
+              ]
+            },
+            {
+              "min": 8,
+              "max": null,
+              "text": "8+ Proceed",
+              "effects": [
+                {
+                  "type": "proceed"
+                }
+              ]
+            }
+          ]
         },
         {
           "name": "Hightail It Outta There!",
-          "details": "Requires Transport. Attempt Botched."
+          "details": "Requires Transport. Attempt Botched.",
+          "effects": [
+            {
+              "type": "botched"
+            }
+          ]
         }
       ],
       "isReshuffle": false,
@@ -857,11 +1179,47 @@
       "options": [
         {
           "name": "Identification Please",
-          "details": "Negotiate 8 - 1 for each of your Warrants. 1-7 Warrant Issued. 8+ Proceed."
+          "details": "Negotiate 8 - 1 for each of your Warrants. 1-7 Warrant Issued. 8+ Proceed.",
+          "skillCheck": {
+            "skill": "negotiate",
+            "target": 8,
+            "targetModifiers": [
+              {
+                "type": "minusPerWarrant",
+                "amount": 1
+              }
+            ]
+          },
+          "bands": [
+            {
+              "range": "1-7",
+              "text": "1-7 Warrant Issued",
+              "effects": [
+                {
+                  "type": "warrantIssued"
+                }
+              ]
+            },
+            {
+              "min": 8,
+              "max": null,
+              "text": "8+ Proceed",
+              "effects": [
+                {
+                  "type": "proceed"
+                }
+              ]
+            }
+          ]
         },
         {
           "name": "Hightail It Outta There!",
-          "details": "Requires Transport. Attempt Botched."
+          "details": "Requires Transport. Attempt Botched.",
+          "effects": [
+            {
+              "type": "botched"
+            }
+          ]
         }
       ],
       "isReshuffle": false,
@@ -883,11 +1241,47 @@
       "options": [
         {
           "name": "Identification Please",
-          "details": "Negotiate 8 - 1 for each of your Warrants. 1-7 Warrant Issued. 8+ Proceed."
+          "details": "Negotiate 8 - 1 for each of your Warrants. 1-7 Warrant Issued. 8+ Proceed.",
+          "skillCheck": {
+            "skill": "negotiate",
+            "target": 8,
+            "targetModifiers": [
+              {
+                "type": "minusPerWarrant",
+                "amount": 1
+              }
+            ]
+          },
+          "bands": [
+            {
+              "range": "1-7",
+              "text": "1-7 Warrant Issued",
+              "effects": [
+                {
+                  "type": "warrantIssued"
+                }
+              ]
+            },
+            {
+              "min": 8,
+              "max": null,
+              "text": "8+ Proceed",
+              "effects": [
+                {
+                  "type": "proceed"
+                }
+              ]
+            }
+          ]
         },
         {
           "name": "Hightail It Outta There!",
-          "details": "Requires Transport. Attempt Botched."
+          "details": "Requires Transport. Attempt Botched.",
+          "effects": [
+            {
+              "type": "botched"
+            }
+          ]
         }
       ],
       "isReshuffle": false,
@@ -1019,7 +1413,7 @@
           ]
         },
         {
-          "name": "These Are Not the Crooks You're Looking For…",
+          "name": "These Are Not the Crooks You're Looking For\u2026",
           "details": "Tech 6; 1-5 Warrant Issued. 6+ Proceed.",
           "skillCheck": {
             "skill": "tech",
@@ -1067,11 +1461,45 @@
       "options": [
         {
           "name": "The Witch Must Burn!",
-          "details": "Negotiate 8; 1-7 Kill a Crew, Attempt Botched. 8+ Proceed."
+          "details": "Negotiate 8; 1-7 Kill a Crew, Attempt Botched. 8+ Proceed.",
+          "skillCheck": {
+            "skill": "negotiate",
+            "target": 8
+          },
+          "bands": [
+            {
+              "range": "1-7",
+              "text": "1-7 Kill a Crew, Attempt Botched",
+              "effects": [
+                {
+                  "type": "killCrew",
+                  "count": 1
+                },
+                {
+                  "type": "botched"
+                }
+              ]
+            },
+            {
+              "min": 8,
+              "max": null,
+              "text": "8+ Proceed",
+              "effects": [
+                {
+                  "type": "proceed"
+                }
+              ]
+            }
+          ]
         },
         {
           "name": "Note the Man with the Really Big Gun",
-          "details": "Requires at least 2 Fight from FIREARM Gear: Proceed."
+          "details": "Requires at least 2 Fight from FIREARM Gear: Proceed.",
+          "effects": [
+            {
+              "type": "proceed"
+            }
+          ]
         }
       ],
       "isReshuffle": false,
@@ -1093,11 +1521,64 @@
       "options": [
         {
           "name": "Speech! Speech! Speech!",
-          "details": "Negotiate 6; 1-5 Disgruntled all Crew. Attempt Botched. 6+ Proceed."
+          "details": "Negotiate 6; 1-5 Disgruntled all Crew. Attempt Botched. 6+ Proceed.",
+          "skillCheck": {
+            "skill": "negotiate",
+            "target": 6
+          },
+          "bands": [
+            {
+              "range": "1-5",
+              "text": "1-5 Disgruntled all Crew. Attempt Botched",
+              "effects": [
+                {
+                  "type": "disgruntleAllCrew"
+                },
+                {
+                  "type": "botched"
+                }
+              ]
+            },
+            {
+              "min": 6,
+              "max": null,
+              "text": "6+ Proceed",
+              "effects": [
+                {
+                  "type": "proceed"
+                }
+              ]
+            }
+          ]
         },
         {
           "name": "Diabolical Master of Disguise",
-          "details": "Tech 6; 1-5 Warrant Issued. 6+ Proceed."
+          "details": "Tech 6; 1-5 Warrant Issued. 6+ Proceed.",
+          "skillCheck": {
+            "skill": "tech",
+            "target": 6
+          },
+          "bands": [
+            {
+              "range": "1-5",
+              "text": "1-5 Warrant Issued",
+              "effects": [
+                {
+                  "type": "warrantIssued"
+                }
+              ]
+            },
+            {
+              "min": 6,
+              "max": null,
+              "text": "6+ Proceed",
+              "effects": [
+                {
+                  "type": "proceed"
+                }
+              ]
+            }
+          ]
         }
       ],
       "isReshuffle": false,
@@ -1309,7 +1790,7 @@
           ]
         },
         {
-          "name": "An' Hell Followed With Him…",
+          "name": "An' Hell Followed With Him\u2026",
           "details": "Fight 9; 1-4 Kill all Crew, Warrant Issued. 5-8 Kill 2 Crew, Warrant Issued. 9+ Kill 1 Crew, Proceed.",
           "skillCheck": {
             "skill": "fight",
@@ -1380,7 +1861,7 @@
           "details": "Tech 7; 1-6 Attempt Botched. 7+ Take 1500. Attempt Botched."
         },
         {
-          "name": "Stay on Target…",
+          "name": "Stay on Target\u2026",
           "details": "Proceed."
         }
       ],
@@ -1428,7 +1909,7 @@
       "ace": "Simon Tam",
       "options": [
         {
-          "name": "I Was Pompous…",
+          "name": "I Was Pompous\u2026",
           "details": "If you have FANCY DUDS, Proceed. Otherwise, Negotiate 6; 1-5 Attempt Botched. 6+ Proceed.",
           "proceedIfTag": "FANCY DUDS",
           "skillCheck": {
@@ -1458,7 +1939,7 @@
           ]
         },
         {
-          "name": "My Sister Was Crazy…",
+          "name": "My Sister Was Crazy\u2026",
           "details": "If you have Medic, Proceed. Otherwise, Tech 6; 1-5 Attempt Botched. 6+ Proceed.",
           "proceedIfTag": "Medic",
           "skillCheck": {
@@ -1685,11 +2166,47 @@
       "options": [
         {
           "name": "Work Some Hacking Magic",
-          "details": "Tech 9 +3 Tech with HACKING RIG; 1-8 Warrant Issued. 9+ Proceed."
+          "details": "Tech 9 +3 Tech with HACKING RIG; 1-8 Warrant Issued. 9+ Proceed.",
+          "skillCheck": {
+            "skill": "tech",
+            "target": 9,
+            "bonuses": [
+              {
+                "amount": 3,
+                "tag": "HACKING RIG"
+              }
+            ]
+          },
+          "bands": [
+            {
+              "range": "1-8",
+              "text": "1-8 Warrant Issued",
+              "effects": [
+                {
+                  "type": "warrantIssued"
+                }
+              ]
+            },
+            {
+              "min": 9,
+              "max": null,
+              "text": "9+ Proceed",
+              "effects": [
+                {
+                  "type": "proceed"
+                }
+              ]
+            }
+          ]
         },
         {
           "name": "Bao Xin Jiu Huo",
-          "details": "Requires EXPLOSIVES. Attempt Botched."
+          "details": "Requires EXPLOSIVES. Attempt Botched.",
+          "effects": [
+            {
+              "type": "botched"
+            }
+          ]
         }
       ],
       "isReshuffle": false,
@@ -1710,7 +2227,7 @@
       "ace": "Hacking Rig",
       "options": [
         {
-          "name": "See What You Can Do…",
+          "name": "See What You Can Do\u2026",
           "details": "Tech 7; 1-6 Attempt Botched. 7+ Proceed.",
           "skillCheck": {
             "skill": "tech",
@@ -1739,7 +2256,7 @@
           ]
         },
         {
-          "name": "Oh, Real Subtle Guys…",
+          "name": "Oh, Real Subtle Guys\u2026",
           "details": "Fight 9; 1-8 Kill a Crew, Warrant Issued. 9+ Proceed.",
           "skillCheck": {
             "skill": "fight",
@@ -1790,7 +2307,7 @@
       "ace": "Hacking Rig",
       "options": [
         {
-          "name": "See What You Can Do…",
+          "name": "See What You Can Do\u2026",
           "details": "Tech 7; 1-6 Attempt Botched. 7+ Proceed.",
           "skillCheck": {
             "skill": "tech",
@@ -1819,7 +2336,7 @@
           ]
         },
         {
-          "name": "Oh, Real Subtle Guys…",
+          "name": "Oh, Real Subtle Guys\u2026",
           "details": "Fight 9; 1-8 Kill a Crew, Warrant Issued. 9+ Proceed.",
           "skillCheck": {
             "skill": "fight",
@@ -2052,7 +2569,7 @@
           "details": "Lose Rep with 1 Contact, if able. Disgruntle any Crew who are not already Disgruntled. Attempt Botched."
         },
         {
-          "name": "青蛙操的流氓! We're Boned...",
+          "name": "\u9752\u86d9\u64cd\u7684\u6d41\u6c13! We're Boned...",
           "details": "Roll for all Wanted Crew. If any Crew are Seized, Warrant Issued. Otherwise, Proceed."
         }
       ],
@@ -2179,11 +2696,51 @@
       "options": [
         {
           "name": "Betrayal...For a Price",
-          "details": "Requires at least 1 Solid Rep: Take $1000. Disgruntle Moral Crew. Discard 1 Solid rep. Proceed."
+          "details": "Requires at least 1 Solid Rep: Take $1000. Disgruntle Moral Crew. Discard 1 Solid rep. Proceed.",
+          "effects": [
+            {
+              "type": "takeCash",
+              "amount": 1000
+            },
+            {
+              "type": "disgruntleMoral"
+            },
+            {
+              "type": "loseSolid"
+            },
+            {
+              "type": "proceed"
+            }
+          ]
         },
         {
           "name": "There's no Pleasin' some Folks",
-          "details": "Fight 9; 1-8 Attempt Botched. 9+ Proceed."
+          "details": "Fight 9; 1-8 Attempt Botched. 9+ Proceed.",
+          "skillCheck": {
+            "skill": "fight",
+            "target": 9
+          },
+          "bands": [
+            {
+              "range": "1-8",
+              "text": "1-8 Attempt Botched",
+              "effects": [
+                {
+                  "type": "botched"
+                }
+              ]
+            },
+            {
+              "min": 9,
+              "max": null,
+              "text": "9+ Proceed",
+              "effects": [
+                {
+                  "type": "proceed"
+                }
+              ]
+            }
+          ]
         }
       ],
       "isReshuffle": false,
@@ -2703,11 +3260,44 @@
       "options": [
         {
           "name": "Rumor Control",
-          "details": "Requires at least 1 Solid Rep: Negotiate 7; 1-6 Loose 1 Solid Rep. Attempt Botched. 7+ Proceed."
+          "details": "Requires at least 1 Solid Rep: Negotiate 7; 1-6 Loose 1 Solid Rep. Attempt Botched. 7+ Proceed.",
+          "skillCheck": {
+            "skill": "negotiate",
+            "target": 7
+          },
+          "bands": [
+            {
+              "range": "1-6",
+              "text": "1-6 Loose 1 Solid Rep. Attempt Botched",
+              "effects": [
+                {
+                  "type": "loseSolid"
+                },
+                {
+                  "type": "botched"
+                }
+              ]
+            },
+            {
+              "min": 7,
+              "max": null,
+              "text": "7+ Proceed",
+              "effects": [
+                {
+                  "type": "proceed"
+                }
+              ]
+            }
+          ]
         },
         {
           "name": "Oh, We're gonna be Rollin' in work after this One...",
-          "details": "Discard all Jobs in Hand. Attempt Botched."
+          "details": "Discard all Jobs in Hand. Attempt Botched.",
+          "effects": [
+            {
+              "type": "botched"
+            }
+          ]
         }
       ],
       "isReshuffle": false,
@@ -2755,11 +3345,44 @@
       "options": [
         {
           "name": "A bit of Civil Discourse",
-          "details": "Negotiate 12; 1-11 Crew Wanted. Attempt Botched 12+ Proceed"
+          "details": "Negotiate 12; 1-11 Crew Wanted. Attempt Botched 12+ Proceed",
+          "skillCheck": {
+            "skill": "negotiate",
+            "target": 12
+          },
+          "bands": [
+            {
+              "range": "1-11",
+              "text": "1-11 Crew Wanted. Attempt Botched",
+              "effects": [
+                {
+                  "type": "wanted"
+                },
+                {
+                  "type": "botched"
+                }
+              ]
+            },
+            {
+              "min": 12,
+              "max": null,
+              "text": "12+ Proceed",
+              "effects": [
+                {
+                  "type": "proceed"
+                }
+              ]
+            }
+          ]
         },
         {
           "name": "The Long way Around",
-          "details": "Draw Another Misbehave Card to replace this card. Discard this card."
+          "details": "Draw Another Misbehave Card to replace this card. Discard this card.",
+          "effects": [
+            {
+              "type": "replaceCard"
+            }
+          ]
         }
       ],
       "isReshuffle": false,
@@ -3179,11 +3802,44 @@
       "options": [
         {
           "name": "Callin' in a Favor",
-          "details": "Requires at least 1 Solid Rep: Negotiate 7; 1-6 Loose 1 Solid Rep. Attempt Botched. 7+ Proceed."
+          "details": "Requires at least 1 Solid Rep: Negotiate 7; 1-6 Loose 1 Solid Rep. Attempt Botched. 7+ Proceed.",
+          "skillCheck": {
+            "skill": "negotiate",
+            "target": 7
+          },
+          "bands": [
+            {
+              "range": "1-6",
+              "text": "1-6 Loose 1 Solid Rep. Attempt Botched",
+              "effects": [
+                {
+                  "type": "loseSolid"
+                },
+                {
+                  "type": "botched"
+                }
+              ]
+            },
+            {
+              "min": 7,
+              "max": null,
+              "text": "7+ Proceed",
+              "effects": [
+                {
+                  "type": "proceed"
+                }
+              ]
+            }
+          ]
         },
         {
           "name": "Scalped by the Scalpers",
-          "details": "Pay $2000 to Proceed OR Attempt Botched"
+          "details": "Pay $2000 to Proceed OR Attempt Botched",
+          "effects": [
+            {
+              "type": "proceed"
+            }
+          ]
         }
       ],
       "isReshuffle": false,
@@ -3205,11 +3861,68 @@
       "options": [
         {
           "name": "Patience's Wearing Thing",
-          "details": "Requires at least 1 Solid Rep: Negotiate 7; 1-6 Loose 1 Solid Rep. Attempt Botched. 7+ Proceed."
+          "details": "Requires at least 1 Solid Rep: Negotiate 7; 1-6 Loose 1 Solid Rep. Attempt Botched. 7+ Proceed.",
+          "skillCheck": {
+            "skill": "negotiate",
+            "target": 7
+          },
+          "bands": [
+            {
+              "range": "1-6",
+              "text": "1-6 Loose 1 Solid Rep. Attempt Botched",
+              "effects": [
+                {
+                  "type": "loseSolid"
+                },
+                {
+                  "type": "botched"
+                }
+              ]
+            },
+            {
+              "min": 7,
+              "max": null,
+              "text": "7+ Proceed",
+              "effects": [
+                {
+                  "type": "proceed"
+                }
+              ]
+            }
+          ]
         },
         {
           "name": "Exchanging Words and Bullets",
-          "details": "Fight 9; 1-8 Kill 1 Crew, Attempt Botched. 9+ Proceed"
+          "details": "Fight 9; 1-8 Kill 1 Crew, Attempt Botched. 9+ Proceed",
+          "skillCheck": {
+            "skill": "fight",
+            "target": 9
+          },
+          "bands": [
+            {
+              "range": "1-8",
+              "text": "1-8 Kill 1 Crew, Attempt Botched",
+              "effects": [
+                {
+                  "type": "killCrew",
+                  "count": 1
+                },
+                {
+                  "type": "botched"
+                }
+              ]
+            },
+            {
+              "min": 9,
+              "max": null,
+              "text": "9+ Proceed",
+              "effects": [
+                {
+                  "type": "proceed"
+                }
+              ]
+            }
+          ]
         }
       ],
       "isReshuffle": false,
@@ -3311,11 +4024,44 @@
       "options": [
         {
           "name": "See if this old Code still Works",
-          "details": "Tech 8; 1-7 Warrant Issued. 8+ Proceed"
+          "details": "Tech 8; 1-7 Warrant Issued. 8+ Proceed",
+          "skillCheck": {
+            "skill": "tech",
+            "target": 8
+          },
+          "bands": [
+            {
+              "range": "1-7",
+              "text": "1-7 Warrant Issued",
+              "effects": [
+                {
+                  "type": "warrantIssued"
+                }
+              ]
+            },
+            {
+              "min": 8,
+              "max": null,
+              "text": "8+ Proceed",
+              "effects": [
+                {
+                  "type": "proceed"
+                }
+              ]
+            }
+          ]
         },
         {
           "name": "Submit Authorization Form AL324, in Triplicate",
-          "details": "Pay $100. Disgruntle all Mercs & Soldiers. Attempt Botched"
+          "details": "Pay $100. Disgruntle all Mercs & Soldiers. Attempt Botched",
+          "effects": [
+            {
+              "type": "disgruntleMercs"
+            },
+            {
+              "type": "botched"
+            }
+          ]
         }
       ],
       "isReshuffle": false,
@@ -3363,11 +4109,47 @@
       "options": [
         {
           "name": "Bypass the Local Cortex Array",
-          "details": "Tech 12; +2 Tech with HACKING RIG; 1-11 Warrant Issued. 12+ Proceed"
+          "details": "Tech 12; +2 Tech with HACKING RIG; 1-11 Warrant Issued. 12+ Proceed",
+          "skillCheck": {
+            "skill": "tech",
+            "target": 12,
+            "bonuses": [
+              {
+                "amount": 2,
+                "tag": "HACKING RIG"
+              }
+            ]
+          },
+          "bands": [
+            {
+              "range": "1-11",
+              "text": "1-11 Warrant Issued",
+              "effects": [
+                {
+                  "type": "warrantIssued"
+                }
+              ]
+            },
+            {
+              "min": 12,
+              "max": null,
+              "text": "12+ Proceed",
+              "effects": [
+                {
+                  "type": "proceed"
+                }
+              ]
+            }
+          ]
         },
         {
           "name": "The Long Way Around",
-          "details": "Draw another Misbehave Card to replace this card. Discard this card."
+          "details": "Draw another Misbehave Card to replace this card. Discard this card.",
+          "effects": [
+            {
+              "type": "replaceCard"
+            }
+          ]
         }
       ],
       "isReshuffle": false,
@@ -3610,11 +4392,48 @@
       "options": [
         {
           "name": "Finagle the Doohickey; It's all Caddywhompus",
-          "details": "Tech 8; 1-7 Warrant Issued. 8+ you may discard a Warrant. Proceed"
+          "details": "Tech 8; 1-7 Warrant Issued. 8+ you may discard a Warrant. Proceed",
+          "skillCheck": {
+            "skill": "tech",
+            "target": 8
+          },
+          "bands": [
+            {
+              "range": "1-7",
+              "text": "1-7 Warrant Issued",
+              "effects": [
+                {
+                  "type": "warrantIssued"
+                }
+              ]
+            },
+            {
+              "min": 8,
+              "max": null,
+              "text": "8+ you may discard a Warrant. Proceed",
+              "effects": [
+                {
+                  "type": "discardWarrants",
+                  "count": 1
+                },
+                {
+                  "type": "proceed"
+                }
+              ]
+            }
+          ]
         },
         {
           "name": "Quit Pokin' at it. Yer Doin' more Harm than Good.",
-          "details": "Disgruntle all Crew with Tech Skill on their card (not Gear). Attempt Botched."
+          "details": "Disgruntle all Crew with Tech Skill on their card (not Gear). Attempt Botched.",
+          "effects": [
+            {
+              "type": "disgruntleTech"
+            },
+            {
+              "type": "botched"
+            }
+          ]
         }
       ],
       "isReshuffle": false,
