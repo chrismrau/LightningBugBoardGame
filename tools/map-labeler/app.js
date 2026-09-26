@@ -628,6 +628,7 @@
 
   function populateZones() {
     const zones = [...new Set(state.sectors.map((s) => s.zone).filter(Boolean))].sort();
+    els.zoneFilter.innerHTML = '<option value="">Any zone</option>';
     for (const z of zones) {
       const opt = document.createElement("option");
       opt.value = z;
