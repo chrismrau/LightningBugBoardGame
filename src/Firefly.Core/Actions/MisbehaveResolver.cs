@@ -88,6 +88,12 @@ namespace Firefly.Core.Actions
         /// Null or empty = return none (printed "may").
         /// </summary>
         public IList<string>? ReturnToShipCrewIds { get; set; }
+        /// <summary>
+        /// Split Crew team assignment: Team A (Fork) or non-Leader team (Tails).
+        /// Remaining available Crew form the other team. Null suspends
+        /// <see cref="PendingChoiceKinds.MisbehaveSplitCrew"/>.
+        /// </summary>
+        public IList<string>? SplitTeam0CrewIds { get; set; }
     }
 
     public sealed class MisbehaveResolution
@@ -136,7 +142,7 @@ namespace Firefly.Core.Actions
     /// Prefer structured option.SkillCheck / Bands / Effects when present; else prose/regex
     /// via SkillCheck.TryParse and SkillCheck.BandText (shared banding — no local BandPattern).
     /// </summary>
-    public sealed class MisbehaveResolver
+    public sealed partial class MisbehaveResolver
     {
         private static readonly Regex RequiresPattern = new Regex(
             @"Requires\s*:?\s*([^.;]+)",
@@ -163,11 +169,20 @@ namespace Firefly.Core.Actions
         /// <summary>True while Cargo/Contraband discard resume re-enters <see cref="TryResolve"/>.</summary>
         private bool _resumingDiscardCargoOrContraband;
         private bool _resumingWantedRollChoice;
+        /// <summary>True while Split Crew team-assignment resume re-enters <see cref="TryResolve"/>.</summary>
+        private bool _resumingSplitCrew;
         private MisbehaveChoice? _pendingGoodsMixChoice;
         private MisbehaveChoice? _pendingWarrantOrWantedChoice;
         private MisbehaveChoice? _pendingDiscardCargoChoice;
         private MisbehaveChoice? _pendingWantedRollChoice;
         private MisbehaveChoice? _pendingChooseCrewChoice;
+        /// <summary>
+        /// Active Split Crew team ids while resolving a nested team Misbehave or Tails Fight
+        /// (skill dice + Kill all Crew scoped to this set).
+        /// </summary>
+        private IReadOnlyList<string>? _activeTeamCrewIds;
+        /// <summary>RNG held across nested Split Crew Finish → Aggregate (scripted tests).</summary>
+        private IRng? _splitCrewRng;
         /// <summary>Frozen Wanted-seize crew ids after dice, awaiting Meadows PendingChoice.</summary>
         private List<string>? _frozenWantedSeizeIds;
         private bool _frozenSkillReady;
@@ -441,7 +456,8 @@ namespace Firefly.Core.Actions
 
             var player = game.GetPlayer(playerId);
             if (!CrewKill.TryMergeVictimSubmission(
-                    player, count, submission, choice.Kill, out var merged, out error))
+                    player, count, submission, choice.Kill, out var merged, out error,
+                    onlyCrewIds: ActiveTeamCrewIdsOrNull(game)))
                 return false;
             choice.Kill = merged;
 
@@ -1092,6 +1108,18 @@ namespace Firefly.Core.Actions
                 error = "This Misbehave belongs to another player.";
                 return false;
             }
+            // Ace may be played instead of choosing a Misbehave option (GF9 / printed Aces).
+            if (game.PendingChoice != null
+                && choice.UseAce
+                && string.Equals(
+                    game.PendingChoice.Kind,
+                    PendingChoiceKinds.MisbehaveOption,
+                    StringComparison.Ordinal)
+                && string.Equals(game.PendingChoice.PlayerId, playerId, StringComparison.Ordinal))
+            {
+                game.ClearPendingChoice();
+            }
+
             if (game.PendingChoice != null
                 && !_resumingKillVictims
                 && !_resumingBribeOrMedFoam
@@ -1100,7 +1128,8 @@ namespace Firefly.Core.Actions
                 && !_resumingGoodsMix
                 && !_resumingWarrantOrWanted
                 && !_resumingDiscardCargoOrContraband
-                && !_resumingWantedRollChoice)
+                && !_resumingWantedRollChoice
+                && !_resumingSplitCrew)
             {
                 error = "Resolve the pending choice before continuing Misbehave.";
                 return false;
@@ -1110,14 +1139,22 @@ namespace Firefly.Core.Actions
             if (pending.FaceUp == null)
                 DrawNext(game);
 
+            // Restore team skill/kill scope across nested PendingChoice suspends.
+            if (pending.SplitCrew?.ResolvingNested == true)
+                _activeTeamCrewIds = pending.SplitCrew.CurrentTeam;
+
             // Dalin: once per Work, may pay $200 to discard and re-draw (Supplies.tsv).
-            if (TryOfferOrApplyDalin(game, player, pending, out error))
+            // Nested team Misbehaves do not re-offer Dalin (once per Work Action).
+            if (pending.SplitCrew?.ResolvingNested != true)
             {
-                // Applied redraw — FaceUp is the new card; continue.
-            }
-            else if (error != null)
-            {
-                return false;
+                if (TryOfferOrApplyDalin(game, player, pending, out error))
+                {
+                    // Applied redraw — FaceUp is the new card; continue.
+                }
+                else if (error != null)
+                {
+                    return false;
+                }
             }
 
             var card = pending.FaceUp!;
@@ -1162,6 +1199,17 @@ namespace Firefly.Core.Actions
             if (!MeetsRequirement(game, player, option.Details, out error))
                 return false;
 
+            // Split Crew must run before FIRST–NEXT prose parsing: Tails details contain
+            // "First, … Next, Proceed …" which MisbehaveSteps would otherwise split and
+            // drop the option-level splitCrewTails overlay.
+            if (HasLocalEffect(option.Effects, MisbehaveLocalEffectType.SplitCrewFork)
+                || HasLocalEffect(option.Effects, MisbehaveLocalEffectType.SplitCrewTails))
+            {
+                return TryRunSplitCrew(
+                    game, playerId, card, option, optionIndex.Value, option.Effects, choice, rng,
+                    out resolution, out error);
+            }
+
             var steps = MisbehaveSteps.ForOption(option);
             if (NeedsNextStepChoice(pending, choice, steps))
             {
@@ -1204,6 +1252,16 @@ namespace Firefly.Core.Actions
 
             if (HasLocalEffect(structuredEffects, MisbehaveLocalEffectType.ReplaceCard) || IsReplaceCard(details))
             {
+                // Nested team "Draw Another Misbehave" replaces the team card only (DC Replacement).
+                if (pending.SplitCrew?.ResolvingNested == true)
+                {
+                    game.Misbehave?.ResolveIntoDiscard(card);
+                    pending.FaceUp = game.Misbehave!.Draw();
+                    pending.ClearStepProgress();
+                    ClearFrozenSkill();
+                    return TryResolve(game, playerId, new MisbehaveChoice(), out resolution, out error, rng);
+                }
+
                 var extra = Contains(details, "Draw two") || Contains(details, "Draw 2") ? 1 : 0;
                 pending.Remaining += extra;
                 ClearFrozenSkill();
@@ -1258,7 +1316,7 @@ namespace Firefly.Core.Actions
                 if (choice.Kill.VictimCrewIds == null || choice.Kill.VictimCrewIds.Count == 0)
                     choice.Kill.VictimCrewIds = new List<string> { choice.TargetCrewId! };
             }
-            if (CrewKill.NeedsVictimChoice(player, plannedKill, choice.Kill))
+            if (CrewKill.NeedsVictimChoice(player, plannedKill, choice.Kill, _activeTeamCrewIds))
             {
                 FreezeSkill(check, bandText, structuredEffects, bribeCash);
                 if (!CrewKill.TrySuspendVictimChoice(game, player, plannedKill, out error))
@@ -1450,8 +1508,17 @@ namespace Firefly.Core.Actions
 
             // GF9 / FAQ: Warrant Issued while Working discards the Job. Niska Pound of Flesh: Kill a Crew.
             // Mid-card Continue bands that also issue a Warrant still discard (warrant ends the Job).
+            // Fork nested team cards: defer Job abandon to Split Crew aggregation (printed Warrant gate).
             if (warrants > 0 && game.PendingMisbehave != null)
             {
+                if (game.PendingMisbehave.SplitCrew?.ResolvingNested == true)
+                {
+                    pending.ClearStepProgress();
+                    return CompleteNestedTeamCard(
+                        game, playerId, card, option, MisbehaveOutcome.Proceed, check,
+                        warrants, killed, loaded, cashDelta, false, out resolution, out error);
+                }
+
                 if (!TryAbandonJobForWarrant(
                     game, player, rng, choice.Kill, ref killed, out var abandonedWork, out error))
                     return false;
@@ -1550,6 +1617,16 @@ namespace Firefly.Core.Actions
                 return true;
             }
 
+            // Split Crew overlays own the card — do not parse Fight/etc. from prose details
+            // (Tails prints "Fight 12" for the non-Leader team after teams are assigned).
+            if (option.HasStructuredEffects
+                && (HasLocalEffect(option.Effects, MisbehaveLocalEffectType.SplitCrewFork)
+                    || HasLocalEffect(option.Effects, MisbehaveLocalEffectType.SplitCrewTails)))
+            {
+                structuredEffects = option.Effects;
+                return true;
+            }
+
             if (!TryGetSkillCheck(option, card, details, pending, player, out var skillCheck))
             {
                 if (option.HasStructuredEffects)
@@ -1607,6 +1684,7 @@ namespace Firefly.Core.Actions
                 }
             }
             var onlyCrewId = chooseOne ? choice.TargetCrewId : null;
+            var onlyCrewIds = !chooseOne ? _activeTeamCrewIds : null;
 
             // GF9 p.6 / Cortland: "Before you roll a dice, you may choose to pay Bribes."
             if (SkillCheck.NeedsBribeChoice(player, skillCheck, choice.SkillCheck))
@@ -1637,7 +1715,7 @@ namespace Firefly.Core.Actions
                         return false;
                     }
                     check = _pendingRerollResult.Check.RerollKeepingBribes(
-                        player, rng, _pendingRerollResult, game, AbilityContext.Misbehaving, job, onlyCrewId);
+                        player, rng, _pendingRerollResult, game, AbilityContext.Misbehaving, job, onlyCrewId, onlyCrewIds);
                 }
                 else
                     check = _pendingRerollResult;
@@ -1647,7 +1725,7 @@ namespace Firefly.Core.Actions
             {
                 check = acceptReroll
                     ? _pendingRerollResult.Check.RerollKeepingBribes(
-                        player, rng, _pendingRerollResult, game, AbilityContext.Misbehaving, job, onlyCrewId)
+                        player, rng, _pendingRerollResult, game, AbilityContext.Misbehaving, job, onlyCrewId, onlyCrewIds)
                     : _pendingRerollResult;
                 _pendingRerollResult = null;
 
@@ -1671,7 +1749,7 @@ namespace Firefly.Core.Actions
             {
                 if (!skillCheck.TryResolve(
                         player, rng, out check, out error, choice.SkillCheck,
-                        game, AbilityContext.Misbehaving, job, onlyCrewId))
+                        game, AbilityContext.Misbehaving, job, onlyCrewId, onlyCrewIds))
                     return false;
 
                 // FAQ 4.1 p.8 may: always suspend take/decline re-roll when skillReroll matches.
@@ -1974,7 +2052,8 @@ namespace Firefly.Core.Actions
             outcome = MisbehaveOutcome.Proceed;
             error = null;
 
-            var context = new CardEffectContext(CardEffectSource.Misbehave, choice.Kill);
+            var context = new CardEffectContext(
+                CardEffectSource.Misbehave, choice.Kill, onlyCrewIds: _activeTeamCrewIds);
 
             foreach (var effect in effects)
             {
@@ -2007,7 +2086,10 @@ namespace Firefly.Core.Actions
                         outcome = MisbehaveOutcome.Botched;
                         break;
                     case MisbehaveLocalEffectType.KillAllCrew:
-                        killed += CrewKill.KillAll(game, player, rng, choice.Kill);
+                        if (_activeTeamCrewIds != null)
+                            killed += KillCrewIds(game, player, rng, choice.Kill, _activeTeamCrewIds);
+                        else
+                            killed += CrewKill.KillAll(game, player, rng, choice.Kill);
                         break;
                     case MisbehaveLocalEffectType.Wanted:
                         // Director's Cut C&P p.49: "Your Crew is now Wanted" → all non-Leader.
@@ -2274,6 +2356,15 @@ namespace Firefly.Core.Actions
         {
             error = null;
             resolution = null;
+
+            // Nested Split Crew team card: discard nested and advance Fork / do not spend Remaining.
+            if (game.PendingMisbehave?.SplitCrew?.ResolvingNested == true)
+            {
+                return CompleteNestedTeamCard(
+                    game, playerId, card, option, outcome, check, warrants, killed, loaded, cashDelta, usedAce,
+                    out resolution, out error);
+            }
+
             game.Misbehave?.ResolveIntoDiscard(card);
             if (game.PendingMisbehave != null)
                 game.PendingMisbehave.FaceUp = null;
@@ -2669,7 +2760,7 @@ namespace Firefly.Core.Actions
             return game.TrySetPendingChoice(pending, out error);
         }
 
-        private static bool TryKillCrew(
+        private bool TryKillCrew(
             GameState game,
             PlayerState player,
             string text,
@@ -2682,14 +2773,30 @@ namespace Firefly.Core.Actions
             error = null;
             if (Contains(text, "Kill all Crew"))
             {
-                killed = CrewKill.KillAll(game, player, rng, killChoice);
+                if (_activeTeamCrewIds != null)
+                    killed = KillCrewIds(game, player, rng, killChoice, _activeTeamCrewIds);
+                else
+                    killed = CrewKill.KillAll(game, player, rng, killChoice);
                 return true;
             }
 
             var count = ParseKillCrewCount(text);
             if (count <= 0)
                 return true;
-            return CrewKill.TryKillUpTo(game, player, count, rng, out killed, out error, killChoice);
+            return CrewKill.TryKillUpTo(
+                game, player, count, rng, out killed, out error, killChoice, _activeTeamCrewIds);
+        }
+
+        /// <summary>
+        /// Active Split Crew team while nested resolve / Tails Fight is in progress.
+        /// Used by Kill-victim resume merge (Christopher lock PR #55).
+        /// </summary>
+        private static IReadOnlyList<string>? ActiveTeamCrewIdsOrNull(GameState game)
+        {
+            var split = game.PendingMisbehave?.SplitCrew;
+            if (split == null || !split.ResolvingNested)
+                return null;
+            return split.CurrentTeam;
         }
 
         private static int ParseKillCrewCount(string text)
@@ -3910,10 +4017,12 @@ namespace Firefly.Core.Actions
         }
 
         private static bool IsReplaceCard(string details) =>
-            Contains(details, "Draw another Misbehave")
-            || Contains(details, "Draw Another Misbehave")
-            || Contains(details, "Draw two Misbehave")
-            || Contains(details, "Draw 2 Misbehave");
+            (Contains(details, "Draw another Misbehave")
+                || Contains(details, "Draw Another Misbehave")
+                || Contains(details, "Draw two Misbehave")
+                || Contains(details, "Draw 2 Misbehave"))
+            // Fork in the Road: "Draw 2 Misbehave Cards, one for each team" is Split Crew, not Replace.
+            && !Contains(details, "one for each team");
 
         private static bool NamesMatch(string left, string right)
         {

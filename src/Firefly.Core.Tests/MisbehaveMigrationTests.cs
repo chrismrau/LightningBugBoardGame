@@ -106,6 +106,10 @@ namespace Firefly.Core.Tests
         [InlineData("misbehave_hotel-back-office-terminal")]
         [InlineData("misbehave_alliance-alert")]
         [InlineData("misbehave_alliance-alert_2")]
+        // Split Crew engine — Fork ×2 + Tails
+        [InlineData("misbehave_fork-in-the-road")]
+        [InlineData("misbehave_fork-in-the-road_2")]
+        [InlineData("misbehave_theyre-right-on-our-tails")]
         public void Migrated_cards_load_structured_overlay_without_stripping_prose(string id)
         {
             var catalog = MisbehaveCatalog.LoadDefault();

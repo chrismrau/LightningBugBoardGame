@@ -74,6 +74,11 @@ namespace Firefly.Core.State
         public bool DalinUsedThisWork { get; set; }
         /// <summary>Null = undecided Dalin may; true = pay+redraw; false = decline.</summary>
         public bool? AcceptDalinRedraw { get; set; }
+        /// <summary>
+        /// Director's Cut C&amp;P p.49 Splitting Up — Fork / Tails session while the parent
+        /// Split Crew card is in play.
+        /// </summary>
+        public SplitCrewSession? SplitCrew { get; set; }
 
         public PendingMisbehave(string playerId, string jobId, WorkSite site, int remaining)
         {

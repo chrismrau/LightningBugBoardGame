@@ -293,30 +293,79 @@ namespace Firefly.Core.Actions
         /// <summary>
         /// True when Kill <paramref name="count"/> requires the player to pick among crew.
         /// False when <see cref="KillChoice.VictimCrewIds"/> is already set, count is 0,
-        /// the roster is empty, or count covers the whole roster (no alternatives).
+        /// no eligible crew remain, or count covers every eligible crew (no alternatives).
+        /// When <paramref name="onlyCrewIds"/> is set (Split Crew nested team), eligibility
+        /// is restricted to that set (Christopher lock PR #55).
         /// </summary>
-        public static bool NeedsVictimChoice(PlayerState player, int count, KillChoice? choice = null)
+        public static bool NeedsVictimChoice(
+            PlayerState player,
+            int count,
+            KillChoice? choice = null,
+            IReadOnlyCollection<string>? onlyCrewIds = null)
         {
-            if (count <= 0 || player.Roster.Count <= 0)
+            if (count <= 0)
                 return false;
             if (choice?.VictimCrewIds != null && choice.VictimCrewIds.Count > 0)
                 return false;
-            // No alternatives when every crew on the ship must be subjected to the kill event.
-            if (count >= player.Roster.Count)
+            var eligible = CountEligible(player, onlyCrewIds);
+            if (eligible <= 0)
+                return false;
+            // No alternatives when every eligible crew must be subjected to the kill event.
+            if (count >= eligible)
                 return false;
             return true;
         }
 
         /// <summary>
-        /// Crew ids currently eligible for a Kill N pick (whole roster, including Leader).
+        /// Crew ids currently eligible for a Kill N pick (whole roster, including Leader),
+        /// or restricted to <paramref name="onlyCrewIds"/> when set (Split Crew team).
         /// FAQ 4.1 p.3: Leader may take the hit (Medic / Really Lucky).
         /// </summary>
-        public static IReadOnlyList<string> EligibleVictimIds(PlayerState player)
+        public static IReadOnlyList<string> EligibleVictimIds(
+            PlayerState player,
+            IReadOnlyCollection<string>? onlyCrewIds = null)
         {
-            var ids = new List<string>(player.Roster.Count);
+            if (onlyCrewIds == null)
+            {
+                var ids = new List<string>(player.Roster.Count);
+                foreach (var member in player.Roster.Members)
+                    ids.Add(member.Id);
+                return ids;
+            }
+
+            var allowed = ToIdSet(onlyCrewIds);
+            var filtered = new List<string>();
             foreach (var member in player.Roster.Members)
-                ids.Add(member.Id);
-            return ids;
+            {
+                if (allowed.Contains(member.Id))
+                    filtered.Add(member.Id);
+            }
+            return filtered;
+        }
+
+        private static int CountEligible(PlayerState player, IReadOnlyCollection<string>? onlyCrewIds)
+        {
+            if (onlyCrewIds == null)
+                return player.Roster.Count;
+            var allowed = ToIdSet(onlyCrewIds);
+            var n = 0;
+            foreach (var member in player.Roster.Members)
+            {
+                if (allowed.Contains(member.Id))
+                    n++;
+            }
+            return n;
+        }
+
+        private static HashSet<string> ToIdSet(IReadOnlyCollection<string> ids)
+        {
+            var set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var id in ids)
+            {
+                if (!string.IsNullOrWhiteSpace(id))
+                    set.Add(id);
+            }
+            return set;
         }
 
         /// <summary>
@@ -349,6 +398,8 @@ namespace Firefly.Core.Actions
         /// <summary>
         /// Validate <see cref="ChoiceSubmission.Values"/> as victim ids and merge into
         /// <paramref name="choice"/> (creating one when null). Does not clear PendingChoice.
+        /// When <paramref name="onlyCrewIds"/> is set, every victim must be in that set
+        /// (Split Crew nested team — Christopher lock PR #55).
         /// </summary>
         public static bool TryMergeVictimSubmission(
             PlayerState player,
@@ -356,7 +407,8 @@ namespace Firefly.Core.Actions
             ChoiceSubmission submission,
             KillChoice? choice,
             out KillChoice merged,
-            out string? error)
+            out string? error,
+            IReadOnlyCollection<string>? onlyCrewIds = null)
         {
             merged = choice ?? new KillChoice();
             error = null;
@@ -372,14 +424,16 @@ namespace Firefly.Core.Actions
             }
 
             var want = count;
-            if (want > player.Roster.Count)
-                want = player.Roster.Count;
+            var eligible = CountEligible(player, onlyCrewIds);
+            if (want > eligible)
+                want = eligible;
             if (submission.Values.Count != want)
             {
                 error = $"Choose exactly {want} crew to kill.";
                 return false;
             }
 
+            HashSet<string>? allowed = onlyCrewIds != null ? ToIdSet(onlyCrewIds) : null;
             var ids = new List<string>(want);
             foreach (var id in submission.Values)
             {
@@ -391,6 +445,11 @@ namespace Firefly.Core.Actions
                 if (player.Roster.Find(id) == null)
                 {
                     error = $"Crew '{id}' is not on the ship.";
+                    return false;
+                }
+                if (allowed != null && !allowed.Contains(id))
+                {
+                    error = $"Crew '{id}' is not on the active Split Crew team.";
                     return false;
                 }
                 foreach (var existing in ids)
@@ -698,6 +757,8 @@ namespace Firefly.Core.Actions
         /// Subject up to <paramref name="count"/> crew to kill events.
         /// Meadows: offer redirect once per Kill N batch, then mandatory resolution.
         /// Med Bay: one re-roll offer per Medic Check (per Crew Killed).
+        /// When <paramref name="onlyCrewIds"/> is set, victims must come from that set
+        /// (Split Crew nested team — Christopher lock PR #55).
         /// </summary>
         public static bool TryKillUpTo(
             GameState game,
@@ -706,20 +767,26 @@ namespace Firefly.Core.Actions
             IRng rng,
             out int killed,
             out string? error,
-            KillChoice? choice = null)
+            KillChoice? choice = null,
+            IReadOnlyCollection<string>? onlyCrewIds = null)
         {
             killed = 0;
             error = null;
             if (count <= 0)
                 return true;
 
-            if (NeedsVictimChoice(player, count, choice))
+            if (NeedsVictimChoice(player, count, choice, onlyCrewIds))
             {
                 if (!TrySuspendVictimChoice(game, player, count, out error))
                     return false;
                 error = "Choose which crew are killed.";
                 return false;
             }
+
+            if (choice?.VictimCrewIds != null
+                && onlyCrewIds != null
+                && !VictimsAreInSet(choice.VictimCrewIds, onlyCrewIds, out error))
+                return false;
 
             var working = CloneKillChoice(choice);
 
@@ -753,7 +820,7 @@ namespace Firefly.Core.Actions
             }
 
             // Process victims sequentially; suspend Med Bay per Medic Check.
-            var victims = SelectVictims(player, count, working);
+            var victims = SelectVictims(player, count, working, onlyCrewIds);
             var resolved = new HashSet<string>(StringComparer.Ordinal);
             if (working.ResolvedVictimIds != null)
             {
@@ -1093,7 +1160,11 @@ namespace Firefly.Core.Actions
             return outcome;
         }
 
-        private static List<CrewMember> SelectVictims(PlayerState player, int count, KillChoice? choice)
+        private static List<CrewMember> SelectVictims(
+            PlayerState player,
+            int count,
+            KillChoice? choice,
+            IReadOnlyCollection<string>? onlyCrewIds = null)
         {
             var list = new List<CrewMember>();
             if (choice?.VictimCrewIds != null && choice.VictimCrewIds.Count > 0)
@@ -1122,10 +1193,42 @@ namespace Firefly.Core.Actions
                 return list;
             }
 
-            // No player choice: kill count covers the whole roster (or roster is empty).
+            // No player choice: kill count covers eligible crew (whole roster or team subset).
+            if (onlyCrewIds != null)
+            {
+                var allowed = ToIdSet(onlyCrewIds);
+                for (var i = player.Roster.Count - 1; i >= 0 && list.Count < count; i--)
+                {
+                    var member = player.Roster.Members[i];
+                    if (allowed.Contains(member.Id))
+                        list.Add(member);
+                }
+                return list;
+            }
+
             for (var i = player.Roster.Count - 1; i >= 0 && list.Count < count; i--)
                 list.Add(player.Roster.Members[i]);
             return list;
+        }
+
+        private static bool VictimsAreInSet(
+            IList<string> victimIds,
+            IReadOnlyCollection<string> onlyCrewIds,
+            out string? error)
+        {
+            error = null;
+            var allowed = ToIdSet(onlyCrewIds);
+            foreach (var id in victimIds)
+            {
+                if (string.IsNullOrWhiteSpace(id))
+                    continue;
+                if (!allowed.Contains(id))
+                {
+                    error = $"Crew '{id}' is not on the active Split Crew team.";
+                    return false;
+                }
+            }
+            return true;
         }
     }
 }

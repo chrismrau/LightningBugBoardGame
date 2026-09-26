@@ -18,15 +18,22 @@ namespace Firefly.Core.Actions
         /// Misbehave prose historically increments without a prefight Fits check.
         /// </summary>
         public bool EnforceHoldSpace { get; }
+        /// <summary>
+        /// Split Crew nested team: Kill N victims must come from this set (null = whole roster).
+        /// Christopher lock PR #55.
+        /// </summary>
+        public IReadOnlyCollection<string>? OnlyCrewIds { get; }
 
         public CardEffectContext(
             CardEffectSource source,
             KillChoice? kill = null,
-            bool enforceHoldSpace = false)
+            bool enforceHoldSpace = false,
+            IReadOnlyCollection<string>? onlyCrewIds = null)
         {
             Source = source;
             Kill = kill;
             EnforceHoldSpace = enforceHoldSpace;
+            OnlyCrewIds = onlyCrewIds;
         }
     }
 
@@ -66,7 +73,8 @@ namespace Firefly.Core.Actions
                     case CardEffectType.KillCrew:
                         var killCount = effect.Count > 0 ? effect.Count : 1;
                         if (!CrewKill.TryKillUpTo(
-                                game, player, killCount, rng, out var killedNow, out error, context.Kill))
+                                game, player, killCount, rng, out var killedNow, out error, context.Kill,
+                                context.OnlyCrewIds))
                             return false;
                         result.CrewKilled += killedNow;
                         break;
