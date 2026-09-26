@@ -123,9 +123,13 @@ namespace Firefly.Core.Cards
         /// (exclude <see cref="PlayerState.FightBonus"/> gear proxy).
         /// When <paramref name="job"/> is Illegal and Lawmen are present, they stay onboard (PBH)
         /// and do not add dice; otherwise the normal roster + bonus path is used.
+        /// Director's Cut C&amp;P p.49: crew Returned to Ship (and their Gear) do not count.
         /// </summary>
         public int DiceCount(PlayerState player, GameState? game = null, JobCard? job = null)
         {
+            if (JobWorkCrew.HasAnyoneReturnedToShip(player))
+                return DiceCountExcludingReturned(player, game, job);
+
             if (job == null || job.Legal || !HasOnboardLawman(player, job))
             {
                 if (Skill == Skill.Fight)
@@ -141,6 +145,35 @@ namespace Firefly.Core.Cards
             if (game != null)
                 return crew + AbilityDispatcher.CarriedSkillAddend(game, player, Skill, job: job);
             return crew;
+        }
+
+        private int DiceCountExcludingReturned(PlayerState player, GameState? game, JobCard? job)
+        {
+            var crew = 0;
+            foreach (var member in player.Roster.Members)
+            {
+                if (JobWorkCrew.IsUnavailable(player, member))
+                    continue;
+                if (job != null && LawmanRules.StaysOnboardForJob(member, job))
+                    continue;
+                crew += Skill switch
+                {
+                    Skill.Fight => member.Card.Fight,
+                    Skill.Tech => member.Card.Tech,
+                    _ => member.Card.Talk
+                };
+            }
+
+            if (Skill == Skill.Fight && Kosherized)
+                return crew;
+            if (game != null)
+                return crew + AbilityDispatcher.CarriedSkillAddend(game, player, Skill, job: job);
+            // Fallback without game: use ship bonuses only when no returned-crew gear path.
+            if (Skill == Skill.Fight)
+                return crew + player.FightBonus;
+            if (Skill == Skill.Tech)
+                return crew + player.TechBonus;
+            return crew + player.TalkBonus;
         }
 
         private static bool HasOnboardLawman(PlayerState player, JobCard job)

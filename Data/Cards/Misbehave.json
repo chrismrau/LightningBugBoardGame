@@ -1,6 +1,6 @@
 {
   "meta": {
-    "description": "Firefly: The Game \u2013 Misbehave cards",
+    "description": "Firefly: The Game – Misbehave cards",
     "count": 80,
     "schemaVersion": "1.0"
   },
@@ -105,7 +105,7 @@
           ]
         },
         {
-          "name": "Trouble You've Not Known\u2026",
+          "name": "Trouble You've Not Known…",
           "details": "Fight 10; 1-5 Kill all Crew; Warrant Issued. 6-9 Kill 2 Crew, Warrant Issued. 10+ Attempt Botched.",
           "skillCheck": {
             "skill": "fight",
@@ -547,7 +547,7 @@
           ]
         },
         {
-          "name": "We Will Blow a New Crater in This Little Moon\u2026",
+          "name": "We Will Blow a New Crater in This Little Moon…",
           "details": "Negotiate 6; 1-5 Attempt Botched. 6+ Proceed.",
           "skillCheck": {
             "skill": "negotiate",
@@ -627,7 +627,7 @@
           ]
         },
         {
-          "name": "We Will Blow a New Crater in This Little Moon\u2026",
+          "name": "We Will Blow a New Crater in This Little Moon…",
           "details": "Negotiate 6; 1-5 Attempt Botched. 6+ Proceed.",
           "skillCheck": {
             "skill": "negotiate",
@@ -674,7 +674,7 @@
       "ace": null,
       "options": [
         {
-          "name": "Getting Awfully Crowded in My Sky\u2026",
+          "name": "Getting Awfully Crowded in My Sky…",
           "details": "Fight 9; 1-8 Kill a Crew, Warrant Issued. 9+ Proceed."
         },
         {
@@ -826,7 +826,7 @@
       "ace": "Sniper Rifle",
       "options": [
         {
-          "name": "Take the Guards Out\u2026 Quiet Like",
+          "name": "Take the Guards Out… Quiet Like",
           "details": "Fight 6 Kosherized Rules; 1-5 Kill a Crew, Attempt Botched. 6+ Proceed.",
           "skillCheck": {
             "skill": "fight",
@@ -908,7 +908,7 @@
       "ace": "Sniper Rifle",
       "options": [
         {
-          "name": "Take the Guards Out\u2026 Quiet Like",
+          "name": "Take the Guards Out… Quiet Like",
           "details": "Fight 6 Kosherized Rules; 1-5 Kill a Crew, Attempt Botched. 6+ Proceed.",
           "skillCheck": {
             "skill": "fight",
@@ -1413,7 +1413,7 @@
           ]
         },
         {
-          "name": "These Are Not the Crooks You're Looking For\u2026",
+          "name": "These Are Not the Crooks You're Looking For…",
           "details": "Tech 6; 1-5 Warrant Issued. 6+ Proceed.",
           "skillCheck": {
             "skill": "tech",
@@ -1790,7 +1790,7 @@
           ]
         },
         {
-          "name": "An' Hell Followed With Him\u2026",
+          "name": "An' Hell Followed With Him…",
           "details": "Fight 9; 1-4 Kill all Crew, Warrant Issued. 5-8 Kill 2 Crew, Warrant Issued. 9+ Kill 1 Crew, Proceed.",
           "skillCheck": {
             "skill": "fight",
@@ -1861,7 +1861,7 @@
           "details": "Tech 7; 1-6 Attempt Botched. 7+ Take 1500. Attempt Botched."
         },
         {
-          "name": "Stay on Target\u2026",
+          "name": "Stay on Target…",
           "details": "Proceed."
         }
       ],
@@ -1909,7 +1909,7 @@
       "ace": "Simon Tam",
       "options": [
         {
-          "name": "I Was Pompous\u2026",
+          "name": "I Was Pompous…",
           "details": "If you have FANCY DUDS, Proceed. Otherwise, Negotiate 6; 1-5 Attempt Botched. 6+ Proceed.",
           "proceedIfTag": "FANCY DUDS",
           "skillCheck": {
@@ -1939,7 +1939,7 @@
           ]
         },
         {
-          "name": "My Sister Was Crazy\u2026",
+          "name": "My Sister Was Crazy…",
           "details": "If you have Medic, Proceed. Otherwise, Tech 6; 1-5 Attempt Botched. 6+ Proceed.",
           "proceedIfTag": "Medic",
           "skillCheck": {
@@ -2227,7 +2227,7 @@
       "ace": "Hacking Rig",
       "options": [
         {
-          "name": "See What You Can Do\u2026",
+          "name": "See What You Can Do…",
           "details": "Tech 7; 1-6 Attempt Botched. 7+ Proceed.",
           "skillCheck": {
             "skill": "tech",
@@ -2256,7 +2256,7 @@
           ]
         },
         {
-          "name": "Oh, Real Subtle Guys\u2026",
+          "name": "Oh, Real Subtle Guys…",
           "details": "Fight 9; 1-8 Kill a Crew, Warrant Issued. 9+ Proceed.",
           "skillCheck": {
             "skill": "fight",
@@ -2307,7 +2307,7 @@
       "ace": "Hacking Rig",
       "options": [
         {
-          "name": "See What You Can Do\u2026",
+          "name": "See What You Can Do…",
           "details": "Tech 7; 1-6 Attempt Botched. 7+ Proceed.",
           "skillCheck": {
             "skill": "tech",
@@ -2336,7 +2336,7 @@
           ]
         },
         {
-          "name": "Oh, Real Subtle Guys\u2026",
+          "name": "Oh, Real Subtle Guys…",
           "details": "Fight 9; 1-8 Kill a Crew, Warrant Issued. 9+ Proceed.",
           "skillCheck": {
             "skill": "fight",
@@ -2566,11 +2566,27 @@
       "options": [
         {
           "name": "Isn't going to Look Good...Run!",
-          "details": "Lose Rep with 1 Contact, if able. Disgruntle any Crew who are not already Disgruntled. Attempt Botched."
+          "details": "Lose Rep with 1 Contact, if able. Disgruntle any Crew who are not already Disgruntled. Attempt Botched.",
+          "effects": [
+            {
+              "type": "loseSolidIfAble"
+            },
+            {
+              "type": "disgruntleNonDisgruntled"
+            },
+            {
+              "type": "botched"
+            }
+          ]
         },
         {
-          "name": "\u9752\u86d9\u64cd\u7684\u6d41\u6c13! We're Boned...",
-          "details": "Roll for all Wanted Crew. If any Crew are Seized, Warrant Issued. Otherwise, Proceed."
+          "name": "青蛙操的流氓! We're Boned...",
+          "details": "Roll for all Wanted Crew. If any Crew are Seized, Warrant Issued. Otherwise, Proceed.",
+          "effects": [
+            {
+              "type": "wantedCrewRoll"
+            }
+          ]
         }
       ],
       "isReshuffle": false,
@@ -2592,11 +2608,27 @@
       "options": [
         {
           "name": "Shut your gorram pie Hole! We've heard our Fill!",
-          "details": "Disgruntle any crew who are not already Disgruntled. Proceed"
+          "details": "Disgruntle any crew who are not already Disgruntled. Proceed",
+          "effects": [
+            {
+              "type": "disgruntleNonDisgruntled"
+            },
+            {
+              "type": "proceed"
+            }
+          ]
         },
         {
           "name": "I'll be in my Bunk",
-          "details": "Return the Crew Member with the highest total FIGHT to the Ship. If the are not already Disgruntled, Disgruntle them. Proceed."
+          "details": "Return the Crew Member with the highest total FIGHT to the Ship. If the are not already Disgruntled, Disgruntle them. Proceed.",
+          "effects": [
+            {
+              "type": "returnHighestFightToShip"
+            },
+            {
+              "type": "proceed"
+            }
+          ]
         }
       ],
       "isReshuffle": false,
@@ -2618,11 +2650,55 @@
       "options": [
         {
           "name": "A Well-Greased Handshake",
-          "details": "Negotiate 12 Bribes; 1-11 All FIREARMS are Seized. Attempt Botched. 12+ Proceed"
+          "details": "Negotiate 12 Bribes; 1-11 All FIREARMS are Seized. Attempt Botched. 12+ Proceed",
+          "skillCheck": {
+            "skill": "negotiate",
+            "target": 12,
+            "bribes": true
+          },
+          "bands": [
+            {
+              "range": "1-11",
+              "text": "1-11 All FIREARMS are Seized. Attempt Botched",
+              "effects": [
+                {
+                  "type": "seizeGear",
+                  "tags": [
+                    "FIREARM"
+                  ]
+                },
+                {
+                  "type": "botched"
+                }
+              ]
+            },
+            {
+              "min": 12,
+              "max": null,
+              "text": "12+ Proceed",
+              "effects": [
+                {
+                  "type": "proceed"
+                }
+              ]
+            }
+          ]
         },
         {
           "name": "Grit yer teeth and Submit",
-          "details": "All FIREARMS are Seized. If you discard any, disgruntle all Wanted Crew. Proceed."
+          "details": "All FIREARMS are Seized. If you discard any, disgruntle all Wanted Crew. Proceed.",
+          "effects": [
+            {
+              "type": "seizeGear",
+              "tags": [
+                "FIREARM"
+              ],
+              "disgruntleWantedIfAny": true
+            },
+            {
+              "type": "proceed"
+            }
+          ]
         }
       ],
       "isReshuffle": false,
@@ -3116,11 +3192,56 @@
       "options": [
         {
           "name": "Kow-Tow, Curtsy and bite your Tongue",
-          "details": "All carried SNIPER RIFLEs and EXPLOSIVES are Seized. Disgruntle Crew carrying them. Proceed"
+          "details": "All carried SNIPER RIFLEs and EXPLOSIVES are Seized. Disgruntle Crew carrying them. Proceed",
+          "effects": [
+            {
+              "type": "seizeGear",
+              "tags": [
+                "SNIPER RIFLE",
+                "EXPLOSIVES"
+              ],
+              "disgruntleCarriers": true
+            },
+            {
+              "type": "proceed"
+            }
+          ]
         },
         {
           "name": "Over my dead Body!",
-          "details": "Fight 9; 1-8 Kill 1 Crew. Warrant Issued. 9+ Crew is now Wanted. Proceed."
+          "details": "Fight 9; 1-8 Kill 1 Crew. Warrant Issued. 9+ Crew is now Wanted. Proceed.",
+          "skillCheck": {
+            "skill": "fight",
+            "target": 9
+          },
+          "bands": [
+            {
+              "range": "1-8",
+              "text": "1-8 Kill 1 Crew. Warrant Issued",
+              "effects": [
+                {
+                  "type": "killCrew",
+                  "count": 1
+                },
+                {
+                  "type": "warrantIssued"
+                }
+              ]
+            },
+            {
+              "min": 9,
+              "max": null,
+              "text": "9+ Crew is now Wanted. Proceed",
+              "effects": [
+                {
+                  "type": "wanted"
+                },
+                {
+                  "type": "proceed"
+                }
+              ]
+            }
+          ]
         }
       ],
       "isReshuffle": false,
@@ -3142,11 +3263,27 @@
       "options": [
         {
           "name": "Can't risk 'em Digging' in your Records",
-          "details": "Disgruntle all Wanted Crew. Return all Wanted Crew to Ship. Proceed"
+          "details": "Disgruntle all Wanted Crew. Return all Wanted Crew to Ship. Proceed",
+          "effects": [
+            {
+              "type": "disgruntleWanted"
+            },
+            {
+              "type": "returnWantedToShip"
+            },
+            {
+              "type": "proceed"
+            }
+          ]
         },
         {
           "name": "Look Casual and keep your eyes Low",
-          "details": "Roll for all Wanted Crew. If any Crew are Seized, Warrant Issued. Otherwise, Proceed."
+          "details": "Roll for all Wanted Crew. If any Crew are Seized, Warrant Issued. Otherwise, Proceed.",
+          "effects": [
+            {
+              "type": "wantedCrewRoll"
+            }
+          ]
         }
       ],
       "isReshuffle": false,
@@ -3168,11 +3305,27 @@
       "options": [
         {
           "name": "Can't risk 'em Digging' in your Records",
-          "details": "Disgruntle all Wanted Crew. Return all Wanted Crew to Ship. Proceed"
+          "details": "Disgruntle all Wanted Crew. Return all Wanted Crew to Ship. Proceed",
+          "effects": [
+            {
+              "type": "disgruntleWanted"
+            },
+            {
+              "type": "returnWantedToShip"
+            },
+            {
+              "type": "proceed"
+            }
+          ]
         },
         {
           "name": "Look Casual and keep your eyes Low",
-          "details": "Roll for all Wanted Crew. If any Crew are Seized, Warrant Issued. Otherwise, Proceed."
+          "details": "Roll for all Wanted Crew. If any Crew are Seized, Warrant Issued. Otherwise, Proceed.",
+          "effects": [
+            {
+              "type": "wantedCrewRoll"
+            }
+          ]
         }
       ],
       "isReshuffle": false,

@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+
 namespace Firefly.Core.State
 {
     public sealed class ActiveJob
@@ -11,10 +14,25 @@ namespace Firefly.Core.State
         public int Parts { get; set; }
         /// <summary>Sheydra / Stitch: once-per-job skill switch already used on this Active Job.</summary>
         public bool SkillSwitchUsedThisJob { get; set; }
+        /// <summary>
+        /// Director's Cut C&amp;P p.49 I'll Be in my Bunk: Misbehave returned these crew
+        /// (and their Gear) — unusable for the remainder of the Job.
+        /// </summary>
+        public ISet<string> ReturnedToShipCrewIds { get; } =
+            new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         public ActiveJob(string jobId)
         {
             JobId = jobId;
+        }
+
+        public bool IsReturnedToShip(string crewId) =>
+            !string.IsNullOrWhiteSpace(crewId) && ReturnedToShipCrewIds.Contains(crewId);
+
+        public void ReturnToShip(string crewId)
+        {
+            if (!string.IsNullOrWhiteSpace(crewId))
+                ReturnedToShipCrewIds.Add(crewId);
         }
     }
 
