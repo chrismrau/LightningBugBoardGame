@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Firefly.Core.Abilities;
 using Firefly.Core.Actions;
 using Firefly.Core.Cards;
@@ -1030,6 +1031,148 @@ namespace Firefly.Core.Tests
             Assert.True(resolution!.SkillCheck!.Check.Kosherized);
             Assert.Equal(MisbehaveOutcome.Botched, resolution.Outcome);
             Assert.All(game.CurrentPlayer.Roster.Members, m => Assert.True(m.Disgruntled));
+        }
+
+        [Fact]
+        public void Batch2_lock_dangerous_gossip_discards_inactive_hand_only()
+        {
+            // FAQ 4.1: Jobs in hand = Inactive; Active Jobs clear only by complete / Warrant while working.
+            // Christopher lock: Discard all Jobs in Hand = inactive hand only.
+            var game = NewCrimeGame();
+            var handJob = game.Jobs!.Cards.Values.First(j => j.Id != Crime).Id;
+            game.CurrentPlayer.JobHand.Add(handJob);
+            Assert.Contains(Crime, game.CurrentPlayer.JobHand);
+            StartCrime(game);
+            Assert.NotNull(game.CurrentPlayer.FindActive(Crime));
+            Assert.DoesNotContain(Crime, game.CurrentPlayer.JobHand); // moved to Active on Work
+            Assert.Contains(handJob, game.CurrentPlayer.JobHand);
+
+            game.Misbehave!.PlaceOnTop(game.Misbehave.Catalog.Get("misbehave_dangerous-gossip"));
+            var resolver = new MisbehaveResolver();
+            resolver.DrawNext(game);
+
+            Assert.True(resolver.TryResolve(
+                game, "p1",
+                new MisbehaveChoice { OptionIndex = 1 },
+                out var resolution, out var error), error);
+            Assert.Equal(MisbehaveOutcome.Botched, resolution!.Outcome);
+            Assert.Empty(game.CurrentPlayer.JobHand);
+            Assert.NotNull(game.CurrentPlayer.FindActive(Crime)); // Active untouched
+        }
+
+        [Fact]
+        public void Batch2_lock_improbably_complex_may_skip_warrant_discard()
+        {
+            // Christopher lock: optional; zero discards OK (Dead to Rights spirit).
+            var game = NewCrimeGame();
+            game.CurrentPlayer.Warrants = 2;
+            game.CurrentPlayer.TechBonus = 4;
+            StartCrime(game);
+            game.Misbehave!.PlaceOnTop(game.Misbehave.Catalog.Get("misbehave_improbably-complex-alliance-gizmo"));
+            var resolver = new MisbehaveResolver();
+            resolver.DrawNext(game);
+
+            Assert.False(resolver.TryResolve(
+                game, "p1",
+                new MisbehaveChoice { OptionIndex = 0 },
+                out _, out var suspendError,
+                ScriptedRng.FromDieFaces(6)));
+            Assert.Contains("Warrant", suspendError, StringComparison.OrdinalIgnoreCase);
+            Assert.Equal(PendingChoiceKinds.MisbehaveWarrantOrWanted, game.PendingChoice!.Kind);
+            Assert.DoesNotContain(
+                MisbehaveWarrantOrWantedOptions.WantedTokens,
+                game.PendingChoice.Options!);
+
+            Assert.True(resolver.TryResumeWarrantOrWanted(
+                game, "p1",
+                new ChoiceSubmission { SelectedOptionId = MisbehaveWarrantOrWantedOptions.None },
+                new MisbehaveChoice { OptionIndex = 0 },
+                out var resolution, out var error,
+                ScriptedRng.FromDieFaces(6)), error);
+            Assert.Equal(MisbehaveOutcome.Proceed, resolution!.Outcome);
+            Assert.Equal(2, game.CurrentPlayer.Warrants);
+        }
+
+        [Fact]
+        public void Batch2_lock_improbably_complex_may_discard_one_warrant()
+        {
+            var game = NewCrimeGame();
+            game.CurrentPlayer.Warrants = 2;
+            game.CurrentPlayer.TechBonus = 4;
+            StartCrime(game);
+            game.Misbehave!.PlaceOnTop(game.Misbehave.Catalog.Get("misbehave_improbably-complex-alliance-gizmo"));
+            var resolver = new MisbehaveResolver();
+            resolver.DrawNext(game);
+
+            Assert.False(resolver.TryResolve(
+                game, "p1",
+                new MisbehaveChoice { OptionIndex = 0 },
+                out _, out _,
+                ScriptedRng.FromDieFaces(6)));
+
+            Assert.True(resolver.TryResumeWarrantOrWanted(
+                game, "p1",
+                new ChoiceSubmission
+                {
+                    SelectedOptionId = MisbehaveWarrantOrWantedOptions.Warrants,
+                    Amount = 1
+                },
+                new MisbehaveChoice { OptionIndex = 0 },
+                out var resolution, out var error,
+                ScriptedRng.FromDieFaces(6)), error);
+            Assert.Equal(MisbehaveOutcome.Proceed, resolution!.Outcome);
+            Assert.Equal(1, game.CurrentPlayer.Warrants);
+        }
+
+        [Fact]
+        public void Batch2_lock_thrillin_heroics_clears_moral_disgruntled_only()
+        {
+            // Christopher lock: Remove Disgruntled from Moral Crew = moral only.
+            var game = NewCrimeGame();
+            Assert.True(game.CurrentPlayer.Roster.TryHire(game.Crew!.Get("crew_zoe"), out _)); // Moral
+            Assert.True(game.CurrentPlayer.Roster.TryHire(game.Crew.Get("crew_jayne"), out _)); // Immoral
+            game.CurrentPlayer.Roster.DisgruntleWhere(_ => true);
+            game.CurrentPlayer.FightBonus = 10;
+            StartCrime(game);
+            game.Misbehave!.PlaceOnTop(game.Misbehave.Catalog.Get("misbehave_time-for-some-thrillin-heroics"));
+            var resolver = new MisbehaveResolver();
+            resolver.DrawNext(game);
+
+            Assert.True(resolver.TryResolve(
+                game, "p1",
+                new MisbehaveChoice
+                {
+                    OptionIndex = 0,
+                    SkillCheck = new SkillCheckChoice { AcceptReroll = false }
+                },
+                out var resolution, out var error,
+                ScriptedRng.FromDieFaces(6, 6, 6, 6, 6, 6, 6, 6, 6, 6)), error);
+            Assert.Equal(MisbehaveOutcome.Proceed, resolution!.Outcome);
+            Assert.False(game.CurrentPlayer.Roster.Find("crew_zoe")!.Disgruntled);
+            Assert.True(game.CurrentPlayer.Roster.Find("crew_jayne")!.Disgruntled);
+        }
+
+        [Fact]
+        public void Batch2_lock_locals_in_need_clears_moral_disgruntled_only()
+        {
+            var game = NewCrimeGame();
+            Assert.True(game.CurrentPlayer.Roster.TryHire(game.Crew!.Get("crew_zoe"), out _));
+            Assert.True(game.CurrentPlayer.Roster.TryHire(game.Crew.Get("crew_jayne"), out _));
+            game.CurrentPlayer.Roster.DisgruntleWhere(_ => true);
+            game.CurrentPlayer.Cargo = 1;
+            StartCrime(game);
+            game.Misbehave!.PlaceOnTop(game.Misbehave.Catalog.Get("misbehave_locals-in-need"));
+            var resolver = new MisbehaveResolver();
+            resolver.DrawNext(game);
+
+            Assert.True(resolver.TryResolve(
+                game, "p1",
+                new MisbehaveChoice { OptionIndex = 0 },
+                out var resolution, out var error), error);
+            Assert.Equal(MisbehaveOutcome.Proceed, resolution!.Outcome);
+            Assert.Equal(0, game.CurrentPlayer.Cargo);
+            Assert.False(game.CurrentPlayer.Roster.Find("crew_zoe")!.Disgruntled);
+            Assert.True(game.CurrentPlayer.Roster.Find("crew_jayne")!.Disgruntled);
         }
 
         private static GameState NewCrimeGame(int cash = 500)

@@ -200,7 +200,8 @@ namespace Firefly.Core.State
         public const string NavFakeIdSalvage = "nav-fake-id-salvage";
         /// <summary>
         /// Misbehave optional exclusive discard: up to N Warrants <em>or</em> up to N Wanted Tokens
-        /// (Dead to Rights). Options: <see cref="MisbehaveWarrantOrWantedOptions"/>.
+        /// (Dead to Rights), or warrants-only optional discard (Improbably Complex).
+        /// Options: <see cref="MisbehaveWarrantOrWantedOptions"/> (wanted-tokens omitted when warrants-only).
         /// <see cref="ChoiceSubmission.Amount"/> = warrant count; Values = Wanted crew ids.
         /// ContextId = max count (e.g. "2").
         /// </summary>

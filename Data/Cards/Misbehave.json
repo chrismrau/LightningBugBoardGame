@@ -430,7 +430,7 @@
               "count": 1
             },
             {
-              "type": "clearDisgruntled"
+              "type": "clearDisgruntledMoral"
             },
             {
               "type": "proceed"
@@ -1076,7 +1076,7 @@
               "text": "7+ Remove Disgruntled from Moral Crew, Proceed",
               "effects": [
                 {
-                  "type": "clearDisgruntled"
+                  "type": "clearDisgruntledMoral"
                 },
                 {
                   "type": "proceed"
@@ -3295,6 +3295,9 @@
           "details": "Discard all Jobs in Hand. Attempt Botched.",
           "effects": [
             {
+              "type": "discardJobHand"
+            },
+            {
               "type": "botched"
             }
           ]
@@ -4413,7 +4416,7 @@
               "text": "8+ you may discard a Warrant. Proceed",
               "effects": [
                 {
-                  "type": "discardWarrants",
+                  "type": "mayDiscardWarrants",
                   "count": 1
                 },
                 {

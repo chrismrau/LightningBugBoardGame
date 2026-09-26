@@ -35,7 +35,19 @@ namespace Firefly.Core.Cards
         /// </summary>
         MayDiscardWarrantsOrWanted,
         /// <summary>Discard N Cargo from the hold (count = N; default 1). Fails if Cargo &lt; N.</summary>
-        DiscardCargo
+        DiscardCargo,
+        /// <summary>
+        /// Discard all Inactive Jobs in hand (FAQ 4.1: Jobs in hand ≠ Active Jobs on the table).
+        /// Returned to each Contact's discard pile.
+        /// </summary>
+        DiscardJobHand,
+        /// <summary>
+        /// Optional discard of up to N ship Warrants (count = N; default 1). Zero discards OK.
+        /// Suspends <see cref="State.PendingChoiceKinds.MisbehaveWarrantOrWanted"/> (none / warrants).
+        /// </summary>
+        MayDiscardWarrants,
+        /// <summary>Clear Disgruntled from Moral crew only (printed "Moral Crew").</summary>
+        ClearDisgruntledMoral
     }
 
     /// <summary>
