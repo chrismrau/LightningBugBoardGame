@@ -1,6 +1,6 @@
 {
   "meta": {
-    "description": "Firefly: The Game \u2013 Gear cards",
+    "description": "Firefly: The Game – Gear cards",
     "count": 74,
     "schemaVersion": "1.0"
   },
@@ -57,6 +57,10 @@
       "abilities": [
         {
           "type": "exemptFromGearLimit",
+          "mandatory": true
+        },
+        {
+          "type": "ignoreWantedCrewRoll",
           "mandatory": true
         }
       ]
@@ -316,7 +320,13 @@
       "count": 1,
       "specialAbilityType": null,
       "ability": null,
-      "id": "gear_alliance-ident-card"
+      "id": "gear_alliance-ident-card",
+      "abilities": [
+        {
+          "type": "ignoreWantedCrewRoll",
+          "mandatory": true
+        }
+      ]
     },
     {
       "class": "Standard",
@@ -1727,7 +1737,13 @@
       "count": 1,
       "specialAbilityType": null,
       "ability": null,
-      "id": "gear_scan-proof-shades_piratesbountyhunters"
+      "id": "gear_scan-proof-shades_piratesbountyhunters",
+      "abilities": [
+        {
+          "type": "ignoreWantedCrewRoll",
+          "mandatory": false
+        }
+      ]
     },
     {
       "class": "Standard",

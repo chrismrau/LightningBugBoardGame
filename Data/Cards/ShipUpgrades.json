@@ -1,6 +1,6 @@
 {
   "meta": {
-    "description": "Firefly: The Game \u2013 Ship Upgrade cards",
+    "description": "Firefly: The Game – Ship Upgrade cards",
     "count": 26,
     "schemaVersion": "1.0"
   },
@@ -164,7 +164,14 @@
       "count": 1,
       "specialAbilityType": null,
       "ability": null,
-      "id": "ship-upgrade_cryo-stasis-chamber_piratesbountyhunters"
+      "id": "ship-upgrade_cryo-stasis-chamber_piratesbountyhunters",
+      "abilities": [
+        {
+          "type": "ignoreWantedCrewRollSlots",
+          "amount": 1,
+          "mandatory": false
+        }
+      ]
     },
     {
       "class": "Standard",
@@ -279,7 +286,14 @@
       "count": 2,
       "specialAbilityType": null,
       "ability": null,
-      "id": "ship-upgrade_eva-suit_piratesbountyhunters"
+      "id": "ship-upgrade_eva-suit_piratesbountyhunters",
+      "abilities": [
+        {
+          "type": "ignoreWantedCrewRollSlots",
+          "amount": 1,
+          "mandatory": false
+        }
+      ]
     },
     {
       "class": "Standard",
@@ -676,7 +690,14 @@
       "count": 2,
       "specialAbilityType": null,
       "ability": null,
-      "id": "ship-upgrade_stash"
+      "id": "ship-upgrade_stash",
+      "abilities": [
+        {
+          "type": "ignoreWantedCrewRollSlots",
+          "amount": 2,
+          "mandatory": false
+        }
+      ]
     },
     {
       "class": "Standard",

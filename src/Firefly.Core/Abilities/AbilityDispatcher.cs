@@ -519,6 +519,118 @@ namespace Firefly.Core.Abilities
         }
 
         /// <summary>
+        /// Carried gear with <see cref="AbilityTypes.IgnoreWantedCrewRoll"/> protecting this crew.
+        /// Mandatory gear always protects; optional ("may") requires <paramref name="acceptMay"/>.
+        /// </summary>
+        public static bool CarrierIgnoresWantedCrewRoll(
+            GameState game,
+            PlayerState player,
+            string crewId,
+            bool? acceptMay = true)
+        {
+            if (game.Gear == null || string.IsNullOrWhiteSpace(crewId))
+                return false;
+            foreach (var gearId in GearCarriage.CarriedBy(player, crewId))
+            {
+                if (!game.Gear.TryGet(gearId, out var gear))
+                    continue;
+                foreach (var ability in AllFromGear(gear))
+                {
+                    if (!ability.MatchesType(AbilityTypes.IgnoreWantedCrewRoll))
+                        continue;
+                    if (ability.Mandatory)
+                        return true;
+                    // Printed "may" — FAQ 4.1 p.8: ask; acceptMay null means undecided.
+                    if (acceptMay == true)
+                        return true;
+                }
+            }
+            return false;
+        }
+
+        /// <summary>True when any Wanted crew carries optional ignoreWantedCrewRoll gear.</summary>
+        public static bool NeedsIgnoreWantedRollMayChoice(
+            GameState game,
+            PlayerState player,
+            bool? acceptMayAlready)
+        {
+            if (acceptMayAlready != null)
+                return false;
+            foreach (var member in player.Roster.WantedMembers())
+            {
+                if (JobWorkCrew.IsUnavailable(player, member) || member.IsLeader)
+                    continue;
+                if (CarrierHasOptionalIgnoreWantedRoll(game, player, member.Id))
+                    return true;
+            }
+            return false;
+        }
+
+        public static bool CarrierHasOptionalIgnoreWantedRoll(
+            GameState game,
+            PlayerState player,
+            string crewId)
+        {
+            if (game.Gear == null)
+                return false;
+            foreach (var gearId in GearCarriage.CarriedBy(player, crewId))
+            {
+                if (!game.Gear.TryGet(gearId, out var gear))
+                    continue;
+                foreach (var ability in AllFromGear(gear))
+                {
+                    if (ability.MatchesType(AbilityTypes.IgnoreWantedCrewRoll) && !ability.Mandatory)
+                        return true;
+                }
+            }
+            return false;
+        }
+
+        /// <summary>Sum of ignoreWantedCrewRollSlots amounts on installed ship upgrades.</summary>
+        public static int IgnoreWantedCrewRollSlotCount(GameState game, PlayerState player)
+        {
+            if (game.ShipUpgradeCatalog == null)
+                return 0;
+            var n = 0;
+            foreach (var id in player.ShipUpgrades)
+            {
+                if (!game.ShipUpgradeCatalog.TryGet(id, out var upgrade))
+                    continue;
+                foreach (var ability in upgrade.Abilities)
+                {
+                    if (!ability.MatchesType(AbilityTypes.IgnoreWantedCrewRollSlots))
+                        continue;
+                    n += ability.Amount > 0 ? ability.Amount : 1;
+                }
+            }
+            return n;
+        }
+
+        /// <summary>
+        /// Ship-upgrade ignore slots need a crew pick when slots &gt; 0, Wanted remain, and
+        /// <paramref name="chosenIds"/> is unset (null). Empty list = decline all slots.
+        /// </summary>
+        public static bool NeedsIgnoreWantedRollSlotsChoice(
+            GameState game,
+            PlayerState player,
+            IList<string>? chosenIds)
+        {
+            if (chosenIds != null)
+                return false;
+            var slots = IgnoreWantedCrewRollSlotCount(game, player);
+            if (slots <= 0)
+                return false;
+            foreach (var member in player.Roster.WantedMembers())
+            {
+                if (JobWorkCrew.IsUnavailable(player, member) || member.IsLeader)
+                    continue;
+                // Already covered by mandatory carried gear — still may use a slot on others.
+                return true;
+            }
+            return false;
+        }
+
+        /// <summary>
         /// Sheydra/Stitch once-per-job skill switch. Requires WorkingJob (not Boarding/Nav).
         /// </summary>
         public static AbilityDefinition? FindOncePerJobSkillSwitch(

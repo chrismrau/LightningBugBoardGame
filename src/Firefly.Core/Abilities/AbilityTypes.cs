@@ -150,6 +150,18 @@ namespace Firefly.Core.Abilities
         public const string RedirectKillApprehendSeize = "redirectKillApprehendSeize";
 
         /// <summary>
+        /// Carried gear: this crew ignores Alliance Wanted Crew Rolls (Bonnet / Ident Card).
+        /// Optional (<c>mandatory: false</c>) = printed "may" (Scan-Proof Shades) — PendingChoice.
+        /// </summary>
+        public const string IgnoreWantedCrewRoll = "ignoreWantedCrewRoll";
+
+        /// <summary>
+        /// Ship upgrade: up to <see cref="AbilityDefinition.Amount"/> crew aboard may ignore
+        /// Alliance Wanted Crew Rolls (Cryo / EVA = 1, Stash = 2). Optional — pick via PendingChoice.
+        /// </summary>
+        public const string IgnoreWantedCrewRollSlots = "ignoreWantedCrewRollSlots";
+
+        /// <summary>
         /// Sheydra / Stitch: once per job, may treat Skill as Subject skill (Fight↔Talk).
         /// Job-only. FAQ 4.1 p.9: Stitch never both Bribes and switch; not Boarding.
         /// </summary>

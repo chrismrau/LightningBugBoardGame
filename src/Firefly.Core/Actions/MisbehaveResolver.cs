@@ -56,6 +56,15 @@ namespace Firefly.Core.Actions
         public SkillCheckChoice? SkillCheck { get; set; }
         /// <summary>Discard-down when losing Solid (Mr. Universe hand / Higgins active).</summary>
         public SolidRepChoice? SolidRep { get; set; }
+        /// <summary>
+        /// Scan-Proof Shades "may" ignore Wanted Crew Roll: null = suspend, true = ignore, false = roll.
+        /// </summary>
+        public bool? AcceptIgnoreWantedRollGear { get; set; }
+        /// <summary>
+        /// Ship-upgrade ignore slots: null = suspend when slots available; empty = decline;
+        /// otherwise crew ids protected (up to slot count).
+        /// </summary>
+        public IList<string>? IgnoreWantedCrewIds { get; set; }
     }
 
     public sealed class MisbehaveResolution
@@ -128,8 +137,12 @@ namespace Firefly.Core.Actions
         private bool _resumingGoodsMix;
         /// <summary>True while warrant/Wanted discard resume re-enters <see cref="TryResolve"/>.</summary>
         private bool _resumingWarrantOrWanted;
+        private bool _resumingWantedRollChoice;
         private MisbehaveChoice? _pendingGoodsMixChoice;
         private MisbehaveChoice? _pendingWarrantOrWantedChoice;
+        private MisbehaveChoice? _pendingWantedRollChoice;
+        /// <summary>Frozen Wanted-seize crew ids after dice, awaiting Meadows PendingChoice.</summary>
+        private List<string>? _frozenWantedSeizeIds;
         private bool _frozenSkillReady;
         private SkillCheckResult? _frozenSkillCheck;
         private string? _frozenBandText;
@@ -770,6 +783,161 @@ namespace Firefly.Core.Actions
             }
         }
 
+        /// <summary>
+        /// Resume after Scan-Proof Shades / ship-upgrade ignore Wanted Crew Roll PendingChoice.
+        /// </summary>
+        public bool TryResumeWantedRollIgnore(
+            GameState game,
+            string playerId,
+            ChoiceSubmission submission,
+            MisbehaveChoice choice,
+            out MisbehaveResolution? resolution,
+            out string? error,
+            IRng? rng = null)
+        {
+            resolution = null;
+            error = null;
+            var kind = game.PendingChoice?.Kind;
+            if (kind == null
+                || (!string.Equals(kind, PendingChoiceKinds.WantedRollIgnoreGear, StringComparison.Ordinal)
+                    && !string.Equals(kind, PendingChoiceKinds.WantedRollIgnoreCrew, StringComparison.Ordinal)))
+            {
+                error = "No Wanted Crew Roll ignore choice is pending.";
+                return false;
+            }
+
+            var merged = _pendingWantedRollChoice ?? choice;
+            if (string.Equals(kind, PendingChoiceKinds.WantedRollIgnoreGear, StringComparison.Ordinal))
+            {
+                if (string.Equals(
+                        submission.SelectedOptionId,
+                        WantedRollIgnoreGearOptions.Ignore,
+                        StringComparison.Ordinal)
+                    || submission.Accepted == true)
+                    merged.AcceptIgnoreWantedRollGear = true;
+                else if (string.Equals(
+                             submission.SelectedOptionId,
+                             WantedRollIgnoreGearOptions.TakeRoll,
+                             StringComparison.Ordinal)
+                         || submission.Accepted == false)
+                    merged.AcceptIgnoreWantedRollGear = false;
+                else
+                {
+                    error = "Ignore Wanted Crew Roll or take the roll.";
+                    return false;
+                }
+            }
+            else
+            {
+                // Ship-upgrade slots: Values = protected crew ids (empty = decline all).
+                var ids = new List<string>();
+                if (submission.Values != null)
+                {
+                    foreach (var id in submission.Values)
+                    {
+                        if (!string.IsNullOrWhiteSpace(id))
+                            ids.Add(id);
+                    }
+                }
+                else if (!string.IsNullOrWhiteSpace(submission.SelectedOptionId)
+                         && !string.Equals(
+                             submission.SelectedOptionId,
+                             WantedRollIgnoreGearOptions.TakeRoll,
+                             StringComparison.Ordinal))
+                {
+                    ids.Add(submission.SelectedOptionId!);
+                }
+
+                var max = 1;
+                if (!string.IsNullOrWhiteSpace(game.PendingChoice!.ContextId)
+                    && int.TryParse(game.PendingChoice.ContextId, out var parsed)
+                    && parsed > 0)
+                    max = parsed;
+                if (ids.Count > max)
+                {
+                    error = $"At most {max} crew may ignore Wanted Crew Rolls from ship upgrades.";
+                    return false;
+                }
+                merged.IgnoreWantedCrewIds = ids;
+            }
+
+            choice.AcceptIgnoreWantedRollGear = merged.AcceptIgnoreWantedRollGear;
+            choice.IgnoreWantedCrewIds = merged.IgnoreWantedCrewIds;
+            if (choice.OptionIndex == null)
+                choice.OptionIndex = merged.OptionIndex;
+            if (choice.StepIndex == null)
+                choice.StepIndex = merged.StepIndex;
+            if (choice.Kill == null)
+                choice.Kill = merged.Kill;
+
+            if (!game.TrySubmitChoice(playerId, submission, out _, out error))
+                return false;
+
+            _pendingWantedRollChoice = null;
+            _resumingWantedRollChoice = true;
+            try
+            {
+                return TryResolve(game, playerId, choice, out resolution, out error, rng);
+            }
+            finally
+            {
+                _resumingWantedRollChoice = false;
+            }
+        }
+
+        /// <summary>
+        /// Resume after Meadows redirect PendingChoice during Misbehave Wanted Crew Roll seize.
+        /// </summary>
+        public bool TryResumeMeadowsWantedRoll(
+            GameState game,
+            string playerId,
+            ChoiceSubmission submission,
+            MisbehaveChoice choice,
+            out MisbehaveResolution? resolution,
+            out string? error,
+            IRng? rng = null)
+        {
+            resolution = null;
+            error = null;
+            if (game.PendingChoice == null
+                || !string.Equals(
+                    game.PendingChoice.Kind,
+                    PendingChoiceKinds.MeadowsRedirect,
+                    StringComparison.Ordinal))
+            {
+                error = "No Meadows redirect choice is pending.";
+                return false;
+            }
+
+            if (!MeadowsRedirect.TryParseAccept(submission, out var accept, out error))
+                return false;
+
+            var merged = _pendingWantedRollChoice ?? choice;
+            merged.Kill ??= new KillChoice();
+            merged.Kill.AcceptMeadowsRedirect = accept;
+            choice.Kill = merged.Kill;
+            if (choice.OptionIndex == null)
+                choice.OptionIndex = merged.OptionIndex;
+            if (choice.StepIndex == null)
+                choice.StepIndex = merged.StepIndex;
+            choice.AcceptIgnoreWantedRollGear ??= merged.AcceptIgnoreWantedRollGear;
+            choice.IgnoreWantedCrewIds ??= merged.IgnoreWantedCrewIds;
+
+            if (!game.TrySubmitChoice(playerId, submission, out _, out error))
+                return false;
+
+            _pendingWantedRollChoice = null;
+            _resumingWantedRollChoice = true;
+            try
+            {
+                return TryResolve(game, playerId, choice, out resolution, out error, rng);
+            }
+            finally
+            {
+                _resumingWantedRollChoice = false;
+            }
+        }
+
         public bool TryResolve(
             GameState game,
             string playerId,
@@ -796,7 +964,8 @@ namespace Firefly.Core.Actions
                 && !_resumingMisbehaveOption
                 && !_resumingDalin
                 && !_resumingGoodsMix
-                && !_resumingWarrantOrWanted)
+                && !_resumingWarrantOrWanted
+                && !_resumingWantedRollChoice)
             {
                 error = "Resolve the pending choice before continuing Misbehave.";
                 return false;
@@ -1389,6 +1558,8 @@ namespace Firefly.Core.Actions
             _frozenBribeCash = 0;
             _pendingKillAfterVictims = null;
             _pendingRerollResult = null;
+            // Keep _frozenWantedSeizeIds / _pendingWantedRollChoice across ClearFrozenSkill —
+            // WantedCrewRoll Meadows resume re-enters TryResolve after ClearFrozenSkill.
         }
 
         private static bool NeedsOptionChoice(
@@ -1534,7 +1705,7 @@ namespace Firefly.Core.Actions
                 pending.NextTalkBonus += int.Parse(bonus.Groups[1].Value);
         }
 
-        private static bool TryApplyStructuredEffects(
+        private bool TryApplyStructuredEffects(
             GameState game,
             PlayerState player,
             IReadOnlyList<MisbehaveEffect> effects,
@@ -1646,7 +1817,8 @@ namespace Firefly.Core.Actions
                         break;
                     case MisbehaveLocalEffectType.WantedCrewRoll:
                         if (!TryApplyWantedCrewRoll(
-                                game, player, rng, choice, out var anySeized, out error))
+                                game, player, rng, choice,
+                                out var anySeized, out error))
                             return false;
                         if (anySeized)
                         {
@@ -2552,9 +2724,12 @@ namespace Firefly.Core.Actions
 
         /// <summary>
         /// Alliance Wanted Crew Roll (same capture table as Cruiser Contact / Background Checks).
-        /// Seized crew are removed from play. Meadows redirect deferred (thin PendingChoice).
+        /// Seized crew are removed from play. Meadows may redirect the first seize (PendingChoice).
+        /// Director's Cut C&amp;P p.49: Wanted Tokens exclude the Leader — Leaders are skipped
+        /// on this roll (pending user confirm if a Leader is somehow Wanted).
+        /// FAQ 4.1 Really Lucky applies to Kill only — not seized.
         /// </summary>
-        private static bool TryApplyWantedCrewRoll(
+        private bool TryApplyWantedCrewRoll(
             GameState game,
             PlayerState player,
             IRng rng,
@@ -2564,33 +2739,161 @@ namespace Firefly.Core.Actions
         {
             anySeized = false;
             error = null;
-            _ = choice;
-            var warrantsAtRoll = player.Warrants;
-            var wanted = player.Roster.WantedMembers();
-            for (var i = 0; i < wanted.Count; i++)
+
+            // Optional carried may-ignore gear (Scan-Proof Shades).
+            if (AbilityDispatcher.NeedsIgnoreWantedRollMayChoice(
+                    game, player, choice.AcceptIgnoreWantedRollGear))
             {
-                var member = wanted[i];
+                FreezeSkillIfNeeded();
+                _pendingWantedRollChoice = choice;
+                var pending = new PendingChoice(
+                    player.Id,
+                    PendingChoiceKinds.WantedRollIgnoreGear,
+                    contextId: "misbehave-wanted-roll",
+                    options: new[]
+                    {
+                        WantedRollIgnoreGearOptions.Ignore,
+                        WantedRollIgnoreGearOptions.TakeRoll
+                    },
+                    prompt: "Ignore Wanted Crew Roll with carried gear?");
+                if (!game.TrySetPendingChoice(pending, out error))
+                    return false;
+                error = "Choose whether to ignore Wanted Crew Rolls with carried gear.";
+                return false;
+            }
+
+            // Ship-upgrade ignore slots (Cryo / EVA / Stash).
+            if (AbilityDispatcher.NeedsIgnoreWantedRollSlotsChoice(
+                    game, player, choice.IgnoreWantedCrewIds))
+            {
+                FreezeSkillIfNeeded();
+                _pendingWantedRollChoice = choice;
+                var slots = AbilityDispatcher.IgnoreWantedCrewRollSlotCount(game, player);
+                // Options null — multi-select via ChoiceSubmission.Values (like GoodsMix).
+                var pending = new PendingChoice(
+                    player.Id,
+                    PendingChoiceKinds.WantedRollIgnoreCrew,
+                    contextId: slots.ToString(),
+                    options: null,
+                    prompt: $"Choose up to {slots} Wanted crew to ignore Alliance Wanted Crew Rolls (or none).");
+                if (!game.TrySetPendingChoice(pending, out error))
+                    return false;
+                error = "Choose which Wanted crew ignore Wanted Crew Rolls via ship upgrades.";
+                return false;
+            }
+
+            var protectedIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            if (choice.IgnoreWantedCrewIds != null)
+            {
+                foreach (var id in choice.IgnoreWantedCrewIds)
+                {
+                    if (!string.IsNullOrWhiteSpace(id))
+                        protectedIds.Add(id);
+                }
+            }
+
+            // Resume after Meadows: apply frozen seize list.
+            if (_frozenWantedSeizeIds != null)
+            {
+                anySeized = ApplyWantedSeizes(
+                    game, player, rng, choice, _frozenWantedSeizeIds, out error);
+                _frozenWantedSeizeIds = null;
+                return error == null;
+            }
+
+            var warrantsAtRoll = player.Warrants;
+            var seizeIds = new List<string>();
+            foreach (var member in player.Roster.WantedMembers())
+            {
                 if (JobWorkCrew.IsUnavailable(player, member))
                     continue;
+                // DC C&P p.49 Wanted Tokens: "other than your Leader." Leaders are not subjects
+                // of Wanted Crew Rolls here (Really Lucky is Kill-only — FAQ 4.1).
+                if (member.IsLeader)
+                    continue;
+                if (protectedIds.Contains(member.Id))
+                    continue;
+                if (AbilityDispatcher.CarrierIgnoresWantedCrewRoll(
+                        game, player, member.Id, choice.AcceptIgnoreWantedRollGear))
+                    continue;
+
                 var die = Dice.D6(rng);
                 if (!ActiveAlertRules.WantedCrewCaptured(game, die, warrantsAtRoll))
                     continue;
+                seizeIds.Add(member.Id);
+            }
 
-                if (member.IsLeader)
+            if (seizeIds.Count == 0)
+            {
+                anySeized = false;
+                return true;
+            }
+
+            // Meadows: may Kill Meadows instead of the first Alliance seize (PendingChoice).
+            var kill = choice.Kill ?? new KillChoice();
+            choice.Kill = kill;
+            if (MeadowsRedirect.NeedsChoice(player, kill.AcceptMeadowsRedirect))
+            {
+                FreezeSkillIfNeeded();
+                _frozenWantedSeizeIds = seizeIds;
+                _pendingWantedRollChoice = choice;
+                if (!MeadowsRedirect.TrySuspend(
+                        game, player, $"misbehave-wanted-seize:{seizeIds[0]}", out error))
                 {
-                    // Leaders are REALLY Lucky: Disgruntle instead of remove (FAQ 4.1 p.3).
-                    if (!member.Disgruntled)
-                        member.Disgruntled = true;
-                    anySeized = true;
+                    _frozenWantedSeizeIds = null;
+                    return false;
+                }
+                error = "Choose whether to Kill Meadows instead of Alliance seize.";
+                return false;
+            }
+
+            anySeized = ApplyWantedSeizes(game, player, rng, choice, seizeIds, out error);
+            return error == null;
+        }
+
+        private void FreezeSkillIfNeeded()
+        {
+            // Skill already frozen when entering structured effects after a roll; no-op if unset.
+            // WantedCrewRoll-only options have no skill — fine.
+        }
+
+        private static bool ApplyWantedSeizes(
+            GameState game,
+            PlayerState player,
+            IRng rng,
+            MisbehaveChoice choice,
+            IReadOnlyList<string> seizeIds,
+            out string? error)
+        {
+            error = null;
+            if (seizeIds.Count == 0)
+                return false;
+
+            var kill = choice.Kill ?? new KillChoice();
+            choice.Kill = kill;
+            var meadowsUsed = false;
+            var any = false;
+            foreach (var id in seizeIds)
+            {
+                var member = player.Roster.Find(id);
+                if (member == null || member.IsLeader)
+                    continue;
+
+                if (kill.AcceptMeadowsRedirect == true && !meadowsUsed)
+                {
+                    MeadowsRedirect.KillMeadowsInstead(game, player, rng, kill);
+                    meadowsUsed = true;
+                    any = true;
                     continue;
                 }
 
+                meadowsUsed = true;
                 player.Roster.Remove(member.Id);
                 game.RemovedFromPlay.Add(member.Id);
-                anySeized = true;
+                any = true;
             }
 
-            return true;
+            return any;
         }
 
         private static void ReturnWantedCrewToShip(GameState game, PlayerState player)

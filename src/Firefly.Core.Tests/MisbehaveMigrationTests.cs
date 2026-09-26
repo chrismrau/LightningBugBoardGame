@@ -1388,6 +1388,194 @@ namespace Firefly.Core.Tests
             Assert.False(active.IsReturnedToShip("crew_kaylee"));
         }
 
+        [Fact]
+        public void Batch3_lock_stop_and_frisk_onboard_FIREARM_not_seized()
+        {
+            // Lock 1: All FIREARMS = carried only; onboard stays.
+            var game = NewCrimeGame();
+            Assert.True(game.CurrentPlayer.Roster.TryHire(game.Crew!.Get("crew_jayne"), out _));
+            game.CurrentPlayer.Gear.Add("gear_pistol"); // onboard — not carried
+            StartCrime(game);
+            game.Misbehave!.PlaceOnTop(game.Misbehave.Catalog.Get("misbehave_stop-and-frisk"));
+            var resolver = new MisbehaveResolver();
+            resolver.DrawNext(game);
+
+            Assert.True(resolver.TryResolve(
+                game, "p1",
+                new MisbehaveChoice { OptionIndex = 1 },
+                out var resolution, out var error), error);
+            Assert.Equal(MisbehaveOutcome.Proceed, resolution!.Outcome);
+            Assert.Contains("gear_pistol", game.CurrentPlayer.Gear);
+            Assert.DoesNotContain("gear_pistol", game.RemovedFromPlay);
+        }
+
+        [Fact]
+        public void Batch3_lock_Meadows_PendingChoice_on_Wanted_seize()
+        {
+            // Lock 2: Meadows redirects Misbehave Wanted Crew Roll seize.
+            var game = NewCrimeGame();
+            Assert.True(game.CurrentPlayer.Roster.TryHire(game.Crew!.Get("crew_jayne"), out _));
+            Assert.True(game.CurrentPlayer.Roster.TryHire(
+                game.Crew.Get("crew_meadows_piratesbountyhunters"), out _));
+            game.CurrentPlayer.Roster.MarkWanted("crew_jayne");
+            StartCrime(game);
+            game.Misbehave!.PlaceOnTop(game.Misbehave.Catalog.Get("misbehave_check-point"));
+            var resolver = new MisbehaveResolver();
+            resolver.DrawNext(game);
+
+            Assert.False(resolver.TryResolve(
+                game, "p1",
+                new MisbehaveChoice { OptionIndex = 1 },
+                out _, out var error,
+                ScriptedRng.FromDieFaces(1)));
+            Assert.Contains("Meadows", error);
+            Assert.Equal(PendingChoiceKinds.MeadowsRedirect, game.PendingChoice!.Kind);
+
+            Assert.True(resolver.TryResumeMeadowsWantedRoll(
+                game, "p1",
+                new ChoiceSubmission { SelectedOptionId = MeadowsRedirectOptions.KillMeadows },
+                new MisbehaveChoice { OptionIndex = 1 },
+                out var resolution, out error,
+                ScriptedRng.FromDieFaces(1)), error);
+            Assert.Equal(MisbehaveOutcome.Botched, resolution!.Outcome);
+            Assert.Equal(1, resolution.WarrantsIssued);
+            Assert.NotNull(game.CurrentPlayer.Roster.Find("crew_jayne")); // saved
+            Assert.Null(game.CurrentPlayer.Roster.Find("crew_meadows_piratesbountyhunters"));
+        }
+
+        [Fact]
+        public void Batch3_lock_Ident_Card_carrier_ignores_Wanted_Crew_Roll()
+        {
+            // Lock 3: carried Ident Card ignores Wanted Crew Roll.
+            var game = NewCrimeGame();
+            Assert.True(game.CurrentPlayer.Roster.TryHire(game.Crew!.Get("crew_jayne"), out _));
+            game.CurrentPlayer.Roster.MarkWanted("crew_jayne");
+            GiveCarriedGear(game, "gear_alliance-ident-card", "crew_jayne");
+            StartCrime(game);
+            game.Misbehave!.PlaceOnTop(game.Misbehave.Catalog.Get("misbehave_check-point"));
+            var resolver = new MisbehaveResolver();
+            resolver.DrawNext(game);
+
+            Assert.True(resolver.TryResolve(
+                game, "p1",
+                new MisbehaveChoice { OptionIndex = 1 },
+                out var resolution, out var error,
+                ScriptedRng.FromDieFaces(1)), error);
+            Assert.Equal(MisbehaveOutcome.Proceed, resolution!.Outcome);
+            Assert.Equal(0, resolution.WarrantsIssued);
+            Assert.NotNull(game.CurrentPlayer.Roster.Find("crew_jayne"));
+        }
+
+        [Fact]
+        public void Batch3_lock_Shades_may_ignore_Wanted_Crew_Roll_PendingChoice()
+        {
+            // Lock 3: Scan-Proof Shades "may" — FAQ 4.1 p.8 suspend.
+            var game = NewCrimeGame();
+            Assert.True(game.CurrentPlayer.Roster.TryHire(game.Crew!.Get("crew_jayne"), out _));
+            game.CurrentPlayer.Roster.MarkWanted("crew_jayne");
+            GiveCarriedGear(game, "gear_scan-proof-shades_piratesbountyhunters", "crew_jayne");
+            StartCrime(game);
+            game.Misbehave!.PlaceOnTop(game.Misbehave.Catalog.Get("misbehave_check-point"));
+            var resolver = new MisbehaveResolver();
+            resolver.DrawNext(game);
+
+            Assert.False(resolver.TryResolve(
+                game, "p1",
+                new MisbehaveChoice { OptionIndex = 1 },
+                out _, out var error,
+                ScriptedRng.FromDieFaces(1)));
+            Assert.Equal(PendingChoiceKinds.WantedRollIgnoreGear, game.PendingChoice!.Kind);
+
+            Assert.True(resolver.TryResumeWantedRollIgnore(
+                game, "p1",
+                new ChoiceSubmission { SelectedOptionId = WantedRollIgnoreGearOptions.Ignore },
+                new MisbehaveChoice { OptionIndex = 1 },
+                out var resolution, out error,
+                ScriptedRng.FromDieFaces(1)), error);
+            Assert.Equal(MisbehaveOutcome.Proceed, resolution!.Outcome);
+            Assert.NotNull(game.CurrentPlayer.Roster.Find("crew_jayne"));
+        }
+
+        [Fact]
+        public void Batch3_lock_Stash_slots_pick_Wanted_to_ignore()
+        {
+            // Lock 3: Stash — up to 2 crew may ignore Wanted Crew Rolls.
+            var game = NewCrimeGame();
+            game.ShipUpgradeCatalog = ShipUpgradeIndex.LoadDefault();
+            Assert.True(game.CurrentPlayer.Roster.TryHire(game.Crew!.Get("crew_jayne"), out _));
+            game.CurrentPlayer.Roster.MarkWanted("crew_jayne");
+            game.CurrentPlayer.ShipUpgrades.Add("ship-upgrade_stash");
+            StartCrime(game);
+            game.Misbehave!.PlaceOnTop(game.Misbehave.Catalog.Get("misbehave_check-point"));
+            var resolver = new MisbehaveResolver();
+            resolver.DrawNext(game);
+
+            Assert.False(resolver.TryResolve(
+                game, "p1",
+                new MisbehaveChoice { OptionIndex = 1 },
+                out _, out var error,
+                ScriptedRng.FromDieFaces(1)));
+            Assert.Equal(PendingChoiceKinds.WantedRollIgnoreCrew, game.PendingChoice!.Kind);
+
+            Assert.True(resolver.TryResumeWantedRollIgnore(
+                game, "p1",
+                new ChoiceSubmission { Values = new List<string> { "crew_jayne" } },
+                new MisbehaveChoice { OptionIndex = 1 },
+                out var resolution, out error,
+                ScriptedRng.FromDieFaces(1)), error);
+            Assert.Equal(MisbehaveOutcome.Proceed, resolution!.Outcome);
+            Assert.NotNull(game.CurrentPlayer.Roster.Find("crew_jayne"));
+        }
+
+        [Fact]
+        public void Batch3_lock_grumpy_Fight_tie_first_roster_order()
+        {
+            // Lock 4: Fight ties → first roster order.
+            var game = NewCrimeGame();
+            Assert.True(game.CurrentPlayer.Roster.TryHire(game.Crew!.Get("crew_jayne"), out _)); // Fight 2
+            Assert.True(game.CurrentPlayer.Roster.TryHire(game.Crew.Get("crew_zoe"), out _)); // Fight 2
+            StartCrime(game);
+            game.Misbehave!.PlaceOnTop(game.Misbehave.Catalog.Get("misbehave_grumpy-malcontent"));
+            var resolver = new MisbehaveResolver();
+            resolver.DrawNext(game);
+
+            Assert.True(resolver.TryResolve(
+                game, "p1",
+                new MisbehaveChoice { OptionIndex = 1 },
+                out var resolution, out var error), error);
+            Assert.Equal(MisbehaveOutcome.Proceed, resolution!.Outcome);
+            var active = game.CurrentPlayer.FindActive(Crime)!;
+            Assert.True(active.IsReturnedToShip("crew_jayne"));
+            Assert.False(active.IsReturnedToShip("crew_zoe"));
+        }
+
+        [Fact]
+        public void Batch3_lock5_Leader_Wanted_skipped_on_Wanted_Crew_Roll()
+        {
+            // Lock 5 interim: DC C&P Wanted Tokens exclude Leader; Really Lucky is Kill-only.
+            // Leader with Wanted marked is skipped (not seized, not Disgruntled, no Warrant).
+            var game = NewCrimeGame();
+            Assert.True(game.CurrentPlayer.Roster.TryHire(
+                LeaderCatalog.LoadDefault().Get("leader_malcolm"), out _));
+            var mal = game.CurrentPlayer.Roster.Find("leader_malcolm")!;
+            Assert.True(mal.IsLeader);
+            mal.MarkWanted();
+            StartCrime(game);
+            game.Misbehave!.PlaceOnTop(game.Misbehave.Catalog.Get("misbehave_check-point"));
+            var resolver = new MisbehaveResolver();
+            resolver.DrawNext(game);
+
+            Assert.True(resolver.TryResolve(
+                game, "p1",
+                new MisbehaveChoice { OptionIndex = 1 },
+                out var resolution, out var error,
+                ScriptedRng.FromDieFaces(1)), error);
+            Assert.Equal(MisbehaveOutcome.Proceed, resolution!.Outcome);
+            Assert.Equal(0, resolution.WarrantsIssued);
+            Assert.NotNull(game.CurrentPlayer.Roster.Find("leader_malcolm"));
+            Assert.False(game.CurrentPlayer.Roster.Find("leader_malcolm")!.Disgruntled);
+        }
+
         private static void GiveCarriedGear(GameState game, string gearId, string crewId)
         {
             game.CurrentPlayer.Gear.Add(gearId);
