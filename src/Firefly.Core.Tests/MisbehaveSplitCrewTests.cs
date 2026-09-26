@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Firefly.Core.Abilities;
 using Firefly.Core.Actions;
 using Firefly.Core.Cards;
 using Firefly.Core.Data;
@@ -360,6 +361,278 @@ namespace Firefly.Core.Tests
                     return true;
             }
             return false;
+        }
+
+        [Fact]
+        public void Lock_nested_Kill_N_rejects_victim_outside_active_team()
+        {
+            // Christopher lock PR #55: nested Kill N victims must be on the active team.
+            var game = NewCrimeGame();
+            HireMalAndJayne(game);
+            Assert.True(game.CurrentPlayer.Roster.TryHire(game.Crew!.Get("crew_zoe"), out _));
+            StartCrime(game);
+
+            var killOne = new MisbehaveCard(
+                "nested_kill_one",
+                "Kill One",
+                "Clubs",
+                null,
+                null,
+                false,
+                new[]
+                {
+                    new MisbehaveOption(
+                        "Spill",
+                        "Kill a Crew. Attempt Botched.",
+                        effects: new[]
+                        {
+                            MisbehaveEffect.Of(CardEffectType.KillCrew, 1),
+                            MisbehaveEffect.Of(MisbehaveLocalEffectType.Botched)
+                        })
+                });
+
+            game.Misbehave!.PlaceOnTop(MakeEffectsOnly("nested_proceed", "proceed"));
+            game.Misbehave.PlaceOnTop(killOne);
+            game.Misbehave.PlaceOnTop(game.Misbehave.Catalog.Get("misbehave_fork-in-the-road"));
+
+            var resolver = new MisbehaveResolver();
+            resolver.DrawNext(game);
+            Assert.False(resolver.TryResolve(
+                game, "p1", new MisbehaveChoice { OptionIndex = 0 }, out _, out _));
+
+            // Team A = Jayne + Zoe; Mal on Team B. Kill N suspends for victim pick.
+            Assert.False(resolver.TryResumeSplitCrew(
+                game, "p1",
+                new ChoiceSubmission { Values = new List<string> { "crew_jayne", "crew_zoe" } },
+                new MisbehaveChoice { OptionIndex = 0 },
+                out _, out _));
+            Assert.Equal(PendingChoiceKinds.KillVictim, game.PendingChoice!.Kind);
+
+            // Off-team Leader is illegal.
+            Assert.False(resolver.TryResumeKillVictims(
+                game, "p1",
+                new ChoiceSubmission { Values = new List<string> { "leader_malcolm" } },
+                new MisbehaveChoice { OptionIndex = 0 },
+                out _, out var error));
+            Assert.Contains("active Split Crew team", error);
+
+            // On-team Jayne is legal → Botch → Jayne killed, Zoe still Working with Mal → Proceed past.
+            Assert.True(resolver.TryResumeKillVictims(
+                game, "p1",
+                new ChoiceSubmission { Values = new List<string> { "crew_jayne" } },
+                new MisbehaveChoice { OptionIndex = 0 },
+                out var resolution, out var okError), okError);
+            Assert.Equal(MisbehaveOutcome.Proceed, resolution!.Outcome);
+            Assert.Null(game.CurrentPlayer.Roster.Find("crew_jayne"));
+            Assert.NotNull(game.CurrentPlayer.Roster.Find("crew_zoe"));
+            Assert.NotNull(game.CurrentPlayer.Roster.Find("leader_malcolm"));
+        }
+
+        [Fact]
+        public void Lock_nested_Warrant_without_Botch_does_not_Return_team()
+        {
+            // Christopher lock PR #55: Return team only on Botch; Warrant alone does not Return.
+            var game = NewCrimeGame();
+            HireMalAndJayne(game);
+            StartCrime(game);
+
+            game.Misbehave!.PlaceOnTop(MakeEffectsOnly("nested_proceed", "proceed"));
+            game.Misbehave.PlaceOnTop(MakeEffectsOnly("nested_warrant", "warrantIssued"));
+            game.Misbehave.PlaceOnTop(game.Misbehave.Catalog.Get("misbehave_fork-in-the-road"));
+
+            var resolver = new MisbehaveResolver();
+            resolver.DrawNext(game);
+            Assert.False(resolver.TryResolve(
+                game, "p1", new MisbehaveChoice { OptionIndex = 0 }, out _, out _));
+
+            Assert.True(resolver.TryResumeSplitCrew(
+                game, "p1",
+                new ChoiceSubmission { Values = new List<string> { "crew_jayne" } },
+                new MisbehaveChoice { OptionIndex = 0 },
+                out var resolution, out var error), error);
+
+            // Warrant abandons Job at aggregation (lock 1); Jayne was not Returned before abandon.
+            Assert.Equal(MisbehaveOutcome.Botched, resolution!.Outcome);
+            Assert.True(game.CurrentPlayer.Warrants >= 1);
+            Assert.Null(game.CurrentPlayer.FindActive(Crime));
+            Assert.NotNull(game.CurrentPlayer.Roster.Find("crew_jayne"));
+        }
+
+        [Fact]
+        public void Lock_nested_Ace_Proceeds_that_team_card()
+        {
+            // Christopher lock PR #55: Ace auto-Proceeds the nested team card.
+            var game = NewCrimeGame();
+            HireMalAndJayne(game);
+            GiveCarriedGear(game, "gear_pistol", "crew_jayne");
+            StartCrime(game);
+
+            // Two options so nested suspends for MisbehaveOption before Botch applies.
+            var aceCard = new MisbehaveCard(
+                "nested_ace",
+                "Ace Nested",
+                "Hearts",
+                "FIREARM",
+                null,
+                false,
+                new[]
+                {
+                    new MisbehaveOption(
+                        "Would Botch A",
+                        "Attempt Botched.",
+                        effects: new[] { MisbehaveEffect.Of(MisbehaveLocalEffectType.Botched) }),
+                    new MisbehaveOption(
+                        "Would Botch B",
+                        "Attempt Botched.",
+                        effects: new[] { MisbehaveEffect.Of(MisbehaveLocalEffectType.Botched) })
+                });
+
+            game.Misbehave!.PlaceOnTop(MakeEffectsOnly("nested_proceed", "proceed"));
+            game.Misbehave.PlaceOnTop(aceCard);
+            game.Misbehave.PlaceOnTop(game.Misbehave.Catalog.Get("misbehave_fork-in-the-road"));
+
+            var resolver = new MisbehaveResolver();
+            resolver.DrawNext(game);
+            Assert.False(resolver.TryResolve(
+                game, "p1", new MisbehaveChoice { OptionIndex = 0 }, out _, out _));
+
+            Assert.False(resolver.TryResumeSplitCrew(
+                game, "p1",
+                new ChoiceSubmission { Values = new List<string> { "crew_jayne" } },
+                new MisbehaveChoice { OptionIndex = 0 },
+                out _, out _));
+            Assert.Equal(PendingChoiceKinds.MisbehaveOption, game.PendingChoice!.Kind);
+            Assert.Equal("nested_ace", game.PendingMisbehave!.FaceUp!.Id);
+
+            Assert.True(resolver.TryResolve(
+                game, "p1",
+                new MisbehaveChoice { UseAce = true },
+                out var resolution, out var error), error);
+            Assert.Equal(MisbehaveOutcome.Proceed, resolution!.Outcome);
+            Assert.False(game.CurrentPlayer.FindActive(Crime)!.IsReturnedToShip("crew_jayne"));
+        }
+
+        [Fact]
+        public void Lock_nested_Replace_redraws_team_card_only()
+        {
+            // Christopher lock PR #55: nested Replace redraws that team's card; Remaining unchanged.
+            var game = NewCrimeGame();
+            HireMalAndJayne(game);
+            StartCrime(game);
+            var remainingBefore = game.PendingMisbehave!.Remaining;
+
+            var replaceCard = new MisbehaveCard(
+                "nested_replace",
+                "Replace Nested",
+                "Clubs",
+                null,
+                null,
+                false,
+                new[]
+                {
+                    new MisbehaveOption(
+                        "Draw Another",
+                        "Draw Another Misbehave Card to replace this card.",
+                        effects: new[] { MisbehaveEffect.Of(MisbehaveLocalEffectType.ReplaceCard) })
+                });
+
+            game.Misbehave!.PlaceOnTop(MakeEffectsOnly("nested_proceed_b", "proceed"));
+            game.Misbehave.PlaceOnTop(MakeEffectsOnly("nested_proceed_after_replace", "proceed"));
+            game.Misbehave.PlaceOnTop(replaceCard);
+            game.Misbehave.PlaceOnTop(game.Misbehave.Catalog.Get("misbehave_fork-in-the-road"));
+
+            var resolver = new MisbehaveResolver();
+            resolver.DrawNext(game);
+            Assert.False(resolver.TryResolve(
+                game, "p1", new MisbehaveChoice { OptionIndex = 0 }, out _, out _));
+
+            Assert.True(resolver.TryResumeSplitCrew(
+                game, "p1",
+                new ChoiceSubmission { Values = new List<string> { "crew_jayne" } },
+                new MisbehaveChoice { OptionIndex = 0 },
+                out var resolution, out var error), error);
+
+            Assert.Equal(MisbehaveOutcome.Proceed, resolution!.Outcome);
+            Assert.Equal("misbehave_fork-in-the-road", resolution.Card.Id);
+            // Nested replace must not bump Remaining the way Hotel "Draw 2" does.
+            if (game.PendingMisbehave != null)
+                Assert.True(game.PendingMisbehave.Remaining < remainingBefore
+                    || game.PendingMisbehave.Remaining == remainingBefore - 1);
+        }
+
+        [Fact]
+        public void Lock_Dalin_not_reoffered_mid_nested()
+        {
+            // Christopher lock PR #55: Dalin once per Work — not re-offered on nested team cards.
+            var game = NewCrimeGame(cash: 500);
+            HireMalAndJayne(game);
+            Assert.True(game.CurrentPlayer.Roster.TryHire(
+                game.Crew!.Get("crew_dalin_piratesbountyhunters"), out _));
+            StartCrime(game);
+
+            game.Misbehave!.PlaceOnTop(MakeEffectsOnly("nested_proceed_b", "proceed"));
+            game.Misbehave.PlaceOnTop(MakeEffectsOnly("nested_proceed_a", "proceed"));
+            game.Misbehave.PlaceOnTop(game.Misbehave.Catalog.Get("misbehave_fork-in-the-road"));
+
+            var resolver = new MisbehaveResolver();
+            resolver.DrawNext(game);
+
+            Assert.False(resolver.TryResolve(
+                game, "p1", new MisbehaveChoice { OptionIndex = 0 }, out _, out _));
+            Assert.Equal(PendingChoiceKinds.MisbehaveDiscardRedraw, game.PendingChoice!.Kind);
+
+            Assert.False(resolver.TryResumeDalinRedraw(
+                game, "p1",
+                new ChoiceSubmission { SelectedOptionId = DalinRedrawOptions.Decline },
+                new MisbehaveChoice { OptionIndex = 0 },
+                out _, out _));
+            Assert.Equal(PendingChoiceKinds.MisbehaveSplitCrew, game.PendingChoice!.Kind);
+
+            Assert.True(resolver.TryResumeSplitCrew(
+                game, "p1",
+                new ChoiceSubmission { Values = new List<string> { "crew_jayne" } },
+                new MisbehaveChoice { OptionIndex = 0 },
+                out var resolution, out var error), error);
+            Assert.Equal(MisbehaveOutcome.Proceed, resolution!.Outcome);
+            Assert.Null(game.PendingChoice);
+        }
+
+        [Fact]
+        public void Lock_Tails_Fight_uses_team_gear_Fight_addend()
+        {
+            // Christopher lock PR #55: Tails Fight 12 = normal Fight + team carried gear.
+            var game = NewCrimeGame();
+            HireMalAndJayne(game);
+            // Vera: +2 Fight carried → Jayne 2 crew + 2 gear = 4 dice.
+            GiveCarriedGear(game, "gear_vera", "crew_jayne");
+            StartCrime(game);
+            game.Misbehave!.PlaceOnTop(
+                game.Misbehave.Catalog.Get("misbehave_theyre-right-on-our-tails"));
+            var resolver = new MisbehaveResolver();
+            resolver.DrawNext(game);
+
+            Assert.True(resolver.TryResolve(
+                game, "p1",
+                new MisbehaveChoice
+                {
+                    OptionIndex = 0,
+                    SplitTeam0CrewIds = new List<string> { "crew_jayne" }
+                },
+                out var resolution, out var error,
+                ScriptedRng.FromDieFaces(6, 6, 6, 6)), error);
+
+            Assert.Equal(MisbehaveOutcome.Proceed, resolution!.Outcome);
+            Assert.NotNull(resolution.SkillCheck);
+            Assert.True(resolution.SkillCheck!.Roll.Faces.Count >= 4);
+            Assert.True(game.CurrentPlayer.FindActive(Crime)!.IsReturnedToShip("crew_jayne"));
+        }
+
+        private static void GiveCarriedGear(GameState game, string gearId, string crewId)
+        {
+            game.CurrentPlayer.Gear.Add(gearId);
+            Assert.True(
+                GearCarriage.TryAssign(game, game.CurrentPlayer, gearId, crewId, out var error),
+                error);
         }
 
         private static MisbehaveCard MakeEffectsOnly(string id, string effectType)

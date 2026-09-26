@@ -456,7 +456,8 @@ namespace Firefly.Core.Actions
 
             var player = game.GetPlayer(playerId);
             if (!CrewKill.TryMergeVictimSubmission(
-                    player, count, submission, choice.Kill, out var merged, out error))
+                    player, count, submission, choice.Kill, out var merged, out error,
+                    onlyCrewIds: ActiveTeamCrewIdsOrNull(game)))
                 return false;
             choice.Kill = merged;
 
@@ -1107,6 +1108,18 @@ namespace Firefly.Core.Actions
                 error = "This Misbehave belongs to another player.";
                 return false;
             }
+            // Ace may be played instead of choosing a Misbehave option (GF9 / printed Aces).
+            if (game.PendingChoice != null
+                && choice.UseAce
+                && string.Equals(
+                    game.PendingChoice.Kind,
+                    PendingChoiceKinds.MisbehaveOption,
+                    StringComparison.Ordinal)
+                && string.Equals(game.PendingChoice.PlayerId, playerId, StringComparison.Ordinal))
+            {
+                game.ClearPendingChoice();
+            }
+
             if (game.PendingChoice != null
                 && !_resumingKillVictims
                 && !_resumingBribeOrMedFoam
@@ -1303,7 +1316,7 @@ namespace Firefly.Core.Actions
                 if (choice.Kill.VictimCrewIds == null || choice.Kill.VictimCrewIds.Count == 0)
                     choice.Kill.VictimCrewIds = new List<string> { choice.TargetCrewId! };
             }
-            if (CrewKill.NeedsVictimChoice(player, plannedKill, choice.Kill))
+            if (CrewKill.NeedsVictimChoice(player, plannedKill, choice.Kill, _activeTeamCrewIds))
             {
                 FreezeSkill(check, bandText, structuredEffects, bribeCash);
                 if (!CrewKill.TrySuspendVictimChoice(game, player, plannedKill, out error))
@@ -2039,7 +2052,8 @@ namespace Firefly.Core.Actions
             outcome = MisbehaveOutcome.Proceed;
             error = null;
 
-            var context = new CardEffectContext(CardEffectSource.Misbehave, choice.Kill);
+            var context = new CardEffectContext(
+                CardEffectSource.Misbehave, choice.Kill, onlyCrewIds: _activeTeamCrewIds);
 
             foreach (var effect in effects)
             {
@@ -2769,7 +2783,20 @@ namespace Firefly.Core.Actions
             var count = ParseKillCrewCount(text);
             if (count <= 0)
                 return true;
-            return CrewKill.TryKillUpTo(game, player, count, rng, out killed, out error, killChoice);
+            return CrewKill.TryKillUpTo(
+                game, player, count, rng, out killed, out error, killChoice, _activeTeamCrewIds);
+        }
+
+        /// <summary>
+        /// Active Split Crew team while nested resolve / Tails Fight is in progress.
+        /// Used by Kill-victim resume merge (Christopher lock PR #55).
+        /// </summary>
+        private static IReadOnlyList<string>? ActiveTeamCrewIdsOrNull(GameState game)
+        {
+            var split = game.PendingMisbehave?.SplitCrew;
+            if (split == null || !split.ResolvingNested)
+                return null;
+            return split.CurrentTeam;
         }
 
         private static int ParseKillCrewCount(string text)
