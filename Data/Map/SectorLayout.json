@@ -1,0 +1,12 @@
+{
+  "meta": {
+    "description": "Sector id \u2192 face geometry for map debugging / adjacency verification",
+    "schemaVersion": "1.0",
+    "sourceSvg": "reference/board/GameBoardClosedPath.svg",
+    "generatedBy": "tools/map-labeler",
+    "assignmentCount": 0,
+    "sectorCount": 155
+  },
+  "assignments": {},
+  "sectors": {}
+}
