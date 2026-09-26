@@ -222,6 +222,11 @@ namespace Firefly.Core.State
         /// Options: <see cref="MisbehaveDiscardCargoOrContrabandOptions"/>.
         /// </summary>
         public const string MisbehaveDiscardCargoOrContraband = "misbehave-discard-cargo-or-contraband";
+        /// <summary>
+        /// Old Vendetta / Hotel: Choose 1 Crew for the Skill Test.
+        /// Options = eligible crew ids; submission <see cref="ChoiceSubmission.SelectedOptionId"/>.
+        /// </summary>
+        public const string MisbehaveChooseCrew = "misbehave-choose-crew";
     }
 
     /// <summary>Discrete option ids for <see cref="PendingChoiceKinds.MisbehaveWarrantOrWanted"/>.</summary>

@@ -91,6 +91,12 @@ namespace Firefly.Core.Tests
         [InlineData("misbehave_an-unexpected-opportunity")]
         [InlineData("misbehave_larcenous-opportunity")]
         [InlineData("misbehave_a-little-job-on-the-side")]
+        // Batch 5 — Disgruntle / Merc leftovers + Interesting Day + Vote
+        [InlineData("misbehave_a-vote-of-no-confidence")]
+        [InlineData("misbehave_an-interesting-day")]
+        [InlineData("misbehave_old-vendetta")]
+        [InlineData("misbehave_a-rival-crew")]
+        [InlineData("misbehave_the-manures-hit-the-turbine")]
         public void Migrated_cards_load_structured_overlay_without_stripping_prose(string id)
         {
             var catalog = MisbehaveCatalog.LoadDefault();
@@ -2002,6 +2008,273 @@ namespace Firefly.Core.Tests
                 out var resolution, out var error), error);
             Assert.Equal(MisbehaveOutcome.Proceed, resolution!.Outcome);
             Assert.Equal(1, game.CurrentPlayer.Contraband);
+        }
+
+        [Fact]
+        public void Batch5_vote_no_confidence_loads_cargo_when_no_disgruntled()
+        {
+            var game = NewCrimeGame();
+            StartCrime(game);
+            game.Misbehave!.PlaceOnTop(game.Misbehave.Catalog.Get("misbehave_a-vote-of-no-confidence"));
+            var resolver = new MisbehaveResolver();
+            resolver.DrawNext(game);
+
+            Assert.True(resolver.TryResolve(
+                game, "p1",
+                new MisbehaveChoice { OptionIndex = 0 },
+                out var resolution, out var error), error);
+            Assert.Equal(MisbehaveOutcome.Proceed, resolution!.Outcome);
+            Assert.Equal(1, game.CurrentPlayer.Cargo);
+            Assert.Equal(1, resolution.GoodsLoaded);
+        }
+
+        [Fact]
+        public void Batch5_vote_pays_hiring_cost_cuts_not_flat_100()
+        {
+            // GF9 p.11: Cut = hiring cost on the Crew card (Jayne $300), not Shore Leave $100.
+            var game = NewCrimeGame(cash: 500);
+            Assert.True(game.CurrentPlayer.Roster.TryHire(game.Crew!.Get("crew_jayne"), out _));
+            game.CurrentPlayer.Roster.Find("crew_jayne")!.Disgruntled = true;
+            StartCrime(game);
+            game.Misbehave!.PlaceOnTop(game.Misbehave.Catalog.Get("misbehave_a-vote-of-no-confidence"));
+            var resolver = new MisbehaveResolver();
+            resolver.DrawNext(game);
+
+            Assert.True(resolver.TryResolve(
+                game, "p1",
+                new MisbehaveChoice { OptionIndex = 1, PayDisgruntledCuts = true },
+                out var resolution, out var error), error);
+            Assert.Equal(MisbehaveOutcome.Proceed, resolution!.Outcome);
+            Assert.Equal(200, game.CurrentPlayer.Cash); // 500 - 300
+            Assert.True(game.CurrentPlayer.Roster.Find("crew_jayne")!.Disgruntled);
+            Assert.NotNull(game.CurrentPlayer.Roster.Find("crew_jayne"));
+        }
+
+        [Fact]
+        public void Batch5_vote_discards_disgruntled_when_not_paying_cuts()
+        {
+            var game = NewCrimeGame();
+            Assert.True(game.CurrentPlayer.Roster.TryHire(game.Crew!.Get("crew_jayne"), out _));
+            game.CurrentPlayer.Roster.Find("crew_jayne")!.Disgruntled = true;
+            StartCrime(game);
+            game.Misbehave!.PlaceOnTop(game.Misbehave.Catalog.Get("misbehave_a-vote-of-no-confidence"));
+            var resolver = new MisbehaveResolver();
+            resolver.DrawNext(game);
+
+            Assert.True(resolver.TryResolve(
+                game, "p1",
+                new MisbehaveChoice { OptionIndex = 1, PayDisgruntledCuts = false },
+                out var resolution, out var error), error);
+            Assert.Equal(MisbehaveOutcome.Proceed, resolution!.Outcome);
+            Assert.Null(game.CurrentPlayer.Roster.Find("crew_jayne"));
+        }
+
+        [Fact]
+        public void Batch5_interesting_day_discards_mercs_on_negotiate_fail()
+        {
+            var game = NewCrimeGame(cash: 0);
+            Assert.True(game.CurrentPlayer.Roster.TryHire(game.Crew!.Get("crew_jayne"), out _));
+            Assert.True(game.CurrentPlayer.Roster.TryHire(game.Crew.Get("crew_kaylee"), out _));
+            StartCrime(game);
+            game.Misbehave!.PlaceOnTop(game.Misbehave.Catalog.Get("misbehave_an-interesting-day"));
+            var resolver = new MisbehaveResolver();
+            resolver.DrawNext(game);
+
+            // Talk 0 + roll 1 → band 1-11
+            Assert.True(resolver.TryResolve(
+                game, "p1",
+                new MisbehaveChoice
+                {
+                    OptionIndex = 0,
+                    SkillCheck = new SkillCheckChoice { BribeDollars = 0 }
+                },
+                out var resolution, out var error,
+                ScriptedRng.FromDieFaces(1)), error);
+            Assert.Equal(MisbehaveOutcome.Botched, resolution!.Outcome);
+            Assert.Null(game.CurrentPlayer.Roster.Find("crew_jayne"));
+            Assert.NotNull(game.CurrentPlayer.Roster.Find("crew_kaylee"));
+        }
+
+        [Fact]
+        public void Batch5_interesting_day_merc_fight_compare_discards_when_higher()
+        {
+            // FAQ 4.1 p.12: Include Gear. Jayne F2 + pistol F1 = 3 > Kaylee F0.
+            var game = NewCrimeGame();
+            Assert.True(game.CurrentPlayer.Roster.TryHire(game.Crew!.Get("crew_jayne"), out _));
+            Assert.True(game.CurrentPlayer.Roster.TryHire(game.Crew.Get("crew_kaylee"), out _));
+            GiveCarriedGear(game, "gear_pistol", "crew_jayne");
+            StartCrime(game);
+            game.Misbehave!.PlaceOnTop(game.Misbehave.Catalog.Get("misbehave_an-interesting-day"));
+            var resolver = new MisbehaveResolver();
+            resolver.DrawNext(game);
+
+            Assert.True(resolver.TryResolve(
+                game, "p1",
+                new MisbehaveChoice { OptionIndex = 1 },
+                out var resolution, out var error), error);
+            Assert.Equal(MisbehaveOutcome.Proceed, resolution!.Outcome);
+            Assert.Null(game.CurrentPlayer.Roster.Find("crew_jayne"));
+            Assert.NotNull(game.CurrentPlayer.Roster.Find("crew_kaylee"));
+            Assert.Contains("gear_pistol", game.CurrentPlayer.Gear); // Onboard after discard
+        }
+
+        [Fact]
+        public void Batch5_interesting_day_no_mercs_proceeds_without_discard()
+        {
+            // FAQ 4.1 p.12: Merc total 0 is not higher → Proceed.
+            var game = NewCrimeGame();
+            Assert.True(game.CurrentPlayer.Roster.TryHire(game.Crew!.Get("crew_kaylee"), out _));
+            StartCrime(game);
+            game.Misbehave!.PlaceOnTop(game.Misbehave.Catalog.Get("misbehave_an-interesting-day"));
+            var resolver = new MisbehaveResolver();
+            resolver.DrawNext(game);
+
+            Assert.True(resolver.TryResolve(
+                game, "p1",
+                new MisbehaveChoice { OptionIndex = 1 },
+                out var resolution, out var error), error);
+            Assert.Equal(MisbehaveOutcome.Proceed, resolution!.Outcome);
+            Assert.NotNull(game.CurrentPlayer.Roster.Find("crew_kaylee"));
+        }
+
+        [Fact]
+        public void Batch5_old_vendetta_choose_one_crew_skill_and_kill_chosen()
+        {
+            // FAQ 4.1 p.13: choose Crew for Fight; fail kills Chosen.
+            var game = NewCrimeGame();
+            Assert.True(game.CurrentPlayer.Roster.TryHire(game.Crew!.Get("crew_gun-hand"), out _)); // Fight 1
+            Assert.True(game.CurrentPlayer.Roster.TryHire(game.Crew.Get("crew_kaylee"), out _));
+            StartCrime(game);
+            game.Misbehave!.PlaceOnTop(game.Misbehave.Catalog.Get("misbehave_old-vendetta"));
+            var resolver = new MisbehaveResolver();
+            resolver.DrawNext(game);
+
+            Assert.False(resolver.TryResolve(
+                game, "p1",
+                new MisbehaveChoice { OptionIndex = 0 },
+                out _, out var suspendError));
+            Assert.Equal(PendingChoiceKinds.MisbehaveChooseCrew, game.PendingChoice!.Kind);
+
+            Assert.True(resolver.TryResumeChooseCrew(
+                game, "p1",
+                new ChoiceSubmission { SelectedOptionId = "crew_gun-hand" },
+                new MisbehaveChoice { OptionIndex = 0 },
+                out var resolution, out var error,
+                ScriptedRng.FromDieFaces(1)), error); // Fight 1 die → 1 → fail
+            Assert.Equal(MisbehaveOutcome.Botched, resolution!.Outcome);
+            Assert.Equal(1, resolution.CrewKilled);
+            Assert.Null(game.CurrentPlayer.Roster.Find("crew_gun-hand"));
+            Assert.NotNull(game.CurrentPlayer.Roster.Find("crew_kaylee"));
+        }
+
+        [Fact]
+        public void Batch5_old_vendetta_transport_disgruntles_all()
+        {
+            var game = NewCrimeGame();
+            Assert.True(game.CurrentPlayer.Roster.TryHire(game.Crew!.Get("crew_kaylee"), out _));
+            game.CurrentPlayer.Gear.Add("gear_4wd-mule"); // TRANSPORT
+            Assert.True(GearCarriage.TryAssign(
+                game, game.CurrentPlayer, "gear_4wd-mule", "crew_kaylee", out var assignError), assignError);
+            StartCrime(game);
+            game.Misbehave!.PlaceOnTop(game.Misbehave.Catalog.Get("misbehave_old-vendetta"));
+            var resolver = new MisbehaveResolver();
+            resolver.DrawNext(game);
+
+            Assert.True(resolver.TryResolve(
+                game, "p1",
+                new MisbehaveChoice { OptionIndex = 1 },
+                out var resolution, out var error), error);
+            Assert.Equal(MisbehaveOutcome.Proceed, resolution!.Outcome);
+            Assert.True(game.CurrentPlayer.Roster.Find("crew_kaylee")!.Disgruntled);
+        }
+
+        [Fact]
+        public void Batch5_rival_crew_halves_job_pay_bonuses_unaffected()
+        {
+            // FAQ 4.1 p.7: cut Pay in half, rounded down. Bonuses unaffected.
+            var game = NewCrimeGame();
+            StartCrime(game);
+            game.Misbehave!.PlaceOnTop(game.Misbehave.Catalog.Get("misbehave_a-rival-crew"));
+            var resolver = new MisbehaveResolver();
+            resolver.DrawNext(game);
+
+            Assert.True(resolver.TryResolve(
+                game, "p1",
+                new MisbehaveChoice { OptionIndex = 1 },
+                out var resolution, out var error), error);
+            Assert.Equal(MisbehaveOutcome.Proceed, resolution!.Outcome);
+            Assert.True(game.CurrentPlayer.FindActive(Crime)!.HalvePayOnSuccess);
+
+            // Finish remaining Misbehave steps with force-proceed.
+            var work = new WorkAction();
+            Assert.True(work.TryProceedMisbehave(game, "p1", true, out _, out _));
+            Assert.True(work.TryProceedMisbehave(game, "p1", true, out var done, out var last), last);
+            Assert.Equal(WorkKind.Complete, done!.Kind);
+            Assert.Equal(1750, done.Pay); // 3500 / 2
+        }
+
+        [Fact]
+        public void Batch5_manure_lose_solid_or_botch()
+        {
+            var game = NewCrimeGame();
+            ContactSolidBenefits.BecomeSolid(game, game.CurrentPlayer, "contact_badger");
+            StartCrime(game);
+            game.Misbehave!.PlaceOnTop(game.Misbehave.Catalog.Get("misbehave_the-manures-hit-the-turbine"));
+            var resolver = new MisbehaveResolver();
+            resolver.DrawNext(game);
+
+            Assert.True(resolver.TryResolve(
+                game, "p1",
+                new MisbehaveChoice
+                {
+                    OptionIndex = 0,
+                    AcceptPay = true,
+                    LoseSolidId = "contact_badger"
+                },
+                out var resolution, out var error), error);
+            Assert.Equal(MisbehaveOutcome.Proceed, resolution!.Outcome);
+            Assert.False(game.CurrentPlayer.IsSolidWith("contact_badger"));
+        }
+
+        [Fact]
+        public void Batch5_manure_decline_solid_loss_botches()
+        {
+            var game = NewCrimeGame();
+            ContactSolidBenefits.BecomeSolid(game, game.CurrentPlayer, "contact_badger");
+            StartCrime(game);
+            game.Misbehave!.PlaceOnTop(game.Misbehave.Catalog.Get("misbehave_the-manures-hit-the-turbine"));
+            var resolver = new MisbehaveResolver();
+            resolver.DrawNext(game);
+
+            Assert.True(resolver.TryResolve(
+                game, "p1",
+                new MisbehaveChoice { OptionIndex = 0, AcceptPay = false },
+                out var resolution, out var error), error);
+            Assert.Equal(MisbehaveOutcome.Botched, resolution!.Outcome);
+            Assert.True(game.CurrentPlayer.IsSolidWith("contact_badger"));
+        }
+
+        [Fact]
+        public void Batch5_manure_disgruntles_all_except_leader()
+        {
+            var game = NewCrimeGame();
+            Assert.True(game.CurrentPlayer.Roster.TryHire(
+                LeaderCatalog.LoadDefault().Get("leader_malcolm"), out _));
+            Assert.True(game.CurrentPlayer.Roster.TryHire(game.Crew!.Get("crew_kaylee"), out _));
+            Assert.True(game.CurrentPlayer.Roster.TryHire(game.Crew.Get("crew_wash"), out _));
+            StartCrime(game);
+            game.Misbehave!.PlaceOnTop(game.Misbehave.Catalog.Get("misbehave_the-manures-hit-the-turbine"));
+            var resolver = new MisbehaveResolver();
+            resolver.DrawNext(game);
+
+            Assert.True(resolver.TryResolve(
+                game, "p1",
+                new MisbehaveChoice { OptionIndex = 1 },
+                out var resolution, out var error), error);
+            Assert.Equal(MisbehaveOutcome.Proceed, resolution!.Outcome);
+            Assert.False(game.CurrentPlayer.Roster.Find("leader_malcolm")!.Disgruntled);
+            Assert.True(game.CurrentPlayer.Roster.Find("crew_kaylee")!.Disgruntled);
+            Assert.True(game.CurrentPlayer.Roster.Find("crew_wash")!.Disgruntled);
         }
 
         private static void GiveCarriedGear(GameState game, string gearId, string crewId)

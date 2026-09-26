@@ -447,6 +447,9 @@ namespace Firefly.Core.Actions
             var pay = job.PayBase ?? 0;
             if (JobTerms.PayPerPassenger(job))
                 pay *= System.Math.Max(1, active.Passengers);
+            // FAQ 4.1 p.7 Rival Crew: cut Pay in half, rounded down. Bonuses are unaffected.
+            if (active.HalvePayOnSuccess)
+                pay /= 2;
             pay += JobTerms.ProfessionBonus(job, p => LawmanRules.HasProfessionForJob(player, job, p));
             // Keyword Bonus Tab (TRANSPORT +200): same availability as Misbehave HasTag —
             // roster (incl. Disgruntled) + carried Gear. Onboard Ship Gear is unused (FAQ 4.1 p.2).

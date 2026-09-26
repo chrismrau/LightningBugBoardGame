@@ -71,11 +71,28 @@
       "options": [
         {
           "name": "I Love My Captain",
-          "details": "Requires no Disgruntled Crew: Load 1 Cargo. Proceed."
+          "details": "Requires no Disgruntled Crew: Load 1 Cargo. Proceed.",
+          "effects": [
+            {
+              "type": "loadCargo",
+              "count": 1
+            },
+            {
+              "type": "proceed"
+            }
+          ]
         },
         {
           "name": "We'll be Takin' Out Cuts Now!",
-          "details": "Pay each Disgruntled Crew an extra Cut now or discard them. Proceed."
+          "details": "Pay each Disgruntled Crew an extra Cut now or discard them. Proceed.",
+          "effects": [
+            {
+              "type": "payDisgruntledCutsOrDiscard"
+            },
+            {
+              "type": "proceed"
+            }
+          ]
         }
       ],
       "isReshuffle": false,
@@ -195,11 +212,48 @@
       "options": [
         {
           "name": "Money Weren't Good Enough",
-          "details": "Negotiate 12 Bribes; 1-11 Discard All Mercs. Attempt Botched. 12+ Proceed."
+          "details": "Negotiate 12 Bribes; 1-11 Discard All Mercs. Attempt Botched. 12+ Proceed.",
+          "skillCheck": {
+            "skill": "negotiate",
+            "target": 12,
+            "bribes": true
+          },
+          "bands": [
+            {
+              "range": "1-11",
+              "text": "1-11 Discard All Mercs. Attempt Botched",
+              "effects": [
+                {
+                  "type": "discardAllMercs"
+                },
+                {
+                  "type": "botched"
+                }
+              ]
+            },
+            {
+              "min": 12,
+              "max": null,
+              "text": "12+ Proceed",
+              "effects": [
+                {
+                  "type": "proceed"
+                }
+              ]
+            }
+          ]
         },
         {
           "name": "Curse Your Sudden But Inevitable Betrayal!",
-          "details": "If Mercs' Fight total is higher than the rest of the Crew's, discard all Mercs. Include Gear in Fight totals. Proceed."
+          "details": "If Mercs' Fight total is higher than the rest of the Crew's, discard all Mercs. Include Gear in Fight totals. Proceed.",
+          "effects": [
+            {
+              "type": "discardMercsIfFightHigher"
+            },
+            {
+              "type": "proceed"
+            }
+          ]
         }
       ],
       "isReshuffle": false,
@@ -525,11 +579,49 @@
       "options": [
         {
           "name": "One on One",
-          "details": "Fight 6 Choose 1 Crew for Fight; 1-5 Kill Chosen Crew. Attempt Botched. 6+ Proceed."
+          "details": "Fight 6 Choose 1 Crew for Fight; 1-5 Kill Chosen Crew. Attempt Botched. 6+ Proceed.",
+          "skillCheck": {
+            "skill": "fight",
+            "target": 6,
+            "chooseOneCrew": true
+          },
+          "bands": [
+            {
+              "range": "1-5",
+              "text": "1-5 Kill Chosen Crew. Attempt Botched",
+              "effects": [
+                {
+                  "type": "killCrew",
+                  "count": 1
+                },
+                {
+                  "type": "botched"
+                }
+              ]
+            },
+            {
+              "min": 6,
+              "max": null,
+              "text": "6+ Proceed",
+              "effects": [
+                {
+                  "type": "proceed"
+                }
+              ]
+            }
+          ]
         },
         {
           "name": "Run Like Cowardly Pisspots",
-          "details": "Requires TRANSPORT. Disgruntle all Crew. Proceed."
+          "details": "Requires TRANSPORT. Disgruntle all Crew. Proceed.",
+          "effects": [
+            {
+              "type": "disgruntleAllCrew"
+            },
+            {
+              "type": "proceed"
+            }
+          ]
         }
       ],
       "isReshuffle": false,
@@ -711,11 +803,48 @@
       "options": [
         {
           "name": "Getting Awfully Crowded in My Sky…",
-          "details": "Fight 9; 1-8 Kill a Crew, Warrant Issued. 9+ Proceed."
+          "details": "Fight 9; 1-8 Kill a Crew, Warrant Issued. 9+ Proceed.",
+          "skillCheck": {
+            "skill": "fight",
+            "target": 9
+          },
+          "bands": [
+            {
+              "range": "1-8",
+              "text": "1-8 Kill a Crew, Warrant Issued",
+              "effects": [
+                {
+                  "type": "killCrew",
+                  "count": 1
+                },
+                {
+                  "type": "warrantIssued"
+                }
+              ]
+            },
+            {
+              "min": 9,
+              "max": null,
+              "text": "9+ Proceed",
+              "effects": [
+                {
+                  "type": "proceed"
+                }
+              ]
+            }
+          ]
         },
         {
           "name": "Maybe We Can Make a Deal.",
-          "details": "Proceed. If this Job attempt is successful, cut Pay in half, rounded down. Bonuses are unaffected."
+          "details": "Proceed. If this Job attempt is successful, cut Pay in half, rounded down. Bonuses are unaffected.",
+          "effects": [
+            {
+              "type": "halveJobPayOnSuccess"
+            },
+            {
+              "type": "proceed"
+            }
+          ]
         }
       ],
       "isReshuffle": false,
@@ -2662,11 +2791,21 @@
       "options": [
         {
           "name": "It wasn't my Fault! We were set Up!",
-          "details": "Lose 1 Solid Rep and Proceed OR Attempt Botched"
+          "details": "Lose 1 Solid Rep and Proceed OR Attempt Botched",
+          "effects": [
+            {
+              "type": "loseSolidOrBotched"
+            }
+          ]
         },
         {
           "name": "It was their Fault! I'm Surrounded by Idiots!",
-          "details": "Disgruntle all Crew except Leader."
+          "details": "Disgruntle all Crew except Leader.",
+          "effects": [
+            {
+              "type": "disgruntleAllExceptLeader"
+            }
+          ]
         }
       ],
       "isReshuffle": false,

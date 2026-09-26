@@ -1047,11 +1047,27 @@ namespace Firefly.Core.Abilities
             PlayerState player,
             Skill skill,
             AbilityContext? context = null,
+            JobCard? job = null) =>
+            CarriedSkillAddendForCrew(game, player, skill, onlyCrewId: null, context, job);
+
+        /// <summary>
+        /// Same as <see cref="CarriedSkillAddend"/> but optionally limited to Gear carried by
+        /// one Crew (Old Vendetta / Interesting Day Merc Fight compare).
+        /// </summary>
+        public static int CarriedSkillAddendForCrew(
+            GameState game,
+            PlayerState player,
+            Skill skill,
+            string? onlyCrewId,
+            AbilityContext? context = null,
             JobCard? job = null)
         {
             var total = 0;
             foreach (var member in player.Roster.Members)
             {
+                if (onlyCrewId != null
+                    && !member.Id.Equals(onlyCrewId, StringComparison.OrdinalIgnoreCase))
+                    continue;
                 // Director's Cut C&P p.49: Returned to Ship crew (and abilities) unused.
                 if (JobWorkCrew.IsUnavailable(player, member))
                     continue;
@@ -1077,6 +1093,12 @@ namespace Firefly.Core.Abilities
                 if (!game.Gear.TryGet(gearId, out var gear))
                     continue;
                 var carrierId = GearCarriage.CarrierOf(player, gearId);
+                if (onlyCrewId != null)
+                {
+                    if (carrierId == null
+                        || !carrierId.Equals(onlyCrewId, StringComparison.OrdinalIgnoreCase))
+                        continue;
+                }
                 if (carrierId != null)
                 {
                     if (JobWorkCrew.IsReturnedToShip(player, carrierId))
