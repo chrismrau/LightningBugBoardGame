@@ -15,11 +15,41 @@
       "options": [
         {
           "name": "Look'n the Part",
-          "details": "Requires FANCY DUDS. Proceed."
+          "details": "Requires FANCY DUDS. Proceed.",
+          "effects": [
+            {
+              "type": "proceed"
+            }
+          ]
         },
         {
           "name": "Work the Crowd",
-          "details": "Negotiate 6; 1-5 Attempt Botched. 6+ Proceed."
+          "details": "Negotiate 6; 1-5 Attempt Botched. 6+ Proceed.",
+          "skillCheck": {
+            "skill": "negotiate",
+            "target": 6
+          },
+          "bands": [
+            {
+              "text": "1-5 Attempt Botched",
+              "effects": [
+                {
+                  "type": "botched"
+                }
+              ],
+              "range": "1-5"
+            },
+            {
+              "text": "6+ Proceed",
+              "effects": [
+                {
+                  "type": "proceed"
+                }
+              ],
+              "min": 6,
+              "max": null
+            }
+          ]
         }
       ],
       "isReshuffle": false,
@@ -67,11 +97,57 @@
       "options": [
         {
           "name": "Two by Two, Hands of Blue",
-          "details": "Requires TRANSPORT. Attempt Botched."
+          "details": "Requires TRANSPORT. Attempt Botched.",
+          "effects": [
+            {
+              "type": "botched"
+            }
+          ]
         },
         {
           "name": "Trouble You've Not Known…",
-          "details": "Fight 10; 1-5 Kill all Crew; Warrant Issued. 6-9 Kill 2 Crew, Warrant Issued. 10+ Attempt Botched."
+          "details": "Fight 10; 1-5 Kill all Crew; Warrant Issued. 6-9 Kill 2 Crew, Warrant Issued. 10+ Attempt Botched.",
+          "skillCheck": {
+            "skill": "fight",
+            "target": 10
+          },
+          "bands": [
+            {
+              "text": "1-5 Kill all Crew; Warrant Issued",
+              "effects": [
+                {
+                  "type": "killAllCrew"
+                },
+                {
+                  "type": "warrantIssued"
+                }
+              ],
+              "range": "1-5"
+            },
+            {
+              "text": "6-9 Kill 2 Crew, Warrant Issued",
+              "effects": [
+                {
+                  "type": "killCrew",
+                  "count": 2
+                },
+                {
+                  "type": "warrantIssued"
+                }
+              ],
+              "range": "6-9"
+            },
+            {
+              "text": "10+ Attempt Botched",
+              "effects": [
+                {
+                  "type": "botched"
+                }
+              ],
+              "min": 10,
+              "max": null
+            }
+          ]
         }
       ],
       "isReshuffle": true,
@@ -379,11 +455,48 @@
       "options": [
         {
           "name": "My Guns Will Do the Talkin'",
-          "details": "Fight 7; 1-6 Kill a Crew, Attempt Botched. 7+ Proceed."
+          "details": "Fight 7; 1-6 Kill a Crew, Attempt Botched. 7+ Proceed.",
+          "skillCheck": {
+            "skill": "fight",
+            "target": 7
+          },
+          "bands": [
+            {
+              "text": "1-6 Kill a Crew, Attempt Botched",
+              "effects": [
+                {
+                  "type": "killCrew",
+                  "count": 1
+                },
+                {
+                  "type": "botched"
+                }
+              ],
+              "range": "1-6"
+            },
+            {
+              "text": "7+ Proceed",
+              "effects": [
+                {
+                  "type": "proceed"
+                }
+              ],
+              "min": 7,
+              "max": null
+            }
+          ]
         },
         {
           "name": "Crawl Away Like a Bitty Little Bug",
-          "details": "Disgruntle all Crew. Attempt Botched."
+          "details": "Disgruntle all Crew. Attempt Botched.",
+          "effects": [
+            {
+              "type": "disgruntleAllCrew"
+            },
+            {
+              "type": "botched"
+            }
+          ]
         }
       ],
       "isReshuffle": false,
@@ -405,11 +518,48 @@
       "options": [
         {
           "name": "My Guns Will Do the Talkin'",
-          "details": "Fight 7; 1-6 Kill a Crew, Attempt Botched. 7+ Proceed."
+          "details": "Fight 7; 1-6 Kill a Crew, Attempt Botched. 7+ Proceed.",
+          "skillCheck": {
+            "skill": "fight",
+            "target": 7
+          },
+          "bands": [
+            {
+              "text": "1-6 Kill a Crew, Attempt Botched",
+              "effects": [
+                {
+                  "type": "killCrew",
+                  "count": 1
+                },
+                {
+                  "type": "botched"
+                }
+              ],
+              "range": "1-6"
+            },
+            {
+              "text": "7+ Proceed",
+              "effects": [
+                {
+                  "type": "proceed"
+                }
+              ],
+              "min": 7,
+              "max": null
+            }
+          ]
         },
         {
           "name": "Crawl Away Like a Bitty Little Bug",
-          "details": "Disgruntle all Crew. Attempt Botched."
+          "details": "Disgruntle all Crew. Attempt Botched.",
+          "effects": [
+            {
+              "type": "disgruntleAllCrew"
+            },
+            {
+              "type": "botched"
+            }
+          ]
         }
       ],
       "isReshuffle": false,
@@ -595,11 +745,45 @@
       "options": [
         {
           "name": "Let the Bullets Fly",
-          "details": "Fight 8; 1-7 Kill a Crew, Attempt Botched. 8+ Proceed."
+          "details": "Fight 8; 1-7 Kill a Crew, Attempt Botched. 8+ Proceed.",
+          "skillCheck": {
+            "skill": "fight",
+            "target": 8
+          },
+          "bands": [
+            {
+              "text": "1-7 Kill a Crew, Attempt Botched",
+              "effects": [
+                {
+                  "type": "killCrew",
+                  "count": 1
+                },
+                {
+                  "type": "botched"
+                }
+              ],
+              "range": "1-7"
+            },
+            {
+              "text": "8+ Proceed",
+              "effects": [
+                {
+                  "type": "proceed"
+                }
+              ],
+              "min": 8,
+              "max": null
+            }
+          ]
         },
         {
           "name": "Can't Get Paid If Yer Dead",
-          "details": "Requires Transport. Proceed."
+          "details": "Requires Transport. Proceed.",
+          "effects": [
+            {
+              "type": "proceed"
+            }
+          ]
         }
       ],
       "isReshuffle": false,
@@ -1097,11 +1281,81 @@
       "options": [
         {
           "name": "A Hard Man to Sway",
-          "details": "Negotiate 8; 1-7 Warrant Issued. 8+ Attempt Botched."
+          "details": "Negotiate 8; 1-7 Warrant Issued. 8+ Attempt Botched.",
+          "skillCheck": {
+            "skill": "negotiate",
+            "target": 8
+          },
+          "bands": [
+            {
+              "text": "1-7 Warrant Issued",
+              "effects": [
+                {
+                  "type": "warrantIssued"
+                }
+              ],
+              "range": "1-7"
+            },
+            {
+              "text": "8+ Attempt Botched",
+              "effects": [
+                {
+                  "type": "botched"
+                }
+              ],
+              "min": 8,
+              "max": null
+            }
+          ]
         },
         {
           "name": "An' Hell Followed With Him…",
-          "details": "Fight 9; 1-4 Kill all Crew, Warrant Issued. 5-8 Kill 2 Crew, Warrant Issued. 9+ Kill 1 Crew, Proceed."
+          "details": "Fight 9; 1-4 Kill all Crew, Warrant Issued. 5-8 Kill 2 Crew, Warrant Issued. 9+ Kill 1 Crew, Proceed.",
+          "skillCheck": {
+            "skill": "fight",
+            "target": 9
+          },
+          "bands": [
+            {
+              "text": "1-4 Kill all Crew, Warrant Issued",
+              "effects": [
+                {
+                  "type": "killAllCrew"
+                },
+                {
+                  "type": "warrantIssued"
+                }
+              ],
+              "range": "1-4"
+            },
+            {
+              "text": "5-8 Kill 2 Crew, Warrant Issued",
+              "effects": [
+                {
+                  "type": "killCrew",
+                  "count": 2
+                },
+                {
+                  "type": "warrantIssued"
+                }
+              ],
+              "range": "5-8"
+            },
+            {
+              "text": "9+ Kill 1 Crew, Proceed",
+              "effects": [
+                {
+                  "type": "killCrew",
+                  "count": 1
+                },
+                {
+                  "type": "proceed"
+                }
+              ],
+              "min": 9,
+              "max": null
+            }
+          ]
         }
       ],
       "isReshuffle": false,
@@ -1253,11 +1507,61 @@
       "options": [
         {
           "name": "Rig a Bypass",
-          "details": "Tech 5; 1-4 Attempt Botched. 5+ Proceed."
+          "details": "Tech 5; 1-4 Attempt Botched. 5+ Proceed.",
+          "skillCheck": {
+            "skill": "tech",
+            "target": 5
+          },
+          "bands": [
+            {
+              "text": "1-4 Attempt Botched",
+              "effects": [
+                {
+                  "type": "botched"
+                }
+              ],
+              "range": "1-4"
+            },
+            {
+              "text": "5+ Proceed",
+              "effects": [
+                {
+                  "type": "proceed"
+                }
+              ],
+              "min": 5,
+              "max": null
+            }
+          ]
         },
         {
           "name": "Just Shoot the Gorram Thing!",
-          "details": "Fight 7; 1-6 Warrant Issued. 7+ Proceed."
+          "details": "Fight 7; 1-6 Warrant Issued. 7+ Proceed.",
+          "skillCheck": {
+            "skill": "fight",
+            "target": 7
+          },
+          "bands": [
+            {
+              "text": "1-6 Warrant Issued",
+              "effects": [
+                {
+                  "type": "warrantIssued"
+                }
+              ],
+              "range": "1-6"
+            },
+            {
+              "text": "7+ Proceed",
+              "effects": [
+                {
+                  "type": "proceed"
+                }
+              ],
+              "min": 7,
+              "max": null
+            }
+          ]
         }
       ],
       "isReshuffle": false,
@@ -1279,11 +1583,61 @@
       "options": [
         {
           "name": "Rig a Bypass",
-          "details": "Tech 5; 1-4 Attempt Botched. 5+ Proceed."
+          "details": "Tech 5; 1-4 Attempt Botched. 5+ Proceed.",
+          "skillCheck": {
+            "skill": "tech",
+            "target": 5
+          },
+          "bands": [
+            {
+              "text": "1-4 Attempt Botched",
+              "effects": [
+                {
+                  "type": "botched"
+                }
+              ],
+              "range": "1-4"
+            },
+            {
+              "text": "5+ Proceed",
+              "effects": [
+                {
+                  "type": "proceed"
+                }
+              ],
+              "min": 5,
+              "max": null
+            }
+          ]
         },
         {
           "name": "Just Shoot the Gorram Thing!",
-          "details": "Fight 7; 1-6 Warrant Issued. 7+ Proceed."
+          "details": "Fight 7; 1-6 Warrant Issued. 7+ Proceed.",
+          "skillCheck": {
+            "skill": "fight",
+            "target": 7
+          },
+          "bands": [
+            {
+              "text": "1-6 Warrant Issued",
+              "effects": [
+                {
+                  "type": "warrantIssued"
+                }
+              ],
+              "range": "1-6"
+            },
+            {
+              "text": "7+ Proceed",
+              "effects": [
+                {
+                  "type": "proceed"
+                }
+              ],
+              "min": 7,
+              "max": null
+            }
+          ]
         }
       ],
       "isReshuffle": false,
@@ -1357,11 +1711,65 @@
       "options": [
         {
           "name": "See What You Can Do…",
-          "details": "Tech 7; 1-6 Attempt Botched. 7+ Proceed."
+          "details": "Tech 7; 1-6 Attempt Botched. 7+ Proceed.",
+          "skillCheck": {
+            "skill": "tech",
+            "target": 7
+          },
+          "bands": [
+            {
+              "text": "1-6 Attempt Botched",
+              "effects": [
+                {
+                  "type": "botched"
+                }
+              ],
+              "range": "1-6"
+            },
+            {
+              "text": "7+ Proceed",
+              "effects": [
+                {
+                  "type": "proceed"
+                }
+              ],
+              "min": 7,
+              "max": null
+            }
+          ]
         },
         {
           "name": "Oh, Real Subtle Guys…",
-          "details": "Fight 9; 1-8 Kill a Crew, Warrant Issued. 9+ Proceed."
+          "details": "Fight 9; 1-8 Kill a Crew, Warrant Issued. 9+ Proceed.",
+          "skillCheck": {
+            "skill": "fight",
+            "target": 9
+          },
+          "bands": [
+            {
+              "text": "1-8 Kill a Crew, Warrant Issued",
+              "effects": [
+                {
+                  "type": "killCrew",
+                  "count": 1
+                },
+                {
+                  "type": "warrantIssued"
+                }
+              ],
+              "range": "1-8"
+            },
+            {
+              "text": "9+ Proceed",
+              "effects": [
+                {
+                  "type": "proceed"
+                }
+              ],
+              "min": 9,
+              "max": null
+            }
+          ]
         }
       ],
       "isReshuffle": false,
@@ -1383,11 +1791,65 @@
       "options": [
         {
           "name": "See What You Can Do…",
-          "details": "Tech 7; 1-6 Attempt Botched. 7+ Proceed."
+          "details": "Tech 7; 1-6 Attempt Botched. 7+ Proceed.",
+          "skillCheck": {
+            "skill": "tech",
+            "target": 7
+          },
+          "bands": [
+            {
+              "text": "1-6 Attempt Botched",
+              "effects": [
+                {
+                  "type": "botched"
+                }
+              ],
+              "range": "1-6"
+            },
+            {
+              "text": "7+ Proceed",
+              "effects": [
+                {
+                  "type": "proceed"
+                }
+              ],
+              "min": 7,
+              "max": null
+            }
+          ]
         },
         {
           "name": "Oh, Real Subtle Guys…",
-          "details": "Fight 9; 1-8 Kill a Crew, Warrant Issued. 9+ Proceed."
+          "details": "Fight 9; 1-8 Kill a Crew, Warrant Issued. 9+ Proceed.",
+          "skillCheck": {
+            "skill": "fight",
+            "target": 9
+          },
+          "bands": [
+            {
+              "text": "1-8 Kill a Crew, Warrant Issued",
+              "effects": [
+                {
+                  "type": "killCrew",
+                  "count": 1
+                },
+                {
+                  "type": "warrantIssued"
+                }
+              ],
+              "range": "1-8"
+            },
+            {
+              "text": "9+ Proceed",
+              "effects": [
+                {
+                  "type": "proceed"
+                }
+              ],
+              "min": 9,
+              "max": null
+            }
+          ]
         }
       ],
       "isReshuffle": false,
@@ -1409,11 +1871,41 @@
       "options": [
         {
           "name": "Big Gorram Blast",
-          "details": "Requires EXPLOSIVES. Proceed."
+          "details": "Requires EXPLOSIVES. Proceed.",
+          "effects": [
+            {
+              "type": "proceed"
+            }
+          ]
         },
         {
           "name": "Jigger a Surprise for 'Em",
-          "details": "Tech 7; 1-6 Warrant Issued. 7+ Proceed."
+          "details": "Tech 7; 1-6 Warrant Issued. 7+ Proceed.",
+          "skillCheck": {
+            "skill": "tech",
+            "target": 7
+          },
+          "bands": [
+            {
+              "text": "1-6 Warrant Issued",
+              "effects": [
+                {
+                  "type": "warrantIssued"
+                }
+              ],
+              "range": "1-6"
+            },
+            {
+              "text": "7+ Proceed",
+              "effects": [
+                {
+                  "type": "proceed"
+                }
+              ],
+              "min": 7,
+              "max": null
+            }
+          ]
         }
       ],
       "isReshuffle": false,
@@ -1713,11 +2205,68 @@
       "options": [
         {
           "name": "The Easy Way",
-          "details": "Negotiate 8; 1-7 Attempt Botched. 8+ Proceed."
+          "details": "Negotiate 8; 1-7 Attempt Botched. 8+ Proceed.",
+          "skillCheck": {
+            "skill": "negotiate",
+            "target": 8
+          },
+          "bands": [
+            {
+              "text": "1-7 Attempt Botched",
+              "effects": [
+                {
+                  "type": "botched"
+                }
+              ],
+              "range": "1-7"
+            },
+            {
+              "text": "8+ Proceed",
+              "effects": [
+                {
+                  "type": "proceed"
+                }
+              ],
+              "min": 8,
+              "max": null
+            }
+          ]
         },
         {
           "name": "The Hard Way",
-          "details": "Fight 9; 1-8 Kill 1 Crew. Warrant Issued. 9+ Crew is now Wanted. Proceed."
+          "details": "Fight 9; 1-8 Kill 1 Crew. Warrant Issued. 9+ Crew is now Wanted. Proceed.",
+          "skillCheck": {
+            "skill": "fight",
+            "target": 9
+          },
+          "bands": [
+            {
+              "text": "1-8 Kill 1 Crew. Warrant Issued",
+              "effects": [
+                {
+                  "type": "killCrew",
+                  "count": 1
+                },
+                {
+                  "type": "warrantIssued"
+                }
+              ],
+              "range": "1-8"
+            },
+            {
+              "text": "9+ Crew is now Wanted. Proceed",
+              "effects": [
+                {
+                  "type": "wanted"
+                },
+                {
+                  "type": "proceed"
+                }
+              ],
+              "min": 9,
+              "max": null
+            }
+          ]
         }
       ],
       "isReshuffle": false,
@@ -1739,11 +2288,62 @@
       "options": [
         {
           "name": "We are just too Pretty for god to let us Die!",
-          "details": "Fight 14; 1-6 Kill 3 Crew. Proceed. 7-13 Kill 2 Crew. Proceed. 14+ Kill 1 Crew. Proceed."
+          "details": "Fight 14; 1-6 Kill 3 Crew. Proceed. 7-13 Kill 2 Crew. Proceed. 14+ Kill 1 Crew. Proceed.",
+          "skillCheck": {
+            "skill": "fight",
+            "target": 14
+          },
+          "bands": [
+            {
+              "text": "1-6 Kill 3 Crew. Proceed",
+              "effects": [
+                {
+                  "type": "killCrew",
+                  "count": 3
+                },
+                {
+                  "type": "proceed"
+                }
+              ],
+              "range": "1-6"
+            },
+            {
+              "text": "7-13 Kill 2 Crew. Proceed",
+              "effects": [
+                {
+                  "type": "killCrew",
+                  "count": 2
+                },
+                {
+                  "type": "proceed"
+                }
+              ],
+              "range": "7-13"
+            },
+            {
+              "text": "14+ Kill 1 Crew. Proceed",
+              "effects": [
+                {
+                  "type": "killCrew",
+                  "count": 1
+                },
+                {
+                  "type": "proceed"
+                }
+              ],
+              "min": 14,
+              "max": null
+            }
+          ]
         },
         {
           "name": "The Long way Around",
-          "details": "Draw Another Misbehave Card to replace this card. Discard this card."
+          "details": "Draw Another Misbehave Card to replace this card. Discard this card.",
+          "effects": [
+            {
+              "type": "replaceCard"
+            }
+          ]
         }
       ],
       "isReshuffle": false,
@@ -2203,7 +2803,74 @@
       "options": [
         {
           "name": "Alter the Security Protocols",
-          "details": "FIRST, Get Past the Front Desk: Negotiate 9 Bribes; 1-8 Attempt Botched. 9+ Proceed. NEXT, Find the Terminal: Tech 7 + 2 Tech with HACKING RIG; 1-6 Warrant Issued. 7+ Proceed."
+          "details": "FIRST, Get Past the Front Desk: Negotiate 9 Bribes; 1-8 Attempt Botched. 9+ Proceed. NEXT, Find the Terminal: Tech 7 + 2 Tech with HACKING RIG; 1-6 Warrant Issued. 7+ Proceed.",
+          "steps": [
+            {
+              "name": "Get Past the Front Desk",
+              "details": "Negotiate 9 Bribes; 1-8 Attempt Botched. 9+ Proceed.",
+              "skillCheck": {
+                "skill": "negotiate",
+                "target": 9,
+                "bribes": true
+              },
+              "bands": [
+                {
+                  "text": "1-8 Attempt Botched",
+                  "effects": [
+                    {
+                      "type": "botched"
+                    }
+                  ],
+                  "range": "1-8"
+                },
+                {
+                  "text": "9+ Proceed",
+                  "effects": [
+                    {
+                      "type": "proceed"
+                    }
+                  ],
+                  "min": 9,
+                  "max": null
+                }
+              ]
+            },
+            {
+              "name": "Find the Terminal",
+              "details": "Tech 7 + 2 Tech with HACKING RIG; 1-6 Warrant Issued. 7+ Proceed.",
+              "skillCheck": {
+                "skill": "tech",
+                "target": 7,
+                "bonuses": [
+                  {
+                    "amount": 2,
+                    "tag": "HACKING RIG"
+                  }
+                ]
+              },
+              "bands": [
+                {
+                  "text": "1-6 Warrant Issued",
+                  "effects": [
+                    {
+                      "type": "warrantIssued"
+                    }
+                  ],
+                  "range": "1-6"
+                },
+                {
+                  "text": "7+ Proceed",
+                  "effects": [
+                    {
+                      "type": "proceed"
+                    }
+                  ],
+                  "min": 7,
+                  "max": null
+                }
+              ]
+            }
+          ]
         }
       ],
       "isReshuffle": false,
@@ -2225,7 +2892,72 @@
       "options": [
         {
           "name": "Unfriendly Difference of Opinion",
-          "details": "FIRST, Whiskey & Fisticuffs: Fight 7 Kosherized; 1-6 Crew is not Wanted. Attempt Botched. NEXT, A Round for the House: Negotiate 8 Bribes; 1-7 Attempt Botched. 9+ Proceed."
+          "details": "FIRST, Whiskey & Fisticuffs: Fight 7 Kosherized; 1-6 Crew is now Wanted. Attempt Botched. NEXT, A Round for the House: Negotiate 8 Bribes; 1-7 Attempt Botched. 8+ Proceed.",
+          "steps": [
+            {
+              "name": "Whiskey & Fisticuffs",
+              "details": "Fight 7 Kosherized; 1-6 Crew is now Wanted. Attempt Botched.",
+              "skillCheck": {
+                "skill": "fight",
+                "target": 7,
+                "kosherized": true
+              },
+              "bands": [
+                {
+                  "text": "1-6 Crew is now Wanted. Attempt Botched",
+                  "effects": [
+                    {
+                      "type": "wanted"
+                    },
+                    {
+                      "type": "botched"
+                    }
+                  ],
+                  "range": "1-6"
+                },
+                {
+                  "text": "7+ Continue",
+                  "effects": [
+                    {
+                      "type": "continue"
+                    }
+                  ],
+                  "min": 7,
+                  "max": null
+                }
+              ]
+            },
+            {
+              "name": "A Round for the House",
+              "details": "Negotiate 8 Bribes; 1-7 Attempt Botched. 8+ Proceed.",
+              "skillCheck": {
+                "skill": "negotiate",
+                "target": 8,
+                "bribes": true
+              },
+              "bands": [
+                {
+                  "text": "1-7 Attempt Botched",
+                  "effects": [
+                    {
+                      "type": "botched"
+                    }
+                  ],
+                  "range": "1-7"
+                },
+                {
+                  "text": "8+ Proceed",
+                  "effects": [
+                    {
+                      "type": "proceed"
+                    }
+                  ],
+                  "min": 8,
+                  "max": null
+                }
+              ]
+            }
+          ]
         }
       ],
       "isReshuffle": false,
@@ -2247,7 +2979,78 @@
       "options": [
         {
           "name": "Let's at Least Event the Odds",
-          "details": "FIRST, Kill the Weapon Scanner: Tech 7; 1-6 next Fight Test is Kosherized, Continue. 7+ Continue. NEXT: Take out the Guards: Fight 10; 1-9 Kill 1 Crew. Attempt Botched. 10+ Take 2 Goods. Proceed."
+          "details": "FIRST, Kill the Weapon Scanner: Tech 7; 1-6 next Fight Test is Kosherized, Continue. 7+ Continue. NEXT: Take out the Guards: Fight 10; 1-9 Kill 1 Crew. Attempt Botched. 10+ Take 2 Goods. Proceed.",
+          "steps": [
+            {
+              "name": "Kill the Weapon Scanner",
+              "details": "Tech 7; 1-6 next Fight Test is Kosherized, Continue. 7+ Continue.",
+              "skillCheck": {
+                "skill": "tech",
+                "target": 7
+              },
+              "bands": [
+                {
+                  "text": "1-6 next Fight Test is Kosherized, Continue",
+                  "effects": [
+                    {
+                      "type": "nextFightKosherized"
+                    },
+                    {
+                      "type": "continue"
+                    }
+                  ],
+                  "range": "1-6"
+                },
+                {
+                  "text": "7+ Continue",
+                  "effects": [
+                    {
+                      "type": "continue"
+                    }
+                  ],
+                  "min": 7,
+                  "max": null
+                }
+              ]
+            },
+            {
+              "name": "Take out the Guards",
+              "details": "Fight 10; 1-9 Kill 1 Crew. Attempt Botched. 10+ Take 2 Goods. Proceed.",
+              "skillCheck": {
+                "skill": "fight",
+                "target": 10
+              },
+              "bands": [
+                {
+                  "text": "1-9 Kill 1 Crew. Attempt Botched",
+                  "effects": [
+                    {
+                      "type": "killCrew",
+                      "count": 1
+                    },
+                    {
+                      "type": "botched"
+                    }
+                  ],
+                  "range": "1-9"
+                },
+                {
+                  "text": "10+ Take 2 Goods. Proceed",
+                  "effects": [
+                    {
+                      "type": "loadGoods",
+                      "count": 2
+                    },
+                    {
+                      "type": "proceed"
+                    }
+                  ],
+                  "min": 10,
+                  "max": null
+                }
+              ]
+            }
+          ]
         }
       ],
       "isReshuffle": false,
@@ -2269,7 +3072,92 @@
       "options": [
         {
           "name": "In like Lambs, Out like Lions",
-          "details": "FIRST, Be all Soft & Cuddly: Negotiate 8 + 3 Negotiate with FANCY DUDS; 1-4 Warrant Issued. 5-7 Attempt Botched. 8+ Continue. NEXT, A Roaring Exit: Fight 10 + 3 Fight with EXPLOSIVES; 1-9 Kill 1 Crew. Warrant Issued. 10+ Proceed."
+          "details": "FIRST, Be all Soft & Cuddly: Negotiate 8 + 3 Negotiate with FANCY DUDS; 1-4 Warrant Issued. 5-7 Attempt Botched. 8+ Continue. NEXT, A Roaring Exit: Fight 10 + 3 Fight with EXPLOSIVES; 1-9 Kill 1 Crew. Warrant Issued. 10+ Proceed.",
+          "steps": [
+            {
+              "name": "Be all Soft & Cuddly",
+              "details": "Negotiate 8 + 3 Negotiate with FANCY DUDS; 1-4 Warrant Issued. 5-7 Attempt Botched. 8+ Continue.",
+              "skillCheck": {
+                "skill": "negotiate",
+                "target": 8,
+                "bonuses": [
+                  {
+                    "amount": 3,
+                    "tag": "FANCY DUDS"
+                  }
+                ]
+              },
+              "bands": [
+                {
+                  "text": "1-4 Warrant Issued",
+                  "effects": [
+                    {
+                      "type": "warrantIssued"
+                    }
+                  ],
+                  "range": "1-4"
+                },
+                {
+                  "text": "5-7 Attempt Botched",
+                  "effects": [
+                    {
+                      "type": "botched"
+                    }
+                  ],
+                  "range": "5-7"
+                },
+                {
+                  "text": "8+ Continue",
+                  "effects": [
+                    {
+                      "type": "continue"
+                    }
+                  ],
+                  "min": 8,
+                  "max": null
+                }
+              ]
+            },
+            {
+              "name": "A Roaring Exit",
+              "details": "Fight 10 + 3 Fight with EXPLOSIVES; 1-9 Kill 1 Crew. Warrant Issued. 10+ Proceed.",
+              "skillCheck": {
+                "skill": "fight",
+                "target": 10,
+                "bonuses": [
+                  {
+                    "amount": 3,
+                    "tag": "EXPLOSIVES"
+                  }
+                ]
+              },
+              "bands": [
+                {
+                  "text": "1-9 Kill 1 Crew. Warrant Issued",
+                  "effects": [
+                    {
+                      "type": "killCrew",
+                      "count": 1
+                    },
+                    {
+                      "type": "warrantIssued"
+                    }
+                  ],
+                  "range": "1-9"
+                },
+                {
+                  "text": "10+ Proceed",
+                  "effects": [
+                    {
+                      "type": "proceed"
+                    }
+                  ],
+                  "min": 10,
+                  "max": null
+                }
+              ]
+            }
+          ]
         }
       ],
       "isReshuffle": false,
@@ -2343,11 +3231,65 @@
       "options": [
         {
           "name": "Shimmy up there and Cut the Connection",
-          "details": "Tech 6; 1-5 Attempt Botched. 6+ Proceed."
+          "details": "Tech 6; 1-5 Attempt Botched. 6+ Proceed.",
+          "skillCheck": {
+            "skill": "tech",
+            "target": 6
+          },
+          "bands": [
+            {
+              "text": "1-5 Attempt Botched",
+              "effects": [
+                {
+                  "type": "botched"
+                }
+              ],
+              "range": "1-5"
+            },
+            {
+              "text": "6+ Proceed",
+              "effects": [
+                {
+                  "type": "proceed"
+                }
+              ],
+              "min": 6,
+              "max": null
+            }
+          ]
         },
         {
           "name": "Figure it'll Quit Workin' if we put Enough Holes in It?",
-          "details": "Fight 8; 1-7 Kill a Crew, Warrant Issued. 8+ Proceed."
+          "details": "Fight 8; 1-7 Kill a Crew, Warrant Issued. 8+ Proceed.",
+          "skillCheck": {
+            "skill": "fight",
+            "target": 8
+          },
+          "bands": [
+            {
+              "text": "1-7 Kill a Crew, Warrant Issued",
+              "effects": [
+                {
+                  "type": "killCrew",
+                  "count": 1
+                },
+                {
+                  "type": "warrantIssued"
+                }
+              ],
+              "range": "1-7"
+            },
+            {
+              "text": "8+ Proceed",
+              "effects": [
+                {
+                  "type": "proceed"
+                }
+              ],
+              "min": 8,
+              "max": null
+            }
+          ]
         }
       ],
       "isReshuffle": false,
@@ -2473,7 +3415,93 @@
       "options": [
         {
           "name": "Patch into their Uplink. Make them see Reason",
-          "details": "FIRST, Upload Incriminating Photos: Tech 10; 1-4 Attempt Botched. 5-9 +1 Negotiate to next Test, Continue. 10+ +3 Negotiate to next Test, Continue. NEXT, a Wee Bit of Blackmail: Negotiate 10; 1-5 Warrant Issued. 6-9 Attempt Botched. 10+ Proceed."
+          "details": "FIRST, Upload Incriminating Photos: Tech 10; 1-4 Attempt Botched. 5-9 +1 Negotiate to next Test, Continue. 10+ +3 Negotiate to next Test, Continue. NEXT, a Wee Bit of Blackmail: Negotiate 10; 1-5 Warrant Issued. 6-9 Attempt Botched. 10+ Proceed.",
+          "steps": [
+            {
+              "name": "Upload Incriminating Photos",
+              "details": "Tech 10; 1-4 Attempt Botched. 5-9 +1 Negotiate to next Test, Continue. 10+ +3 Negotiate to next Test, Continue.",
+              "skillCheck": {
+                "skill": "tech",
+                "target": 10
+              },
+              "bands": [
+                {
+                  "text": "1-4 Attempt Botched",
+                  "effects": [
+                    {
+                      "type": "botched"
+                    }
+                  ],
+                  "range": "1-4"
+                },
+                {
+                  "text": "5-9 +1 Negotiate to next Test, Continue",
+                  "effects": [
+                    {
+                      "type": "nextTalkBonus",
+                      "count": 1
+                    },
+                    {
+                      "type": "continue"
+                    }
+                  ],
+                  "range": "5-9"
+                },
+                {
+                  "text": "10+ +3 Negotiate to next Test, Continue",
+                  "effects": [
+                    {
+                      "type": "nextTalkBonus",
+                      "count": 3
+                    },
+                    {
+                      "type": "continue"
+                    }
+                  ],
+                  "min": 10,
+                  "max": null
+                }
+              ]
+            },
+            {
+              "name": "a Wee Bit of Blackmail",
+              "details": "Negotiate 10; 1-5 Warrant Issued. 6-9 Attempt Botched. 10+ Proceed.",
+              "skillCheck": {
+                "skill": "negotiate",
+                "target": 10
+              },
+              "bands": [
+                {
+                  "text": "1-5 Warrant Issued",
+                  "effects": [
+                    {
+                      "type": "warrantIssued"
+                    }
+                  ],
+                  "range": "1-5"
+                },
+                {
+                  "text": "6-9 Attempt Botched",
+                  "effects": [
+                    {
+                      "type": "botched"
+                    }
+                  ],
+                  "range": "6-9"
+                },
+                {
+                  "text": "10+ Proceed",
+                  "effects": [
+                    {
+                      "type": "proceed"
+                    }
+                  ],
+                  "min": 10,
+                  "max": null
+                }
+              ]
+            }
+          ]
         }
       ],
       "isReshuffle": false,
@@ -2495,7 +3523,72 @@
       "options": [
         {
           "name": "Destroy the Evidence",
-          "details": "FIRST, Knock out the Uplink Guards: Fight 8 Kosherized; 1-7 Warrant Issued. 8+ Continue. NEXT, Scrub the Records: Tech 9; 1-8 Attempt Botched. 9+ you may discard up to 2 Warrants or 2 Wanted Tokens. Proceed."
+          "details": "FIRST, Knock out the Uplink Guards: Fight 8 Kosherized; 1-7 Warrant Issued. 8+ Continue. NEXT, Scrub the Records: Tech 9; 1-8 Attempt Botched. 9+ you may discard up to 2 Warrants or 2 Wanted Tokens. Proceed.",
+          "steps": [
+            {
+              "name": "Knock out the Uplink Guards",
+              "details": "Fight 8 Kosherized; 1-7 Warrant Issued. 8+ Continue.",
+              "skillCheck": {
+                "skill": "fight",
+                "target": 8,
+                "kosherized": true
+              },
+              "bands": [
+                {
+                  "text": "1-7 Warrant Issued",
+                  "effects": [
+                    {
+                      "type": "warrantIssued"
+                    }
+                  ],
+                  "range": "1-7"
+                },
+                {
+                  "text": "8+ Continue",
+                  "effects": [
+                    {
+                      "type": "continue"
+                    }
+                  ],
+                  "min": 8,
+                  "max": null
+                }
+              ]
+            },
+            {
+              "name": "Scrub the Records",
+              "details": "Tech 9; 1-8 Attempt Botched. 9+ you may discard up to 2 Warrants or 2 Wanted Tokens. Proceed.",
+              "skillCheck": {
+                "skill": "tech",
+                "target": 9
+              },
+              "bands": [
+                {
+                  "text": "1-8 Attempt Botched",
+                  "effects": [
+                    {
+                      "type": "botched"
+                    }
+                  ],
+                  "range": "1-8"
+                },
+                {
+                  "text": "9+ you may discard up to 2 Warrants or 2 Wanted Tokens. Proceed",
+                  "effects": [
+                    {
+                      "type": "mayDiscardWarrantsOrWanted",
+                      "count": 2
+                    },
+                    {
+                      "type": "proceed"
+                    }
+                  ],
+                  "min": 9,
+                  "max": null
+                }
+              ]
+            }
+          ]
         }
       ],
       "isReshuffle": false,

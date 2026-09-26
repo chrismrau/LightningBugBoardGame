@@ -67,7 +67,8 @@ namespace Firefly.Core.State
     /// <see cref="SkillReroll"/>, <see cref="DiscardToReroll"/>, <see cref="MoraleBoosterTarget"/>,
     /// <see cref="ShowdownReroll"/>, <see cref="HavenFuelAmount"/>, <see cref="MedicReroll"/>,
     /// <see cref="DiscardOrLoseSolid"/>, <see cref="MisbehaveDiscardRedraw"/>,
-    /// <see cref="AlertAllianceShip"/>, <see cref="AlertReaverCutter"/>, <see cref="GoodsMix"/>.
+    /// <see cref="AlertAllianceShip"/>, <see cref="AlertReaverCutter"/>, <see cref="GoodsMix"/>,
+    /// <see cref="MisbehaveWarrantOrWanted"/>.
     /// </summary>
     public static class PendingChoiceKinds
     {
@@ -197,6 +198,24 @@ namespace Firefly.Core.State
         /// (Load 3 Contraband, Warrant Issued). Options: <see cref="NavFakeIdSalvageOptions"/>.
         /// </summary>
         public const string NavFakeIdSalvage = "nav-fake-id-salvage";
+        /// <summary>
+        /// Misbehave optional exclusive discard: up to N Warrants <em>or</em> up to N Wanted Tokens
+        /// (Dead to Rights). Options: <see cref="MisbehaveWarrantOrWantedOptions"/>.
+        /// <see cref="ChoiceSubmission.Amount"/> = warrant count; Values = Wanted crew ids.
+        /// ContextId = max count (e.g. "2").
+        /// </summary>
+        public const string MisbehaveWarrantOrWanted = "misbehave-warrant-or-wanted";
+    }
+
+    /// <summary>Discrete option ids for <see cref="PendingChoiceKinds.MisbehaveWarrantOrWanted"/>.</summary>
+    public static class MisbehaveWarrantOrWantedOptions
+    {
+        /// <summary>Decline discard — Proceed with zero discards.</summary>
+        public const string None = "none";
+        /// <summary>Discard up to N ship Warrants (<see cref="ChoiceSubmission.Amount"/>).</summary>
+        public const string Warrants = "warrants";
+        /// <summary>Clear Wanted on chosen crew (<see cref="ChoiceSubmission.Values"/> = crew ids).</summary>
+        public const string WantedTokens = "wanted-tokens";
     }
 
     /// <summary>Discrete option ids for <see cref="PendingChoiceKinds.NavFakeIdSalvage"/>.</summary>
