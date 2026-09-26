@@ -217,6 +217,11 @@ namespace Firefly.Core.State
         /// ContextId = max count (e.g. "2").
         /// </summary>
         public const string MisbehaveWarrantOrWanted = "misbehave-warrant-or-wanted";
+        /// <summary>
+        /// Food Riots Requires: Discard 1 Cargo or Contraband when both are available.
+        /// Options: <see cref="MisbehaveDiscardCargoOrContrabandOptions"/>.
+        /// </summary>
+        public const string MisbehaveDiscardCargoOrContraband = "misbehave-discard-cargo-or-contraband";
     }
 
     /// <summary>Discrete option ids for <see cref="PendingChoiceKinds.MisbehaveWarrantOrWanted"/>.</summary>
@@ -228,6 +233,15 @@ namespace Firefly.Core.State
         public const string Warrants = "warrants";
         /// <summary>Clear Wanted on chosen crew (<see cref="ChoiceSubmission.Values"/> = crew ids).</summary>
         public const string WantedTokens = "wanted-tokens";
+    }
+
+    /// <summary>
+    /// Discrete option ids for <see cref="PendingChoiceKinds.MisbehaveDiscardCargoOrContraband"/>.
+    /// </summary>
+    public static class MisbehaveDiscardCargoOrContrabandOptions
+    {
+        public const string Cargo = "cargo";
+        public const string Contraband = "contraband";
     }
 
     /// <summary>Discrete option ids for <see cref="PendingChoiceKinds.NavFakeIdSalvage"/>.</summary>
