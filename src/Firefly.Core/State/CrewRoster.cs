@@ -318,6 +318,23 @@ namespace Firefly.Core.State
             return member.MarkWanted();
         }
 
+        /// <summary>
+        /// Director's Cut C&amp;P p.49 Wanted Tokens: mark every Crew who isn't already Wanted,
+        /// other than the Leader.
+        /// </summary>
+        public int MarkWantedAllExceptLeader()
+        {
+            var n = 0;
+            foreach (var member in _members)
+            {
+                if (member.IsLeader || member.Wanted)
+                    continue;
+                if (member.MarkWanted())
+                    n++;
+            }
+            return n;
+        }
+
         public bool TryClearWanted(string crewId)
         {
             var member = Find(crewId);

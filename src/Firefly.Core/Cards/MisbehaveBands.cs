@@ -77,7 +77,44 @@ namespace Firefly.Core.Cards
         /// <summary>
         /// Lose Solid with 1 Contact if able (printed "if able" — no-op when none Solid).
         /// </summary>
-        LoseSolidIfAble
+        LoseSolidIfAble,
+        /// <summary>
+        /// Load up to N Contraband (count = max). <see cref="MisbehaveChoice.LoadAmount"/> selects
+        /// 0..N; null defaults to max that fits (Nav Load-up-to pattern).
+        /// </summary>
+        LoadContrabandUpTo,
+        /// <summary>
+        /// For each Crew on the Job without carried Gear, Load 1 Contraband (Idle Hands).
+        /// Returned-to-Ship crew are not on the Job (Director's Cut C&amp;P p.49).
+        /// </summary>
+        LoadContrabandPerCrewWithoutGear,
+        /// <summary>
+        /// Discard N Cargo or Contraband (count = N; default 1). Player picks which when both
+        /// available (<see cref="MisbehaveChoice.DiscardCargoOrContraband"/>).
+        /// </summary>
+        DiscardCargoOrContraband,
+        /// <summary>
+        /// May buy up to N Cargo at unit price (count = max, <see cref="MisbehaveEffect.UnitPrice"/>).
+        /// <see cref="MisbehaveChoice.BuyCargo"/> selects 0..N; Attempt Botched still applies separately.
+        /// </summary>
+        BuyCargo,
+        /// <summary>
+        /// May buy up to N Contraband at unit price (count = max, <see cref="MisbehaveEffect.UnitPrice"/>).
+        /// <see cref="MisbehaveChoice.BuyContraband"/> selects 0..N.
+        /// </summary>
+        BuyContraband,
+        /// <summary>Take/Load N Parts (count = N). Hold packing enforced when space is short.</summary>
+        LoadParts,
+        /// <summary>
+        /// You may return any number of Crew to the Ship, then roll a die: higher than remaining
+        /// Crew → Proceed; else Botched (Food Riots). <see cref="MisbehaveChoice.ReturnToShipCrewIds"/>.
+        /// </summary>
+        ReturnCrewThenRollVsRemaining,
+        /// <summary>
+        /// Mark Wanted on Crew carrying Gear matching <see cref="MisbehaveEffect.Tags"/>
+        /// (Packed Market FIREARM carriers). Leader excluded per DC C&amp;P p.49 Wanted Tokens.
+        /// </summary>
+        WantedCarrying
     }
 
     /// <summary>
@@ -137,6 +174,11 @@ namespace Firefly.Core.Cards
         public bool DisgruntleCarriers { get; }
         /// <summary>Stop and Frisk submit: if any Gear seized, Disgruntle all Wanted Crew.</summary>
         public bool DisgruntleWantedIfAny { get; }
+        /// <summary>
+        /// Unit price for <see cref="MisbehaveLocalEffectType.BuyCargo"/> /
+        /// <see cref="MisbehaveLocalEffectType.BuyContraband"/> (printed $100 each).
+        /// </summary>
+        public int UnitPrice { get; }
 
         public bool IsShared => Shared != null;
         public bool IsLocal => Local != null;
@@ -147,7 +189,8 @@ namespace Firefly.Core.Cards
             int count,
             IReadOnlyList<string>? tags = null,
             bool disgruntleCarriers = false,
-            bool disgruntleWantedIfAny = false)
+            bool disgruntleWantedIfAny = false,
+            int unitPrice = 0)
         {
             Shared = shared;
             Local = local;
@@ -155,6 +198,7 @@ namespace Firefly.Core.Cards
             Tags = tags ?? Array.Empty<string>();
             DisgruntleCarriers = disgruntleCarriers;
             DisgruntleWantedIfAny = disgruntleWantedIfAny;
+            UnitPrice = unitPrice;
         }
 
         public static MisbehaveEffect Of(CardEffectType type, int count = 0) =>
@@ -163,8 +207,8 @@ namespace Firefly.Core.Cards
         public static MisbehaveEffect Of(CardEffect shared) =>
             new MisbehaveEffect(shared ?? throw new ArgumentNullException(nameof(shared)), null, shared.Count);
 
-        public static MisbehaveEffect Of(MisbehaveLocalEffectType type, int count = 0) =>
-            new MisbehaveEffect(null, type, count);
+        public static MisbehaveEffect Of(MisbehaveLocalEffectType type, int count = 0, int unitPrice = 0) =>
+            new MisbehaveEffect(null, type, count, unitPrice: unitPrice);
 
         public static MisbehaveEffect SeizeGear(
             IReadOnlyList<string> tags,
@@ -177,6 +221,13 @@ namespace Firefly.Core.Cards
                 tags,
                 disgruntleCarriers,
                 disgruntleWantedIfAny);
+
+        public static MisbehaveEffect WantedCarrying(IReadOnlyList<string> tags) =>
+            new MisbehaveEffect(
+                null,
+                MisbehaveLocalEffectType.WantedCarrying,
+                0,
+                tags);
 
         /// <summary>True when this effect is the given shared type.</summary>
         public bool Is(CardEffectType type) => Shared != null && Shared.Type == type;

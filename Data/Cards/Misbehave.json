@@ -221,11 +221,29 @@
       "options": [
         {
           "name": "Load 'er Up!",
-          "details": "Requires TRANSPORT. Load up to 3 Contraband. Proceed."
+          "details": "Requires TRANSPORT. Load up to 3 Contraband. Proceed.",
+          "effects": [
+            {
+              "type": "loadContraband",
+              "count": 3,
+              "upTo": true
+            },
+            {
+              "type": "proceed"
+            }
+          ]
         },
         {
           "name": "Idle Hands are the Devil's Workshop",
-          "details": "For each Crew on Job without Gear, Load 1 Contraband. Proceed."
+          "details": "For each Crew on Job without Gear, Load 1 Contraband. Proceed.",
+          "effects": [
+            {
+              "type": "loadContrabandPerCrewWithoutGear"
+            },
+            {
+              "type": "proceed"
+            }
+          ]
         }
       ],
       "isReshuffle": false,
@@ -247,11 +265,29 @@
       "options": [
         {
           "name": "Load 'er Up!",
-          "details": "Requires TRANSPORT. Load up to 3 Contraband. Proceed."
+          "details": "Requires TRANSPORT. Load up to 3 Contraband. Proceed.",
+          "effects": [
+            {
+              "type": "loadContraband",
+              "count": 3,
+              "upTo": true
+            },
+            {
+              "type": "proceed"
+            }
+          ]
         },
         {
           "name": "Idle Hands are the Devil's Workshop",
-          "details": "For each Crew on Job without Gear, Load 1 Contraband. Proceed."
+          "details": "For each Crew on Job without Gear, Load 1 Contraband. Proceed.",
+          "effects": [
+            {
+              "type": "loadContrabandPerCrewWithoutGear"
+            },
+            {
+              "type": "proceed"
+            }
+          ]
         }
       ],
       "isReshuffle": false,
@@ -1858,11 +1894,45 @@
       "options": [
         {
           "name": "Profitable Detour",
-          "details": "Tech 7; 1-6 Attempt Botched. 7+ Take 1500. Attempt Botched."
+          "details": "Tech 7; 1-6 Attempt Botched. 7+ Take 1500. Attempt Botched.",
+          "skillCheck": {
+            "skill": "tech",
+            "target": 7
+          },
+          "bands": [
+            {
+              "range": "1-6",
+              "text": "1-6 Attempt Botched",
+              "effects": [
+                {
+                  "type": "botched"
+                }
+              ]
+            },
+            {
+              "min": 7,
+              "max": null,
+              "text": "7+ Take 1500. Attempt Botched.",
+              "effects": [
+                {
+                  "type": "takeCash",
+                  "amount": 1500
+                },
+                {
+                  "type": "botched"
+                }
+              ]
+            }
+          ]
         },
         {
           "name": "Stay on Target…",
-          "details": "Proceed."
+          "details": "Proceed.",
+          "effects": [
+            {
+              "type": "proceed"
+            }
+          ]
         }
       ],
       "isReshuffle": false,
@@ -1884,11 +1954,46 @@
       "options": [
         {
           "name": "Deal of the Century",
-          "details": "Negotiate 7; 1-6 Attempt Botched. 7+ Buy up to 3 Contraband for $100 each. Attempt Botched."
+          "details": "Negotiate 7; 1-6 Attempt Botched. 7+ Buy up to 3 Contraband for $100 each. Attempt Botched.",
+          "skillCheck": {
+            "skill": "negotiate",
+            "target": 7
+          },
+          "bands": [
+            {
+              "range": "1-6",
+              "text": "1-6 Attempt Botched",
+              "effects": [
+                {
+                  "type": "botched"
+                }
+              ]
+            },
+            {
+              "min": 7,
+              "max": null,
+              "text": "7+ Buy up to 3 Contraband for $100 each. Attempt Botched.",
+              "effects": [
+                {
+                  "type": "buyContraband",
+                  "count": 3,
+                  "amount": 100
+                },
+                {
+                  "type": "botched"
+                }
+              ]
+            }
+          ]
         },
         {
           "name": "Walk Away Entirely",
-          "details": "Proceed."
+          "details": "Proceed.",
+          "effects": [
+            {
+              "type": "proceed"
+            }
+          ]
         }
       ],
       "isReshuffle": false,
@@ -2444,11 +2549,28 @@
       "options": [
         {
           "name": "Job Will Keep: Settlers ain't gonna rob Themselves...",
-          "details": "Requires FIREARM. Disgruntle all Moral Crew. Take 4 Goods. Attempt Botched."
+          "details": "Requires FIREARM. Disgruntle all Moral Crew. Take 4 Goods. Attempt Botched.",
+          "effects": [
+            {
+              "type": "disgruntleMoral"
+            },
+            {
+              "type": "loadGoods",
+              "count": 4
+            },
+            {
+              "type": "botched"
+            }
+          ]
         },
         {
           "name": "Lead us not into Temptation...",
-          "details": "Draw Another Misbehave Card to replace this card. Discard this card."
+          "details": "Draw Another Misbehave Card to replace this card. Discard this card.",
+          "effects": [
+            {
+              "type": "replaceCard"
+            }
+          ]
         }
       ],
       "isReshuffle": false,
@@ -2720,11 +2842,31 @@
       "options": [
         {
           "name": "That's the good Stuff!",
-          "details": "Requires: Pay $400. Take 1 Contraband. Remove Disgruntled from all Crew. Attempt Botched."
+          "details": "Requires: Pay $400. Take 1 Contraband. Remove Disgruntled from all Crew. Attempt Botched.",
+          "effects": [
+            {
+              "type": "loadContraband",
+              "count": 1
+            },
+            {
+              "type": "clearDisgruntled"
+            },
+            {
+              "type": "botched"
+            }
+          ]
         },
         {
           "name": "No Imbibing on the Job. We're Workin' Here!",
-          "details": "Disgruntle all Mercs & Soldiers. Proceed."
+          "details": "Disgruntle all Mercs & Soldiers. Proceed.",
+          "effects": [
+            {
+              "type": "disgruntleMercs"
+            },
+            {
+              "type": "proceed"
+            }
+          ]
         }
       ],
       "isReshuffle": false,
@@ -2998,11 +3140,56 @@
       "options": [
         {
           "name": "Fine, Show us what you've Got",
-          "details": "you may buy up to 3 Cargo for $100 each. Attempt Botched."
+          "details": "you may buy up to 3 Cargo for $100 each. Attempt Botched.",
+          "effects": [
+            {
+              "type": "buyCargo",
+              "count": 3,
+              "amount": 100
+            },
+            {
+              "type": "botched"
+            }
+          ]
         },
         {
           "name": "We're not Buyers. We're Takers",
-          "details": "Crew is Now Wanted. Fight 6; 1-5 Warrant Issued. 6+ Take 2 Parts. Proceed."
+          "details": "Crew is Now Wanted. Fight 6; 1-5 Warrant Issued. 6+ Take 2 Parts. Proceed.",
+          "skillCheck": {
+            "skill": "fight",
+            "target": 6
+          },
+          "bands": [
+            {
+              "range": "1-5",
+              "text": "1-5 Warrant Issued",
+              "effects": [
+                {
+                  "type": "wanted"
+                },
+                {
+                  "type": "warrantIssued"
+                }
+              ]
+            },
+            {
+              "min": 6,
+              "max": null,
+              "text": "6+ Take 2 Parts. Proceed.",
+              "effects": [
+                {
+                  "type": "wanted"
+                },
+                {
+                  "type": "loadParts",
+                  "count": 2
+                },
+                {
+                  "type": "proceed"
+                }
+              ]
+            }
+          ]
         }
       ],
       "isReshuffle": false,
@@ -3383,7 +3570,10 @@
           "details": "Requires FIREARM. Any Crew carrying a Firearm is now Wanted. Disgruntle all Moral Crew. Proceed.",
           "effects": [
             {
-              "type": "wanted"
+              "type": "wantedCarrying",
+              "tags": [
+                "FIREARM"
+              ]
             },
             {
               "type": "disgruntleMoral"
@@ -4239,11 +4429,28 @@
       "options": [
         {
           "name": "Good Samaritans",
-          "details": "Requires: Discard 1 Cargo or Contraband. Remove Disgruntled from Moral Crew. Proceed."
+          "details": "Requires: Discard 1 Cargo or Contraband. Remove Disgruntled from Moral Crew. Proceed.",
+          "effects": [
+            {
+              "type": "discardCargoOrContraband",
+              "count": 1
+            },
+            {
+              "type": "clearDisgruntledMoral"
+            },
+            {
+              "type": "proceed"
+            }
+          ]
         },
         {
           "name": "Try to Slip Through the Crowd",
-          "details": "You may return any number of Crew to the Ship. Roll a die: If you roll higher than the number of remaining Crew, Proceed. Otherwise, Attempt Botched"
+          "details": "You may return any number of Crew to the Ship. Roll a die: If you roll higher than the number of remaining Crew, Proceed. Otherwise, Attempt Botched",
+          "effects": [
+            {
+              "type": "returnCrewThenRollVsRemaining"
+            }
+          ]
         }
       ],
       "isReshuffle": false,

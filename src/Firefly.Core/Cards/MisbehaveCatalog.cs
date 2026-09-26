@@ -201,6 +201,14 @@ namespace Firefly.Core.Cards
                 var count = dto.Count ?? dto.Amount ?? 0;
                 if (CardEffectParsing.TryParseType(dto.Type, out var shared))
                 {
+                    // "Load up to N Contraband" — prefer local up-to over exact shared load.
+                    if (shared == CardEffectType.LoadContraband && dto.UpTo == true)
+                    {
+                        effects.Add(MisbehaveEffect.Of(
+                            MisbehaveLocalEffectType.LoadContrabandUpTo,
+                            count > 0 ? count : 1));
+                        continue;
+                    }
                     effects.Add(MisbehaveEffect.Of(shared, count));
                     continue;
                 }
@@ -214,6 +222,25 @@ namespace Firefly.Core.Cards
                         dto.Tags,
                         dto.DisgruntleCarriers == true,
                         dto.DisgruntleWantedIfAny == true));
+                    continue;
+                }
+                if (local == MisbehaveLocalEffectType.WantedCarrying)
+                {
+                    if (dto.Tags == null || dto.Tags.Count == 0)
+                        throw new InvalidDataException("wantedCarrying requires non-empty tags[].");
+                    effects.Add(MisbehaveEffect.WantedCarrying(dto.Tags));
+                    continue;
+                }
+                if (local == MisbehaveLocalEffectType.BuyCargo
+                    || local == MisbehaveLocalEffectType.BuyContraband)
+                {
+                    var unitPrice = dto.UnitPrice ?? dto.Amount ?? 0;
+                    if (unitPrice <= 0)
+                        throw new InvalidDataException($"{dto.Type} requires amount/unitPrice > 0.");
+                    var max = dto.Count ?? 0;
+                    if (max <= 0)
+                        throw new InvalidDataException($"{dto.Type} requires count (max units) > 0.");
+                    effects.Add(MisbehaveEffect.Of(local, max, unitPrice));
                     continue;
                 }
                 effects.Add(MisbehaveEffect.Of(local, count));
@@ -335,6 +362,8 @@ namespace Firefly.Core.Cards
             public List<string>? Tags { get; set; }
             public bool? DisgruntleCarriers { get; set; }
             public bool? DisgruntleWantedIfAny { get; set; }
+            public int? UnitPrice { get; set; }
+            public bool? UpTo { get; set; }
         }
     }
 }

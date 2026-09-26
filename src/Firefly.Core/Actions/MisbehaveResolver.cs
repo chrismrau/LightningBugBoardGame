@@ -65,6 +65,24 @@ namespace Firefly.Core.Actions
         /// otherwise crew ids protected (up to slot count).
         /// </summary>
         public IList<string>? IgnoreWantedCrewIds { get; set; }
+        /// <summary>
+        /// Load up to N typed goods (Everything Not Nailed Down). Null = max that fits (0..N).
+        /// </summary>
+        public int? LoadAmount { get; set; }
+        /// <summary>Pushy Salesman: may buy up to N Cargo ($unit each). 0 = buy none.</summary>
+        public int BuyCargo { get; set; }
+        /// <summary>Unexpected Opportunity: may buy up to N Contraband ($unit each). 0 = buy none.</summary>
+        public int BuyContraband { get; set; }
+        /// <summary>
+        /// Food Riots Requires: "cargo" or "contraband". Null when both available suspends
+        /// <see cref="PendingChoiceKinds.MisbehaveDiscardCargoOrContraband"/>.
+        /// </summary>
+        public string? DiscardCargoOrContraband { get; set; }
+        /// <summary>
+        /// Food Riots: crew ids to Return to Ship before the remaining-crew die roll.
+        /// Null or empty = return none (printed "may").
+        /// </summary>
+        public IList<string>? ReturnToShipCrewIds { get; set; }
     }
 
     public sealed class MisbehaveResolution
@@ -137,9 +155,12 @@ namespace Firefly.Core.Actions
         private bool _resumingGoodsMix;
         /// <summary>True while warrant/Wanted discard resume re-enters <see cref="TryResolve"/>.</summary>
         private bool _resumingWarrantOrWanted;
+        /// <summary>True while Cargo/Contraband discard resume re-enters <see cref="TryResolve"/>.</summary>
+        private bool _resumingDiscardCargoOrContraband;
         private bool _resumingWantedRollChoice;
         private MisbehaveChoice? _pendingGoodsMixChoice;
         private MisbehaveChoice? _pendingWarrantOrWantedChoice;
+        private MisbehaveChoice? _pendingDiscardCargoChoice;
         private MisbehaveChoice? _pendingWantedRollChoice;
         /// <summary>Frozen Wanted-seize crew ids after dice, awaiting Meadows PendingChoice.</summary>
         private List<string>? _frozenWantedSeizeIds;
@@ -784,6 +805,62 @@ namespace Firefly.Core.Actions
         }
 
         /// <summary>
+        /// Resume after <see cref="PendingChoiceKinds.MisbehaveDiscardCargoOrContraband"/>.
+        /// </summary>
+        public bool TryResumeDiscardCargoOrContraband(
+            GameState game,
+            string playerId,
+            ChoiceSubmission submission,
+            MisbehaveChoice choice,
+            out MisbehaveResolution? resolution,
+            out string? error,
+            IRng? rng = null)
+        {
+            resolution = null;
+            error = null;
+            if (game.PendingChoice == null
+                || !string.Equals(
+                    game.PendingChoice.Kind,
+                    PendingChoiceKinds.MisbehaveDiscardCargoOrContraband,
+                    StringComparison.Ordinal))
+            {
+                error = "No Cargo/Contraband discard choice is pending.";
+                return false;
+            }
+
+            var merged = _pendingDiscardCargoChoice ?? choice;
+            var path = submission.SelectedOptionId;
+            if (string.Equals(path, MisbehaveDiscardCargoOrContrabandOptions.Cargo, StringComparison.Ordinal)
+                || string.Equals(path, MisbehaveDiscardCargoOrContrabandOptions.Contraband, StringComparison.Ordinal))
+                merged.DiscardCargoOrContraband = path;
+            else
+            {
+                error = "Choose Cargo or Contraband to discard.";
+                return false;
+            }
+
+            choice.DiscardCargoOrContraband = merged.DiscardCargoOrContraband;
+            if (choice.OptionIndex == null)
+                choice.OptionIndex = merged.OptionIndex;
+            if (choice.StepIndex == null)
+                choice.StepIndex = merged.StepIndex;
+
+            if (!game.TrySubmitChoice(playerId, submission, out _, out error))
+                return false;
+
+            _pendingDiscardCargoChoice = null;
+            _resumingDiscardCargoOrContraband = true;
+            try
+            {
+                return TryResolve(game, playerId, choice, out resolution, out error, rng);
+            }
+            finally
+            {
+                _resumingDiscardCargoOrContraband = false;
+            }
+        }
+
+        /// <summary>
         /// Resume after Scan-Proof Shades / ship-upgrade ignore Wanted Crew Roll PendingChoice.
         /// </summary>
         public bool TryResumeWantedRollIgnore(
@@ -965,6 +1042,7 @@ namespace Firefly.Core.Actions
                 && !_resumingDalin
                 && !_resumingGoodsMix
                 && !_resumingWarrantOrWanted
+                && !_resumingDiscardCargoOrContraband
                 && !_resumingWantedRollChoice)
             {
                 error = "Resolve the pending choice before continuing Misbehave.";
@@ -1161,6 +1239,23 @@ namespace Firefly.Core.Actions
                 return false;
             }
 
+            // Food Riots: Discard 1 Cargo or Contraband — choose which when both available.
+            if (NeedsDiscardCargoOrContrabandChoice(
+                    useStructured ? structuredEffects : null,
+                    player,
+                    choice,
+                    out var discardGoodsPrompt))
+            {
+                FreezeSkill(check, bandText, structuredEffects, bribeCash);
+                if (!TrySuspendDiscardCargoOrContraband(game, player, choice, discardGoodsPrompt, out error))
+                {
+                    ClearFrozenSkill();
+                    return false;
+                }
+                error = discardGoodsPrompt;
+                return false;
+            }
+
             // Validate Solid-loss discard hooks before mutating crew / warrants.
             // LoseSolidIfAble skips when not Solid (printed "if able").
             if (WouldLoseSolid(details)
@@ -1229,6 +1324,14 @@ namespace Firefly.Core.Actions
                 }
                 else
                     loaded = LoadGoods(player, effectText);
+                // Food Riots prose: Requires discard is check-only; apply here when unstructured.
+                if ((Contains(details, "Discard 1 Cargo or Contraband")
+                        || Contains(effectText, "Discard 1 Cargo or Contraband"))
+                    && !Contains(effectText, "Discard 1 Cargo."))
+                {
+                    if (!TryApplyDiscardCargoOrContraband(player, 1, choice, out error))
+                        return false;
+                }
                 cashDelta += TakeCash(player, effectText);
                 ApplyWanted(player, effectText, choice.TargetCrewId);
                 ApplyDisgruntle(player, effectText);
@@ -1760,7 +1863,9 @@ namespace Firefly.Core.Actions
                         killed += CrewKill.KillAll(game, player, rng, choice.Kill);
                         break;
                     case MisbehaveLocalEffectType.Wanted:
-                        ApplyWanted(player, "Wanted", choice.TargetCrewId);
+                        // Director's Cut C&P p.49: "Your Crew is now Wanted" → all non-Leader.
+                        // TargetCrewId covers "Chosen Crew is now Wanted".
+                        ApplyWanted(player, "Crew is now Wanted", choice.TargetCrewId);
                         break;
                     case MisbehaveLocalEffectType.DisgruntleMercs:
                         player.Roster.DisgruntleWhere(
@@ -1842,6 +1947,56 @@ namespace Firefly.Core.Actions
                         ReturnHighestFightToShip(game, player);
                         break;
                     case MisbehaveLocalEffectType.LoseSolidIfAble:
+                        break;
+                    case MisbehaveLocalEffectType.LoadContrabandUpTo:
+                        if (!TryApplyLoadContrabandUpTo(
+                                player, effect.Count, choice, out var upToLoaded, out error))
+                            return false;
+                        loaded += upToLoaded;
+                        break;
+                    case MisbehaveLocalEffectType.LoadContrabandPerCrewWithoutGear:
+                        var perCrew = CountCrewWithoutGear(game, player);
+                        if (perCrew > 0)
+                        {
+                            if (!HoldSpace.TryExplain(player, out error, addContraband: perCrew))
+                                return false;
+                            player.Contraband += perCrew;
+                            loaded += perCrew;
+                        }
+                        break;
+                    case MisbehaveLocalEffectType.DiscardCargoOrContraband:
+                        if (!TryApplyDiscardCargoOrContraband(
+                                player, effect.Count > 0 ? effect.Count : 1, choice, out error))
+                            return false;
+                        break;
+                    case MisbehaveLocalEffectType.BuyCargo:
+                        if (!TryApplyBuyGoods(
+                                player, isContraband: false, effect.Count, effect.UnitPrice,
+                                choice.BuyCargo, ref cashDelta, out var boughtCargo, out error))
+                            return false;
+                        loaded += boughtCargo;
+                        break;
+                    case MisbehaveLocalEffectType.BuyContraband:
+                        if (!TryApplyBuyGoods(
+                                player, isContraband: true, effect.Count, effect.UnitPrice,
+                                choice.BuyContraband, ref cashDelta, out var boughtContra, out error))
+                            return false;
+                        loaded += boughtContra;
+                        break;
+                    case MisbehaveLocalEffectType.LoadParts:
+                        var partsN = effect.Count > 0 ? effect.Count : 1;
+                        if (!HoldSpace.TryExplain(player, out error, addParts: partsN))
+                            return false;
+                        player.Parts += partsN;
+                        loaded += partsN;
+                        break;
+                    case MisbehaveLocalEffectType.ReturnCrewThenRollVsRemaining:
+                        if (!TryApplyReturnCrewThenRoll(
+                                game, player, rng, choice, out outcome, out error))
+                            return false;
+                        break;
+                    case MisbehaveLocalEffectType.WantedCarrying:
+                        ApplyWantedCarrying(game, player, effect.Tags);
                         break;
                     case MisbehaveLocalEffectType.ReplaceCard:
                         break;
@@ -2100,8 +2255,7 @@ namespace Firefly.Core.Actions
                     error = "Requires 1 Cargo or Contraband to discard.";
                     return false;
                 }
-                if (player.Cargo > 0) player.Cargo--;
-                else player.Contraband--;
+                // Discard itself is applied by discardCargoOrContraband (structured) or prose path.
                 return true;
             }
 
@@ -2649,8 +2803,293 @@ namespace Firefly.Core.Actions
                 player.Roster.MarkWanted(targetCrewId);
                 return;
             }
+            // "Any Crew carrying …" is WantedCarrying (structured); prose firearm path stays first-crew
+            // unless the printed "Crew is now Wanted" / "Crew Wanted" all-crew form applies.
+            if (Contains(text, "carrying"))
+            {
+                if (player.Roster.Count > 0)
+                    player.Roster.MarkWanted(player.Roster.Members[0].Id);
+                return;
+            }
+            // Director's Cut C&P p.49 Wanted Tokens:
+            // "add a Wanted Token to each of your Crew who isn't already Wanted, other than your Leader."
+            if (Contains(text, "Crew is now Wanted")
+                || Contains(text, "Crew is Now Wanted")
+                || Contains(text, "Your Crew is now Wanted")
+                || Contains(text, "Crew Wanted"))
+            {
+                player.Roster.MarkWantedAllExceptLeader();
+                return;
+            }
             if (player.Roster.Count > 0)
                 player.Roster.MarkWanted(player.Roster.Members[0].Id);
+        }
+
+        private static void ApplyWantedCarrying(
+            GameState game,
+            PlayerState player,
+            IReadOnlyList<string> tags)
+        {
+            if (game.Gear == null || tags == null || tags.Count == 0)
+                return;
+            foreach (var member in player.Roster.Members)
+            {
+                if (member.IsLeader || member.Wanted)
+                    continue;
+                foreach (var gearId in GearCarriage.CarriedBy(player, member.Id))
+                {
+                    if (!game.Gear.TryGet(gearId, out var gear))
+                        continue;
+                    if (!GearMatchesAnyTag(gear, tags))
+                        continue;
+                    member.MarkWanted();
+                    break;
+                }
+            }
+        }
+
+        private static int CountCrewWithoutGear(GameState game, PlayerState player)
+        {
+            var n = 0;
+            foreach (var member in player.Roster.Members)
+            {
+                if (JobWorkCrew.IsUnavailable(player, member))
+                    continue;
+                if (GearCarriage.CarriedBy(player, member.Id).Count == 0)
+                    n++;
+            }
+            return n;
+        }
+
+        private static bool TryApplyLoadContrabandUpTo(
+            PlayerState player,
+            int max,
+            MisbehaveChoice choice,
+            out int loaded,
+            out string? error)
+        {
+            loaded = 0;
+            error = null;
+            var cap = max > 0 ? max : 1;
+            int count;
+            if (choice.LoadAmount != null)
+            {
+                count = choice.LoadAmount.Value;
+                if (count < 0 || count > cap)
+                {
+                    error = $"Load up to {cap} Contraband requires LoadAmount between 0 and {cap}.";
+                    return false;
+                }
+            }
+            else
+            {
+                // Nav Load-up-to pattern: unset → max that fits (preserves prior exact-3 tests).
+                count = cap;
+                while (count > 0 && !HoldSpace.Fits(player, addContraband: count))
+                    count--;
+            }
+            if (count == 0)
+                return true;
+            if (!HoldSpace.TryExplain(player, out error, addContraband: count))
+                return false;
+            player.Contraband += count;
+            loaded = count;
+            return true;
+        }
+
+        private static bool TryApplyBuyGoods(
+            PlayerState player,
+            bool isContraband,
+            int max,
+            int unitPrice,
+            int requested,
+            ref int cashDelta,
+            out int bought,
+            out string? error)
+        {
+            bought = 0;
+            error = null;
+            var units = System.Math.Max(0, requested);
+            if (units > max)
+            {
+                error = isContraband
+                    ? $"May buy at most {max} Contraband."
+                    : $"May buy at most {max} Cargo.";
+                return false;
+            }
+            if (units == 0)
+                return true;
+            var cost = units * unitPrice;
+            if (player.Cash < cost)
+            {
+                error = $"Need ${cost}, have ${player.Cash}.";
+                return false;
+            }
+            if (isContraband)
+            {
+                if (!HoldSpace.TryExplain(player, out error, addContraband: units))
+                    return false;
+                player.Cash -= cost;
+                player.Contraband += units;
+            }
+            else
+            {
+                if (!HoldSpace.TryExplain(player, out error, addCargo: units))
+                    return false;
+                player.Cash -= cost;
+                player.Cargo += units;
+            }
+            cashDelta -= cost;
+            bought = units;
+            return true;
+        }
+
+        private static bool TryApplyDiscardCargoOrContraband(
+            PlayerState player,
+            int count,
+            MisbehaveChoice choice,
+            out string? error)
+        {
+            error = null;
+            var n = count > 0 ? count : 1;
+            var path = choice.DiscardCargoOrContraband;
+            if (string.IsNullOrWhiteSpace(path))
+            {
+                // Auto when only one type is available.
+                if (player.Cargo >= n && player.Contraband < n)
+                    path = MisbehaveDiscardCargoOrContrabandOptions.Cargo;
+                else if (player.Contraband >= n && player.Cargo < n)
+                    path = MisbehaveDiscardCargoOrContrabandOptions.Contraband;
+                else if (player.Cargo >= n)
+                    path = MisbehaveDiscardCargoOrContrabandOptions.Cargo;
+                else if (player.Contraband >= n)
+                    path = MisbehaveDiscardCargoOrContrabandOptions.Contraband;
+                else
+                {
+                    error = $"Need {n} Cargo or Contraband to discard.";
+                    return false;
+                }
+            }
+
+            if (string.Equals(path, MisbehaveDiscardCargoOrContrabandOptions.Cargo, StringComparison.Ordinal))
+            {
+                if (player.Cargo < n)
+                {
+                    error = n == 1 ? "Need 1 Cargo to discard." : $"Need {n} Cargo to discard.";
+                    return false;
+                }
+                player.Cargo -= n;
+                return true;
+            }
+            if (string.Equals(path, MisbehaveDiscardCargoOrContrabandOptions.Contraband, StringComparison.Ordinal))
+            {
+                if (player.Contraband < n)
+                {
+                    error = n == 1 ? "Need 1 Contraband to discard." : $"Need {n} Contraband to discard.";
+                    return false;
+                }
+                player.Contraband -= n;
+                return true;
+            }
+            error = "Choose Cargo or Contraband to discard.";
+            return false;
+        }
+
+        private static bool NeedsDiscardCargoOrContrabandChoice(
+            IReadOnlyList<MisbehaveEffect>? effects,
+            PlayerState player,
+            MisbehaveChoice choice,
+            out string prompt)
+        {
+            prompt = "";
+            if (effects == null || effects.Count == 0)
+                return false;
+            var n = 0;
+            var has = false;
+            foreach (var effect in effects)
+            {
+                if (!effect.Is(MisbehaveLocalEffectType.DiscardCargoOrContraband))
+                    continue;
+                has = true;
+                n = effect.Count > 0 ? effect.Count : 1;
+                break;
+            }
+            if (!has)
+                return false;
+            if (!string.IsNullOrWhiteSpace(choice.DiscardCargoOrContraband))
+                return false;
+            // Both types available at count N → player must choose.
+            if (player.Cargo >= n && player.Contraband >= n)
+            {
+                prompt = n == 1
+                    ? "Choose Cargo or Contraband to discard."
+                    : $"Choose Cargo or Contraband to discard ({n}).";
+                return true;
+            }
+            return false;
+        }
+
+        private bool TrySuspendDiscardCargoOrContraband(
+            GameState game,
+            PlayerState player,
+            MisbehaveChoice choice,
+            string prompt,
+            out string? error)
+        {
+            var pending = new PendingChoice(
+                player.Id,
+                PendingChoiceKinds.MisbehaveDiscardCargoOrContraband,
+                options: new[]
+                {
+                    MisbehaveDiscardCargoOrContrabandOptions.Cargo,
+                    MisbehaveDiscardCargoOrContrabandOptions.Contraband
+                },
+                prompt: prompt);
+            if (!game.TrySetPendingChoice(pending, out error))
+                return false;
+            _pendingDiscardCargoChoice = choice;
+            return true;
+        }
+
+        private static bool TryApplyReturnCrewThenRoll(
+            GameState game,
+            PlayerState player,
+            IRng rng,
+            MisbehaveChoice choice,
+            out MisbehaveOutcome outcome,
+            out string? error)
+        {
+            outcome = MisbehaveOutcome.Botched;
+            error = null;
+            var pending = game.PendingMisbehave;
+            if (pending == null)
+            {
+                error = "No Misbehave is pending for Return to Ship.";
+                return false;
+            }
+
+            if (choice.ReturnToShipCrewIds != null)
+            {
+                foreach (var crewId in choice.ReturnToShipCrewIds)
+                {
+                    if (string.IsNullOrWhiteSpace(crewId))
+                        continue;
+                    var member = player.Roster.Find(crewId);
+                    if (member == null)
+                    {
+                        error = $"Unknown crew '{crewId}' to return to Ship.";
+                        return false;
+                    }
+                    if (JobWorkCrew.IsUnavailable(player, member))
+                        continue;
+                    JobWorkCrew.ReturnToShip(player, pending.JobId, crewId);
+                }
+            }
+
+            var remaining = JobWorkCrew.AvailableCount(player);
+            var die = Dice.D6(rng);
+            outcome = die > remaining ? MisbehaveOutcome.Proceed : MisbehaveOutcome.Botched;
+            return true;
         }
 
         /// <summary>
