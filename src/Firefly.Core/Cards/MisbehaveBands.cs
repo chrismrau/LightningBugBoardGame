@@ -33,7 +33,47 @@ namespace Firefly.Core.Cards
         /// Optional exclusive discard: up to N Warrants <em>or</em> up to N Wanted Tokens
         /// (count = N). Proceed with zero discards is legal.
         /// </summary>
-        MayDiscardWarrantsOrWanted
+        MayDiscardWarrantsOrWanted,
+        /// <summary>Discard N Cargo from the hold (count = N; default 1). Fails if Cargo &lt; N.</summary>
+        DiscardCargo,
+        /// <summary>
+        /// Discard all Inactive Jobs in hand (FAQ 4.1: Jobs in hand ≠ Active Jobs on the table).
+        /// Returned to each Contact's discard pile.
+        /// </summary>
+        DiscardJobHand,
+        /// <summary>
+        /// Optional discard of up to N ship Warrants (count = N; default 1). Zero discards OK.
+        /// Suspends <see cref="State.PendingChoiceKinds.MisbehaveWarrantOrWanted"/> (none / warrants).
+        /// </summary>
+        MayDiscardWarrants,
+        /// <summary>Clear Disgruntled from Moral crew only (printed "Moral Crew").</summary>
+        ClearDisgruntledMoral
+    }
+
+    /// <summary>
+    /// Printed skill-check target modifiers (e.g. Alliance Patrol
+    /// "Negotiate 8 - 1 for each of your Warrants"). Applied as a roll bonus against
+    /// printed absolute bands so "8+ Proceed" stays correct when the TN is reduced.
+    /// </summary>
+    public enum MisbehaveTargetModifierType
+    {
+        MinusPerWarrant
+    }
+
+    /// <summary>
+    /// One structured target modifier on a skill check.
+    /// <see cref="Amount"/> is the per-unit delta (Alliance Patrol prints 1).
+    /// </summary>
+    public sealed class MisbehaveTargetModifier
+    {
+        public MisbehaveTargetModifierType Type { get; }
+        public int Amount { get; }
+
+        public MisbehaveTargetModifier(MisbehaveTargetModifierType type, int amount)
+        {
+            Type = type;
+            Amount = amount;
+        }
     }
 
     /// <summary>
@@ -146,19 +186,26 @@ namespace Firefly.Core.Cards
         public bool BribesAllowed { get; }
         /// <summary>Optional structured "+N with TAG" bonuses; preferred over parsing details.</summary>
         public IReadOnlyList<MisbehaveSkillBonus> Bonuses { get; }
+        /// <summary>
+        /// Optional printed TN modifiers (e.g. minusPerWarrant). Applied as a roll bonus
+        /// so absolute printed bands remain correct.
+        /// </summary>
+        public IReadOnlyList<MisbehaveTargetModifier> TargetModifiers { get; }
 
         public MisbehaveSkillCheckSpec(
             Skill skill,
             int target,
             bool kosherized = false,
             bool bribesAllowed = false,
-            IReadOnlyList<MisbehaveSkillBonus>? bonuses = null)
+            IReadOnlyList<MisbehaveSkillBonus>? bonuses = null,
+            IReadOnlyList<MisbehaveTargetModifier>? targetModifiers = null)
         {
             Skill = skill;
             Target = target;
             Kosherized = kosherized;
             BribesAllowed = bribesAllowed;
             Bonuses = bonuses ?? Array.Empty<MisbehaveSkillBonus>();
+            TargetModifiers = targetModifiers ?? Array.Empty<MisbehaveTargetModifier>();
         }
 
         public SkillCheck ToSkillCheck() => new SkillCheck(Skill, Target, Kosherized, BribesAllowed);

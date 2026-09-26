@@ -973,15 +973,17 @@ namespace Firefly.Core.Actions
                 return false;
             }
 
-            // Dead to Rights: optional exclusive discard of Warrants or Wanted Tokens.
+            // Optional Warrant / Wanted discard (Dead to Rights; Improbably Complex may discard Warrant).
             if (NeedsWarrantOrWantedChoice(
                     useStructured ? structuredEffects : null,
                     choice,
                     out var discardMax,
-                    out var discardPrompt))
+                    out var discardPrompt,
+                    out var warrantsOnly))
             {
                 FreezeSkill(check, bandText, structuredEffects, bribeCash);
-                if (!TrySuspendWarrantOrWanted(game, player, choice, discardMax, discardPrompt, out error))
+                if (!TrySuspendWarrantOrWanted(
+                        game, player, choice, discardMax, discardPrompt, warrantsOnly, out error))
                 {
                     ClearFrozenSkill();
                     return false;
@@ -1052,6 +1054,9 @@ namespace Firefly.Core.Actions
                 ApplyWanted(player, effectText, choice.TargetCrewId);
                 ApplyDisgruntle(player, effectText);
                 ApplyClearDisgruntled(player, effectText);
+                if (Contains(effectText, "Discard all Jobs in Hand")
+                    || Contains(details, "Discard all Jobs in Hand"))
+                    DiscardAllInactiveJobsInHand(game, player);
                 if (!TryApplySolidLoss(game, player, effectText, effectText, choice, out error))
                     return false;
                 ApplyWarrantDiscard(player, effectText, choice.DiscardWarrants);
@@ -1605,6 +1610,27 @@ namespace Firefly.Core.Actions
                         if (!TryApplyMayDiscardWarrantsOrWanted(player, effect.Count, choice, out error))
                             return false;
                         break;
+                    case MisbehaveLocalEffectType.DiscardCargo:
+                        var cargoN = effect.Count > 0 ? effect.Count : 1;
+                        if (player.Cargo < cargoN)
+                        {
+                            error = cargoN == 1
+                                ? "Need 1 Cargo to discard."
+                                : $"Need {cargoN} Cargo to discard.";
+                            return false;
+                        }
+                        player.Cargo -= cargoN;
+                        break;
+                    case MisbehaveLocalEffectType.DiscardJobHand:
+                        DiscardAllInactiveJobsInHand(game, player);
+                        break;
+                    case MisbehaveLocalEffectType.MayDiscardWarrants:
+                        if (!TryApplyMayDiscardWarrants(player, effect.Count, choice, out error))
+                            return false;
+                        break;
+                    case MisbehaveLocalEffectType.ClearDisgruntledMoral:
+                        player.Roster.ClearDisgruntledMoral();
+                        break;
                     case MisbehaveLocalEffectType.ReplaceCard:
                         break;
                     case MisbehaveLocalEffectType.NextFightKosherized:
@@ -1834,9 +1860,15 @@ namespace Firefly.Core.Actions
             MisbehaveOption option,
             string details)
         {
-            if (option.SkillCheck != null && option.SkillCheck.Bonuses.Count > 0)
+            if (option.SkillCheck != null
+                && (option.SkillCheck.Bonuses.Count > 0 || option.SkillCheck.TargetModifiers.Count > 0))
             {
                 var bonus = 0;
+                foreach (var mod in option.SkillCheck.TargetModifiers)
+                {
+                    if (mod.Type == MisbehaveTargetModifierType.MinusPerWarrant && mod.Amount != 0)
+                        bonus += mod.Amount * player.Warrants;
+                }
                 foreach (var entry in option.SkillCheck.Bonuses)
                 {
                     if (entry.Amount != 0 && HasTag(game, player, entry.Tag))
@@ -1844,7 +1876,7 @@ namespace Firefly.Core.Actions
                 }
                 return bonus;
             }
-            return BonusFromGear(game, player, details);
+            return BonusFromGear(game, player, details) + BonusFromWarrantTargetMod(player, details);
         }
 
         private static int BonusFromGear(GameState game, PlayerState player, string details)
@@ -1856,6 +1888,21 @@ namespace Firefly.Core.Actions
                     bonus += int.Parse(match.Groups[1].Value);
             }
             return bonus;
+        }
+
+        /// <summary>
+        /// Prose fallback for printed "Negotiate 8 - 1 for each of your Warrants":
+        /// add (amount × warrants) to the total so absolute bands (8+) stay correct.
+        /// </summary>
+        private static int BonusFromWarrantTargetMod(PlayerState player, string details)
+        {
+            var match = Regex.Match(
+                details ?? "",
+                @"-\s*(\d+)\s+for each of your Warrants",
+                RegexOptions.IgnoreCase);
+            if (!match.Success || player.Warrants <= 0)
+                return 0;
+            return int.Parse(match.Groups[1].Value) * player.Warrants;
         }
 
         private static int PayAmount(PlayerState player, string details, bool payCuts)
@@ -2108,22 +2155,38 @@ namespace Firefly.Core.Actions
             IReadOnlyList<MisbehaveEffect>? effects,
             MisbehaveChoice choice,
             out int max,
-            out string prompt)
+            out string prompt,
+            out bool warrantsOnly)
         {
             max = 0;
             prompt = "";
+            warrantsOnly = false;
             if (effects == null || effects.Count == 0)
                 return false;
             foreach (var effect in effects)
             {
-                if (!effect.Is(MisbehaveLocalEffectType.MayDiscardWarrantsOrWanted))
-                    continue;
-                if (!string.IsNullOrWhiteSpace(choice.DiscardWarrantsOrWantedPath))
-                    return false;
-                max = effect.Count > 0 ? effect.Count : 2;
-                prompt =
-                    $"You may discard up to {max} Warrants or up to {max} Wanted Tokens (exclusive), or none.";
-                return true;
+                if (effect.Is(MisbehaveLocalEffectType.MayDiscardWarrantsOrWanted))
+                {
+                    if (!string.IsNullOrWhiteSpace(choice.DiscardWarrantsOrWantedPath))
+                        return false;
+                    max = effect.Count > 0 ? effect.Count : 2;
+                    prompt =
+                        $"You may discard up to {max} Warrants or up to {max} Wanted Tokens (exclusive), or none.";
+                    warrantsOnly = false;
+                    return true;
+                }
+
+                if (effect.Is(MisbehaveLocalEffectType.MayDiscardWarrants))
+                {
+                    if (!string.IsNullOrWhiteSpace(choice.DiscardWarrantsOrWantedPath))
+                        return false;
+                    max = effect.Count > 0 ? effect.Count : 1;
+                    prompt = max == 1
+                        ? "You may discard a Warrant, or none."
+                        : $"You may discard up to {max} Warrants, or none.";
+                    warrantsOnly = true;
+                    return true;
+                }
             }
             return false;
         }
@@ -2134,18 +2197,26 @@ namespace Firefly.Core.Actions
             MisbehaveChoice choice,
             int max,
             string prompt,
+            bool warrantsOnly,
             out string? error)
         {
-            var pending = new PendingChoice(
-                player.Id,
-                PendingChoiceKinds.MisbehaveWarrantOrWanted,
-                contextId: max.ToString(),
-                options: new[]
+            var options = warrantsOnly
+                ? new[]
+                {
+                    MisbehaveWarrantOrWantedOptions.None,
+                    MisbehaveWarrantOrWantedOptions.Warrants
+                }
+                : new[]
                 {
                     MisbehaveWarrantOrWantedOptions.None,
                     MisbehaveWarrantOrWantedOptions.Warrants,
                     MisbehaveWarrantOrWantedOptions.WantedTokens
-                },
+                };
+            var pending = new PendingChoice(
+                player.Id,
+                PendingChoiceKinds.MisbehaveWarrantOrWanted,
+                contextId: max.ToString(),
+                options: options,
                 prompt: prompt);
             if (!game.TrySetPendingChoice(pending, out error))
                 return false;
@@ -2331,10 +2402,79 @@ namespace Firefly.Core.Actions
                 player.Roster.DisgruntleWhere(_ => true);
         }
 
+        private static bool TryApplyMayDiscardWarrants(
+            PlayerState player,
+            int maxCount,
+            MisbehaveChoice choice,
+            out string? error)
+        {
+            error = null;
+            var max = maxCount > 0 ? maxCount : 1;
+            var path = choice.DiscardWarrantsOrWantedPath;
+            if (string.IsNullOrWhiteSpace(path)
+                || string.Equals(path, MisbehaveWarrantOrWantedOptions.None, StringComparison.Ordinal))
+            {
+                if (choice.DiscardWarrants > 0
+                    || (choice.ClearWantedCrewIds != null && choice.ClearWantedCrewIds.Count > 0))
+                {
+                    error = "Cannot mix Warrants and Wanted Tokens in one discard.";
+                    return false;
+                }
+                return true;
+            }
+
+            if (string.Equals(path, MisbehaveWarrantOrWantedOptions.Warrants, StringComparison.Ordinal))
+            {
+                if (choice.ClearWantedCrewIds != null && choice.ClearWantedCrewIds.Count > 0)
+                {
+                    error = "Cannot mix Warrants and Wanted Tokens in one discard.";
+                    return false;
+                }
+                var discard = choice.DiscardWarrants;
+                if (discard < 0 || discard > max)
+                {
+                    error = $"Warrant discard must be between 0 and {max}.";
+                    return false;
+                }
+                if (discard > player.Warrants)
+                    discard = player.Warrants;
+                player.Warrants -= discard;
+                return true;
+            }
+
+            error = $"Unknown Warrant discard path '{path}'.";
+            return false;
+        }
+
+        private static void DiscardAllInactiveJobsInHand(GameState game, PlayerState player)
+        {
+            // FAQ 4.1: Jobs in hand are Inactive; Active Jobs on the table cannot be discarded
+            // this way (only complete or Warrant Issued while working).
+            if (player.JobHand.Count == 0)
+                return;
+            var ids = new List<string>(player.JobHand);
+            player.JobHand.Clear();
+            if (game.Jobs == null)
+                return;
+            foreach (var id in ids)
+            {
+                if (!game.Jobs.TryGet(id, out var job))
+                    continue;
+                if (game.ContactDecks != null && game.ContactDecks.TryGet(job.ContactName, out var deck))
+                    deck.MoveToDiscard(job);
+            }
+        }
+
         private static void ApplyClearDisgruntled(PlayerState player, string text)
         {
             if (!Contains(text, "Remove Disgruntled"))
                 return;
+            // Printed "Moral Crew" → moral only (Thrillin' Heroics / Locals in Need).
+            if (Contains(text, "Moral"))
+            {
+                player.Roster.ClearDisgruntledMoral();
+                return;
+            }
             foreach (var member in player.Roster.Members)
                 member.Disgruntled = false;
         }
