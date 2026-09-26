@@ -1704,7 +1704,10 @@ namespace Firefly.Core.Actions
             }
 
             // Director's Cut C&P p.49 No one left: all Crew Killed or Returned to Ship → Botched.
-            if (game.PendingMisbehave != null && JobWorkCrew.AvailableCount(player) == 0)
+            // Only when someone was Working and none remain (do not Botch empty-roster scripted tests).
+            if (game.PendingMisbehave != null
+                && JobWorkCrew.AvailableCount(player) == 0
+                && (JobWorkCrew.HasAnyoneReturnedToShip(player) || killed > 0))
                 outcome = MisbehaveOutcome.Botched;
 
             return true;
