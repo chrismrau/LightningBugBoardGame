@@ -47,7 +47,37 @@ namespace Firefly.Core.Cards
         /// </summary>
         MayDiscardWarrants,
         /// <summary>Clear Disgruntled from Moral crew only (printed "Moral Crew").</summary>
-        ClearDisgruntledMoral
+        ClearDisgruntledMoral,
+        /// <summary>
+        /// Director's Cut C&amp;P p.49 Equipment Seizures: remove matching carried Gear from the
+        /// game (may not be repurchased). Tags select keyword/name (FIREARM, SNIPER RIFLE, …).
+        /// Optional <see cref="MisbehaveEffect.DisgruntleCarriers"/> /
+        /// <see cref="MisbehaveEffect.DisgruntleWantedIfAny"/>.
+        /// </summary>
+        SeizeGear,
+        /// <summary>
+        /// Alliance Wanted Crew Roll for each Wanted crew (die 1 / Background Checks).
+        /// Any seized → Warrant Issued; otherwise Proceed.
+        /// </summary>
+        WantedCrewRoll,
+        /// <summary>Disgruntle all Wanted Crew.</summary>
+        DisgruntleWanted,
+        /// <summary>
+        /// Director's Cut C&amp;P p.49 I'll Be in my Bunk: return all Wanted Crew to the Ship
+        /// (unusable for the rest of the Job). No one left → Botched.
+        /// </summary>
+        ReturnWantedToShip,
+        /// <summary>Disgruntle any Crew who are not already Disgruntled.</summary>
+        DisgruntleNonDisgruntled,
+        /// <summary>
+        /// Return the Crew with the highest total Fight (crew + carried gear Fight) to the Ship;
+        /// Disgruntle them if not already. Ties: first roster order.
+        /// </summary>
+        ReturnHighestFightToShip,
+        /// <summary>
+        /// Lose Solid with 1 Contact if able (printed "if able" — no-op when none Solid).
+        /// </summary>
+        LoseSolidIfAble
     }
 
     /// <summary>
@@ -101,15 +131,30 @@ namespace Firefly.Core.Cards
         public CardEffect? Shared { get; }
         public MisbehaveLocalEffectType? Local { get; }
         public int Count { get; }
+        /// <summary>Gear keyword/name tags for <see cref="MisbehaveLocalEffectType.SeizeGear"/>.</summary>
+        public IReadOnlyList<string> Tags { get; }
+        /// <summary>Security Scare: Disgruntle Crew who were carrying seized Gear.</summary>
+        public bool DisgruntleCarriers { get; }
+        /// <summary>Stop and Frisk submit: if any Gear seized, Disgruntle all Wanted Crew.</summary>
+        public bool DisgruntleWantedIfAny { get; }
 
         public bool IsShared => Shared != null;
         public bool IsLocal => Local != null;
 
-        private MisbehaveEffect(CardEffect? shared, MisbehaveLocalEffectType? local, int count)
+        private MisbehaveEffect(
+            CardEffect? shared,
+            MisbehaveLocalEffectType? local,
+            int count,
+            IReadOnlyList<string>? tags = null,
+            bool disgruntleCarriers = false,
+            bool disgruntleWantedIfAny = false)
         {
             Shared = shared;
             Local = local;
             Count = shared?.Count ?? count;
+            Tags = tags ?? Array.Empty<string>();
+            DisgruntleCarriers = disgruntleCarriers;
+            DisgruntleWantedIfAny = disgruntleWantedIfAny;
         }
 
         public static MisbehaveEffect Of(CardEffectType type, int count = 0) =>
@@ -120,6 +165,18 @@ namespace Firefly.Core.Cards
 
         public static MisbehaveEffect Of(MisbehaveLocalEffectType type, int count = 0) =>
             new MisbehaveEffect(null, type, count);
+
+        public static MisbehaveEffect SeizeGear(
+            IReadOnlyList<string> tags,
+            bool disgruntleCarriers = false,
+            bool disgruntleWantedIfAny = false) =>
+            new MisbehaveEffect(
+                null,
+                MisbehaveLocalEffectType.SeizeGear,
+                0,
+                tags,
+                disgruntleCarriers,
+                disgruntleWantedIfAny);
 
         /// <summary>True when this effect is the given shared type.</summary>
         public bool Is(CardEffectType type) => Shared != null && Shared.Type == type;

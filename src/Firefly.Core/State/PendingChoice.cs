@@ -138,6 +138,17 @@ namespace Firefly.Core.State
         /// </summary>
         public const string MeadowsRedirect = "meadows-redirect";
         /// <summary>
+        /// Ship-upgrade ignore Wanted Crew Roll slots: pick up to N Wanted crew to protect
+        /// (Cryo / EVA / Stash). <see cref="ChoiceSubmission.Values"/> = crew ids (empty = none).
+        /// ContextId = slot count.
+        /// </summary>
+        public const string WantedRollIgnoreCrew = "wanted-roll-ignore-crew";
+        /// <summary>
+        /// Optional carried ignore Wanted Crew Roll gear (Scan-Proof Shades "may").
+        /// Options: <see cref="WantedRollIgnoreGearOptions"/>.
+        /// </summary>
+        public const string WantedRollIgnoreGear = "wanted-roll-ignore-gear";
+        /// <summary>
         /// Sheydra / Stitch: switch skill for this test (once per job).
         /// Options: <see cref="SkillSwitchOptions"/>.
         /// </summary>
@@ -277,6 +288,13 @@ namespace Firefly.Core.State
     {
         public const string KillMeadows = "kill-meadows";
         public const string Decline = "decline";
+    }
+
+    /// <summary>Discrete option ids for <see cref="PendingChoiceKinds.WantedRollIgnoreGear"/>.</summary>
+    public static class WantedRollIgnoreGearOptions
+    {
+        public const string Ignore = "ignore";
+        public const string TakeRoll = "take-roll";
     }
 
     /// <summary>Discrete option ids for <see cref="PendingChoiceKinds.SkillSwitch"/>.</summary>
