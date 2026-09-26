@@ -1829,7 +1829,8 @@ namespace Firefly.Core.Actions
                             outcome = MisbehaveOutcome.Proceed;
                         break;
                     case MisbehaveLocalEffectType.DisgruntleWanted:
-                        player.Roster.DisgruntleWhere(m => m.Wanted);
+                        // Lock 5 A: Wanted Leader ignored (DC C&P p.49 Wanted Tokens exclude Leader).
+                        player.Roster.DisgruntleWhere(m => m.Wanted && !m.IsLeader);
                         break;
                     case MisbehaveLocalEffectType.ReturnWantedToShip:
                         ReturnWantedCrewToShip(game, player);
@@ -2699,8 +2700,9 @@ namespace Firefly.Core.Actions
                 }
             }
 
+            // Lock 5 A: Wanted Leader ignored for Disgruntle after seize.
             if (effect.DisgruntleWantedIfAny && toSeize.Count > 0)
-                player.Roster.DisgruntleWhere(m => m.Wanted);
+                player.Roster.DisgruntleWhere(m => m.Wanted && !m.IsLeader);
 
             return toSeize.Count;
         }
@@ -2725,8 +2727,8 @@ namespace Firefly.Core.Actions
         /// <summary>
         /// Alliance Wanted Crew Roll (same capture table as Cruiser Contact / Background Checks).
         /// Seized crew are removed from play. Meadows may redirect the first seize (PendingChoice).
-        /// Director's Cut C&amp;P p.49: Wanted Tokens exclude the Leader — Leaders are skipped
-        /// on this roll (pending user confirm if a Leader is somehow Wanted).
+        /// Lock 5 A / Director's Cut C&amp;P p.49: Wanted Tokens exclude the Leader — a Wanted
+        /// Leader is ignored for this roll (no die, seize, Disgruntle, or Warrant contribution).
         /// FAQ 4.1 Really Lucky applies to Kill only — not seized.
         /// </summary>
         private bool TryApplyWantedCrewRoll(
@@ -2807,8 +2809,7 @@ namespace Firefly.Core.Actions
             {
                 if (JobWorkCrew.IsUnavailable(player, member))
                     continue;
-                // DC C&P p.49 Wanted Tokens: "other than your Leader." Leaders are not subjects
-                // of Wanted Crew Rolls here (Really Lucky is Kill-only — FAQ 4.1).
+                // Lock 5 A / DC C&P p.49 Wanted Tokens: "other than your Leader."
                 if (member.IsLeader)
                     continue;
                 if (protectedIds.Contains(member.Id))
@@ -2903,6 +2904,9 @@ namespace Firefly.Core.Actions
                 return;
             foreach (var member in player.Roster.WantedMembers())
             {
+                // Lock 5 A: Wanted Leader ignored on Check Point return-to-Ship.
+                if (member.IsLeader)
+                    continue;
                 if (JobWorkCrew.IsUnavailable(player, member))
                     continue;
                 JobWorkCrew.ReturnToShip(player, pending.JobId, member.Id);

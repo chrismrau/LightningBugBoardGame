@@ -1552,8 +1552,8 @@ namespace Firefly.Core.Tests
         [Fact]
         public void Batch3_lock5_Leader_Wanted_skipped_on_Wanted_Crew_Roll()
         {
-            // Lock 5 interim: DC C&P Wanted Tokens exclude Leader; Really Lucky is Kill-only.
-            // Leader with Wanted marked is skipped (not seized, not Disgruntled, no Warrant).
+            // Lock 5 A: Wanted Leader ignored for Wanted Crew Roll / seize / Disgruntle / Warrant.
+            // DC C&P p.49 Wanted Tokens exclude Leader; Really Lucky is Kill-only (FAQ 4.1).
             var game = NewCrimeGame();
             Assert.True(game.CurrentPlayer.Roster.TryHire(
                 LeaderCatalog.LoadDefault().Get("leader_malcolm"), out _));
@@ -1574,6 +1574,60 @@ namespace Firefly.Core.Tests
             Assert.Equal(0, resolution.WarrantsIssued);
             Assert.NotNull(game.CurrentPlayer.Roster.Find("leader_malcolm"));
             Assert.False(game.CurrentPlayer.Roster.Find("leader_malcolm")!.Disgruntled);
+            Assert.DoesNotContain("leader_malcolm", game.RemovedFromPlay);
+        }
+
+        [Fact]
+        public void Batch3_lock5_Leader_Wanted_ignored_on_Check_Point_Disgruntle_and_Return()
+        {
+            // Lock 5 A: Check Point option 0 — Disgruntle/Return Wanted skips Leader.
+            var game = NewCrimeGame();
+            Assert.True(game.CurrentPlayer.Roster.TryHire(
+                LeaderCatalog.LoadDefault().Get("leader_malcolm"), out _));
+            var mal = game.CurrentPlayer.Roster.Find("leader_malcolm")!;
+            mal.MarkWanted();
+            Assert.True(game.CurrentPlayer.Roster.TryHire(game.Crew!.Get("crew_jayne"), out _));
+            StartCrime(game);
+            game.Misbehave!.PlaceOnTop(game.Misbehave.Catalog.Get("misbehave_check-point"));
+            var resolver = new MisbehaveResolver();
+            resolver.DrawNext(game);
+
+            Assert.True(resolver.TryResolve(
+                game, "p1",
+                new MisbehaveChoice { OptionIndex = 0 },
+                out var resolution, out var error), error);
+            Assert.Equal(MisbehaveOutcome.Proceed, resolution!.Outcome);
+            Assert.False(mal.Disgruntled);
+            Assert.False(game.CurrentPlayer.FindActive(Crime)!.IsReturnedToShip("leader_malcolm"));
+            Assert.True(game.CurrentPlayer.Roster.Find("crew_jayne")!.Disgruntled);
+            Assert.True(game.CurrentPlayer.FindActive(Crime)!.IsReturnedToShip("crew_jayne"));
+        }
+
+        [Fact]
+        public void Batch3_lock5_Leader_Wanted_ignored_on_seizeGear_DisgruntleWantedIfAny()
+        {
+            // Lock 5 A: Stop and Frisk submit — seize FIREARM + disgruntleWantedIfAny skips Leader.
+            var game = NewCrimeGame();
+            Assert.True(game.CurrentPlayer.Roster.TryHire(
+                LeaderCatalog.LoadDefault().Get("leader_malcolm"), out _));
+            var mal = game.CurrentPlayer.Roster.Find("leader_malcolm")!;
+            mal.MarkWanted();
+            GiveCarriedGear(game, "gear_pistol", "leader_malcolm");
+            Assert.True(game.CurrentPlayer.Roster.TryHire(game.Crew!.Get("crew_jayne"), out _));
+            game.CurrentPlayer.Roster.MarkWanted("crew_jayne");
+            StartCrime(game);
+            game.Misbehave!.PlaceOnTop(game.Misbehave.Catalog.Get("misbehave_stop-and-frisk"));
+            var resolver = new MisbehaveResolver();
+            resolver.DrawNext(game);
+
+            Assert.True(resolver.TryResolve(
+                game, "p1",
+                new MisbehaveChoice { OptionIndex = 1 },
+                out var resolution, out var error), error);
+            Assert.Equal(MisbehaveOutcome.Proceed, resolution!.Outcome);
+            Assert.Contains("gear_pistol", game.RemovedFromPlay);
+            Assert.False(mal.Disgruntled);
+            Assert.True(game.CurrentPlayer.Roster.Find("crew_jayne")!.Disgruntled);
         }
 
         private static void GiveCarriedGear(GameState game, string gearId, string crewId)
