@@ -7,13 +7,13 @@
     "labeledSectors": 155,
     "sectorCount": 155,
     "geoEdgeCount": 352,
-    "jsonEdgeCount": 393,
+    "jsonEdgeCount": 391,
     "missingEdgeCount": 0,
-    "extraEdgeCount": 41,
+    "extraEdgeCount": 39,
     "suppressedFalsePositiveCount": 11,
     "unlabeledCount": 0,
     "unknownLabelCount": 0,
-    "sectorsWithDegreeMismatch": 61
+    "sectorsWithDegreeMismatch": 60
   },
   "unlabeled": [],
   "unknownLabels": [],
@@ -276,14 +276,6 @@
       "bZone": "Blue Sun"
     },
     {
-      "a": "rim-cortex-relay-2-r1-11",
-      "b": "rim-penglai-r1-02",
-      "aPlanet": "Cortex Relay 2",
-      "bPlanet": "Beylix",
-      "aZone": "Special",
-      "bZone": "Penglai"
-    },
-    {
       "a": "rim-kalidasa-r2-01",
       "b": "rim-kalidasa-r2-04",
       "aPlanet": "Heaven",
@@ -338,14 +330,6 @@
       "bPlanet": "Beylix",
       "aZone": "Penglai",
       "bZone": "Penglai"
-    },
-    {
-      "a": "rim-penglai-r1-02",
-      "b": "rim-space-r1-10",
-      "aPlanet": "Beylix",
-      "bPlanet": null,
-      "aZone": "Penglai",
-      "bZone": "Rim Space"
     }
   ],
   "suppressedFalsePositives": [
@@ -1004,17 +988,6 @@
       ]
     },
     {
-      "id": "rim-cortex-relay-2-r1-11",
-      "planet": "Cortex Relay 2",
-      "zone": "Special",
-      "geoDegree": 4,
-      "jsonDegree": 5,
-      "missingNeighbors": [],
-      "extraNeighbors": [
-        "rim-penglai-r1-02"
-      ]
-    },
-    {
       "id": "rim-kalidasa-r2-01",
       "planet": "Heaven",
       "zone": "Kalidasa",
@@ -1111,12 +1084,10 @@
       "planet": "Beylix",
       "zone": "Penglai",
       "geoDegree": 2,
-      "jsonDegree": 5,
+      "jsonDegree": 3,
       "missingNeighbors": [],
       "extraNeighbors": [
-        "rim-cortex-relay-2-r1-11",
-        "rim-penglai-r1-01",
-        "rim-space-r1-10"
+        "rim-penglai-r1-01"
       ]
     },
     {
@@ -1124,11 +1095,10 @@
       "planet": null,
       "zone": "Rim Space",
       "geoDegree": 4,
-      "jsonDegree": 6,
+      "jsonDegree": 5,
       "missingNeighbors": [],
       "extraNeighbors": [
-        "rim-kalidasa-r4-09",
-        "rim-penglai-r1-02"
+        "rim-kalidasa-r4-09"
       ]
     }
   ],
@@ -1139,9 +1109,8 @@
     "Red Sun": 9,
     "Border Space": 3,
     "Blue Sun": 3,
-    "Special": 1,
-    "Penglai": 4,
     "Kalidasa": 6,
-    "Rim Space": 2
+    "Penglai": 2,
+    "Rim Space": 1
   }
 }
