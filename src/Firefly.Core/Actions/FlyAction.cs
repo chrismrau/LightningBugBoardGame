@@ -44,7 +44,13 @@ namespace Firefly.Core.Actions
             _movement = movement;
         }
 
-        public bool TryMosey(GameState game, string playerId, string toSectorId, out FlyResult? result, out string? error)
+        public bool TryMosey(
+            GameState game,
+            string playerId,
+            string toSectorId,
+            out FlyResult? result,
+            out string? error,
+            bool useDecoyNavSat = false)
         {
             result = null;
             if (!CanAct(game, playerId, out var player, out error))
@@ -62,7 +68,11 @@ namespace Firefly.Core.Actions
                     out error) || plan == null)
                 return false;
 
-            Apply(game, player, plan, truncateOnEncounter: true, out result);
+            if (useDecoyNavSat
+                && !DecoyNavSatAction.TryDiscardAtMoveStart(game, player, out error))
+                return false;
+
+            Apply(game, player, plan, truncateOnEncounter: true, out result, useDecoyNavSat);
             return true;
         }
 
@@ -71,7 +81,8 @@ namespace Firefly.Core.Actions
             string playerId,
             IReadOnlyList<string> path,
             out FlyResult? result,
-            out string? error)
+            out string? error,
+            bool useDecoyNavSat = false)
         {
             result = null;
             if (!CanAct(game, playerId, out var player, out error))
@@ -99,7 +110,11 @@ namespace Firefly.Core.Actions
                 return false;
             }
 
-            Apply(game, player, plan, truncateOnEncounter: true, out result);
+            if (useDecoyNavSat
+                && !DecoyNavSatAction.TryDiscardAtMoveStart(game, player, out error))
+                return false;
+
+            Apply(game, player, plan, truncateOnEncounter: true, out result, useDecoyNavSat);
             return true;
         }
 
@@ -108,7 +123,8 @@ namespace Firefly.Core.Actions
             string playerId,
             string toSectorId,
             out FlyResult? result,
-            out string? error)
+            out string? error,
+            bool useDecoyNavSat = false)
         {
             result = null;
             if (!CanAct(game, playerId, out var player, out error))
@@ -121,7 +137,7 @@ namespace Firefly.Core.Actions
                 return false;
             }
 
-            return TryFullBurn(game, playerId, path, out result, out error);
+            return TryFullBurn(game, playerId, path, out result, out error, useDecoyNavSat);
         }
 
         /// <summary>
@@ -400,9 +416,13 @@ namespace Firefly.Core.Actions
             PlayerState player,
             MovementPlan plan,
             bool truncateOnEncounter,
-            out FlyResult result)
+            out FlyResult result,
+            bool useDecoyNavSat = false)
         {
             game.ClearPendingEvents();
+            // Supplies.tsv Decoy Nav Sat: discard at beginning of Move → active for this Fly's Nav.
+            if (useDecoyNavSat)
+                game.DecoyNavSatActiveThisFly = true;
 
             // Consume Fly before queuing Alert/Nav pending — those are part of this Fly Action
             // (Blue Sun: resolve Alert Tokens during Fly; must not block TryConsumeAction).
