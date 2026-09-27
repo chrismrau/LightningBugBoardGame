@@ -20,7 +20,9 @@ namespace Firefly.Core.Abilities
         /// <summary>Target crew name for subject-scoped abilities (e.g. River Tam).</summary>
         public string? Subject { get; }
         /// <summary>
-        /// Supply planet / when-context (Labor Contract planet; rerollOnes Flying/Misbehaving).
+        /// Supply planet / when-context / sector region:
+        /// Labor Contract planet; rerollOnes Flying/Misbehaving;
+        /// skillAddend Alliance|Border|Rim (Bourne Jurisdiction).
         /// Do not overload <see cref="Subject"/> (crew names).
         /// </summary>
         public string? Location { get; }

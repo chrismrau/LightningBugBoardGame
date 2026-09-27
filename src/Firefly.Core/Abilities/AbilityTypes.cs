@@ -15,8 +15,31 @@ namespace Firefly.Core.Abilities
         /// <summary>Simon: +N to a named crew's Gifted rolls (subject = River Tam).</summary>
         public const string GiftedRollBonus = "giftedRollBonus";
 
-        /// <summary>Passive skill addend (Fight/Tech/Talk) while the source is usable.</summary>
+        /// <summary>
+        /// Passive skill addend (Fight/Tech/Talk) while the source is usable.
+        /// Optional <see cref="AbilityDefinition.Location"/> = Alliance | Border | Rim
+        /// (ship's current sector Nav region; Sheriff Bourne).
+        /// </summary>
         public const string SkillAddend = "skillAddend";
+
+        /// <summary>
+        /// Lund Cheap Shot: this crew may add Fight Skill from Gear they are carrying
+        /// in Kosherized Fight Tests (FAQ 4.1). Always-on permission.
+        /// </summary>
+        public const string UseCarriedGearInKosherized = "useCarriedGearInKosherized";
+
+        /// <summary>
+        /// Holdout / Vector: this Gear's Fight Skill may be used in Kosherized Fights.
+        /// Always-on permission (printed "May be used").
+        /// </summary>
+        public const string UseInKosherized = "useInKosherized";
+
+        /// <summary>
+        /// Two-Fry Dead-Eye: when this crew carries Subject keyword (Sniper Rifle) on Jobs,
+        /// reduce Misbehave draw by Amount (default 1), down to a minimum of 1.
+        /// FAQ 4.1 p.7: Job-only.
+        /// </summary>
+        public const string MisbehaveDrawReduce = "misbehaveDrawReduce";
 
         /// <summary>Big Damn Heroes: take $N when you Proceed while Misbehaving.</summary>
         public const string MisbehaveProceedCash = "misbehaveProceedCash";

@@ -1,6 +1,6 @@
 {
   "meta": {
-    "description": "Firefly: The Game \u2013 Crew cards",
+    "description": "Firefly: The Game – Crew cards",
     "count": 71,
     "schemaVersion": "1.0"
   },
@@ -1364,9 +1364,15 @@
         "Regina": 1
       },
       "count": 1,
-      "specialAbilityType": "Circumstance bonus",
+      "specialAbilityType": "useCarriedGearInKosherized",
       "ability": "0",
-      "id": "crew_lund"
+      "id": "crew_lund",
+      "abilities": [
+        {
+          "type": "useCarriedGearInKosherized",
+          "mandatory": true
+        }
+      ]
     },
     {
       "class": "Standard",
@@ -1674,9 +1680,18 @@
         "Regina": 1
       },
       "count": 1,
-      "specialAbilityType": "Conditional bonus (Location)",
+      "specialAbilityType": "skillAddend",
       "ability": "1",
-      "id": "crew_sheriff-bourne_piratesbountyhunters"
+      "id": "crew_sheriff-bourne_piratesbountyhunters",
+      "abilities": [
+        {
+          "type": "skillAddend",
+          "skill": "Fight",
+          "amount": 2,
+          "location": "Border",
+          "mandatory": true
+        }
+      ]
     },
     {
       "class": "Standard",
@@ -2078,9 +2093,18 @@
         "Regina": 1
       },
       "count": 1,
-      "specialAbilityType": "Misbehave option",
+      "specialAbilityType": "misbehaveDrawReduce",
       "ability": "2",
-      "id": "crew_two-fry"
+      "id": "crew_two-fry",
+      "abilities": [
+        {
+          "type": "misbehaveDrawReduce",
+          "amount": 1,
+          "subject": "Sniper Rifle",
+          "jobOnly": true,
+          "mandatory": true
+        }
+      ]
     },
     {
       "class": "Standard",

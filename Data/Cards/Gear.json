@@ -540,12 +540,16 @@
         "Persephone": 1
       },
       "count": 1,
-      "specialAbilityType": null,
+      "specialAbilityType": "exemptFromGearLimit+useInKosherized",
       "ability": null,
       "id": "gear_dobsons-vector-pistol_piratesbountyhunters",
       "abilities": [
         {
           "type": "exemptFromGearLimit",
+          "mandatory": true
+        },
+        {
+          "type": "useInKosherized",
           "mandatory": true
         }
       ]
@@ -1035,12 +1039,16 @@
         "Beaumonde": 1
       },
       "count": 1,
-      "specialAbilityType": null,
+      "specialAbilityType": "exemptFromGearLimit+useInKosherized",
       "ability": null,
       "id": "gear_jaynes-holdout-pistol_kalidasa",
       "abilities": [
         {
           "type": "exemptFromGearLimit",
+          "mandatory": true
+        },
+        {
+          "type": "useInKosherized",
           "mandatory": true
         }
       ]

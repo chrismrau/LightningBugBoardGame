@@ -120,8 +120,9 @@ namespace Firefly.Core.Cards
         }
 
         /// <summary>
-        /// Dice count for this test. Kosherized Fights use crew Fight only
-        /// (exclude <see cref="PlayerState.FightBonus"/> gear proxy).
+        /// Dice count for this test. Kosherized Fights use crew Fight plus FAQ exceptions
+        /// (Lund carried Gear; Holdout/Vector <c>useInKosherized</c>; Bourne Border skillAddend)
+        /// and exclude ordinary Gear Fight Skill (GF9 / Director's Cut / FAQ 4.1).
         /// When <paramref name="job"/> is Illegal and Lawmen are present, they stay onboard (PBH)
         /// and do not add dice; otherwise the normal roster + bonus path is used.
         /// Director's Cut C&amp;P p.49: crew Returned to Ship (and their Gear) do not count.
@@ -148,7 +149,7 @@ namespace Firefly.Core.Cards
             if (job == null || job.Legal || !HasOnboardLawman(player, job))
             {
                 if (Skill == Skill.Fight)
-                    return Kosherized ? player.Roster.Fight : player.Fight;
+                    return FightDiceCount(player, game, job);
                 if (Skill == Skill.Tech)
                     return player.Tech;
                 return player.Talk;
@@ -156,10 +157,40 @@ namespace Firefly.Core.Cards
 
             var crew = LawmanRules.CrewSkillForJob(player, job, Skill);
             if (Skill == Skill.Fight && Kosherized)
+            {
+                if (game != null)
+                    crew += AbilityDispatcher.KosherizedFightAddend(game, player, job);
                 return crew;
+            }
             if (game != null)
-                return crew + AbilityDispatcher.CarriedSkillAddend(game, player, Skill, job: job);
+            {
+                var addend = AbilityDispatcher.CarriedSkillAddend(game, player, Skill, job: job);
+                if (Skill == Skill.Fight)
+                    addend += AbilityDispatcher.SectorLocationSkillAddend(game, player, Skill, job);
+                return crew + addend;
+            }
             return crew;
+        }
+
+        /// <summary>
+        /// Fight dice: Kosherized = crew Fight + FAQ exceptions (Lund / Holdout / Vector /
+        /// Bourne Jurisdiction). Non-Kosherized keeps <see cref="PlayerState.Fight"/> (Roster +
+        /// FightBonus gear proxy) and adds live sector-gated skillAddend (Border).
+        /// </summary>
+        private int FightDiceCount(PlayerState player, GameState? game, JobCard? job)
+        {
+            if (Kosherized)
+            {
+                var crew = player.Roster.Fight;
+                if (game != null)
+                    crew += AbilityDispatcher.KosherizedFightAddend(game, player, job);
+                return crew;
+            }
+
+            var total = player.Fight;
+            if (game != null)
+                total += AbilityDispatcher.SectorLocationSkillAddend(game, player, Skill.Fight, job);
+            return total;
         }
 
         private int DiceCountForOneCrew(
@@ -181,11 +212,20 @@ namespace Firefly.Core.Cards
                 _ => member.Card.Talk
             };
             if (Skill == Skill.Fight && Kosherized)
+            {
+                if (game != null)
+                    crew += AbilityDispatcher.KosherizedFightAddend(
+                        game, player, job, onlyCrewId: onlyCrewId);
                 return crew;
+            }
             if (game == null)
                 return crew;
-            return crew + AbilityDispatcher.CarriedSkillAddendForCrew(
+            var addend = AbilityDispatcher.CarriedSkillAddendForCrew(
                 game, player, Skill, onlyCrewId, job: job);
+            if (Skill == Skill.Fight)
+                addend += AbilityDispatcher.SectorLocationSkillAddend(
+                    game, player, Skill.Fight, job, onlyCrewId: onlyCrewId);
+            return crew + addend;
         }
 
         private int DiceCountForCrewSet(
@@ -219,12 +259,22 @@ namespace Firefly.Core.Cards
                 if (Skill == Skill.Fight && Kosherized)
                     continue;
                 if (game != null)
+                {
                     crew += AbilityDispatcher.CarriedSkillAddendForCrew(
                         game, player, Skill, member.Id, job: job);
+                    if (Skill == Skill.Fight)
+                        crew += AbilityDispatcher.SectorLocationSkillAddend(
+                            game, player, Skill.Fight, job, onlyCrewId: member.Id);
+                }
             }
 
             if (Skill == Skill.Fight && Kosherized)
+            {
+                if (game != null)
+                    crew += AbilityDispatcher.KosherizedFightAddend(
+                        game, player, job, onlyCrewIds: onlyCrewIds);
                 return crew;
+            }
             return crew;
         }
 
@@ -246,9 +296,18 @@ namespace Firefly.Core.Cards
             }
 
             if (Skill == Skill.Fight && Kosherized)
+            {
+                if (game != null)
+                    crew += AbilityDispatcher.KosherizedFightAddend(game, player, job);
                 return crew;
+            }
             if (game != null)
-                return crew + AbilityDispatcher.CarriedSkillAddend(game, player, Skill, job: job);
+            {
+                var addend = AbilityDispatcher.CarriedSkillAddend(game, player, Skill, job: job);
+                if (Skill == Skill.Fight)
+                    addend += AbilityDispatcher.SectorLocationSkillAddend(game, player, Skill, job);
+                return crew + addend;
+            }
             // Fallback without game: use ship bonuses only when no returned-crew gear path.
             if (Skill == Skill.Fight)
                 return crew + player.FightBonus;
