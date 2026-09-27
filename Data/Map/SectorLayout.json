@@ -7,7 +7,7 @@
     "assignmentCount": 155,
     "sectorCount": 155,
     "polygonStitchNote": "Stitched 37 adjacency pairs to share boundary vertices (tol=3.0) for geometry/Adjacency alignment.",
-    "boundaryVertexSyncNote": "Synced coinciding boundary vertices across 392 adjacency pairs (nearTol=3.0, mergeTol=2.0); 894 snaps/inserts; orphans 900\u21920."
+    "boundaryVertexSyncNote": "Synced coinciding boundary vertices across 393 adjacency pairs (nearTol=3.0, mergeTol=2.0); 5 snaps/inserts; orphans 5\u21920."
   },
   "assignments": {
     "face-108": "alliance-lux-r1-02",
@@ -3850,8 +3850,8 @@
     "border-georgia-r2-03": {
       "faceId": "face-092",
       "centroid": [
-        1326.12,
-        552.2
+        1326.13,
+        552.22
       ],
       "points": [
         [
@@ -3987,6 +3987,10 @@
           444
         ],
         [
+          1134,
+          456
+        ],
+        [
           1137,
           468
         ],
@@ -3995,12 +3999,20 @@
           480
         ],
         [
+          1149,
+          492
+        ],
+        [
           1155,
           504
         ],
         [
           1161,
           516
+        ],
+        [
+          1167,
+          528
         ],
         [
           1176,
@@ -15031,6 +15043,10 @@
           516
         ],
         [
+          1155,
+          504
+        ],
+        [
           1149,
           492
         ],
@@ -15049,6 +15065,10 @@
         [
           1128,
           444
+        ],
+        [
+          1125,
+          429
         ],
         [
           1123.95,

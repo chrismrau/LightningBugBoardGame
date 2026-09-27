@@ -5,11 +5,11 @@ Geometry from `Data/Map/SectorLayout.json` vs edges in `Data/Map/Adjacency.json`
 ## Summary
 
 - Labeled sectors: **155** / 155
-- Geometry edges: **392**
-- Adjacency.json edges: **392**
+- Geometry edges: **393**
+- Adjacency.json edges: **393**
 - Missing in Adjacency.json (geometry has, JSON lacks): **0**
 - Extra in Adjacency.json (JSON has, geometry lacks): **0**
-- Suppressed geometry false positives: **10**
+- Suppressed geometry false positives: **9**
 - Sectors with degree mismatch: **0**
 
 Interpretation:
@@ -30,7 +30,6 @@ _None._
 
 | a | b | zones |
 |---|---|---|
-| `border-georgia-r2-03` (Boros) | `border-georgia-r3-06` (border-georgia-r3-06) | Georgia / Georgia |
 | `border-georgia-r3-05` (border-georgia-r3-05) | `border-georgia-r3-06` (border-georgia-r3-06) | Georgia / Georgia |
 | `border-georgia-r3-06` (border-georgia-r3-06) | `border-space-r2-24` (border-space-r2-24) | Georgia / Border Space |
 | `border-himinbjorg-r1-01` (Aesir) | `border-space-r2-08` (border-space-r2-08) | Himinbjorg / Border Space |
