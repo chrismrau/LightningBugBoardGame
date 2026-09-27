@@ -9,7 +9,7 @@ Geometry from `Data/Map/SectorLayout.json` vs edges in `Data/Map/Adjacency.json`
 - Adjacency.json edges: **392**
 - Missing in Adjacency.json (geometry has, JSON lacks): **0**
 - Extra in Adjacency.json (JSON has, geometry lacks): **0**
-- Suppressed geometry false positives: **8**
+- Suppressed geometry false positives: **10**
 - Sectors with degree mismatch: **0**
 
 Interpretation:
@@ -34,6 +34,8 @@ _None._
 | `border-georgia-r3-05` (border-georgia-r3-05) | `border-georgia-r3-06` (border-georgia-r3-06) | Georgia / Georgia |
 | `border-georgia-r3-06` (border-georgia-r3-06) | `border-space-r2-24` (border-space-r2-24) | Georgia / Border Space |
 | `border-himinbjorg-r1-01` (Aesir) | `border-space-r2-08` (border-space-r2-08) | Himinbjorg / Border Space |
+| `border-himinbjorg-r1-02` (Brisingamen) | `border-space-r2-07` (border-space-r2-07) | Himinbjorg / Border Space |
+| `border-space-r2-09` (border-space-r2-09) | `rim-kalidasa-r4-12` (rim-kalidasa-r4-12) | Border Space / Kalidasa |
 | `rim-cortex-relay-2-r1-11` (Cortex Relay 2) | `rim-penglai-r1-01` (Newhall) | Special / Penglai |
 | `rim-kalidasa-r4-08` (rim-kalidasa-r4-08) | `rim-penglai-r1-01` (Newhall) | Kalidasa / Penglai |
 | `rim-kalidasa-r4-08` (rim-kalidasa-r4-08) | `rim-penglai-r1-02` (Beylix) | Kalidasa / Penglai |

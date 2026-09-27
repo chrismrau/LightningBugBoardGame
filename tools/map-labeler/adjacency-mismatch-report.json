@@ -10,7 +10,7 @@
     "jsonEdgeCount": 392,
     "missingEdgeCount": 0,
     "extraEdgeCount": 0,
-    "suppressedFalsePositiveCount": 8,
+    "suppressedFalsePositiveCount": 10,
     "unlabeledCount": 0,
     "unknownLabelCount": 0,
     "sectorsWithDegreeMismatch": 0
@@ -51,6 +51,22 @@
       "bPlanet": null,
       "aZone": "Himinbjorg",
       "bZone": "Border Space"
+    },
+    {
+      "a": "border-himinbjorg-r1-02",
+      "b": "border-space-r2-07",
+      "aPlanet": "Brisingamen",
+      "bPlanet": null,
+      "aZone": "Himinbjorg",
+      "bZone": "Border Space"
+    },
+    {
+      "a": "border-space-r2-09",
+      "b": "rim-kalidasa-r4-12",
+      "aPlanet": null,
+      "bPlanet": null,
+      "aZone": "Border Space",
+      "bZone": "Kalidasa"
     },
     {
       "a": "rim-cortex-relay-2-r1-11",
