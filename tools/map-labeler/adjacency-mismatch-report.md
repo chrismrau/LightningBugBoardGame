@@ -5,34 +5,22 @@ Geometry from `Data/Map/SectorLayout.json` vs edges in `Data/Map/Adjacency.json`
 ## Summary
 
 - Labeled sectors: **155** / 155
-- Geometry edges: **363**
-- Adjacency.json edges: **397**
-- Missing in Adjacency.json (geometry has, JSON lacks): **13**
+- Geometry edges: **351**
+- Adjacency.json edges: **398**
+- Missing in Adjacency.json (geometry has, JSON lacks): **0**
 - Extra in Adjacency.json (JSON has, geometry lacks): **47**
-- Sectors with degree mismatch: **63**
+- Suppressed geometry false positives: **12**
+- Sectors with degree mismatch: **65**
 
 Interpretation:
 
 - **Missing** → likely need to **add** an edge to `Adjacency.json` (if the shared boundary is real).
 - **Extra** → likely need to **remove** an edge (or the layout label is wrong / shared edge too short to detect).
+- **Suppressed** → geometry false positives confirmed non-adjacent by review (`geometry-false-positives.json`).
 
 ## Missing edges (add candidates)
 
-| a | b | zones |
-|---|---|---|
-| `border-georgia-r2-03` (Boros) | `border-georgia-r3-07` (border-georgia-r3-07) | Georgia / Georgia |
-| `border-georgia-r3-05` (border-georgia-r3-05) | `border-georgia-r3-07` (border-georgia-r3-07) | Georgia / Georgia |
-| `border-georgia-r3-06` (Three Hills) | `rim-space-r1-27` (rim-space-r1-27) | Georgia / Rim Space |
-| `border-georgia-r3-07` (border-georgia-r3-07) | `border-space-r2-24` (border-space-r2-24) | Georgia / Border Space |
-| `border-himinbjorg-r1-01` (Aesir) | `border-space-r2-08` (border-space-r2-08) | Himinbjorg / Border Space |
-| `border-space-r1-06` (border-space-r1-06) | `border-space-r1-07` (border-space-r1-07) | Border Space / Border Space |
-| `rim-cortex-relay-2-r1-11` (Cortex Relay 2) | `rim-penglai-r1-01` (Newhall) | Special / Penglai |
-| `rim-kalidasa-r3-05` (New Kasmir) | `rim-kalidasa-r4-08` (rim-kalidasa-r4-08) | Kalidasa / Kalidasa |
-| `rim-kalidasa-r4-08` (rim-kalidasa-r4-08) | `rim-penglai-r1-02` (Beylix) | Kalidasa / Penglai |
-| `rim-kalidasa-r4-08` (rim-kalidasa-r4-08) | `rim-space-r1-10` (rim-space-r1-10) | Kalidasa / Rim Space |
-| `rim-kalidasa-r4-09` (rim-kalidasa-r4-09) | `rim-space-r2-10` (rim-space-r2-10) | Kalidasa / Rim Space |
-| `rim-penglai-r1-01` (Newhall) | `rim-space-r1-10` (rim-space-r1-10) | Penglai / Rim Space |
-| `rim-penglai-r1-02` (Beylix) | `rim-space-r2-10` (rim-space-r2-10) | Penglai / Rim Space |
+_None._
 
 ## Extra edges (remove candidates)
 
@@ -86,6 +74,23 @@ Interpretation:
 | `rim-penglai-r1-01` (Newhall) | `rim-space-r2-10` (rim-space-r2-10) | Penglai / Rim Space |
 | `rim-penglai-r1-02` (Beylix) | `rim-space-r1-10` (rim-space-r1-10) | Penglai / Rim Space |
 
+## Suppressed geometry false positives
+
+| a | b | zones |
+|---|---|---|
+| `border-georgia-r2-03` (Boros) | `border-georgia-r3-07` (border-georgia-r3-07) | Georgia / Georgia |
+| `border-georgia-r3-05` (border-georgia-r3-05) | `border-georgia-r3-07` (border-georgia-r3-07) | Georgia / Georgia |
+| `border-georgia-r3-06` (Three Hills) | `rim-space-r1-27` (rim-space-r1-27) | Georgia / Rim Space |
+| `border-georgia-r3-07` (border-georgia-r3-07) | `border-space-r2-24` (border-space-r2-24) | Georgia / Border Space |
+| `border-himinbjorg-r1-01` (Aesir) | `border-space-r2-08` (border-space-r2-08) | Himinbjorg / Border Space |
+| `rim-cortex-relay-2-r1-11` (Cortex Relay 2) | `rim-penglai-r1-01` (Newhall) | Special / Penglai |
+| `rim-kalidasa-r3-05` (New Kasmir) | `rim-kalidasa-r4-08` (rim-kalidasa-r4-08) | Kalidasa / Kalidasa |
+| `rim-kalidasa-r4-08` (rim-kalidasa-r4-08) | `rim-penglai-r1-02` (Beylix) | Kalidasa / Penglai |
+| `rim-kalidasa-r4-08` (rim-kalidasa-r4-08) | `rim-space-r1-10` (rim-space-r1-10) | Kalidasa / Rim Space |
+| `rim-kalidasa-r4-09` (rim-kalidasa-r4-09) | `rim-space-r2-10` (rim-space-r2-10) | Kalidasa / Rim Space |
+| `rim-penglai-r1-01` (Newhall) | `rim-space-r1-10` (rim-space-r1-10) | Penglai / Rim Space |
+| `rim-penglai-r1-02` (Beylix) | `rim-space-r2-10` (rim-space-r2-10) | Penglai / Rim Space |
+
 ## Per-sector degree mismatches
 
 - **Persephone** `alliance-lux-r1-01` (Lux): geo=5 json=6
@@ -134,8 +139,7 @@ Interpretation:
   - extra neighbors: `alliance-white-sun-r4-10`
 - **border-georgia-r2-02** `border-georgia-r2-02` (Georgia): geo=5 json=6
   - extra neighbors: `border-georgia-r2-03`
-- **Boros** `border-georgia-r2-03` (Georgia): geo=5 json=7
-  - missing neighbors: `border-georgia-r3-07`
+- **Boros** `border-georgia-r2-03` (Georgia): geo=4 json=7
   - extra neighbors: `border-georgia-r2-02`, `border-georgia-r2-04`, `border-georgia-r3-06`
 - **Kerry** `border-georgia-r2-04` (Georgia): geo=4 json=5
   - extra neighbors: `border-georgia-r2-03`
@@ -143,14 +147,12 @@ Interpretation:
   - extra neighbors: `border-georgia-r3-02`
 - **Newhope** `border-georgia-r3-02` (Georgia): geo=5 json=6
   - extra neighbors: `border-georgia-r3-01`
-- **Three Hills** `border-georgia-r3-06` (Georgia): geo=3 json=6
-  - missing neighbors: `rim-space-r1-27`
+- **border-georgia-r3-05** `border-georgia-r3-05` (Georgia): geo=5 json=6
+  - extra neighbors: `border-georgia-r3-06`
+- **Three Hills** `border-georgia-r3-06` (Georgia): geo=2 json=6
   - extra neighbors: `border-georgia-r2-03`, `border-georgia-r3-05`, `border-georgia-r3-07`, `border-space-r2-24`
-- **border-georgia-r3-07** `border-georgia-r3-07` (Georgia): geo=5 json=4
-  - missing neighbors: `border-georgia-r2-03`, `border-georgia-r3-05`, `border-space-r2-24`
+- **border-georgia-r3-07** `border-georgia-r3-07` (Georgia): geo=2 json=4
   - extra neighbors: `border-georgia-r3-06`, `rim-space-r1-27`
-- **Aesir** `border-himinbjorg-r1-01` (Himinbjorg): geo=7 json=6
-  - missing neighbors: `border-space-r2-08`
 - **border-red-sun-r2-01** `border-red-sun-r2-01` (Red Sun): geo=5 json=7
   - extra neighbors: `border-red-sun-r2-02`, `border-red-sun-r2-04`
 - **Harvest** `border-red-sun-r2-02` (Red Sun): geo=4 json=6
@@ -171,24 +173,17 @@ Interpretation:
   - extra neighbors: `border-red-sun-r3-06`, `border-red-sun-r3-08`
 - **Space Bazaar** `border-red-sun-r3-08` (Red Sun): geo=5 json=7
   - extra neighbors: `border-red-sun-r3-01`, `border-red-sun-r3-07`
-- **border-space-r1-06** `border-space-r1-06` (Border Space): geo=5 json=4
-  - missing neighbors: `border-space-r1-07`
-- **border-space-r1-07** `border-space-r1-07` (Border Space): geo=5 json=4
-  - missing neighbors: `border-space-r1-06`
 - **border-space-r1-22** `border-space-r1-22` (Border Space): geo=5 json=6
   - extra neighbors: `border-space-r1-23`
 - **border-space-r1-23** `border-space-r1-23` (Border Space): geo=6 json=7
   - extra neighbors: `border-space-r1-22`
-- **border-space-r2-08** `border-space-r2-08` (Border Space): geo=7 json=6
-  - missing neighbors: `border-himinbjorg-r1-01`
 - **border-space-r2-11** `border-space-r2-11` (Border Space): geo=6 json=7
   - extra neighbors: `border-space-r2-12`
 - **border-space-r2-12** `border-space-r2-12` (Border Space): geo=2 json=3
   - extra neighbors: `border-space-r2-11`
 - **border-space-r2-23** `border-space-r2-23` (Border Space): geo=5 json=6
   - extra neighbors: `border-space-r2-24`
-- **border-space-r2-24** `border-space-r2-24` (Border Space): geo=7 json=8
-  - missing neighbors: `border-georgia-r3-07`
+- **border-space-r2-24** `border-space-r2-24` (Border Space): geo=6 json=8
   - extra neighbors: `border-georgia-r3-06`, `border-space-r2-23`
 - **Fury** `rim-blue-sun-r2-02` (Blue Sun): geo=6 json=7
   - extra neighbors: `rim-blue-sun-r2-03`
@@ -200,26 +195,32 @@ Interpretation:
   - extra neighbors: `rim-blue-sun-r3-01`, `rim-blue-sun-r3-03`
 - **rim-blue-sun-r3-03** `rim-blue-sun-r3-03` (Blue Sun): geo=5 json=6
   - extra neighbors: `rim-blue-sun-r3-02`
+- **Cortex Relay 2** `rim-cortex-relay-2-r1-11` (Special): geo=4 json=5
+  - extra neighbors: `rim-penglai-r1-02`
 - **Heaven** `rim-kalidasa-r2-01` (Kalidasa): geo=3 json=4
   - extra neighbors: `rim-kalidasa-r2-04`
 - **Angel** `rim-kalidasa-r2-04` (Kalidasa): geo=5 json=6
   - extra neighbors: `rim-kalidasa-r2-01`
 - **Aberdeen** `rim-kalidasa-r3-01` (Kalidasa): geo=3 json=4
   - extra neighbors: `rim-kalidasa-r3-06`
+- **New Kasmir** `rim-kalidasa-r3-05` (Kalidasa): geo=6 json=7
+  - extra neighbors: `rim-kalidasa-r4-09`
 - **Whittier** `rim-kalidasa-r3-06` (Kalidasa): geo=7 json=8
   - extra neighbors: `rim-kalidasa-r3-01`
-- **rim-kalidasa-r4-08** `rim-kalidasa-r4-08` (Kalidasa): geo=6 json=4
-  - missing neighbors: `rim-kalidasa-r3-05`, `rim-penglai-r1-02`, `rim-space-r1-10`
+- **rim-kalidasa-r4-08** `rim-kalidasa-r4-08` (Kalidasa): geo=3 json=4
   - extra neighbors: `rim-space-r2-10`
-- **rim-kalidasa-r4-09** `rim-kalidasa-r4-09` (Kalidasa): geo=4 json=7
-  - missing neighbors: `rim-space-r2-10`
+- **rim-kalidasa-r4-09** `rim-kalidasa-r4-09` (Kalidasa): geo=3 json=7
   - extra neighbors: `rim-kalidasa-r3-05`, `rim-kalidasa-r4-10`, `rim-penglai-r1-01`, `rim-space-r1-10`
 - **Djinn's Bane** `rim-kalidasa-r4-10` (Kalidasa): geo=5 json=6
   - extra neighbors: `rim-kalidasa-r4-09`
-- **Newhall** `rim-penglai-r1-01` (Penglai): geo=4 json=5
-  - missing neighbors: `rim-cortex-relay-2-r1-11`, `rim-space-r1-10`
+- **Newhall** `rim-penglai-r1-01` (Penglai): geo=2 json=5
   - extra neighbors: `rim-kalidasa-r4-09`, `rim-penglai-r1-02`, `rim-space-r2-10`
-- **Beylix** `rim-penglai-r1-02` (Penglai): geo=4 json=5
-  - missing neighbors: `rim-kalidasa-r4-08`, `rim-space-r2-10`
+- **Beylix** `rim-penglai-r1-02` (Penglai): geo=2 json=5
   - extra neighbors: `rim-cortex-relay-2-r1-11`, `rim-penglai-r1-01`, `rim-space-r1-10`
+- **rim-space-r1-10** `rim-space-r1-10` (Rim Space): geo=4 json=6
+  - extra neighbors: `rim-kalidasa-r4-09`, `rim-penglai-r1-02`
+- **rim-space-r1-27** `rim-space-r1-27` (Rim Space): geo=2 json=3
+  - extra neighbors: `border-georgia-r3-07`
+- **rim-space-r2-10** `rim-space-r2-10` (Rim Space): geo=1 json=3
+  - extra neighbors: `rim-kalidasa-r4-08`, `rim-penglai-r1-01`
 
