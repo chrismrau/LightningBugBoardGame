@@ -7,7 +7,7 @@
     "assignmentCount": 155,
     "sectorCount": 155,
     "polygonStitchNote": "Stitched 37 adjacency pairs to share boundary vertices (tol=3.0) for geometry/Adjacency alignment.",
-    "boundaryVertexSyncNote": "Synced coinciding boundary vertices across 396 adjacency pairs (nearTol=3.0, mergeTol=2.0); 1 snaps/inserts; orphans 1\u21920."
+    "boundaryVertexSyncNote": "Synced coinciding boundary vertices across 397 adjacency pairs (nearTol=3.0, mergeTol=2.0); 6 snaps/inserts; orphans 2\u21920."
   },
   "assignments": {
     "face-108": "alliance-lux-r1-02",
@@ -12769,8 +12769,8 @@
     "rim-penglai-r1-02": {
       "faceId": "face-043",
       "centroid": [
-        4702.77,
-        1661.81
+        4702.82,
+        1661.8
       ],
       "points": [
         [
@@ -12784,6 +12784,10 @@
         [
           4809,
           1644
+        ],
+        [
+          4806,
+          1632
         ],
         [
           4800,
@@ -30652,8 +30656,8 @@
     "rim-kalidasa-r4-08": {
       "faceId": "face-033",
       "centroid": [
-        4876.28,
-        1561.32
+        4876.2,
+        1561.48
       ],
       "points": [
         [
@@ -30787,6 +30791,26 @@
         [
           4812,
           1668
+        ],
+        [
+          4812,
+          1671
+        ],
+        [
+          4812,
+          1683
+        ],
+        [
+          4812,
+          1680
+        ],
+        [
+          4812,
+          1677
+        ],
+        [
+          4812,
+          1674
         ],
         [
           4839,

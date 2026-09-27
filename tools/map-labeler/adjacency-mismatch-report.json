@@ -6,11 +6,11 @@
     "snapTol": 3.0,
     "labeledSectors": 155,
     "sectorCount": 155,
-    "geoEdgeCount": 396,
-    "jsonEdgeCount": 396,
+    "geoEdgeCount": 397,
+    "jsonEdgeCount": 397,
     "missingEdgeCount": 0,
     "extraEdgeCount": 0,
-    "suppressedFalsePositiveCount": 6,
+    "suppressedFalsePositiveCount": 5,
     "unlabeledCount": 0,
     "unknownLabelCount": 0,
     "sectorsWithDegreeMismatch": 0
@@ -49,14 +49,6 @@
       "b": "rim-penglai-r1-01",
       "aPlanet": null,
       "bPlanet": "Newhall",
-      "aZone": "Kalidasa",
-      "bZone": "Penglai"
-    },
-    {
-      "a": "rim-kalidasa-r4-08",
-      "b": "rim-penglai-r1-02",
-      "aPlanet": null,
-      "bPlanet": "Beylix",
       "aZone": "Kalidasa",
       "bZone": "Penglai"
     },
