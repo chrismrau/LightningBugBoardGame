@@ -7,54 +7,30 @@
     "sectorCount": 155,
     "geoEdgeCount": 363,
     "jsonEdgeCount": 397,
-    "missingEdgeCount": 15,
-    "extraEdgeCount": 49,
+    "missingEdgeCount": 13,
+    "extraEdgeCount": 47,
     "unlabeledCount": 0,
     "unknownLabelCount": 0,
-    "sectorsWithDegreeMismatch": 61
+    "sectorsWithDegreeMismatch": 63
   },
   "unlabeled": [],
   "unknownLabels": [],
   "missingEdges": [
     {
-      "a": "border-georgia-r1-01",
+      "a": "border-georgia-r2-03",
       "b": "border-georgia-r3-07",
-      "aPlanet": "Regina",
-      "bPlanet": "Kerry",
+      "aPlanet": "Boros",
+      "bPlanet": null,
       "aZone": "Georgia",
       "bZone": "Georgia"
     },
     {
-      "a": "border-georgia-r2-01",
+      "a": "border-georgia-r3-05",
       "b": "border-georgia-r3-07",
-      "aPlanet": "Priam / Ithaca",
-      "bPlanet": "Kerry",
-      "aZone": "Georgia",
-      "bZone": "Georgia"
-    },
-    {
-      "a": "border-georgia-r2-04",
-      "b": "border-georgia-r3-05",
       "aPlanet": null,
       "bPlanet": null,
       "aZone": "Georgia",
       "bZone": "Georgia"
-    },
-    {
-      "a": "border-georgia-r2-04",
-      "b": "border-space-r2-24",
-      "aPlanet": null,
-      "bPlanet": null,
-      "aZone": "Georgia",
-      "bZone": "Border Space"
-    },
-    {
-      "a": "border-georgia-r2-04",
-      "b": "rim-space-r1-26",
-      "aPlanet": null,
-      "bPlanet": null,
-      "aZone": "Georgia",
-      "bZone": "Rim Space"
     },
     {
       "a": "border-georgia-r3-06",
@@ -63,6 +39,14 @@
       "bPlanet": null,
       "aZone": "Georgia",
       "bZone": "Rim Space"
+    },
+    {
+      "a": "border-georgia-r3-07",
+      "b": "border-space-r2-24",
+      "aPlanet": null,
+      "bPlanet": null,
+      "aZone": "Georgia",
+      "bZone": "Border Space"
     },
     {
       "a": "border-himinbjorg-r1-01",
@@ -243,22 +227,6 @@
       "bZone": "White Sun"
     },
     {
-      "a": "border-georgia-r1-01",
-      "b": "border-georgia-r2-04",
-      "aPlanet": "Regina",
-      "bPlanet": null,
-      "aZone": "Georgia",
-      "bZone": "Georgia"
-    },
-    {
-      "a": "border-georgia-r2-01",
-      "b": "border-georgia-r2-04",
-      "aPlanet": "Priam / Ithaca",
-      "bPlanet": null,
-      "aZone": "Georgia",
-      "bZone": "Georgia"
-    },
-    {
       "a": "border-georgia-r2-02",
       "b": "border-georgia-r2-03",
       "aPlanet": null,
@@ -268,16 +236,16 @@
     },
     {
       "a": "border-georgia-r2-03",
-      "b": "border-georgia-r3-06",
+      "b": "border-georgia-r2-04",
       "aPlanet": "Boros",
-      "bPlanet": "Three Hills",
+      "bPlanet": "Kerry",
       "aZone": "Georgia",
       "bZone": "Georgia"
     },
     {
-      "a": "border-georgia-r2-04",
+      "a": "border-georgia-r2-03",
       "b": "border-georgia-r3-06",
-      "aPlanet": null,
+      "aPlanet": "Boros",
       "bPlanet": "Three Hills",
       "aZone": "Georgia",
       "bZone": "Georgia"
@@ -300,6 +268,14 @@
     },
     {
       "a": "border-georgia-r3-06",
+      "b": "border-georgia-r3-07",
+      "aPlanet": "Three Hills",
+      "bPlanet": null,
+      "aZone": "Georgia",
+      "bZone": "Georgia"
+    },
+    {
+      "a": "border-georgia-r3-06",
       "b": "border-space-r2-24",
       "aPlanet": "Three Hills",
       "bPlanet": null,
@@ -308,16 +284,8 @@
     },
     {
       "a": "border-georgia-r3-07",
-      "b": "rim-space-r1-26",
-      "aPlanet": "Kerry",
-      "bPlanet": null,
-      "aZone": "Georgia",
-      "bZone": "Rim Space"
-    },
-    {
-      "a": "border-georgia-r3-07",
       "b": "rim-space-r1-27",
-      "aPlanet": "Kerry",
+      "aPlanet": null,
       "bPlanet": null,
       "aZone": "Georgia",
       "bZone": "Rim Space"
@@ -795,10 +763,24 @@
       "zone": "Georgia",
       "geoDegree": 5,
       "jsonDegree": 7,
-      "missingNeighbors": [],
+      "missingNeighbors": [
+        "border-georgia-r3-07"
+      ],
       "extraNeighbors": [
         "border-georgia-r2-02",
+        "border-georgia-r2-04",
         "border-georgia-r3-06"
+      ]
+    },
+    {
+      "id": "border-georgia-r2-04",
+      "planet": "Kerry",
+      "zone": "Georgia",
+      "geoDegree": 4,
+      "jsonDegree": 5,
+      "missingNeighbors": [],
+      "extraNeighbors": [
+        "border-georgia-r2-03"
       ]
     },
     {
@@ -834,9 +816,25 @@
       ],
       "extraNeighbors": [
         "border-georgia-r2-03",
-        "border-georgia-r2-04",
+        "border-georgia-r3-05",
+        "border-georgia-r3-07",
+        "border-space-r2-24"
+      ]
+    },
+    {
+      "id": "border-georgia-r3-07",
+      "planet": null,
+      "zone": "Georgia",
+      "geoDegree": 5,
+      "jsonDegree": 4,
+      "missingNeighbors": [
+        "border-georgia-r2-03",
         "border-georgia-r3-05",
         "border-space-r2-24"
+      ],
+      "extraNeighbors": [
+        "border-georgia-r3-06",
+        "rim-space-r1-27"
       ]
     },
     {
@@ -1063,7 +1061,7 @@
       "geoDegree": 7,
       "jsonDegree": 8,
       "missingNeighbors": [
-        "border-georgia-r2-04"
+        "border-georgia-r3-07"
       ],
       "extraNeighbors": [
         "border-georgia-r3-06",
@@ -1246,9 +1244,9 @@
     }
   ],
   "zoneTouchCounts": {
-    "Georgia": 16,
+    "Georgia": 12,
+    "Rim Space": 10,
     "Border Space": 7,
-    "Rim Space": 12,
     "Himinbjorg": 1,
     "Special": 2,
     "Penglai": 9,
