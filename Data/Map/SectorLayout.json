@@ -7,7 +7,7 @@
     "assignmentCount": 155,
     "sectorCount": 155,
     "polygonStitchNote": "Stitched 37 adjacency pairs to share boundary vertices (tol=3.0) for geometry/Adjacency alignment.",
-    "boundaryVertexSyncNote": "Synced coinciding boundary vertices across 393 adjacency pairs (nearTol=3.0, mergeTol=2.0); 5 snaps/inserts; orphans 5\u21920."
+    "boundaryVertexSyncNote": "Synced coinciding boundary vertices across 394 adjacency pairs (nearTol=3.0, mergeTol=2.0); 0 snaps/inserts; orphans 0\u21920."
   },
   "assignments": {
     "face-108": "alliance-lux-r1-02",

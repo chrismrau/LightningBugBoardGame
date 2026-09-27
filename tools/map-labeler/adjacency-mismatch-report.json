@@ -6,11 +6,11 @@
     "snapTol": 3.0,
     "labeledSectors": 155,
     "sectorCount": 155,
-    "geoEdgeCount": 393,
-    "jsonEdgeCount": 393,
+    "geoEdgeCount": 394,
+    "jsonEdgeCount": 394,
     "missingEdgeCount": 0,
     "extraEdgeCount": 0,
-    "suppressedFalsePositiveCount": 9,
+    "suppressedFalsePositiveCount": 8,
     "unlabeledCount": 0,
     "unknownLabelCount": 0,
     "sectorsWithDegreeMismatch": 0
@@ -20,14 +20,6 @@
   "missingEdges": [],
   "extraEdges": [],
   "suppressedFalsePositives": [
-    {
-      "a": "border-georgia-r3-05",
-      "b": "border-georgia-r3-06",
-      "aPlanet": null,
-      "bPlanet": null,
-      "aZone": "Georgia",
-      "bZone": "Georgia"
-    },
     {
       "a": "border-georgia-r3-06",
       "b": "border-space-r2-24",
