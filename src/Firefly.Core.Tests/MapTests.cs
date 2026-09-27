@@ -16,7 +16,7 @@ namespace Firefly.Core.Tests
         {
             var map = LoadMap();
             Assert.Equal(155, map.SectorCount);
-            Assert.Equal(397, map.EdgeCount);
+            Assert.Equal(398, map.EdgeCount);
         }
 
         [Fact]

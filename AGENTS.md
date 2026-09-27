@@ -83,7 +83,7 @@ Implemented action types: Fly, Nav, Crew, Deal, Work, Buy, Shore Leave, Misbehav
 
 ## Map facts that have already bitten us
 
-- 155 sectors, 397 adjacency edges.
+- 155 sectors, 398 adjacency edges.
 - Santo: `alliance-qin-shi-huang-r1-01`
 - Heinlein r1-01 Triumph (no supply); r1-02 Silverhold (supply)
 - Muir: `rim-blue-sun-r2-03`
