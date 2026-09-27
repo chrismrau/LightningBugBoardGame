@@ -3,7 +3,7 @@
     "description": "Firefly: The Game \u2013 Adjacency recalculated under corrected rules",
     "schemaVersion": "4.142",
     "sectorCount": 155,
-    "edgeCount": 391,
+    "edgeCount": 392,
     "source": "User board images (concentric rings + satellite system pods) + Sectors.json (Qin Shi Huang single shell only)",
     "notes": [
       "RULES (user directives 2026-08-24):",
@@ -166,7 +166,8 @@
       "Penglai r1-01: removed rim-space-r2-10 (user correction; no shared boundary).",
       "Penglai r1-02: removed rim-space-r1-10 and rim-cortex-relay-2-r1-11 (user correction; no shared boundaries).",
       "Kalidasa r4-08: removed rim-penglai-r1-01 (user correction; no shared boundary).",
-      "Penglai r1-01: added rim-space-r1-10 (user correction; shared boundary; prior FP suppress was wrong)."
+      "Penglai r1-01: added rim-space-r1-10 (user correction; shared boundary; prior FP suppress was wrong).",
+      "Penglai r1-02: added rim-space-r2-10 (user correction; shared boundary; prior FP suppress was wrong)."
     ]
   },
   "edges": [
@@ -1693,6 +1694,10 @@
     {
       "a": "rim-penglai-r1-01",
       "b": "rim-space-r2-11"
+    },
+    {
+      "a": "rim-penglai-r1-02",
+      "b": "rim-space-r2-10"
     },
     {
       "a": "rim-penglai-r1-02",
