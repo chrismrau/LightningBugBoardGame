@@ -18,6 +18,7 @@
     wizardIndex: 0,
     imageOffset: [4, 4],
     viewBox: [0, 0, 5008, 2008],
+    layoutMeta: {},
     dirty: false,
   };
 
@@ -578,20 +579,49 @@
         points: face.points,
       };
     }
+    const meta = {
+      ...(state.layoutMeta || {}),
+      description:
+        state.layoutMeta?.description ||
+        "Sector id → face geometry for map debugging / adjacency verification",
+      schemaVersion: state.layoutMeta?.schemaVersion || "1.0",
+      sourceSvg: state.layoutMeta?.sourceSvg || "reference/board/GameBoardClosedPath.svg",
+      generatedBy: "tools/map-labeler",
+      assignmentCount: Object.keys(assignments).length,
+      sectorCount: state.sectors.length,
+    };
     return {
-      meta: {
-        description: "Sector id → face geometry for map debugging / adjacency verification",
-        schemaVersion: "1.0",
-        sourceSvg: "reference/board/GameBoardClosedPath.svg",
-        generatedBy: "tools/map-labeler",
-        assignmentCount: Object.keys(assignments).length,
-        sectorCount: state.sectors.length,
-      },
+      meta,
       // faceId -> sectorId (tool working set)
       assignments,
-      // sectorId -> geometry (runtime-friendly)
+      // sectorId -> geometry (runtime-friendly; mirrors overlay polygons)
       sectors: faces,
     };
+  }
+
+  /** Prefer SectorLayout.json polygons over the raw SVG face extract. */
+  function applyLayoutGeometry(layout) {
+    const geos = layout?.sectors || {};
+    let applied = 0;
+    for (const [sectorId, geo] of Object.entries(geos)) {
+      if (!geo || !Array.isArray(geo.points) || geo.points.length < 3) continue;
+      let faceId = geo.faceId;
+      if (!faceId) {
+        faceId = Object.entries(state.assignments).find(([, sid]) => sid === sectorId)?.[0];
+      }
+      if (!faceId) continue;
+      const face = state.faceById.get(faceId);
+      if (!face) continue;
+      face.points = geo.points.map((p) => [p[0], p[1]]);
+      if (Array.isArray(geo.centroid) && geo.centroid.length >= 2) {
+        face.centroid = [geo.centroid[0], geo.centroid[1]];
+      }
+      applied++;
+    }
+    if (applied) {
+      state.faceNeighbors = buildFaceNeighbors(state.faces);
+    }
+    return applied;
   }
 
   async function saveLayout() {
@@ -652,11 +682,17 @@
     state.sectorById = new Map(state.sectors.map((s) => [s.id, s]));
     state.edges = data.adjacency.edges || [];
     state.neighbors = buildNeighborMap(state.edges);
-    state.faces = data.faces.faces || [];
+    // Deep-copy face geometry so layout overrides don't mutate the bootstrap payload.
+    state.faces = (data.faces.faces || []).map((f) => ({
+      ...f,
+      points: (f.points || []).map((p) => [p[0], p[1]]),
+      centroid: f.centroid ? [f.centroid[0], f.centroid[1]] : f.centroid,
+    }));
     state.faceById = new Map(state.faces.map((f) => [f.faceId, f]));
     state.faceNeighbors = buildFaceNeighbors(state.faces);
     state.imageOffset = data.faces.meta.imageOffset || [4, 4];
     state.viewBox = data.faces.meta.viewBox || [0, 0, 5008, 2008];
+    state.layoutMeta = { ...(data.layout.meta || {}) };
     state.assignments = { ...(data.layout.assignments || {}) };
     // Also accept sector-keyed layout.
     if (!Object.keys(state.assignments).length && data.layout.sectors) {
@@ -664,13 +700,18 @@
         if (geo.faceId) state.assignments[geo.faceId] = sid;
       }
     }
+    const layoutPolys = applyLayoutGeometry(data.layout || {});
     state.dirty = false;
     els.boardImg.src = data.paths.boardImage;
     populateZones();
     rebuildWizardQueue();
     setMode(state.mode);
     setDetail(
-      `Loaded ${state.faces.length} faces and ${state.sectors.length} sector ids. Click a planetary id, then click its face. Use Propagate after a few planets.`
+      `Loaded ${state.faces.length} faces and ${state.sectors.length} sector ids` +
+        (layoutPolys
+          ? ` · overlay using <strong>${layoutPolys}</strong> SectorLayout polygons`
+          : " · overlay using raw SVG faces (no SectorLayout geometry yet)") +
+        `. Click a planetary id, then click its face. Use Propagate after a few planets.`
     );
   }
 
