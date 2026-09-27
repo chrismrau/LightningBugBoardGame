@@ -10,6 +10,8 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlparse
 
+from sync_faces_from_layout import sync_files
+
 REPO_ROOT = Path(__file__).resolve().parents[2]
 TOOL_DIR = Path(__file__).resolve().parent
 LAYOUT_PATH = REPO_ROOT / "Data" / "Map" / "SectorLayout.json"
@@ -20,14 +22,26 @@ BOARD_DIR = REPO_ROOT / "reference" / "board"
 
 
 def ensure_faces(tol: float = 3.0) -> None:
-    if FACES_PATH.exists():
-        meta = json.loads(FACES_PATH.read_text()).get("meta", {})
-        if meta.get("faceCount") == 155 and meta.get("danglingCount") == 0:
-            return
-    from extract_faces import build_payload
+    """Ensure faces.json exists (SVG extract), then align geometry with SectorLayout."""
+    if not FACES_PATH.exists():
+        from extract_faces import build_payload
 
-    payload = build_payload(BOARD_DIR / "GameBoardClosedPath.svg", tol=tol)
-    FACES_PATH.write_text(json.dumps(payload, indent=2) + "\n")
+        payload = build_payload(BOARD_DIR / "GameBoardClosedPath.svg", tol=tol)
+        FACES_PATH.write_text(json.dumps(payload, indent=2) + "\n")
+    else:
+        meta = json.loads(FACES_PATH.read_text()).get("meta", {})
+        if meta.get("faceCount") != 155 or meta.get("danglingCount", 0) != 0:
+            from extract_faces import build_payload
+
+            payload = build_payload(BOARD_DIR / "GameBoardClosedPath.svg", tol=tol)
+            FACES_PATH.write_text(json.dumps(payload, indent=2) + "\n")
+
+    if LAYOUT_PATH.exists():
+        layout = json.loads(LAYOUT_PATH.read_text())
+        if layout.get("sectors"):
+            changed = sync_files(LAYOUT_PATH, FACES_PATH, write=True)
+            if changed:
+                print(f"[map-labeler] synced {changed} faces from SectorLayout.json")
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -77,6 +91,7 @@ class Handler(BaseHTTPRequestHandler):
                     "paths": {
                         "layout": str(LAYOUT_PATH.relative_to(REPO_ROOT)).replace("\\", "/"),
                         "boardImage": "/board/GameBoardMarkup.png",
+                        "faces": str(FACES_PATH.relative_to(REPO_ROOT)).replace("\\", "/"),
                     },
                 },
             )
@@ -101,12 +116,16 @@ class Handler(BaseHTTPRequestHandler):
             payload = self._read_json()
             LAYOUT_PATH.parent.mkdir(parents=True, exist_ok=True)
             LAYOUT_PATH.write_text(json.dumps(payload, indent=2) + "\n")
+            faces_synced = 0
+            if FACES_PATH.exists() and payload.get("sectors"):
+                faces_synced = sync_files(LAYOUT_PATH, FACES_PATH, write=True)
             self._send_json(
                 200,
                 {
                     "ok": True,
                     "path": str(LAYOUT_PATH.relative_to(REPO_ROOT)).replace("\\", "/"),
                     "assignments": len(payload.get("assignments", {})),
+                    "facesSynced": faces_synced,
                 },
             )
             return
@@ -122,6 +141,7 @@ def main():
     server = ThreadingHTTPServer((args.host, args.port), Handler)
     print(f"Map labeler at http://{args.host}:{args.port}/")
     print(f"Saves layout to {LAYOUT_PATH.relative_to(REPO_ROOT)}")
+    print(f"Keeps faces in sync at {FACES_PATH.relative_to(REPO_ROOT)}")
     server.serve_forever()
 
 
