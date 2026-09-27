@@ -7,13 +7,13 @@
     "labeledSectors": 155,
     "sectorCount": 155,
     "geoEdgeCount": 352,
-    "jsonEdgeCount": 394,
+    "jsonEdgeCount": 393,
     "missingEdgeCount": 0,
-    "extraEdgeCount": 42,
+    "extraEdgeCount": 41,
     "suppressedFalsePositiveCount": 11,
     "unlabeledCount": 0,
     "unknownLabelCount": 0,
-    "sectorsWithDegreeMismatch": 62
+    "sectorsWithDegreeMismatch": 61
   },
   "unlabeled": [],
   "unknownLabels": [],
@@ -338,14 +338,6 @@
       "bPlanet": "Beylix",
       "aZone": "Penglai",
       "bZone": "Penglai"
-    },
-    {
-      "a": "rim-penglai-r1-01",
-      "b": "rim-space-r2-10",
-      "aPlanet": "Newhall",
-      "bPlanet": null,
-      "aZone": "Penglai",
-      "bZone": "Rim Space"
     },
     {
       "a": "rim-penglai-r1-02",
@@ -1107,12 +1099,11 @@
       "planet": "Newhall",
       "zone": "Penglai",
       "geoDegree": 2,
-      "jsonDegree": 5,
+      "jsonDegree": 4,
       "missingNeighbors": [],
       "extraNeighbors": [
         "rim-kalidasa-r4-09",
-        "rim-penglai-r1-02",
-        "rim-space-r2-10"
+        "rim-penglai-r1-02"
       ]
     },
     {
@@ -1139,17 +1130,6 @@
         "rim-kalidasa-r4-09",
         "rim-penglai-r1-02"
       ]
-    },
-    {
-      "id": "rim-space-r2-10",
-      "planet": null,
-      "zone": "Rim Space",
-      "geoDegree": 1,
-      "jsonDegree": 2,
-      "missingNeighbors": [],
-      "extraNeighbors": [
-        "rim-penglai-r1-01"
-      ]
     }
   ],
   "zoneTouchCounts": {
@@ -1160,8 +1140,8 @@
     "Border Space": 3,
     "Blue Sun": 3,
     "Special": 1,
-    "Penglai": 5,
+    "Penglai": 4,
     "Kalidasa": 6,
-    "Rim Space": 3
+    "Rim Space": 2
   }
 }

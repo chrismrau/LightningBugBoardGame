@@ -6,11 +6,11 @@ Geometry from `Data/Map/SectorLayout.json` vs edges in `Data/Map/Adjacency.json`
 
 - Labeled sectors: **155** / 155
 - Geometry edges: **352**
-- Adjacency.json edges: **394**
+- Adjacency.json edges: **393**
 - Missing in Adjacency.json (geometry has, JSON lacks): **0**
-- Extra in Adjacency.json (JSON has, geometry lacks): **42**
+- Extra in Adjacency.json (JSON has, geometry lacks): **41**
 - Suppressed geometry false positives: **11**
-- Sectors with degree mismatch: **62**
+- Sectors with degree mismatch: **61**
 
 Interpretation:
 
@@ -66,7 +66,6 @@ _None._
 | `rim-kalidasa-r4-09` (rim-kalidasa-r4-09) | `rim-penglai-r1-01` (Newhall) | Kalidasa / Penglai |
 | `rim-kalidasa-r4-09` (rim-kalidasa-r4-09) | `rim-space-r1-10` (rim-space-r1-10) | Kalidasa / Rim Space |
 | `rim-penglai-r1-01` (Newhall) | `rim-penglai-r1-02` (Beylix) | Penglai / Penglai |
-| `rim-penglai-r1-01` (Newhall) | `rim-space-r2-10` (rim-space-r2-10) | Penglai / Rim Space |
 | `rim-penglai-r1-02` (Beylix) | `rim-space-r1-10` (rim-space-r1-10) | Penglai / Rim Space |
 
 ## Suppressed geometry false positives
@@ -203,12 +202,10 @@ _None._
   - extra neighbors: `rim-kalidasa-r3-05`, `rim-kalidasa-r4-10`, `rim-penglai-r1-01`, `rim-space-r1-10`
 - **Djinn's Bane** `rim-kalidasa-r4-10` (Kalidasa): geo=5 json=6
   - extra neighbors: `rim-kalidasa-r4-09`
-- **Newhall** `rim-penglai-r1-01` (Penglai): geo=2 json=5
-  - extra neighbors: `rim-kalidasa-r4-09`, `rim-penglai-r1-02`, `rim-space-r2-10`
+- **Newhall** `rim-penglai-r1-01` (Penglai): geo=2 json=4
+  - extra neighbors: `rim-kalidasa-r4-09`, `rim-penglai-r1-02`
 - **Beylix** `rim-penglai-r1-02` (Penglai): geo=2 json=5
   - extra neighbors: `rim-cortex-relay-2-r1-11`, `rim-penglai-r1-01`, `rim-space-r1-10`
 - **rim-space-r1-10** `rim-space-r1-10` (Rim Space): geo=4 json=6
   - extra neighbors: `rim-kalidasa-r4-09`, `rim-penglai-r1-02`
-- **rim-space-r2-10** `rim-space-r2-10` (Rim Space): geo=1 json=2
-  - extra neighbors: `rim-penglai-r1-01`
 
