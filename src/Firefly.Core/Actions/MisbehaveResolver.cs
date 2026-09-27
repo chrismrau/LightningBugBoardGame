@@ -66,7 +66,8 @@ namespace Firefly.Core.Actions
         /// </summary>
         public IList<string>? IgnoreWantedCrewIds { get; set; }
         /// <summary>
-        /// Load up to N typed goods (Everything Not Nailed Down). Null = max that fits (0..N).
+        /// Load up to N typed goods (<see cref="CardEffectType.LoadUpTo"/> /
+        /// Everything Not Nailed Down). Null = max that fits (0..N).
         /// </summary>
         public int? LoadAmount { get; set; }
         /// <summary>Pushy Salesman: may buy up to N Cargo ($unit each). 0 = buy none.</summary>
@@ -2126,7 +2127,8 @@ namespace Firefly.Core.Actions
                 loadGoodsFuel: choice.LoadGoodsFuel,
                 loadGoodsParts: choice.LoadGoodsParts,
                 loadGoodsCargo: choice.LoadGoodsCargo,
-                loadGoodsContraband: choice.LoadGoodsContraband);
+                loadGoodsContraband: choice.LoadGoodsContraband,
+                loadAmount: choice.LoadAmount);
 
             foreach (var effect in effects)
             {
@@ -2241,12 +2243,6 @@ namespace Firefly.Core.Actions
                         ReturnHighestFightToShip(game, player);
                         break;
                     case MisbehaveLocalEffectType.LoseSolidIfAble:
-                        break;
-                    case MisbehaveLocalEffectType.LoadContrabandUpTo:
-                        if (!TryApplyLoadContrabandUpTo(
-                                player, effect.Count, choice, out var upToLoaded, out error))
-                            return false;
-                        loaded += upToLoaded;
                         break;
                     case MisbehaveLocalEffectType.LoadContrabandPerCrewWithoutGear:
                         var perCrew = CountCrewWithoutGear(game, player);
@@ -3335,42 +3331,6 @@ namespace Firefly.Core.Actions
                     n++;
             }
             return n;
-        }
-
-        private static bool TryApplyLoadContrabandUpTo(
-            PlayerState player,
-            int max,
-            MisbehaveChoice choice,
-            out int loaded,
-            out string? error)
-        {
-            loaded = 0;
-            error = null;
-            var cap = max > 0 ? max : 1;
-            int count;
-            if (choice.LoadAmount != null)
-            {
-                count = choice.LoadAmount.Value;
-                if (count < 0 || count > cap)
-                {
-                    error = $"Load up to {cap} Contraband requires LoadAmount between 0 and {cap}.";
-                    return false;
-                }
-            }
-            else
-            {
-                // Nav Load-up-to pattern: unset → max that fits (preserves prior exact-3 tests).
-                count = cap;
-                while (count > 0 && !HoldSpace.Fits(player, addContraband: count))
-                    count--;
-            }
-            if (count == 0)
-                return true;
-            if (!HoldSpace.TryExplain(player, out error, addContraband: count))
-                return false;
-            player.Contraband += count;
-            loaded = count;
-            return true;
         }
 
         private static bool TryApplyBuyGoods(

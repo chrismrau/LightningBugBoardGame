@@ -116,7 +116,7 @@ namespace Firefly.Core.Tests
         }
 
         [Fact]
-        public void ClearDisgruntledMoral_LoadParts_LoadGoods_are_shared_vocabulary()
+        public void ClearDisgruntledMoral_LoadParts_LoadGoods_LoadUpTo_are_shared_vocabulary()
         {
             Assert.True(CardEffectParsing.TryParseType("clearDisgruntledMoral", out var clear));
             Assert.Equal(CardEffectType.ClearDisgruntledMoral, clear);
@@ -124,6 +124,10 @@ namespace Firefly.Core.Tests
             Assert.Equal(CardEffectType.LoadParts, parts);
             Assert.True(CardEffectParsing.TryParseType("loadGoods", out var goods));
             Assert.Equal(CardEffectType.LoadGoods, goods);
+            Assert.True(CardEffectParsing.TryParseType("loadUpTo", out var upTo));
+            Assert.Equal(CardEffectType.LoadUpTo, upTo);
+            Assert.True(CardEffectParsing.TryParseLoadKind("parts", out var kind));
+            Assert.Equal(CardLoadKind.Parts, kind);
 
             var misbehave = MisbehaveCatalog.LoadDefault();
             Assert.True(CardHasSharedEffect(
@@ -137,6 +141,33 @@ namespace Firefly.Core.Tests
                 misbehave.Get("misbehave_larcenous-opportunity"),
                 CardEffectType.LoadGoods,
                 expectedCount: 4));
+            Assert.True(CardHasSharedLoadUpTo(
+                misbehave.Get("misbehave_everything-thats-not-nailed-down"),
+                CardLoadKind.Contraband,
+                expectedCount: 3));
+
+            var nav = NavCatalog.LoadFromFile(GameData.NavCardsPath);
+            var liner = nav.Get("nav_hollowed-out-space-liner");
+            Assert.True(liner.Options[0].HasStructuredEffects);
+            Assert.Equal(CardEffectType.LoadUpTo, liner.Options[0].Effects[0].Type);
+            Assert.Equal(6, liner.Options[0].Effects[0].Count);
+            Assert.Equal(CardLoadKind.Parts, liner.Options[0].Effects[0].Kind);
+        }
+
+        private static bool CardHasSharedLoadUpTo(
+            MisbehaveCard card, CardLoadKind kind, int expectedCount)
+        {
+            foreach (var option in card.Options)
+            {
+                foreach (var effect in option.Effects)
+                {
+                    if (effect.Is(CardEffectType.LoadUpTo)
+                        && effect.Shared!.Kind == kind
+                        && effect.Count == expectedCount)
+                        return true;
+                }
+            }
+            return false;
         }
 
         private static bool CardHasSharedEffect(
@@ -246,6 +277,49 @@ namespace Firefly.Core.Tests
                 game, player, effects, ScriptedRng.FromDieFaces(1), fail,
                 out _, out var failErr));
             Assert.False(string.IsNullOrWhiteSpace(failErr));
+        }
+
+        [Fact]
+        public void Shared_applicator_LoadUpTo_respects_LoadAmount_and_auto_clamps()
+        {
+            var game = GameSetup.Create(
+                new[] { new PlayerSeat("p1", "Mal", Persephone) },
+                new GameSetupOptions { DealStartingJobs = false, Rng = new SystemRng(5) });
+            var player = game.Players[0];
+            player.Contraband = 0;
+            player.Parts = 0;
+
+            var contra = new List<CardEffect>
+            {
+                new CardEffect(CardEffectType.LoadUpTo, 3, CardLoadKind.Contraband)
+            };
+            Assert.True(CardEffectApplicator.TryApply(
+                game, player, contra, ScriptedRng.FromDieFaces(1),
+                new CardEffectContext(CardEffectSource.Misbehave, loadAmount: 2),
+                out var chosen, out var err), err);
+            Assert.Equal(2, chosen.ContrabandLoaded);
+            Assert.Equal(2, player.Contraband);
+
+            // Unset LoadAmount → max that fits (cap 6 Parts).
+            var parts = new List<CardEffect>
+            {
+                new CardEffect(CardEffectType.LoadUpTo, 6, CardLoadKind.Parts)
+            };
+            Assert.True(CardEffectApplicator.TryApply(
+                game, player, parts, ScriptedRng.FromDieFaces(1),
+                new CardEffectContext(CardEffectSource.Nav),
+                out var auto, out var autoErr), autoErr);
+            Assert.Equal(6, auto.PartsLoaded);
+            Assert.Equal(6, player.Parts);
+
+            // Explicit 0 is legal (printed "up to").
+            player.Contraband = 0;
+            Assert.True(CardEffectApplicator.TryApply(
+                game, player, contra, ScriptedRng.FromDieFaces(1),
+                new CardEffectContext(CardEffectSource.Misbehave, loadAmount: 0),
+                out var zero, out var zeroErr), zeroErr);
+            Assert.Equal(0, zero.ContrabandLoaded);
+            Assert.Equal(0, player.Contraband);
         }
     }
 }

@@ -210,12 +210,27 @@ namespace Firefly.Core.Cards
                 var count = dto.Count ?? dto.Amount ?? 0;
                 if (CardEffectParsing.TryParseType(dto.Type, out var shared))
                 {
-                    // "Load up to N Contraband" — prefer local up-to over exact shared load.
-                    if (shared == CardEffectType.LoadContraband && dto.UpTo == true)
+                    // "Load up to N {kind}" — shared LoadUpTo (direct or exact Load* + upTo).
+                    if (shared == CardEffectType.LoadUpTo)
+                    {
+                        if (!CardEffectParsing.TryParseLoadKind(dto.Kind, out var upToKind))
+                            throw new InvalidDataException(
+                                "loadUpTo requires kind (Cargo / Contraband / Parts / Fuel).");
+                        effects.Add(MisbehaveEffect.Of(
+                            new CardEffect(
+                                CardEffectType.LoadUpTo,
+                                count > 0 ? count : 1,
+                                upToKind)));
+                        continue;
+                    }
+                    if (dto.UpTo == true
+                        && CardEffectParsing.TryLoadKindFromExactType(shared, out var promotedKind))
                     {
                         effects.Add(MisbehaveEffect.Of(
-                            MisbehaveLocalEffectType.LoadContrabandUpTo,
-                            count > 0 ? count : 1));
+                            new CardEffect(
+                                CardEffectType.LoadUpTo,
+                                count > 0 ? count : 1,
+                                promotedKind)));
                         continue;
                     }
                     effects.Add(MisbehaveEffect.Of(shared, count));
@@ -436,6 +451,7 @@ namespace Firefly.Core.Cards
             public bool? DisgruntleWantedIfAny { get; set; }
             public int? UnitPrice { get; set; }
             public bool? UpTo { get; set; }
+            public string? Kind { get; set; }
         }
     }
 }

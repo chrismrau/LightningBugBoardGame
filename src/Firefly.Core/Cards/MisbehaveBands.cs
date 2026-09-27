@@ -73,11 +73,6 @@ namespace Firefly.Core.Cards
         /// </summary>
         LoseSolidIfAble,
         /// <summary>
-        /// Load up to N Contraband (count = max). <see cref="MisbehaveChoice.LoadAmount"/> selects
-        /// 0..N; null defaults to max that fits (Nav Load-up-to pattern).
-        /// </summary>
-        LoadContrabandUpTo,
-        /// <summary>
         /// For each Crew on the Job without carried Gear, Load 1 Contraband (Idle Hands).
         /// Returned-to-Ship crew are not on the Job (Director's Cut C&amp;P p.49).
         /// </summary>

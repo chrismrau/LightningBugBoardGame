@@ -6,7 +6,7 @@ namespace Firefly.Core.Cards
     /// <summary>
     /// Shared card-effect vocabulary understood by both Nav and Misbehave applicators.
     /// Core intersection (PR #37) plus promoted leftovers (ClearDisgruntledMoral, LoadParts,
-    /// LoadGoods). Nav-only / Misbehave-only effects stay in local adapters.
+    /// LoadGoods, LoadUpTo). Nav-only / Misbehave-only effects stay in local adapters.
     /// JSON type names are camelCase of these identifiers (e.g. <c>killCrew</c>).
     /// </summary>
     public enum CardEffectType
@@ -26,22 +26,43 @@ namespace Firefly.Core.Cards
         /// Load N Goods (Blue Sun: Fuel/Parts/Cargo/Contraband mix). Count = N; mix via
         /// <see cref="Actions.CardEffectContext"/> Goods fields / PendingChoice GoodsMix.
         /// </summary>
-        LoadGoods
+        LoadGoods,
+        /// <summary>
+        /// Load up to N of one typed good. Count = max N; <see cref="CardEffect.Kind"/> required.
+        /// Chosen amount via <see cref="Actions.CardEffectContext.LoadAmount"/>
+        /// (null = max that fits, capped at Count).
+        /// </summary>
+        LoadUpTo
+    }
+
+    /// <summary>
+    /// Typed hold good for <see cref="CardEffectType.LoadUpTo"/>
+    /// (Cargo / Contraband / Parts / Fuel).
+    /// </summary>
+    public enum CardLoadKind
+    {
+        Cargo,
+        Contraband,
+        Parts,
+        Fuel
     }
 
     /// <summary>
     /// One shared structured effect. <see cref="Count"/> is KillCrew / Load* / TakeCash amount
     /// (TakeCash uses dollars; KillCrew defaults to 1 when Count is 0).
+    /// <see cref="Kind"/> is required for <see cref="CardEffectType.LoadUpTo"/>.
     /// </summary>
     public sealed class CardEffect
     {
         public CardEffectType Type { get; }
         public int Count { get; }
+        public CardLoadKind? Kind { get; }
 
-        public CardEffect(CardEffectType type, int count = 0)
+        public CardEffect(CardEffectType type, int count = 0, CardLoadKind? kind = null)
         {
             Type = type;
             Count = count;
+            Kind = kind;
         }
     }
 
@@ -134,6 +155,56 @@ namespace Firefly.Core.Cards
             }
             type = default;
             return false;
+        }
+
+        public static bool TryParseLoadKind(string? raw, out CardLoadKind kind)
+        {
+            var key = Normalize(raw ?? "");
+            if (key.Equals("Cargo", StringComparison.OrdinalIgnoreCase))
+            {
+                kind = CardLoadKind.Cargo;
+                return true;
+            }
+            if (key.Equals("Contraband", StringComparison.OrdinalIgnoreCase))
+            {
+                kind = CardLoadKind.Contraband;
+                return true;
+            }
+            if (key.Equals("Part", StringComparison.OrdinalIgnoreCase)
+                || key.Equals("Parts", StringComparison.OrdinalIgnoreCase))
+            {
+                kind = CardLoadKind.Parts;
+                return true;
+            }
+            if (key.Equals("Fuel", StringComparison.OrdinalIgnoreCase))
+            {
+                kind = CardLoadKind.Fuel;
+                return true;
+            }
+            kind = default;
+            return false;
+        }
+
+        /// <summary>
+        /// Map exact typed Load* shared types to a <see cref="CardLoadKind"/> for up-to promotion.
+        /// </summary>
+        public static bool TryLoadKindFromExactType(CardEffectType type, out CardLoadKind kind)
+        {
+            switch (type)
+            {
+                case CardEffectType.LoadCargo:
+                    kind = CardLoadKind.Cargo;
+                    return true;
+                case CardEffectType.LoadContraband:
+                    kind = CardLoadKind.Contraband;
+                    return true;
+                case CardEffectType.LoadParts:
+                    kind = CardLoadKind.Parts;
+                    return true;
+                default:
+                    kind = default;
+                    return false;
+            }
         }
 
         public static bool IsSharedTypeName(string raw) => TryParseType(raw, out _);

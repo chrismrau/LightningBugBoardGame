@@ -312,9 +312,9 @@
           "details": "Requires TRANSPORT. Load up to 3 Contraband. Proceed.",
           "effects": [
             {
-              "type": "loadContraband",
+              "type": "loadUpTo",
               "count": 3,
-              "upTo": true
+              "kind": "contraband"
             },
             {
               "type": "proceed"
@@ -356,9 +356,9 @@
           "details": "Requires TRANSPORT. Load up to 3 Contraband. Proceed.",
           "effects": [
             {
-              "type": "loadContraband",
+              "type": "loadUpTo",
               "count": 3,
-              "upTo": true
+              "kind": "contraband"
             },
             {
               "type": "proceed"
