@@ -1,9 +1,9 @@
 {
   "meta": {
-    "description": "Firefly: The Game – Adjacency recalculated under corrected rules",
+    "description": "Firefly: The Game \u2013 Adjacency recalculated under corrected rules",
     "schemaVersion": "4.142",
     "sectorCount": 155,
-    "edgeCount": 391,
+    "edgeCount": 392,
     "source": "User board images (concentric rings + satellite system pods) + Sectors.json (Qin Shi Huang single shell only)",
     "notes": [
       "RULES (user directives 2026-08-24):",
@@ -164,7 +164,10 @@
       "Cortex Relay 2: restored rim-penglai-r1-02 (user correction; shared boundary; prior remove was wrong).",
       "Kalidasa r3-05: restored rim-kalidasa-r4-09 (user correction; shared boundary; prior remove was wrong).",
       "Penglai r1-01: removed rim-space-r2-10 (user correction; no shared boundary).",
-      "Penglai r1-02: removed rim-space-r1-10 and rim-cortex-relay-2-r1-11 (user correction; no shared boundaries)."
+      "Penglai r1-02: removed rim-space-r1-10 and rim-cortex-relay-2-r1-11 (user correction; no shared boundaries).",
+      "Kalidasa r4-08: removed rim-penglai-r1-01 (user correction; no shared boundary).",
+      "Penglai r1-01: added rim-space-r1-10 (user correction; shared boundary; prior FP suppress was wrong).",
+      "Penglai r1-02: added rim-space-r2-10 (user correction; shared boundary; prior FP suppress was wrong)."
     ]
   },
   "edges": [
@@ -1629,10 +1632,6 @@
       "b": "rim-kalidasa-r4-09"
     },
     {
-      "a": "rim-kalidasa-r4-08",
-      "b": "rim-penglai-r1-01"
-    },
-    {
       "a": "rim-kalidasa-r4-09",
       "b": "rim-kalidasa-r4-10"
     },
@@ -1690,7 +1689,15 @@
     },
     {
       "a": "rim-penglai-r1-01",
+      "b": "rim-space-r1-10"
+    },
+    {
+      "a": "rim-penglai-r1-01",
       "b": "rim-space-r2-11"
+    },
+    {
+      "a": "rim-penglai-r1-02",
+      "b": "rim-space-r2-10"
     },
     {
       "a": "rim-penglai-r1-02",

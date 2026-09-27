@@ -6,11 +6,11 @@
     "snapTol": 3.0,
     "labeledSectors": 155,
     "sectorCount": 155,
-    "geoEdgeCount": 391,
-    "jsonEdgeCount": 391,
+    "geoEdgeCount": 392,
+    "jsonEdgeCount": 392,
     "missingEdgeCount": 0,
     "extraEdgeCount": 0,
-    "suppressedFalsePositiveCount": 9,
+    "suppressedFalsePositiveCount": 8,
     "unlabeledCount": 0,
     "unknownLabelCount": 0,
     "sectorsWithDegreeMismatch": 0
@@ -62,6 +62,14 @@
     },
     {
       "a": "rim-kalidasa-r4-08",
+      "b": "rim-penglai-r1-01",
+      "aPlanet": null,
+      "bPlanet": "Newhall",
+      "aZone": "Kalidasa",
+      "bZone": "Penglai"
+    },
+    {
+      "a": "rim-kalidasa-r4-08",
       "b": "rim-penglai-r1-02",
       "aPlanet": null,
       "bPlanet": "Beylix",
@@ -74,22 +82,6 @@
       "aPlanet": null,
       "bPlanet": null,
       "aZone": "Kalidasa",
-      "bZone": "Rim Space"
-    },
-    {
-      "a": "rim-penglai-r1-01",
-      "b": "rim-space-r1-10",
-      "aPlanet": "Newhall",
-      "bPlanet": null,
-      "aZone": "Penglai",
-      "bZone": "Rim Space"
-    },
-    {
-      "a": "rim-penglai-r1-02",
-      "b": "rim-space-r2-10",
-      "aPlanet": "Beylix",
-      "bPlanet": null,
-      "aZone": "Penglai",
       "bZone": "Rim Space"
     }
   ],
