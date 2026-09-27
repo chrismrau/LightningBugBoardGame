@@ -6,11 +6,11 @@
     "snapTol": 3.0,
     "labeledSectors": 155,
     "sectorCount": 155,
-    "geoEdgeCount": 395,
-    "jsonEdgeCount": 395,
+    "geoEdgeCount": 396,
+    "jsonEdgeCount": 396,
     "missingEdgeCount": 0,
     "extraEdgeCount": 0,
-    "suppressedFalsePositiveCount": 7,
+    "suppressedFalsePositiveCount": 6,
     "unlabeledCount": 0,
     "unknownLabelCount": 0,
     "sectorsWithDegreeMismatch": 0
@@ -43,14 +43,6 @@
       "bPlanet": null,
       "aZone": "Border Space",
       "bZone": "Kalidasa"
-    },
-    {
-      "a": "rim-cortex-relay-2-r1-11",
-      "b": "rim-penglai-r1-01",
-      "aPlanet": "Cortex Relay 2",
-      "bPlanet": "Newhall",
-      "aZone": "Special",
-      "bZone": "Penglai"
     },
     {
       "a": "rim-kalidasa-r4-08",
