@@ -3,7 +3,7 @@
     "description": "Firefly: The Game – Adjacency recalculated under corrected rules",
     "schemaVersion": "4.142",
     "sectorCount": 155,
-    "edgeCount": 395,
+    "edgeCount": 394,
     "source": "User board images (concentric rings + satellite system pods) + Sectors.json (Qin Shi Huang single shell only)",
     "notes": [
       "RULES (user directives 2026-08-24):",
@@ -157,7 +157,8 @@
       "White Sun r4-02 is NOT adjacent to r4-03. Gap is intentional: Lux sits between them (user confirmation).",
       "Border Space r1-06: added border-space-r1-07 (user correction; confirmed shared boundary).",
       "Georgia r2-03: removed border-georgia-r3-06 (user correction; no shared boundary).",
-      "Georgia r3-06: removed border-georgia-r2-03, border-georgia-r3-05, border-space-r2-24 (user correction; no shared boundaries)."
+      "Georgia r3-06: removed border-georgia-r2-03, border-georgia-r3-05, border-space-r2-24 (user correction; no shared boundaries).",
+      "Cortex Relay 2: removed rim-penglai-r1-02 (user correction; no shared boundary)."
     ]
   },
   "edges": [
@@ -1480,10 +1481,6 @@
     {
       "a": "rim-burnham-r2-03",
       "b": "rim-space-r2-24"
-    },
-    {
-      "a": "rim-cortex-relay-2-r1-11",
-      "b": "rim-penglai-r1-02"
     },
     {
       "a": "rim-cortex-relay-2-r1-11",
