@@ -1169,11 +1169,22 @@ namespace Firefly.Core.Actions
                 }
                 if (IsAllianceAlertUpdate(card, null))
                     CycleAllianceAlert(game);
-                var aceCash = AbilityDispatcher.MisbehaveProceedCash(player, AbilityContext.WorkingJob);
+                var aceCash = AbilityDispatcher.MisbehaveProceedCash(player, AbilityContext.ForPendingMisbehave(pending));
                 if (aceCash > 0)
                     player.Cash += aceCash;
                 pending.ClearStepProgress();
                 return Finish(game, playerId, card, null, MisbehaveOutcome.Proceed, null, 0, 0, 0, aceCash, true, out resolution, out error);
+            }
+
+            // FAQ 4.1 p.7: auto-select when Goal Work leaves only one legal option (Rival Crew).
+            if (pending.IsGoalWork
+                && choice.OptionIndex == null
+                && pending.SelectedOptionIndex == null
+                && card.Options.Count > 1)
+            {
+                var onlyLegal = OnlyGoalLegalOptionIndex(game, player, card);
+                if (onlyLegal != null)
+                    pending.SelectedOptionIndex = onlyLegal;
             }
 
             // GF9 p.14: "most Misbehave Cards have 2 options on each card. You may attempt either option."
@@ -1196,6 +1207,11 @@ namespace Firefly.Core.Actions
 
             pending.SelectedOptionIndex = optionIndex;
             var option = card.Options[optionIndex.Value];
+            if (!IsGoalLegalOption(game, card, optionIndex.Value))
+            {
+                error = "That Misbehave option is not legal while Working a Goal (FAQ 4.1 p.7).";
+                return false;
+            }
             if (!MeetsRequirement(game, player, option.Details, out error))
                 return false;
 
@@ -1506,9 +1522,10 @@ namespace Firefly.Core.Actions
                     : MisbehaveOutcome.Proceed;
             }
 
-            // GF9 / FAQ: Warrant Issued while Working discards the Job. Niska Pound of Flesh: Kill a Crew.
+            // GF9 / FAQ: Warrant Issued while Working a Job discards the Job. Niska Pound of Flesh: Kill a Crew.
             // Mid-card Continue bands that also issue a Warrant still discard (warrant ends the Job).
             // Fork nested team cards: defer Job abandon to Split Crew aggregation (printed Warrant gate).
+            // Working Goals: Warrant stays on the ship; attempt ends; may retry next turn (GF9 p.16–17).
             if (warrants > 0 && game.PendingMisbehave != null)
             {
                 if (game.PendingMisbehave.SplitCrew?.ResolvingNested == true)
@@ -1517,6 +1534,19 @@ namespace Firefly.Core.Actions
                     return CompleteNestedTeamCard(
                         game, playerId, card, option, MisbehaveOutcome.Proceed, check,
                         warrants, killed, loaded, cashDelta, false, out resolution, out error);
+                }
+
+                if (game.PendingMisbehave.IsGoalWork)
+                {
+                    game.Misbehave?.ResolveIntoDiscard(card);
+                    game.PendingMisbehave = null;
+                    game.PendingGoalWork = null;
+                    game.WorkGearLocked = false;
+                    game.TryConsumeAction(TurnAction.Work, out _);
+                    resolution = new MisbehaveResolution(
+                        card, option, MisbehaveOutcome.Botched, check, warrants, killed, loaded, cashDelta, false, null);
+                    error = null;
+                    return true;
                 }
 
                 if (!TryAbandonJobForWarrant(
@@ -1555,9 +1585,9 @@ namespace Firefly.Core.Actions
 
             if (outcome == MisbehaveOutcome.Proceed)
             {
-                // Big Damn Heroes / typed misbehaveProceedCash (Job-only; Goals Work not implemented).
+                // Big Damn Heroes / typed misbehaveProceedCash (Job-only; skipped while Working Goals).
                 var proceedCash = AbilityDispatcher.MisbehaveProceedCash(
-                    player, AbilityContext.WorkingJob);
+                    player, AbilityContext.ForPendingMisbehave(game.PendingMisbehave));
                 if (proceedCash > 0)
                 {
                     player.Cash += proceedCash;
@@ -1952,6 +1982,8 @@ namespace Firefly.Core.Actions
             var legal = new List<string>();
             for (var i = 0; i < card.Options.Count; i++)
             {
+                if (!IsGoalLegalOption(game, card, i))
+                    continue;
                 if (MeetsRequirement(game, player, card.Options[i].Details, out _))
                     legal.Add(i.ToString());
             }
@@ -1972,6 +2004,41 @@ namespace Firefly.Core.Actions
                 options: legal,
                 prompt: "Choose a Misbehave option.");
             return game.TrySetPendingChoice(pending, out error);
+        }
+
+        /// <summary>
+        /// FAQ 4.1 p.7: A Rival Crew "Maybe We Can Make a Deal" may not be chosen while Working a Goal.
+        /// </summary>
+        private static bool IsGoalLegalOption(GameState game, MisbehaveCard card, int optionIndex)
+        {
+            if (game.PendingMisbehave == null || !game.PendingMisbehave.IsGoalWork)
+                return true;
+            if (optionIndex < 0 || optionIndex >= card.Options.Count)
+                return false;
+            var option = card.Options[optionIndex];
+            if (HasLocalEffect(option.Effects, MisbehaveLocalEffectType.HalveJobPayOnSuccess))
+                return false;
+            if (Contains(option.Details, "cut Pay in half"))
+                return false;
+            if (Contains(option.Name, "Maybe We Can Make a Deal"))
+                return false;
+            return true;
+        }
+
+        private static int? OnlyGoalLegalOptionIndex(GameState game, PlayerState player, MisbehaveCard card)
+        {
+            int? only = null;
+            for (var i = 0; i < card.Options.Count; i++)
+            {
+                if (!IsGoalLegalOption(game, card, i))
+                    continue;
+                if (!MeetsRequirement(game, player, card.Options[i].Details, out _))
+                    continue;
+                if (only != null)
+                    return null;
+                only = i;
+            }
+            return only;
         }
 
         private static bool TrySuspendNextStepChoice(
