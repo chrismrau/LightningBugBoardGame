@@ -1,25 +1,9 @@
 {
   "meta": {
     "description": "Geometry-detected adjacencies confirmed NOT to share a boundary (user review).",
-    "source": "Christopher Rau, 2026-09-27 \u2014 mismatch report triage"
+    "source": "Christopher Rau triage; updated after Three Hills \u2192 r3-07"
   },
   "edges": [
-    {
-      "a": "border-georgia-r2-03",
-      "b": "border-georgia-r3-07"
-    },
-    {
-      "a": "border-georgia-r3-05",
-      "b": "border-georgia-r3-07"
-    },
-    {
-      "a": "border-georgia-r3-06",
-      "b": "rim-space-r1-27"
-    },
-    {
-      "a": "border-georgia-r3-07",
-      "b": "border-space-r2-24"
-    },
     {
       "a": "border-himinbjorg-r1-01",
       "b": "border-space-r2-08"
@@ -50,6 +34,38 @@
     },
     {
       "a": "rim-penglai-r1-02",
+      "b": "rim-space-r2-10"
+    },
+    {
+      "a": "border-georgia-r2-03",
+      "b": "border-georgia-r3-06"
+    },
+    {
+      "a": "border-georgia-r3-05",
+      "b": "border-georgia-r3-06"
+    },
+    {
+      "a": "border-georgia-r3-06",
+      "b": "border-space-r2-24"
+    },
+    {
+      "a": "border-georgia-r3-06",
+      "b": "rim-space-r1-27"
+    },
+    {
+      "a": "border-georgia-r2-03",
+      "b": "border-georgia-r3-07"
+    },
+    {
+      "a": "border-georgia-r3-05",
+      "b": "border-georgia-r3-07"
+    },
+    {
+      "a": "border-georgia-r3-07",
+      "b": "border-space-r2-24"
+    },
+    {
+      "a": "rim-kalidasa-r4-08",
       "b": "rim-space-r2-10"
     }
   ]

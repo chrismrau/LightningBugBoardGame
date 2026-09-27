@@ -3,7 +3,7 @@
     "description": "Firefly: The Game – Adjacency recalculated under corrected rules",
     "schemaVersion": "4.142",
     "sectorCount": 155,
-    "edgeCount": 398,
+    "edgeCount": 391,
     "source": "User board images (concentric rings + satellite system pods) + Sectors.json (Qin Shi Huang single shell only)",
     "notes": [
       "RULES (user directives 2026-08-24):",
@@ -155,7 +155,16 @@
       "Border Space r2-12a exact: Red Sun r3-05..06, Heinlein r1-01 only. r2-18 exact: r1-18, r2-19 only. r2-19 exact: r2-18, r1-19, r2-20 only. r1-05 confirmed correct.",
       "Confirmed Kalidasa r2-02, r3-02, r3-03, r4-02..07 do not exist on the map. Removed any remaining references from Sectors.json and live edges.",
       "White Sun r4-02 is NOT adjacent to r4-03. Gap is intentional: Lux sits between them (user confirmation).",
-      "Border Space r1-06: added border-space-r1-07 (user correction; confirmed shared boundary)."
+      "Border Space r1-06: added border-space-r1-07 (user correction; confirmed shared boundary).",
+      "Georgia r2-03: removed border-georgia-r3-06 (user correction; no shared boundary).",
+      "Georgia r3-06: removed border-georgia-r2-03, border-georgia-r3-05, border-space-r2-24 (user correction; no shared boundaries).",
+      "Cortex Relay 2: removed rim-penglai-r1-02 (user correction; no shared boundary).",
+      "Kalidasa r3-05: removed rim-kalidasa-r4-09 (user correction; no shared boundary).",
+      "Kalidasa r4-08: removed rim-space-r2-10 (user correction; no shared boundary).",
+      "Cortex Relay 2: restored rim-penglai-r1-02 (user correction; shared boundary; prior remove was wrong).",
+      "Kalidasa r3-05: restored rim-kalidasa-r4-09 (user correction; shared boundary; prior remove was wrong).",
+      "Penglai r1-01: removed rim-space-r2-10 (user correction; no shared boundary).",
+      "Penglai r1-02: removed rim-space-r1-10 and rim-cortex-relay-2-r1-11 (user correction; no shared boundaries)."
     ]
   },
   "edges": [
@@ -716,10 +725,6 @@
       "b": "border-georgia-r3-05"
     },
     {
-      "a": "border-georgia-r2-03",
-      "b": "border-georgia-r3-06"
-    },
-    {
       "a": "border-georgia-r2-04",
       "b": "border-georgia-r3-06"
     },
@@ -757,10 +762,6 @@
     },
     {
       "a": "border-georgia-r3-05",
-      "b": "border-georgia-r3-06"
-    },
-    {
-      "a": "border-georgia-r3-05",
       "b": "border-murphy-r1-01"
     },
     {
@@ -774,10 +775,6 @@
     {
       "a": "border-georgia-r3-06",
       "b": "border-georgia-r3-07"
-    },
-    {
-      "a": "border-georgia-r3-06",
-      "b": "border-space-r2-24"
     },
     {
       "a": "border-georgia-r3-06",
@@ -1493,10 +1490,6 @@
     },
     {
       "a": "rim-cortex-relay-2-r1-11",
-      "b": "rim-penglai-r1-02"
-    },
-    {
-      "a": "rim-cortex-relay-2-r1-11",
       "b": "rim-space-r1-10"
     },
     {
@@ -1601,10 +1594,6 @@
     },
     {
       "a": "rim-kalidasa-r3-05",
-      "b": "rim-kalidasa-r4-09"
-    },
-    {
-      "a": "rim-kalidasa-r3-05",
       "b": "rim-kalidasa-r4-10"
     },
     {
@@ -1644,10 +1633,6 @@
       "b": "rim-penglai-r1-01"
     },
     {
-      "a": "rim-kalidasa-r4-08",
-      "b": "rim-space-r2-10"
-    },
-    {
       "a": "rim-kalidasa-r4-09",
       "b": "rim-kalidasa-r4-10"
     },
@@ -1662,6 +1647,10 @@
     {
       "a": "rim-kalidasa-r4-09",
       "b": "rim-space-r1-10"
+    },
+    {
+      "a": "rim-kalidasa-r3-05",
+      "b": "rim-kalidasa-r4-09"
     },
     {
       "a": "rim-kalidasa-r4-10",
@@ -1701,15 +1690,7 @@
     },
     {
       "a": "rim-penglai-r1-01",
-      "b": "rim-space-r2-10"
-    },
-    {
-      "a": "rim-penglai-r1-01",
       "b": "rim-space-r2-11"
-    },
-    {
-      "a": "rim-penglai-r1-02",
-      "b": "rim-space-r1-10"
     },
     {
       "a": "rim-penglai-r1-02",
