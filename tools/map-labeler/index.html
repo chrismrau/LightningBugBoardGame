@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Firefly sector labeler</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <h1>Sector labeler</h1>
+      <p class="sub">Map SVG faces → <code>Sectors.json</code> ids. Planetary first, then propagate, then drag the rest.</p>
+    </div>
+    <div class="stats" id="stats">Loading…</div>
+  </header>
+
+  <div class="toolbar">
+    <div class="mode-group" role="group" aria-label="Mode">
+      <button type="button" class="mode-btn active" data-mode="pick">Click id → face</button>
+      <button type="button" class="mode-btn" data-mode="drag">Drag &amp; drop</button>
+      <button type="button" class="mode-btn" data-mode="wizard">Wizard</button>
+    </div>
+    <label>
+      Palette
+      <select id="paletteFilter">
+        <option value="planetary-unassigned">Planetary unassigned</option>
+        <option value="unassigned">All unassigned</option>
+        <option value="assigned">Assigned</option>
+        <option value="all">All ids</option>
+      </select>
+    </label>
+    <label>
+      Zone
+      <select id="zoneFilter"><option value="">Any zone</option></select>
+    </label>
+    <input id="search" type="search" placeholder="Filter ids / planets…" />
+    <button type="button" id="btnPropagate" title="Fill unlabeled faces from ring order + adjacency">Propagate</button>
+    <button type="button" id="btnClearFace" disabled>Clear face</button>
+    <button type="button" id="btnSave">Save layout</button>
+    <button type="button" id="btnReload">Reload</button>
+  </div>
+
+  <div class="wizard-bar hidden" id="wizardBar">
+    <strong>Wizard:</strong>
+    <span id="wizardPrompt">—</span>
+    <button type="button" id="btnWizardSkip">Skip</button>
+    <button type="button" id="btnWizardPrev">Back</button>
+  </div>
+
+  <main class="layout">
+    <aside class="palette" id="palette"></aside>
+    <section class="board-wrap">
+      <div class="board-scroll">
+        <div id="board" class="board">
+          <img id="boardImg" alt="Game board" draggable="false" />
+          <svg id="overlay" xmlns="http://www.w3.org/2000/svg"></svg>
+        </div>
+      </div>
+      <div class="detail" id="detail">Select a face or drag an id onto the board.</div>
+    </section>
+  </main>
+
+  <div id="toast" class="toast hidden" role="status"></div>
+
+  <script src="/app.js"></script>
+</body>
+</html>
