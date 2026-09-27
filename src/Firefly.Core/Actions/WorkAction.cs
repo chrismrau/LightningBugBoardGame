@@ -299,7 +299,9 @@ namespace Firefly.Core.Actions
                     moral = player.Roster.DisgruntleMoral();
             }
 
+            // Two-Fry Dead-Eye: after Alert extras, −1 Misbehave when carrying Sniper Rifle (min 1).
             var misbehave = terms.Misbehave + ActiveAlertRules.ExtraIllegalMisbehave(game, player, job);
+            misbehave = AbilityDispatcher.ApplyMisbehaveDrawReduce(game, player, misbehave);
             if (misbehave > 0)
             {
                 // FAQ 4.1 p.2: cannot switch Gear during a Work Action.

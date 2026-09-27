@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Firefly.Core.Cards;
+using Firefly.Core.Map;
 using Firefly.Core.State;
 
 namespace Firefly.Core.Abilities
@@ -1062,26 +1063,9 @@ namespace Firefly.Core.Abilities
             AbilityContext? context = null,
             JobCard? job = null)
         {
-            var total = 0;
-            foreach (var member in player.Roster.Members)
-            {
-                if (onlyCrewId != null
-                    && !member.Id.Equals(onlyCrewId, StringComparison.OrdinalIgnoreCase))
-                    continue;
-                // Director's Cut C&P p.49: Returned to Ship crew (and abilities) unused.
-                if (JobWorkCrew.IsUnavailable(player, member))
-                    continue;
-                if (job != null && LawmanRules.StaysOnboardForJob(member, job))
-                    continue;
-                foreach (var ability in AllFromCrew(member.Card))
-                {
-                    if (!ability.MatchesType(AbilityTypes.SkillAddend) || !Applies(ability, context))
-                        continue;
-                    if (!SkillMatches(ability.Skill, skill))
-                        continue;
-                    total += ability.Amount;
-                }
-            }
+            var total = CrewSkillAddend(
+                game, player, skill, onlyCrewId, onlyCrewIds: null, context, job,
+                SkillAddendScope.ExcludeSectorLocation);
 
             if (game.Gear == null)
                 return total;
@@ -1124,10 +1108,291 @@ namespace Firefly.Core.Abilities
                         continue;
                     if (!SkillMatches(ability.Skill, skill))
                         continue;
+                    if (!LocationMatches(game, player, ability.Location))
+                        continue;
                     total += ability.Amount;
                 }
             }
             return total;
+        }
+
+        /// <summary>
+        /// Kosherized Fight extras: location-gated crew <see cref="AbilityTypes.SkillAddend"/>
+        /// (Bourne Jurisdiction counts in Kosherized) + Gear Fight when
+        /// <see cref="AbilityTypes.UseInKosherized"/> or carrier
+        /// <see cref="AbilityTypes.UseCarriedGearInKosherized"/> (Lund / Holdout / Vector).
+        /// FAQ 4.1: otherwise Gear Fight Skill is excluded.
+        /// </summary>
+        public static int KosherizedFightAddend(
+            GameState game,
+            PlayerState player,
+            JobCard? job = null,
+            string? onlyCrewId = null,
+            IReadOnlyCollection<string>? onlyCrewIds = null,
+            AbilityContext? context = null)
+        {
+            var total = CrewSkillAddend(
+                game, player, Skill.Fight, onlyCrewId, onlyCrewIds, context, job,
+                SkillAddendScope.All);
+
+            if (game.Gear == null)
+                return total;
+
+            foreach (var gearId in player.Gear)
+            {
+                if (!GearCarriage.IsCarried(player, gearId))
+                    continue;
+                if (!game.Gear.TryGet(gearId, out var gear) || gear.Fight <= 0)
+                    continue;
+                var carrierId = GearCarriage.CarrierOf(player, gearId);
+                if (!CarrierAllowed(player, job, carrierId, onlyCrewId, onlyCrewIds))
+                    continue;
+
+                var gearAllowed = false;
+                foreach (var ability in AllFromGear(gear))
+                {
+                    if (ability.MatchesType(AbilityTypes.UseInKosherized)
+                        && Applies(ability, context))
+                    {
+                        gearAllowed = true;
+                        break;
+                    }
+                }
+
+                if (!gearAllowed && carrierId != null)
+                {
+                    var carrier = player.Roster.Find(carrierId);
+                    if (carrier != null)
+                    {
+                        foreach (var ability in AllFromCrew(carrier.Card))
+                        {
+                            if (ability.MatchesType(AbilityTypes.UseCarriedGearInKosherized)
+                                && Applies(ability, context))
+                            {
+                                gearAllowed = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                if (gearAllowed)
+                    total += gear.Fight;
+            }
+
+            return total;
+        }
+
+        /// <summary>
+        /// Two-Fry Dead-Eye: reduce Misbehave draw when a crew with
+        /// <see cref="AbilityTypes.MisbehaveDrawReduce"/> carries the Subject keyword.
+        /// Applied after Alert extras; clamp to minimum 1 when the pre-reduce count was &gt; 0.
+        /// </summary>
+        public static int ApplyMisbehaveDrawReduce(
+            GameState game,
+            PlayerState player,
+            int misbehaveCount,
+            AbilityContext? context = null)
+        {
+            if (misbehaveCount <= 0)
+                return misbehaveCount;
+
+            context ??= AbilityContext.WorkingJob;
+            var reduce = 0;
+            foreach (var member in player.Roster.Members)
+            {
+                if (JobWorkCrew.IsUnavailable(player, member))
+                    continue;
+                foreach (var ability in AllFromCrew(member.Card))
+                {
+                    if (!ability.MatchesType(AbilityTypes.MisbehaveDrawReduce)
+                        || !Applies(ability, context))
+                        continue;
+                    if (string.IsNullOrWhiteSpace(ability.Subject))
+                        continue;
+                    if (!CrewCarriesKeyword(game, player, member.Id, ability.Subject))
+                        continue;
+                    reduce += ability.Amount > 0 ? ability.Amount : 1;
+                }
+            }
+
+            if (reduce <= 0)
+                return misbehaveCount;
+            var result = misbehaveCount - reduce;
+            return result < 1 ? 1 : result;
+        }
+
+        /// <summary>
+        /// Sector-gated crew skillAddend (Alliance/Border/Rim) for live DiceCount.
+        /// Kept out of <see cref="CarriedSkillAddend"/> so FightBonus stays a gear proxy.
+        /// </summary>
+        public static int SectorLocationSkillAddend(
+            GameState game,
+            PlayerState player,
+            Skill skill,
+            JobCard? job = null,
+            string? onlyCrewId = null,
+            IReadOnlyCollection<string>? onlyCrewIds = null,
+            AbilityContext? context = null) =>
+            CrewSkillAddend(
+                game, player, skill, onlyCrewId, onlyCrewIds, context, job,
+                SkillAddendScope.SectorLocationOnly);
+
+        private enum SkillAddendScope
+        {
+            /// <summary>FightBonus path — skip Alliance/Border/Rim Location abilities.</summary>
+            ExcludeSectorLocation,
+            /// <summary>Live non-Kosherized DiceCount add-on — only sector Location.</summary>
+            SectorLocationOnly,
+            /// <summary>Kosherized extras — all matching skillAddend including sector Location.</summary>
+            All
+        }
+
+        private static int CrewSkillAddend(
+            GameState game,
+            PlayerState player,
+            Skill skill,
+            string? onlyCrewId,
+            IReadOnlyCollection<string>? onlyCrewIds,
+            AbilityContext? context,
+            JobCard? job,
+            SkillAddendScope scope)
+        {
+            var total = 0;
+            HashSet<string>? allowed = null;
+            if (onlyCrewIds != null)
+            {
+                allowed = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                foreach (var id in onlyCrewIds)
+                {
+                    if (!string.IsNullOrWhiteSpace(id))
+                        allowed.Add(id);
+                }
+            }
+
+            foreach (var member in player.Roster.Members)
+            {
+                if (onlyCrewId != null
+                    && !member.Id.Equals(onlyCrewId, StringComparison.OrdinalIgnoreCase))
+                    continue;
+                if (allowed != null && !allowed.Contains(member.Id))
+                    continue;
+                if (JobWorkCrew.IsUnavailable(player, member))
+                    continue;
+                if (job != null && LawmanRules.StaysOnboardForJob(member, job))
+                    continue;
+                foreach (var ability in AllFromCrew(member.Card))
+                {
+                    if (!ability.MatchesType(AbilityTypes.SkillAddend) || !Applies(ability, context))
+                        continue;
+                    if (!SkillMatches(ability.Skill, skill))
+                        continue;
+
+                    var sectorLoc = IsSectorRegionLocation(ability.Location);
+                    if (scope == SkillAddendScope.ExcludeSectorLocation && sectorLoc)
+                        continue;
+                    if (scope == SkillAddendScope.SectorLocationOnly && !sectorLoc)
+                        continue;
+                    if (!LocationMatches(game, player, ability.Location))
+                        continue;
+                    total += ability.Amount;
+                }
+            }
+            return total;
+        }
+
+        private static bool IsSectorRegionLocation(string? location) =>
+            !string.IsNullOrWhiteSpace(location)
+            && (location.Equals("Alliance", StringComparison.OrdinalIgnoreCase)
+                || location.Equals("Border", StringComparison.OrdinalIgnoreCase)
+                || location.Equals("Rim", StringComparison.OrdinalIgnoreCase));
+
+        private static bool CarrierAllowed(
+            PlayerState player,
+            JobCard? job,
+            string? carrierId,
+            string? onlyCrewId,
+            IReadOnlyCollection<string>? onlyCrewIds)
+        {
+            if (carrierId == null)
+                return false;
+            if (onlyCrewId != null
+                && !carrierId.Equals(onlyCrewId, StringComparison.OrdinalIgnoreCase))
+                return false;
+            if (onlyCrewIds != null)
+            {
+                var found = false;
+                foreach (var id in onlyCrewIds)
+                {
+                    if (id != null && id.Equals(carrierId, StringComparison.OrdinalIgnoreCase))
+                    {
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found)
+                    return false;
+            }
+            if (JobWorkCrew.IsReturnedToShip(player, carrierId))
+                return false;
+            if (job != null)
+            {
+                var carrier = player.Roster.Find(carrierId);
+                if (carrier != null && LawmanRules.StaysOnboardForJob(carrier, job))
+                    return false;
+            }
+            return true;
+        }
+
+        private static bool CrewCarriesKeyword(
+            GameState game,
+            PlayerState player,
+            string crewId,
+            string keyword)
+        {
+            if (game.Gear == null || string.IsNullOrWhiteSpace(keyword))
+                return false;
+            foreach (var gearId in player.Gear)
+            {
+                if (!GearCarriage.IsCarried(player, gearId))
+                    continue;
+                var carrier = GearCarriage.CarrierOf(player, gearId);
+                if (carrier == null
+                    || !carrier.Equals(crewId, StringComparison.OrdinalIgnoreCase))
+                    continue;
+                if (!game.Gear.TryGet(gearId, out var gear))
+                    continue;
+                foreach (var k in gear.Keywords)
+                {
+                    if (k.Equals(keyword, StringComparison.OrdinalIgnoreCase))
+                        return true;
+                }
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Sector-region gate for <see cref="AbilityTypes.SkillAddend"/> Location
+        /// (Alliance / Border / Rim). Empty Location always matches.
+        /// </summary>
+        public static bool LocationMatches(GameState game, PlayerState player, string? location)
+        {
+            if (string.IsNullOrWhiteSpace(location))
+                return true;
+            if (location.Equals("Flying", StringComparison.OrdinalIgnoreCase)
+                || location.Equals("Misbehaving", StringComparison.OrdinalIgnoreCase))
+                return true;
+            if (game.Map == null || string.IsNullOrWhiteSpace(player.SectorId))
+                return false;
+            if (!game.Map.TryGet(player.SectorId, out var sector))
+                return false;
+            if (location.Equals("Alliance", StringComparison.OrdinalIgnoreCase))
+                return sector.NavRegion == NavRegion.Alliance;
+            if (location.Equals("Border", StringComparison.OrdinalIgnoreCase))
+                return sector.NavRegion == NavRegion.Border;
+            if (location.Equals("Rim", StringComparison.OrdinalIgnoreCase))
+                return sector.NavRegion == NavRegion.Rim;
+            return true;
         }
 
         private static bool SkillMatches(string? label, Skill skill)
