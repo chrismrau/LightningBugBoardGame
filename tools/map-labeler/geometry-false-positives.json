@@ -1,52 +1,7 @@
 {
   "meta": {
-    "description": "Geometry-detected adjacencies confirmed NOT to share a boundary (user review).",
-    "source": "Christopher Rau triage; updated after Three Hills \u2192 r3-07"
+    "description": "Geometry-detected adjacencies confirmed NOT to share a boundary. Currently empty: polygons were edited so non-adjacent sectors no longer share detectable edges.",
+    "source": "Cleared after vertex cleanup (user request 2026-09-27)"
   },
-  "edges": [
-    {
-      "a": "rim-kalidasa-r3-05",
-      "b": "rim-kalidasa-r4-08"
-    },
-    {
-      "a": "rim-kalidasa-r4-08",
-      "b": "rim-space-r1-10"
-    },
-    {
-      "a": "rim-kalidasa-r4-09",
-      "b": "rim-space-r2-10"
-    },
-    {
-      "a": "border-georgia-r3-06",
-      "b": "rim-space-r1-27"
-    },
-    {
-      "a": "border-georgia-r2-03",
-      "b": "border-georgia-r3-07"
-    },
-    {
-      "a": "border-georgia-r3-05",
-      "b": "border-georgia-r3-07"
-    },
-    {
-      "a": "border-georgia-r3-07",
-      "b": "border-space-r2-24"
-    },
-    {
-      "a": "border-himinbjorg-r1-01",
-      "b": "border-space-r2-08"
-    },
-    {
-      "a": "border-himinbjorg-r1-02",
-      "b": "border-space-r2-07"
-    },
-    {
-      "a": "border-space-r2-09",
-      "b": "rim-kalidasa-r4-12"
-    },
-    {
-      "a": "rim-kalidasa-r4-08",
-      "b": "rim-penglai-r1-01"
-    }
-  ]
+  "edges": []
 }
