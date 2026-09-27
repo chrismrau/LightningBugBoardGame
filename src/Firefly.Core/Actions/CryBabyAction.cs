@@ -122,7 +122,7 @@ namespace Firefly.Core.Actions
             string cruiserToSectorId,
             out string? error)
         {
-            if (!TryRemoveCryBaby(player, out error))
+            if (!TryRemoveCryBaby(game, player, out error))
                 return false;
 
             var cruiserSector = game.Tokens.AllianceCruiserSectorId!;
@@ -130,7 +130,7 @@ namespace Firefly.Core.Actions
             if (!IsAllianceSpace(game, cruiserToSectorId))
             {
                 error = "Cry Baby must move the Cruiser within Alliance Space.";
-                RestoreCryBaby(player);
+                RestoreCryBaby(game, player);
                 return false;
             }
 
@@ -140,7 +140,7 @@ namespace Firefly.Core.Actions
             if (path == null)
             {
                 error = "No path for Cry Baby Cruiser move.";
-                RestoreCryBaby(player);
+                RestoreCryBaby(game, player);
                 return false;
             }
 
@@ -150,13 +150,13 @@ namespace Firefly.Core.Actions
                 error = maxSectors == 1
                     ? "Cry Baby must move the Cruiser 1 Sector."
                     : $"Cry Baby must move the Cruiser 1 to {maxSectors} Sectors.";
-                RestoreCryBaby(player);
+                RestoreCryBaby(game, player);
                 return false;
             }
 
             if (!HavenRules.CanChooseCruiserDestination(game, cruiserToSectorId, out error))
             {
-                RestoreCryBaby(player);
+                RestoreCryBaby(game, player);
                 return false;
             }
 
@@ -214,25 +214,15 @@ namespace Firefly.Core.Actions
             return false;
         }
 
-        private static bool TryRemoveCryBaby(PlayerState player, out string? error)
+        private static bool TryRemoveCryBaby(GameState game, PlayerState player, out string? error)
         {
-            error = null;
-            for (var i = 0; i < player.ShipUpgrades.Count; i++)
-            {
-                if (string.Equals(player.ShipUpgrades[i], CardId, StringComparison.OrdinalIgnoreCase)
-                    || string.Equals(player.ShipUpgrades[i], CardName, StringComparison.OrdinalIgnoreCase))
-                {
-                    player.ShipUpgrades.RemoveAt(i);
-                    return true;
-                }
-            }
-
-            error = "Cry Baby ship upgrade is not installed.";
-            return false;
+            if (ShipUpgradeApply.TryRemove(game, player, CardId, out error))
+                return true;
+            return ShipUpgradeApply.TryRemove(game, player, CardName, out error);
         }
 
-        private static void RestoreCryBaby(PlayerState player) =>
-            player.ShipUpgrades.Add(CardId);
+        private static void RestoreCryBaby(GameState game, PlayerState player) =>
+            ShipUpgradeApply.Install(game, player, CardId);
 
         private static void ReturnCryBabyToSupplyDiscard(GameState game)
         {

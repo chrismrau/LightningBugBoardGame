@@ -7,6 +7,8 @@ namespace Firefly.Core.State
     /// each Cargo or Stash space holds 1 Cargo, 1 Contraband, 1 Passenger, or 1 Fugitive,
     /// or up to 2 Fuel and/or Parts in any mix. Jetwash and Esmeralda have 6 Fuel-only
     /// stash spaces that each hold exactly 1 Fuel.
+    /// Caravan Pods (Esmeralda Coachworks): extra Cargo Hold spaces that may only hold
+    /// Passengers or Fugitives — they do not accept Cargo, Contraband, Fuel, or Parts.
     /// Packing is always evaluated as an optimal rearrangement (dump/rearrange is free).
     /// </summary>
     public static class HoldSpace
@@ -16,6 +18,9 @@ namespace Firefly.Core.State
         public static int GeneralSlots(PlayerState player) =>
             Math.Max(0, player.CargoHold) + Math.Max(0, player.StashHold);
 
+        public static int PassengerOnlySlots(PlayerState player) =>
+            Math.Max(0, player.PassengerHold);
+
         public static int UsedGeneral(PlayerState player) =>
             UsedGeneral(
                 player.Fuel,
@@ -24,7 +29,8 @@ namespace Firefly.Core.State
                 player.Contraband,
                 player.Passengers,
                 player.Fugitives,
-                player.FuelStash);
+                player.FuelStash,
+                player.PassengerHold);
 
         public static int UsedGeneral(
             int fuel,
@@ -33,7 +39,8 @@ namespace Firefly.Core.State
             int contraband,
             int passengers,
             int fugitives,
-            int fuelOnlySlots)
+            int fuelOnlySlots,
+            int passengerOnlySlots = 0)
         {
             fuel = Math.Max(0, fuel);
             parts = Math.Max(0, parts);
@@ -41,8 +48,10 @@ namespace Firefly.Core.State
             var looseFuel = fuel - inFuelOnly;
             var halfUnits = looseFuel + parts;
             var halfHolds = (halfUnits + FuelOrPartsPerHold - 1) / FuelOrPartsPerHold;
-            var fullUnits = Math.Max(0, cargo) + Math.Max(0, contraband)
-                + Math.Max(0, passengers) + Math.Max(0, fugitives);
+            var people = Math.Max(0, passengers) + Math.Max(0, fugitives);
+            var peopleInPassengerOnly = Math.Min(people, Math.Max(0, passengerOnlySlots));
+            var peopleInGeneral = people - peopleInPassengerOnly;
+            var fullUnits = Math.Max(0, cargo) + Math.Max(0, contraband) + peopleInGeneral;
             return fullUnits + halfHolds;
         }
 
@@ -65,7 +74,8 @@ namespace Firefly.Core.State
                 player.Contraband + addContraband,
                 player.Passengers + addPassengers,
                 player.Fugitives + addFugitives,
-                player.FuelStash);
+                player.FuelStash,
+                player.PassengerHold);
             return used <= GeneralSlots(player);
         }
 
@@ -85,7 +95,11 @@ namespace Firefly.Core.State
                 return true;
             }
 
-            error = $"Not enough cargo/stash space ({UsedGeneral(player)}/{GeneralSlots(player)} holds used).";
+            var passengerOnly = PassengerOnlySlots(player);
+            var suffix = passengerOnly > 0
+                ? $" (+{passengerOnly} passenger/fugitive-only)"
+                : "";
+            error = $"Not enough cargo/stash space ({UsedGeneral(player)}/{GeneralSlots(player)} holds used{suffix}).";
             return false;
         }
     }

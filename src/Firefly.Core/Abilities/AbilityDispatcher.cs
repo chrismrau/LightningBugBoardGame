@@ -899,8 +899,20 @@ namespace Firefly.Core.Abilities
         public static int ShipUpgradeFullBurnRangeBonus(
             GameState game,
             PlayerState player,
+            AbilityContext? context = null) =>
+            ShipUpgradeAmount(game, player, AbilityTypes.FullBurnRangeBonus, context);
+
+        /// <summary>
+        /// Sum of mandatory Amount fields on installed ship upgrades for <paramref name="type"/>.
+        /// </summary>
+        public static int ShipUpgradeAmount(
+            GameState? game,
+            PlayerState player,
+            string type,
             AbilityContext? context = null)
         {
+            if (game == null || player == null || string.IsNullOrWhiteSpace(type))
+                return 0;
             context ??= AbilityContext.None;
             var catalog = game.ShipUpgradeCatalog;
             if (catalog == null)
@@ -912,13 +924,108 @@ namespace Firefly.Core.Abilities
                     continue;
                 foreach (var ability in AllFromShipUpgrade(upgrade))
                 {
-                    if (!ability.MatchesType(AbilityTypes.FullBurnRangeBonus)
+                    if (!ability.MatchesType(type)
                         || !Applies(ability, context, allowOptional: false))
                         continue;
                     total += ability.Amount;
                 }
             }
             return total;
+        }
+
+        /// <summary>
+        /// Absolute Mosey range from ship upgrades (Compression Coils = 2). Take max with drive.
+        /// </summary>
+        public static int ShipUpgradeMoseyRange(
+            GameState? game,
+            PlayerState player,
+            AbilityContext? context = null)
+        {
+            if (game == null || player == null)
+                return 0;
+            context ??= AbilityContext.None;
+            var catalog = game.ShipUpgradeCatalog;
+            if (catalog == null)
+                return 0;
+            var best = 0;
+            foreach (var upgradeId in player.ShipUpgrades)
+            {
+                if (!catalog.TryGet(upgradeId, out var upgrade))
+                    continue;
+                foreach (var ability in AllFromShipUpgrade(upgrade))
+                {
+                    if (!ability.MatchesType(AbilityTypes.MoseyRange)
+                        || !Applies(ability, context, allowOptional: false))
+                        continue;
+                    if (ability.Amount > best)
+                        best = ability.Amount;
+                }
+            }
+            return best;
+        }
+
+        /// <summary>
+        /// Full Tune-Up / Compression Coils / Enhanced Graviton: ignore Breakdown Nav cards.
+        /// </summary>
+        public static bool HasIgnoreBreakdowns(
+            GameState? game,
+            PlayerState player,
+            AbilityContext? context = null)
+        {
+            if (game != null
+                && HasShipUpgradeAbility(game, player, AbilityTypes.IgnoreBreakdowns, context, allowOptional: false))
+                return true;
+            if (game?.DriveCores == null || string.IsNullOrWhiteSpace(player.DriveCoreId))
+                return false;
+            return game.DriveCores.TryResolve(player.DriveCoreId, out var core) && core.IgnoreBreakdowns;
+        }
+
+        /// <summary>Sky Hook after Crime Job load Contraband (Amount default 1).</summary>
+        public static AbilityDefinition? FindAfterCrimeLoadContraband(
+            GameState? game,
+            PlayerState player,
+            AbilityContext? context = null) =>
+            FindShipUpgradeAbility(game, player, AbilityTypes.AfterCrimeLoadContraband, context);
+
+        /// <summary>Onboard Chop Shop after Salvage Op ($Amount + Load 1 Contraband).</summary>
+        public static AbilityDefinition? FindAfterSalvageCashAndContraband(
+            GameState? game,
+            PlayerState player,
+            AbilityContext? context = null) =>
+            FindShipUpgradeAbility(game, player, AbilityTypes.AfterSalvageCashAndContraband, context);
+
+        /// <summary>Hydraulic Docking Clamps: Crime Jobs count as Salvage Ops.</summary>
+        public static bool HasCrimeCountsAsSalvage(
+            GameState? game,
+            PlayerState player,
+            AbilityContext? context = null) =>
+            game != null
+            && HasShipUpgradeAbility(game, player, AbilityTypes.CrimeCountsAsSalvage, context, allowOptional: false);
+
+        private static AbilityDefinition? FindShipUpgradeAbility(
+            GameState? game,
+            PlayerState player,
+            string type,
+            AbilityContext? context = null)
+        {
+            if (game == null || player == null)
+                return null;
+            context ??= AbilityContext.None;
+            var catalog = game.ShipUpgradeCatalog;
+            if (catalog == null)
+                return null;
+            foreach (var upgradeId in player.ShipUpgrades)
+            {
+                if (!catalog.TryGet(upgradeId, out var upgrade))
+                    continue;
+                foreach (var ability in AllFromShipUpgrade(upgrade))
+                {
+                    if (ability.MatchesType(type)
+                        && Applies(ability, context, allowOptional: false))
+                        return ability;
+                }
+            }
+            return null;
         }
 
         /// <summary>Dobson Mole on the roster.</summary>

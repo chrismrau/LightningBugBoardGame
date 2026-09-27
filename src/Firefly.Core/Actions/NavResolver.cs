@@ -384,6 +384,26 @@ namespace Firefly.Core.Actions
                 return true;
             }
 
+            // Full Tune-Up / Compression Coils / Enhanced Graviton: Ignore all Breakdowns.
+            // Supplies.tsv / Director's Cut p.19 reliability upgrades.
+            if (IsBreakdownNavCard(drawnEarly.Card)
+                && AbilityDispatcher.HasIgnoreBreakdowns(game, game.CurrentPlayer))
+            {
+                game.Decks!.For(drawnEarly.Region).ResolveIntoDiscard(drawnEarly.Card);
+                FaceUp = null;
+                var ignoredBreakdown = drawnEarly.Card.Options.Count > 0
+                    ? drawnEarly.Card.Options[optionIndex >= 0 && optionIndex < drawnEarly.Card.Options.Count
+                        ? optionIndex
+                        : 0]
+                    : new NavOption(null, "", FlightOutcome.KeepFlying);
+                resolution = new NavResolution(
+                    drawnEarly,
+                    ignoredBreakdown,
+                    FlightOutcome.KeepFlying,
+                    stopped: false);
+                return true;
+            }
+
             if (optionIndex < 0 || optionIndex >= FaceUp.Card.Options.Count)
             {
                 error = "Invalid option index.";
@@ -796,6 +816,9 @@ namespace Firefly.Core.Actions
             }
             if (check == null)
                 goodsLoaded = optionGoodsLoaded;
+
+            if (IsSalvageOpResolution(drawn.Card, option))
+                TryApplyAfterSalvageBonuses(game, player, ref cashGained, ref goodsLoaded);
 
             game.Decks!.For(drawn.Region).ResolveIntoDiscard(drawn.Card);
             FaceUp = null;
@@ -5001,7 +5024,7 @@ namespace Firefly.Core.Actions
                     }
                     break;
                 case SupplyKind.ShipUpgrade:
-                    player.ShipUpgrades.Add(card.Id);
+                    ShipUpgradeApply.Install(game, player, card.Id);
                     break;
             }
         }
@@ -5110,6 +5133,64 @@ namespace Firefly.Core.Actions
             }
             player.SectorId = saved;
             return ok;
+        }
+
+        /// <summary>
+        /// Nav card type Breakdown (or Moral Compass/Breakdown). Full Tune-Up ignores these.
+        /// </summary>
+        private static bool IsBreakdownNavCard(NavCard card)
+        {
+            var type = card.Type ?? "";
+            return type.IndexOf("Breakdown", StringComparison.OrdinalIgnoreCase) >= 0;
+        }
+
+        /// <summary>
+        /// Salvage Op resolution: card type Salvage Op and the chosen option is a salvage path
+        /// (not a pure Keep Flying escape). Onboard Chop Shop triggers after these.
+        /// </summary>
+        private static bool IsSalvageOpResolution(NavCard card, NavOption option)
+        {
+            var type = card.Type ?? "";
+            if (type.IndexOf("Salvage Op", StringComparison.OrdinalIgnoreCase) < 0)
+                return false;
+            var details = option.Details ?? "";
+            if (Contains(details, "Salvage Op") || Contains(details, "SALVAGE OP"))
+                return true;
+            // Skill-band salvage (e.g. "Fight 7 Salvage Op; …") without Keep-Flying-only escape.
+            if (Contains(details, "Salvage") && !IsKeepFlyingOnlyOption(details))
+                return true;
+            return false;
+        }
+
+        private static bool IsKeepFlyingOnlyOption(string details)
+        {
+            var trimmed = details.Trim();
+            return trimmed.Equals("--Keep Flying.", StringComparison.OrdinalIgnoreCase)
+                || trimmed.Equals("Keep Flying.", StringComparison.OrdinalIgnoreCase)
+                || trimmed.Equals("--Keep Flying", StringComparison.OrdinalIgnoreCase)
+                || trimmed.Equals("Keep Flying", StringComparison.OrdinalIgnoreCase);
+        }
+
+        /// <summary>
+        /// Onboard Chop Shop: After any Salvage Op, take $500 and Load 1 Contraband.
+        /// </summary>
+        private static void TryApplyAfterSalvageBonuses(
+            GameState game,
+            PlayerState player,
+            ref int cashGained,
+            ref int goodsLoaded)
+        {
+            var chop = AbilityDispatcher.FindAfterSalvageCashAndContraband(game, player);
+            if (chop == null)
+                return;
+            var cash = chop.Amount > 0 ? chop.Amount : 500;
+            player.Cash += cash;
+            cashGained += cash;
+            if (HoldSpace.Fits(player, addContraband: 1))
+            {
+                player.Contraband++;
+                goodsLoaded++;
+            }
         }
 
         private static bool Contains(string text, string value) =>

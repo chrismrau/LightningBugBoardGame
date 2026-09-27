@@ -41,6 +41,10 @@ namespace Firefly.Core.State
         public string? DriveCoreId { get; set; }
         public int CargoHold { get; set; } = 8;
         public int StashHold { get; set; } = 4;
+        /// <summary>
+        /// Passenger/Fugitive-only hold spaces (Caravan Pods). Not usable for Cargo/Contraband/Fuel/Parts.
+        /// </summary>
+        public int PassengerHold { get; set; }
         public int FuelStash { get; set; }
         public int UpgradeSlots { get; set; } = 3;
         public string HavenSectorId { get; set; }
@@ -71,6 +75,25 @@ namespace Firefly.Core.State
             return range < 1 ? 1 : range;
         }
 
+        /// <summary>
+        /// Mosey range: drive core MoseyRange and ship-upgrade <c>moseyRange</c> (take max). Default 1.
+        /// </summary>
+        public int GetEffectiveMoseyRange(GameState? game)
+        {
+            var range = 1;
+            if (game?.DriveCores != null
+                && !string.IsNullOrWhiteSpace(DriveCoreId)
+                && game.DriveCores.TryResolve(DriveCoreId, out var core)
+                && core.MoseyRange > range)
+            {
+                range = core.MoseyRange;
+            }
+            var upgradeMosey = AbilityDispatcher.ShipUpgradeMoseyRange(game, this);
+            if (upgradeMosey > range)
+                range = upgradeMosey;
+            return range < 1 ? 1 : range;
+        }
+
         public void ApplyShip(ShipCard ship)
         {
             if (ship == null)
@@ -79,6 +102,7 @@ namespace Firefly.Core.State
             Roster.MaxCrew = ship.MaxCrew;
             CargoHold = ship.CargoHolds;
             StashHold = ship.Stash;
+            PassengerHold = 0;
             FuelStash = ship.FuelStash;
             UpgradeSlots = ship.UpgradeSlots;
         }

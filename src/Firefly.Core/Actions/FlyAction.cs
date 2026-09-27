@@ -50,7 +50,8 @@ namespace Firefly.Core.Actions
             if (!CanAct(game, playerId, out var player, out error))
                 return false;
 
-            if (!_movement.TryMosey(player.SectorId, toSectorId, game.Tokens, out var plan, out error) || plan == null)
+            var moseyRange = player.GetEffectiveMoseyRange(game);
+            if (!_movement.TryMosey(player.SectorId, toSectorId, moseyRange, game.Tokens, out var plan, out error) || plan == null)
                 return false;
 
             Apply(game, player, plan, truncateOnEncounter: true, out result);
