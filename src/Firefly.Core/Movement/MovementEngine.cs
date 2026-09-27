@@ -24,7 +24,16 @@ namespace Firefly.Core.Movement
         public Pathfinder Pathfinder => _paths;
 
         public bool TryMosey(string fromId, string toId, MapTokens? tokens, out MovementPlan? plan, out string? error) =>
-            TryMosey(fromId, toId, moseyRange: 1, tokens, out plan, out error);
+            TryMosey(fromId, toId, moseyRange: 1, tokens, ReaverEntryAllowance.None, out plan, out error);
+
+        public bool TryMosey(
+            string fromId,
+            string toId,
+            MapTokens? tokens,
+            ReaverEntryAllowance reaverEntry,
+            out MovementPlan? plan,
+            out string? error) =>
+            TryMosey(fromId, toId, moseyRange: 1, tokens, reaverEntry, out plan, out error);
 
         /// <summary>
         /// Mosey up to <paramref name="moseyRange"/> sectors (Compression Coils / Enhanced Graviton = 2).
@@ -35,6 +44,16 @@ namespace Firefly.Core.Movement
             string toId,
             int moseyRange,
             MapTokens? tokens,
+            out MovementPlan? plan,
+            out string? error) =>
+            TryMosey(fromId, toId, moseyRange, tokens, ReaverEntryAllowance.None, out plan, out error);
+
+        public bool TryMosey(
+            string fromId,
+            string toId,
+            int moseyRange,
+            MapTokens? tokens,
+            ReaverEntryAllowance reaverEntry,
             out MovementPlan? plan,
             out string? error)
         {
@@ -90,7 +109,7 @@ namespace Firefly.Core.Movement
             var mapTokens = tokens ?? MapTokens.None;
             for (var i = 1; i < path.Count; i++)
             {
-                if (!CanEnter(path[i], mapTokens, out error))
+                if (!CanEnter(path[i], mapTokens, MovementKind.Mosey, reaverEntry, out error))
                     return false;
             }
 
@@ -102,6 +121,15 @@ namespace Firefly.Core.Movement
             IReadOnlyList<string> path,
             int driveRange,
             MapTokens? tokens,
+            out MovementPlan? plan,
+            out string? error) =>
+            TryFullBurn(path, driveRange, tokens, ReaverEntryAllowance.None, out plan, out error);
+
+        public bool TryFullBurn(
+            IReadOnlyList<string> path,
+            int driveRange,
+            MapTokens? tokens,
+            ReaverEntryAllowance reaverEntry,
             out MovementPlan? plan,
             out string? error)
         {
@@ -154,7 +182,7 @@ namespace Firefly.Core.Movement
                     error = $"Path revisits '{path[i]}'.";
                     return false;
                 }
-                if (!CanEnter(path[i], mapTokens, out error))
+                if (!CanEnter(path[i], mapTokens, MovementKind.FullBurn, reaverEntry, out error))
                     return false;
             }
 
@@ -168,6 +196,16 @@ namespace Firefly.Core.Movement
             int driveRange,
             MapTokens? tokens,
             out MovementPlan? plan,
+            out string? error) =>
+            TryFullBurnTo(fromId, toId, driveRange, tokens, ReaverEntryAllowance.None, out plan, out error);
+
+        public bool TryFullBurnTo(
+            string fromId,
+            string toId,
+            int driveRange,
+            MapTokens? tokens,
+            ReaverEntryAllowance reaverEntry,
+            out MovementPlan? plan,
             out string? error)
         {
             plan = null;
@@ -177,7 +215,7 @@ namespace Firefly.Core.Movement
                 error = $"No path from '{fromId}' to '{toId}'.";
                 return false;
             }
-            return TryFullBurn(shortest, driveRange, tokens, out plan, out error);
+            return TryFullBurn(shortest, driveRange, tokens, reaverEntry, out plan, out error);
         }
 
         public IReadOnlyList<IReadOnlyList<string>> PathsWithinRange(string fromId, string toId, int driveRange, int maxPaths = 32)
@@ -249,18 +287,23 @@ namespace Firefly.Core.Movement
         }
 
         /// <summary>
-        /// GF9 / Director's Cut: when a Sector is occupied by the Reaver Cutter,
-        /// no ship may move into that Sector. (Blue Sun Mosey exception is expansion-scoped.)
+        /// GF9 p.8: when a Sector is occupied by the Reaver Cutter, no ship may move in —
+        /// unless Blue Sun Desperate Times (Mosey) or Reaver-Flage (any move) applies.
         /// </summary>
-        private static bool CanEnter(string sectorId, MapTokens tokens, out string? error)
+        private static bool CanEnter(
+            string sectorId,
+            MapTokens tokens,
+            MovementKind kind,
+            ReaverEntryAllowance reaverEntry,
+            out string? error)
         {
             error = null;
-            if (tokens.EncounterAt(sectorId) == TokenKind.ReaverCutter)
-            {
-                error = "No ship may move into a Sector occupied by the Reaver Cutter.";
-                return false;
-            }
-            return true;
+            if (tokens.EncounterAt(sectorId) != TokenKind.ReaverCutter)
+                return true;
+            if (reaverEntry.Allows(kind))
+                return true;
+            error = "No ship may move into a Sector occupied by the Reaver Cutter.";
+            return false;
         }
 
         private MovementPlan BuildPlan(

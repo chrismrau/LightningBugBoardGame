@@ -82,6 +82,11 @@ namespace Firefly.Core.State
         /// </summary>
         public bool PendingEncounterDeferredNav { get; set; }
         /// <summary>
+        /// Blue Sun expansion in play (map / cutters / Desperate Times Mosey into Reaver-occupied).
+        /// Set from <see cref="GameSetupOptions.UseBlueSun"/>.
+        /// </summary>
+        public bool UseBlueSun { get; set; }
+        /// <summary>
         /// Blue Sun physical Alert Tokens (spawn / resolve / permanent Reaver Space).
         /// Off for core-only; on when <see cref="GameSetupOptions.UseBlueSun"/> unless a Setup card disables them.
         /// </summary>

@@ -51,7 +51,15 @@ namespace Firefly.Core.Actions
                 return false;
 
             var moseyRange = player.GetEffectiveMoseyRange(game);
-            if (!_movement.TryMosey(player.SectorId, toSectorId, moseyRange, game.Tokens, out var plan, out error) || plan == null)
+            var reaverEntry = ReaverEntryAllowance.For(game, player);
+            if (!_movement.TryMosey(
+                    player.SectorId,
+                    toSectorId,
+                    moseyRange,
+                    game.Tokens,
+                    reaverEntry,
+                    out var plan,
+                    out error) || plan == null)
                 return false;
 
             Apply(game, player, plan, truncateOnEncounter: true, out result);
@@ -75,7 +83,14 @@ namespace Firefly.Core.Actions
                 return false;
             }
 
-            if (!_movement.TryFullBurn(path, player.GetEffectiveDriveRange(game), game.Tokens, out var plan, out error) || plan == null)
+            var reaverEntry = ReaverEntryAllowance.For(game, player);
+            if (!_movement.TryFullBurn(
+                    path,
+                    player.GetEffectiveDriveRange(game),
+                    game.Tokens,
+                    reaverEntry,
+                    out var plan,
+                    out error) || plan == null)
                 return false;
 
             if (plan.FromSectorId != player.SectorId)
@@ -409,24 +424,28 @@ namespace Firefly.Core.Actions
 
                 // FAQ 4.1 p.14: Alliance Contact before Nav; if Contact Full Stops, do not draw Nav.
                 // Legal ships ignore Cruiser/Corvette presence and still draw. Named Alliance Cruiser Nav is separate.
+                // Reaver Contact is start-of-turn (or immediate when the Cutter moves onto you) —
+                // Blue Sun Mosey / Reaver-Flage entry does not resolve Contact mid-Fly.
                 var stopForContact = false;
                 if (truncateOnEncounter && step.Encounter.HasValue)
                 {
                     var encounter = step.Encounter.Value;
-                    // Director's Cut: Cruiser / Corvette Contact only for Outlaw Ships.
-                    // Reaver Cutter cannot be entered (MovementEngine rejects).
-                    var allianceToken = encounter == TokenKind.AllianceCruiser
-                        || encounter == TokenKind.OperativeCorvette;
-                    if (!allianceToken || AlertTokenRules.IsOutlawShip(player))
+                    if (encounter != TokenKind.ReaverCutter)
                     {
-                        game.PendingEncounter = encounter;
-                        game.PendingEncounterSectorId = step.SectorId;
-                        game.PendingEncounterPlayerId = player.Id;
-                        // FAQ Cry Baby: entering Cruiser Sector deferred Nav until Contact or Cry Baby.
-                        game.PendingEncounterDeferredNav =
-                            encounter == TokenKind.AllianceCruiser;
-                        stopForContact = true;
-                        stopped = true;
+                        // Director's Cut: Cruiser / Corvette Contact only for Outlaw Ships.
+                        var allianceToken = encounter == TokenKind.AllianceCruiser
+                            || encounter == TokenKind.OperativeCorvette;
+                        if (!allianceToken || AlertTokenRules.IsOutlawShip(player))
+                        {
+                            game.PendingEncounter = encounter;
+                            game.PendingEncounterSectorId = step.SectorId;
+                            game.PendingEncounterPlayerId = player.Id;
+                            // FAQ Cry Baby: entering Cruiser Sector deferred Nav until Contact or Cry Baby.
+                            game.PendingEncounterDeferredNav =
+                                encounter == TokenKind.AllianceCruiser;
+                            stopForContact = true;
+                            stopped = true;
+                        }
                     }
                 }
 
@@ -502,7 +521,8 @@ namespace Firefly.Core.Actions
                 return false;
             }
 
-            if (!_movement.TryFullBurn(path, hops, game.Tokens, out var plan, out error) || plan == null)
+            var reaverEntry = ReaverEntryAllowance.For(game, player);
+            if (!_movement.TryFullBurn(path, hops, game.Tokens, reaverEntry, out var plan, out error) || plan == null)
                 return false;
 
             if (game.DiscardFuelPerExtraSectorThisFly)
@@ -547,22 +567,26 @@ namespace Firefly.Core.Actions
                     game.PendingAlertSectors.Add(step.SectorId);
 
                 // FAQ 4.1 p.14: Contact before Nav; Full Stop Contact skips the Nav draw for that Sector.
+                // Reaver Contact is not resolved on entry (Blue Sun Mosey / Reaver-Flage).
                 var stopForContact = false;
                 if (step.Encounter.HasValue)
                 {
                     var encounter = step.Encounter.Value;
-                    var allianceToken = encounter == TokenKind.AllianceCruiser
-                        || encounter == TokenKind.OperativeCorvette;
-                    if (!allianceToken || AlertTokenRules.IsOutlawShip(player))
+                    if (encounter != TokenKind.ReaverCutter)
                     {
-                        game.PendingEncounter = encounter;
-                        game.PendingEncounterSectorId = step.SectorId;
-                        game.PendingEncounterPlayerId = player.Id;
-                        // FAQ Cry Baby: entering Cruiser Sector deferred Nav until Contact or Cry Baby.
-                        game.PendingEncounterDeferredNav =
-                            encounter == TokenKind.AllianceCruiser;
-                        stopForContact = true;
-                        stopped = true;
+                        var allianceToken = encounter == TokenKind.AllianceCruiser
+                            || encounter == TokenKind.OperativeCorvette;
+                        if (!allianceToken || AlertTokenRules.IsOutlawShip(player))
+                        {
+                            game.PendingEncounter = encounter;
+                            game.PendingEncounterSectorId = step.SectorId;
+                            game.PendingEncounterPlayerId = player.Id;
+                            // FAQ Cry Baby: entering Cruiser Sector deferred Nav until Contact or Cry Baby.
+                            game.PendingEncounterDeferredNav =
+                                encounter == TokenKind.AllianceCruiser;
+                            stopForContact = true;
+                            stopped = true;
+                        }
                     }
                 }
 

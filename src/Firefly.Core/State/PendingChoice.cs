@@ -413,6 +413,8 @@ namespace Firefly.Core.State
         public const string OperativeCorvette = "operative-corvette";
         /// <summary>Cry Baby: deploying player chooses Cruiser destination (1 Sector Alliance).</summary>
         public const string CryBaby = "cry-baby";
+        /// <summary>Hull-Mounted Flak Gun: deployer chooses Reaver Cutter destination (1 Sector Rim/Border).</summary>
+        public const string FlakGun = "flak-gun";
         /// <summary>Alliance Alert Safe Harbor redirect (PTR) when Cruiser would land on a Haven.</summary>
         public const string AlertSafeHarborPrefix = "alert-safe-harbor:";
         /// <summary>Alliance Alert: Corvette drive-off Reaver destination.</summary>

@@ -250,6 +250,8 @@ namespace Firefly.Core.Actions
                 game.PendingEncounterSectorId = null;
                 game.PendingNavDraws.Clear();
 
+                DiscardReaverFlageIfCrewLost(game, player, crewKilled);
+
                 result = new ReaverContactResult(passengers, fugitives, fight, crewKilled, evadeTo);
                 return true;
             }
@@ -345,9 +347,48 @@ namespace Firefly.Core.Actions
             if (!FlightEvade.TryMove(game, player, evadeToSectorId, out error))
                 return false;
 
+            DiscardReaverFlageIfCrewLost(game, player, crewKilled);
+
             result = new ReaverContactResult(
                 passengersKilled, fugitivesKilled, fight, crewKilled, evadeToSectorId);
             return true;
+        }
+
+        /// <summary>
+        /// Reaver-Flage: "Discard after losing any Crew to the Reavers."
+        /// Mandatory when ≥1 Crew is killed by Reaver Contact.
+        /// </summary>
+        private static void DiscardReaverFlageIfCrewLost(GameState game, PlayerState player, int crewKilled)
+        {
+            if (crewKilled < 1 || !ReaverEntryRules.HasReaverFlage(player))
+                return;
+
+            if (!ShipUpgradeApply.TryRemove(game, player, ReaverEntryRules.FlageCardId, out _)
+                && !ShipUpgradeApply.TryRemove(game, player, ReaverEntryRules.FlageCardName, out _))
+                return;
+
+            if (game.SupplyDecks == null)
+                return;
+
+            SupplyCard card;
+            if (game.Supply != null
+                && game.Supply.TryGet(ReaverEntryRules.FlageCardId, out var fromCatalog))
+                card = fromCatalog;
+            else
+                card = new SupplyCard(
+                    ReaverEntryRules.FlageCardId,
+                    ReaverEntryRules.FlageCardName,
+                    600,
+                    SupplyKind.ShipUpgrade);
+
+            SupplyMarket? market = null;
+            foreach (var candidate in game.SupplyDecks.Markets)
+            {
+                market = candidate;
+                break;
+            }
+
+            market?.Discard.Add(card);
         }
 
         private static void ClearPendingResume()
@@ -402,7 +443,8 @@ namespace Firefly.Core.Actions
                 return false;
             }
 
-            if (game.Tokens.EncounterAt(toSectorId) == TokenKind.ReaverCutter)
+            if (game.Tokens.EncounterAt(toSectorId) == TokenKind.ReaverCutter
+                && !ReaverEntryAllowance.For(game, player).AllowEvade)
             {
                 error = "No ship may move into a Sector occupied by the Reaver Cutter.";
                 return false;

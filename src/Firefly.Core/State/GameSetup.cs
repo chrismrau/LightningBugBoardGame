@@ -251,6 +251,7 @@ namespace Firefly.Core.State
             {
                 Setup = setup,
                 Scenario = scenario,
+                UseBlueSun = options.UseBlueSun,
                 UseAlertTokens = options.UseBlueSun && options.UseAlertTokens != false,
                 Jobs = JobCatalog.LoadDefault(),
                 Contacts = ContactCatalog.LoadDefault(),
