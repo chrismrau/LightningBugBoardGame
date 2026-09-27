@@ -626,11 +626,13 @@ namespace Firefly.Core.Cards
             AbilityContext? abilityContext = null,
             JobCard? job = null,
             string? onlyCrewId = null,
-            IReadOnlyCollection<string>? onlyCrewIds = null)
+            IReadOnlyCollection<string>? onlyCrewIds = null,
+            int extraDice = 0)
         {
             if (previous == null)
                 throw new ArgumentNullException(nameof(previous));
-            var roll = Dice.RollD6(DiceCount(player, game, job, onlyCrewId, onlyCrewIds), rng);
+            var dice = DiceCount(player, game, job, onlyCrewId, onlyCrewIds) + Math.Max(0, extraDice);
+            var roll = Dice.RollD6(dice, rng);
             roll = ApplyRerollOnes(game, player, Skill, roll, rng, abilityContext);
             var total = roll.Sum + previous.BribeBonus;
             return new SkillCheckResult(
@@ -734,7 +736,8 @@ namespace Firefly.Core.Cards
             AbilityContext? abilityContext = null,
             JobCard? job = null,
             string? onlyCrewId = null,
-            IReadOnlyCollection<string>? onlyCrewIds = null)
+            IReadOnlyCollection<string>? onlyCrewIds = null,
+            int extraDice = 0)
         {
             result = null!;
             error = null;
@@ -763,7 +766,8 @@ namespace Firefly.Core.Cards
                 player.Cash -= bribeDollars;
             }
 
-            var roll = Dice.RollD6(DiceCount(player, game, job, onlyCrewId, onlyCrewIds), rng);
+            var dice = DiceCount(player, game, job, onlyCrewId, onlyCrewIds) + Math.Max(0, extraDice);
+            var roll = Dice.RollD6(dice, rng);
             roll = ApplyRerollOnes(game, player, Skill, roll, rng, abilityContext);
             var total = roll.Sum + bribeBonus;
             var success = total >= Target;

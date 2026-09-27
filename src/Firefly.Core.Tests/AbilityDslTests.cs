@@ -105,10 +105,9 @@ namespace Firefly.Core.Tests
         }
 
         [Fact]
-        public void Simon_adds_plus_two_to_River_Gifted_roll_total()
+        public void Simon_adds_plus_two_to_River_Gifted_skill_icons_after_die()
         {
-            // FAQ 4.1 p.8: Simon +2 to River's Gifted rolls is mandatory.
-            // Full Gifted outcome bands are not in Supplies.tsv ("See card") — total only.
+            // Band from die only; Simon +2 adds to skill icons after (FAQ 4.1 p.8 mandatory).
             var game = NewGame();
             var player = game.CurrentPlayer;
             Assert.True(player.Roster.TryHire(Crew.Get("crew_river-tam"), out _));
@@ -116,8 +115,11 @@ namespace Firefly.Core.Tests
 
             var result = GiftedRoll.Roll(player, ScriptedRng.FromDieFaces(3));
             Assert.Equal(3, result.Die);
+            Assert.Equal(GiftedOutcome.Fight, result.Outcome);
+            Assert.Equal(Skill.Fight, result.Skill);
             Assert.Equal(2, result.Bonus);
-            Assert.Equal(5, result.Total);
+            Assert.Equal(4, result.SkillAmount); // 2 Fight icons + Simon 2
+            Assert.Equal(5, result.Total); // die + bonus for logging
         }
 
         [Fact]
@@ -126,25 +128,38 @@ namespace Firefly.Core.Tests
             var game = NewGame();
             Assert.True(game.CurrentPlayer.Roster.TryHire(Crew.Get("crew_river-tam"), out _));
             var result = GiftedRoll.Roll(game.CurrentPlayer, ScriptedRng.FromDieFaces(4));
-            Assert.Equal(4, result.Total);
+            Assert.Equal(GiftedOutcome.Tech, result.Outcome);
+            Assert.Equal(Skill.Tech, result.Skill);
+            Assert.Equal(2, result.SkillAmount);
             Assert.Equal(0, result.Bonus);
+            Assert.Equal(4, result.Total);
         }
 
         [Fact]
-        public void River_Gifted_full_bands_wait_on_printed_card_text()
+        public void Gifted_bands_match_printed_River_card()
         {
-            // Supplies.tsv: "Gifted: See card." FAQ 4.1 mentions return-to-ship outcomes
-            // but does not print numeric bands — hold thin GiftedRoll until card text is in-repo.
             var river = Crew.Get("crew_river-tam");
-            Assert.Contains("See card", river.Description, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("Before each Test", river.Description, StringComparison.OrdinalIgnoreCase);
             Assert.Empty(river.Abilities);
+
             var game = NewGame();
             Assert.True(game.CurrentPlayer.Roster.TryHire(river, out _));
-            Assert.True(GiftedRoll.HasGiftedCrew(game.CurrentPlayer));
-            var result = GiftedRoll.Roll(game.CurrentPlayer, ScriptedRng.FromDieFaces(6));
-            Assert.Equal(6, result.Total);
-            // No outcome enum / band application — total only.
-            Assert.IsType<GiftedRollResult>(result);
+            var player = game.CurrentPlayer;
+
+            Assert.Equal(GiftedOutcome.ReturnToShip, GiftedRoll.FromDie(player, 1).Outcome);
+            Assert.Equal(GiftedOutcome.ReturnToShip, GiftedRoll.FromDie(player, 2).Outcome);
+            Assert.Equal(GiftedOutcome.Fight, GiftedRoll.FromDie(player, 3).Outcome);
+            Assert.Equal(GiftedOutcome.Tech, GiftedRoll.FromDie(player, 4).Outcome);
+            Assert.Equal(GiftedOutcome.Negotiate, GiftedRoll.FromDie(player, 5).Outcome);
+
+            var six = GiftedRoll.FromDie(player, 6);
+            Assert.Equal(GiftedOutcome.AnySkill, six.Outcome);
+            Assert.True(six.NeedsSkillChoice);
+
+            var picked = GiftedRoll.WithChosenSkill(six, Skill.Talk);
+            Assert.Equal(Skill.Talk, picked.Skill);
+            Assert.Equal(3, picked.SkillAmount);
+            Assert.False(picked.NeedsSkillChoice);
         }
 
         [Fact]

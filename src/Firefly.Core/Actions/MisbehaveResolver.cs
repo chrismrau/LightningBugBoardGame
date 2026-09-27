@@ -95,6 +95,11 @@ namespace Firefly.Core.Actions
         /// <see cref="PendingChoiceKinds.MisbehaveSplitCrew"/>.
         /// </summary>
         public IList<string>? SplitTeam0CrewIds { get; set; }
+        /// <summary>
+        /// River Gifted band 6: Fight / Tech / Talk. Null suspends
+        /// <see cref="PendingChoiceKinds.GiftedSkill"/> when the die is 6.
+        /// </summary>
+        public Skill? GiftedSkill { get; set; }
     }
 
     public sealed class MisbehaveResolution
@@ -193,6 +198,8 @@ namespace Firefly.Core.Actions
         private int _frozenBribeCash;
         /// <summary>We got a Plan: skill die result held across Bribe / PendingChoice suspends.</summary>
         private Skill? _frozenPlanSkill;
+        /// <summary>River Gifted result for this skill test (held across PendingChoice resumes).</summary>
+        private GiftedRollResult? _frozenGifted;
         /// <summary>Kill choice held across Med Foam suspend after victim pick.</summary>
         private KillChoice? _pendingKillAfterVictims;
         /// <summary>First skill roll held while <see cref="PendingChoiceKinds.SkillReroll"/> is pending.</summary>
@@ -932,6 +939,78 @@ namespace Firefly.Core.Actions
 
             _pendingChooseCrewChoice = null;
             return TryResolve(game, playerId, choice, out resolution, out error, rng);
+        }
+
+        /// <summary>
+        /// Resume after <see cref="PendingChoiceKinds.GiftedSkill"/> (River Gifted band 6).
+        /// </summary>
+        public bool TryResumeGiftedSkill(
+            GameState game,
+            string playerId,
+            ChoiceSubmission submission,
+            MisbehaveChoice choice,
+            out MisbehaveResolution? resolution,
+            out string? error,
+            IRng? rng = null)
+        {
+            resolution = null;
+            error = null;
+            if (game.PendingChoice == null
+                || !string.Equals(
+                    game.PendingChoice.Kind,
+                    PendingChoiceKinds.GiftedSkill,
+                    StringComparison.Ordinal))
+            {
+                error = "No Gifted skill choice is pending.";
+                return false;
+            }
+
+            if (!TryParseGiftedSkillOption(submission.SelectedOptionId, out var skill))
+            {
+                error = "Choose Fight, Tech, or Negotiate for River's Gifted roll.";
+                return false;
+            }
+
+            choice.GiftedSkill = skill;
+            if (!game.TrySubmitChoice(playerId, submission, out _, out error))
+                return false;
+
+            _resumingBribeOrMedFoam = true;
+            try
+            {
+                return TryResolve(game, playerId, choice, out resolution, out error, rng);
+            }
+            finally
+            {
+                _resumingBribeOrMedFoam = false;
+            }
+        }
+
+        private static bool TryParseGiftedSkillOption(string? optionId, out Skill skill)
+        {
+            skill = default;
+            if (string.IsNullOrWhiteSpace(optionId))
+                return false;
+            if (string.Equals(optionId, GiftedSkillOptions.Fight, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(optionId, "fight", StringComparison.OrdinalIgnoreCase))
+            {
+                skill = Skill.Fight;
+                return true;
+            }
+            if (string.Equals(optionId, GiftedSkillOptions.Tech, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(optionId, "tech", StringComparison.OrdinalIgnoreCase))
+            {
+                skill = Skill.Tech;
+                return true;
+            }
+            if (string.Equals(optionId, GiftedSkillOptions.Negotiate, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(optionId, "negotiate", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(optionId, "talk", StringComparison.OrdinalIgnoreCase))
+            {
+                skill = Skill.Talk;
+                return true;
+            }
+            return false;
         }
 
         /// <summary>
@@ -1695,6 +1774,11 @@ namespace Firefly.Core.Actions
             skillCheck = SkillCheck.ApplySkillSwitchIfChosen(
                 player, skillCheck, choice.SkillCheck, activeJob, AbilityContext.Misbehaving);
 
+            // River Gifted: after option / before Choose-Crew and the test (FAQ 4.1; Old Vendetta).
+            if (!TryEnsureGifted(
+                    game, player, pending, choice, skillCheck, rng, out var giftedExtraDice, out error))
+                return false;
+
             // Old Vendetta / Hotel: Choose 1 Crew for the Test before Bribes / roll.
             var chooseOne = option.SkillCheck?.ChooseOneCrew == true
                 || Contains(details, "Choose 1 Crew");
@@ -1746,7 +1830,8 @@ namespace Firefly.Core.Actions
                         return false;
                     }
                     check = _pendingRerollResult.Check.RerollKeepingBribes(
-                        player, rng, _pendingRerollResult, game, AbilityContext.Misbehaving, job, onlyCrewId, onlyCrewIds);
+                        player, rng, _pendingRerollResult, game, AbilityContext.Misbehaving, job,
+                        onlyCrewId, onlyCrewIds, giftedExtraDice);
                 }
                 else
                     check = _pendingRerollResult;
@@ -1756,7 +1841,8 @@ namespace Firefly.Core.Actions
             {
                 check = acceptReroll
                     ? _pendingRerollResult.Check.RerollKeepingBribes(
-                        player, rng, _pendingRerollResult, game, AbilityContext.Misbehaving, job, onlyCrewId, onlyCrewIds)
+                        player, rng, _pendingRerollResult, game, AbilityContext.Misbehaving, job,
+                        onlyCrewId, onlyCrewIds, giftedExtraDice)
                     : _pendingRerollResult;
                 _pendingRerollResult = null;
 
@@ -1780,7 +1866,8 @@ namespace Firefly.Core.Actions
             {
                 if (!skillCheck.TryResolve(
                         player, rng, out check, out error, choice.SkillCheck,
-                        game, AbilityContext.Misbehaving, job, onlyCrewId, onlyCrewIds))
+                        game, AbilityContext.Misbehaving, job, onlyCrewId, onlyCrewIds,
+                        giftedExtraDice))
                     return false;
 
                 // FAQ 4.1 p.8 may: always suspend take/decline re-roll when skillReroll matches.
@@ -1903,6 +1990,7 @@ namespace Firefly.Core.Actions
             _frozenStructuredEffects = null;
             _frozenBribeCash = 0;
             _frozenPlanSkill = null;
+            _frozenGifted = null;
             _pendingKillAfterVictims = null;
             _pendingRerollResult = null;
             // Keep _frozenWantedSeizeIds / _pendingWantedRollChoice across ClearFrozenSkill —
@@ -2825,6 +2913,83 @@ namespace Firefly.Core.Actions
                 PendingChoiceKinds.MisbehaveChooseCrew,
                 options: options,
                 prompt: "Choose 1 Crew for this Skill Test.");
+            return game.TrySetPendingChoice(pending, out error);
+        }
+
+        /// <summary>
+        /// FAQ 4.1 / printed Gifted: when River is on the Job, roll before the test.
+        /// Band from die; Simon bonus adds to skill icons after. Band 6 suspends skill pick.
+        /// </summary>
+        private bool TryEnsureGifted(
+            GameState game,
+            PlayerState player,
+            PendingMisbehave pending,
+            MisbehaveChoice choice,
+            SkillCheck skillCheck,
+            IRng rng,
+            out int extraDice,
+            out string? error)
+        {
+            extraDice = 0;
+            error = null;
+
+            if (_frozenGifted != null)
+            {
+                if (_frozenGifted.NeedsSkillChoice)
+                {
+                    if (choice.GiftedSkill == null)
+                    {
+                        if (!TrySuspendGiftedSkill(game, player, out error))
+                            return false;
+                        error = "Choose a Skill for River's Gifted roll.";
+                        return false;
+                    }
+                    _frozenGifted = GiftedRoll.WithChosenSkill(_frozenGifted, choice.GiftedSkill.Value);
+                }
+                extraDice = GiftedRoll.ExtraDiceFor(_frozenGifted, skillCheck.Skill);
+                return true;
+            }
+
+            if (!GiftedRoll.IsGiftedCrewOnJob(player))
+                return true;
+
+            var gifted = GiftedRoll.Roll(
+                player, rng, choice.GiftedSkill, GiftedRoll.RiverTamName, AbilityContext.Misbehaving);
+            if (gifted.Outcome == GiftedOutcome.ReturnToShip)
+            {
+                var river = GiftedRoll.FindGiftedMember(player);
+                if (river != null)
+                    JobWorkCrew.ReturnToShip(player, pending.JobId, river.Id);
+                _frozenGifted = gifted;
+                return true;
+            }
+
+            if (gifted.NeedsSkillChoice)
+            {
+                _frozenGifted = gifted;
+                if (!TrySuspendGiftedSkill(game, player, out error))
+                    return false;
+                error = "Choose a Skill for River's Gifted roll.";
+                return false;
+            }
+
+            _frozenGifted = gifted;
+            extraDice = GiftedRoll.ExtraDiceFor(gifted, skillCheck.Skill);
+            return true;
+        }
+
+        private static bool TrySuspendGiftedSkill(GameState game, PlayerState player, out string? error)
+        {
+            var pending = new PendingChoice(
+                player.Id,
+                PendingChoiceKinds.GiftedSkill,
+                options: new[]
+                {
+                    GiftedSkillOptions.Fight,
+                    GiftedSkillOptions.Tech,
+                    GiftedSkillOptions.Negotiate
+                },
+                prompt: "River Gifted: choose Fight, Tech, or Negotiate.");
             return game.TrySetPendingChoice(pending, out error);
         }
 

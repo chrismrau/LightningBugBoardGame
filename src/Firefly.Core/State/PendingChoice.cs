@@ -233,6 +233,11 @@ namespace Firefly.Core.State
         /// </summary>
         public const string MisbehaveChooseCrew = "misbehave-choose-crew";
         /// <summary>
+        /// River Gifted band 6: pick Fight / Tech / Negotiate for "3 of any chosen Skill"
+        /// (plus Simon giftedRollBonus). Options: <see cref="GiftedSkillOptions"/>.
+        /// </summary>
+        public const string GiftedSkill = "gifted-skill";
+        /// <summary>
         /// Director's Cut C&amp;P p.49 Splitting Up: divide available Crew into two teams.
         /// <see cref="ChoiceSubmission.Values"/> = Team A (Fork) or non-Leader team (Tails);
         /// remaining available Crew form the other team. ContextId = parent Misbehave id.
@@ -349,6 +354,14 @@ namespace Firefly.Core.State
     {
         public const string Switch = "switch";
         public const string Keep = "keep";
+    }
+
+    /// <summary>Discrete option ids for <see cref="PendingChoiceKinds.GiftedSkill"/>.</summary>
+    public static class GiftedSkillOptions
+    {
+        public const string Fight = "fight";
+        public const string Tech = "tech";
+        public const string Negotiate = "negotiate";
     }
 
     /// <summary>Discrete option ids for <see cref="PendingChoiceKinds.MakeWorkFugitive"/>.</summary>
