@@ -62,6 +62,12 @@ namespace Firefly.Core.State
         /// </summary>
         public bool EmissionsFuelTakenThisFly { get; set; }
         /// <summary>
+        /// Decoy Nav Sat Cluster discarded at the start of this Fly (Move) Action:
+        /// Alliance Cruiser / Reaver Cutter Nav resolve as The Big Black instead.
+        /// Cleared on new Fly / EndTurn / non-Fly action.
+        /// </summary>
+        public bool DecoyNavSatActiveThisFly { get; set; }
+        /// <summary>
         /// Sectors entered during Fly that still need Alert Token resolution before their Nav draw.
         /// </summary>
         public IList<string> PendingAlertSectors { get; }
@@ -235,6 +241,7 @@ namespace Firefly.Core.State
             DiscardFuelPerExtraSectorThisFly = false;
             ConsecutiveBigBlackNavThisFly = 0;
             EmissionsFuelTakenThisFly = false;
+            DecoyNavSatActiveThisFly = false;
         }
 
         /// <summary>
@@ -357,6 +364,7 @@ namespace Firefly.Core.State
                 DiscardFuelPerExtraSectorThisFly = false;
                 ConsecutiveBigBlackNavThisFly = 0;
                 EmissionsFuelTakenThisFly = false;
+                DecoyNavSatActiveThisFly = false;
             }
             _used.Add(action);
             ActionsUsedThisTurn++;

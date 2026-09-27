@@ -404,6 +404,35 @@ namespace Firefly.Core.Actions
                 return true;
             }
 
+            // Decoy Nav Sat Cluster: Reaver / Alliance Ship movers resolve as The Big Black.
+            // Supplies.tsv: "treat all Nav Cards that would normally move a Reaver or Alliance Ship
+            // as a \"Big Black\" card instead."
+            if (game.DecoyNavSatActiveThisFly
+                && DecoyNavSatAction.IsReaverOrAllianceShipMover(drawnEarly.Card))
+            {
+                game.Decks!.For(drawnEarly.Region).ResolveIntoDiscard(drawnEarly.Card);
+                FaceUp = null;
+                var decoyOption = drawnEarly.Card.Options.Count > 0
+                    ? drawnEarly.Card.Options[optionIndex >= 0 && optionIndex < drawnEarly.Card.Options.Count
+                        ? optionIndex
+                        : 0]
+                    : new NavOption(null, "Keep Flying!", FlightOutcome.KeepFlying);
+                if (!TryOfferEmissionsRecyclerFuel(
+                        game,
+                        game.CurrentPlayer,
+                        drawnEarly,
+                        choice,
+                        out error,
+                        treatAsBigBlack: true))
+                    return false;
+                resolution = new NavResolution(
+                    drawnEarly,
+                    decoyOption,
+                    FlightOutcome.KeepFlying,
+                    stopped: false);
+                return true;
+            }
+
             if (optionIndex < 0 || optionIndex >= FaceUp.Card.Options.Count)
             {
                 error = "Invalid option index.";
@@ -853,17 +882,20 @@ namespace Firefly.Core.Actions
 
         /// <summary>
         /// Emissions Recycler: two Big Black in a row while Full Burning → may take 1 Fuel once per Fly.
+        /// Decoy Nav Sat treats Reaver/Alliance movers as Big Black (<paramref name="treatAsBigBlack"/>).
         /// </summary>
         private static bool TryOfferEmissionsRecyclerFuel(
             GameState game,
             PlayerState player,
             DrawnNav drawn,
             NavResolveChoice? choice,
-            out string? error)
+            out string? error,
+            bool treatAsBigBlack = false)
         {
             error = null;
-            var isBigBlack = string.Equals(
-                drawn.Card.Type, "The Big Black", StringComparison.OrdinalIgnoreCase)
+            var isBigBlack = treatAsBigBlack
+                || string.Equals(
+                    drawn.Card.Type, "The Big Black", StringComparison.OrdinalIgnoreCase)
                 || string.Equals(drawn.Card.Name, "The Big Black", StringComparison.OrdinalIgnoreCase);
 
             if (!isBigBlack)
