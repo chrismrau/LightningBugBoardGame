@@ -404,7 +404,7 @@ namespace Firefly.Core.Actions
                     player.Gear.Add(card.Id);
                     return true;
                 case SupplyKind.ShipUpgrade:
-                    player.ShipUpgrades.Add(card.Id);
+                    ShipUpgradeApply.Install(game, player, card.Id);
                     return true;
                 case SupplyKind.DriveCore:
                     return InstallDrive(game, player, card, out error);

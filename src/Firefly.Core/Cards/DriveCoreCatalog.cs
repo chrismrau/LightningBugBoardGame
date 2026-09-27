@@ -15,6 +15,8 @@ namespace Firefly.Core.Cards
         public bool RequiresFuel { get; }
         public bool Locked { get; }
         public int MoseyRange { get; }
+        /// <summary>Enhanced Graviton / Compression Coils text: Ignore all Breakdowns.</summary>
+        public bool IgnoreBreakdowns { get; }
         public string? Description { get; }
 
         public DriveCoreCard(
@@ -24,7 +26,8 @@ namespace Firefly.Core.Cards
             bool requiresFuel,
             bool locked,
             int moseyRange,
-            string? description)
+            string? description,
+            bool ignoreBreakdowns = false)
         {
             Id = id;
             Name = name;
@@ -32,6 +35,7 @@ namespace Firefly.Core.Cards
             RequiresFuel = requiresFuel;
             Locked = locked;
             MoseyRange = moseyRange > 0 ? moseyRange : 1;
+            IgnoreBreakdowns = ignoreBreakdowns;
             Description = description;
         }
     }
@@ -95,6 +99,7 @@ namespace Firefly.Core.Cards
                 var requiresFuel = text.IndexOf("no fuel", StringComparison.OrdinalIgnoreCase) < 0;
                 var locked = text.IndexOf("cannot be replaced", StringComparison.OrdinalIgnoreCase) >= 0
                     || text.IndexOf("may not be replaced", StringComparison.OrdinalIgnoreCase) >= 0;
+                var ignoreBreakdowns = text.IndexOf("Ignore all Breakdowns", StringComparison.OrdinalIgnoreCase) >= 0;
                 list.Add(new DriveCoreCard(
                     el.GetProperty("id").GetString() ?? "",
                     name,
@@ -102,7 +107,8 @@ namespace Firefly.Core.Cards
                     requiresFuel,
                     locked,
                     mosey,
-                    text));
+                    text,
+                    ignoreBreakdowns));
             }
             return new DriveCoreCatalog(list);
         }

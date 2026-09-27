@@ -1,6 +1,6 @@
 {
   "meta": {
-    "description": "Firefly: The Game – Ship Upgrade cards",
+    "description": "Firefly: The Game \u2013 Ship Upgrade cards",
     "count": 26,
     "schemaVersion": "1.0"
   },
@@ -85,9 +85,21 @@
         "YCTtS": 1
       },
       "count": 3,
-      "specialAbilityType": null,
+      "specialAbilityType": "passengerFugitiveHold+maxCrewBonus",
       "ability": null,
-      "id": "ship-upgrade_caravan-pods_esmeralda"
+      "id": "ship-upgrade_caravan-pods_esmeralda",
+      "abilities": [
+        {
+          "type": "passengerFugitiveHold",
+          "amount": 2,
+          "mandatory": true
+        },
+        {
+          "type": "maxCrewBonus",
+          "amount": 1,
+          "mandatory": true
+        }
+      ]
     },
     {
       "class": "Standard",
@@ -110,9 +122,16 @@
         "Osiris": 2
       },
       "count": 2,
-      "specialAbilityType": null,
+      "specialAbilityType": "extraCargoHold",
       "ability": null,
-      "id": "ship-upgrade_cargo-hold"
+      "id": "ship-upgrade_cargo-hold",
+      "abilities": [
+        {
+          "type": "extraCargoHold",
+          "amount": 2,
+          "mandatory": true
+        }
+      ]
     },
     {
       "class": "Standard",
@@ -316,9 +335,16 @@
         "Osiris": 2
       },
       "count": 2,
-      "specialAbilityType": null,
+      "specialAbilityType": "maxCrewBonus",
       "ability": null,
-      "id": "ship-upgrade_expanded-crew-quarters"
+      "id": "ship-upgrade_expanded-crew-quarters",
+      "abilities": [
+        {
+          "type": "maxCrewBonus",
+          "amount": 3,
+          "mandatory": true
+        }
+      ]
     },
     {
       "class": "Standard",
@@ -373,9 +399,15 @@
         "Osiris": 1
       },
       "count": 1,
-      "specialAbilityType": null,
+      "specialAbilityType": "ignoreBreakdowns",
       "ability": null,
-      "id": "ship-upgrade_full-tune-up-retro-fit"
+      "id": "ship-upgrade_full-tune-up-retro-fit",
+      "abilities": [
+        {
+          "type": "ignoreBreakdowns",
+          "mandatory": true
+        }
+      ]
     },
     {
       "class": "Standard",
@@ -455,9 +487,15 @@
         "Beaumonde": 1
       },
       "count": 2,
-      "specialAbilityType": null,
+      "specialAbilityType": "crimeCountsAsSalvage",
       "ability": null,
-      "id": "ship-upgrade_hydraulic-docking-clamps_kalidasa"
+      "id": "ship-upgrade_hydraulic-docking-clamps_kalidasa",
+      "abilities": [
+        {
+          "type": "crimeCountsAsSalvage",
+          "mandatory": true
+        }
+      ]
     },
     {
       "class": "Standard",
@@ -561,9 +599,16 @@
         "Regina": 2
       },
       "count": 2,
-      "specialAbilityType": null,
+      "specialAbilityType": "afterSalvageCashAndContraband",
       "ability": null,
-      "id": "ship-upgrade_onboard-chop-shop"
+      "id": "ship-upgrade_onboard-chop-shop",
+      "abilities": [
+        {
+          "type": "afterSalvageCashAndContraband",
+          "amount": 500,
+          "mandatory": true
+        }
+      ]
     },
     {
       "class": "Standard",
@@ -586,9 +631,16 @@
         "Regina": 1
       },
       "count": 1,
-      "specialAbilityType": null,
+      "specialAbilityType": "fullBurnRangeBonus",
       "ability": null,
-      "id": "ship-upgrade_overcharged-grav-thrusters"
+      "id": "ship-upgrade_overcharged-grav-thrusters",
+      "abilities": [
+        {
+          "type": "fullBurnRangeBonus",
+          "amount": 1,
+          "mandatory": true
+        }
+      ]
     },
     {
       "class": "Standard",
@@ -636,9 +688,20 @@
         "Osiris": 1
       },
       "count": 1,
-      "specialAbilityType": null,
+      "specialAbilityType": "moseyRange+ignoreBreakdowns",
       "ability": null,
-      "id": "ship-upgrade_shiny-new-state-of-the-art-compression-coils"
+      "id": "ship-upgrade_shiny-new-state-of-the-art-compression-coils",
+      "abilities": [
+        {
+          "type": "moseyRange",
+          "amount": 2,
+          "mandatory": true
+        },
+        {
+          "type": "ignoreBreakdowns",
+          "mandatory": true
+        }
+      ]
     },
     {
       "class": "Standard",
@@ -663,9 +726,16 @@
         "Regina": 2
       },
       "count": 2,
-      "specialAbilityType": null,
+      "specialAbilityType": "afterCrimeLoadContraband",
       "ability": null,
-      "id": "ship-upgrade_sky-hook"
+      "id": "ship-upgrade_sky-hook",
+      "abilities": [
+        {
+          "type": "afterCrimeLoadContraband",
+          "amount": 1,
+          "mandatory": true
+        }
+      ]
     },
     {
       "class": "Standard",
@@ -688,10 +758,15 @@
         "Regina": 2
       },
       "count": 2,
-      "specialAbilityType": null,
+      "specialAbilityType": "extraStashHold+ignoreWantedCrewRollSlots",
       "ability": null,
       "id": "ship-upgrade_stash",
       "abilities": [
+        {
+          "type": "extraStashHold",
+          "amount": 2,
+          "mandatory": true
+        },
         {
           "type": "ignoreWantedCrewRollSlots",
           "amount": 2,

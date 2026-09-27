@@ -246,5 +246,51 @@ namespace Firefly.Core.Abilities
         /// Long-Range Scanner Array: during a Fly Action, may resolve Alert Tokens in adjacent Sectors.
         /// </summary>
         public const string ResolveAdjacentAlertTokens = "resolveAdjacentAlertTokens";
+
+        /// <summary>
+        /// Cargo Hold: +Amount general Cargo Hold areas (Exterior Cargo Pods).
+        /// </summary>
+        public const string ExtraCargoHold = "extraCargoHold";
+
+        /// <summary>
+        /// Stash: +Amount Stash areas (Concealed Smuggling Compartments).
+        /// </summary>
+        public const string ExtraStashHold = "extraStashHold";
+
+        /// <summary>
+        /// Expanded Crew Quarters / Caravan Pods: +Amount to Ship's Max Crew.
+        /// </summary>
+        public const string MaxCrewBonus = "maxCrewBonus";
+
+        /// <summary>
+        /// Caravan Pods: Amount Cargo Hold spaces that may only hold Passengers or Fugitives.
+        /// Esmeralda Coachworks rules.
+        /// </summary>
+        public const string PassengerFugitiveHold = "passengerFugitiveHold";
+
+        /// <summary>
+        /// Compression Coils: Mosey up to Amount sectors (absolute range, not addend).
+        /// </summary>
+        public const string MoseyRange = "moseyRange";
+
+        /// <summary>
+        /// Full Tune-Up / Compression Coils: Ignore all Breakdowns (Nav type Breakdown).
+        /// </summary>
+        public const string IgnoreBreakdowns = "ignoreBreakdowns";
+
+        /// <summary>
+        /// Sky Hook: after completing a Crime Job, Load Amount Contraband (requires Pilot).
+        /// </summary>
+        public const string AfterCrimeLoadContraband = "afterCrimeLoadContraband";
+
+        /// <summary>
+        /// Onboard Chop Shop: after any Salvage Op, take $Amount and Load 1 Contraband.
+        /// </summary>
+        public const string AfterSalvageCashAndContraband = "afterSalvageCashAndContraband";
+
+        /// <summary>
+        /// Hydraulic Docking Clamps: Crime Jobs also count as Salvage Ops.
+        /// </summary>
+        public const string CrimeCountsAsSalvage = "crimeCountsAsSalvage";
     }
 }

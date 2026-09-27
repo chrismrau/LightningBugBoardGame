@@ -23,10 +23,26 @@ namespace Firefly.Core.Movement
 
         public Pathfinder Pathfinder => _paths;
 
-        public bool TryMosey(string fromId, string toId, MapTokens? tokens, out MovementPlan? plan, out string? error)
+        public bool TryMosey(string fromId, string toId, MapTokens? tokens, out MovementPlan? plan, out string? error) =>
+            TryMosey(fromId, toId, moseyRange: 1, tokens, out plan, out error);
+
+        /// <summary>
+        /// Mosey up to <paramref name="moseyRange"/> sectors (Compression Coils / Enhanced Graviton = 2).
+        /// No fuel, no Nav draws. Path must be a valid chain of adjacent sectors.
+        /// </summary>
+        public bool TryMosey(
+            string fromId,
+            string toId,
+            int moseyRange,
+            MapTokens? tokens,
+            out MovementPlan? plan,
+            out string? error)
         {
             plan = null;
             error = null;
+
+            if (moseyRange < 1)
+                moseyRange = 1;
 
             if (!_map.TryGet(fromId, out _))
             {
@@ -43,17 +59,42 @@ namespace Firefly.Core.Movement
                 error = "Mosey must enter a different sector.";
                 return false;
             }
-            if (!_paths.CanMosey(fromId, toId))
+
+            IReadOnlyList<string> path;
+            if (moseyRange == 1)
             {
-                error = $"'{toId}' is not adjacent to '{fromId}'.";
-                return false;
+                if (!_paths.CanMosey(fromId, toId))
+                {
+                    error = $"'{toId}' is not adjacent to '{fromId}'.";
+                    return false;
+                }
+                path = new[] { fromId, toId };
+            }
+            else
+            {
+                var hops = _paths.Distance(fromId, toId);
+                if (!hops.HasValue || hops.Value < 1 || hops.Value > moseyRange)
+                {
+                    error = $"'{toId}' is beyond Mosey range {moseyRange} from '{fromId}'.";
+                    return false;
+                }
+                var found = _paths.ShortestPath(fromId, toId);
+                if (found == null || found.Count < 2)
+                {
+                    error = $"No Mosey path from '{fromId}' to '{toId}'.";
+                    return false;
+                }
+                path = found;
             }
 
             var mapTokens = tokens ?? MapTokens.None;
-            if (!CanEnter(toId, mapTokens, out error))
-                return false;
+            for (var i = 1; i < path.Count; i++)
+            {
+                if (!CanEnter(path[i], mapTokens, out error))
+                    return false;
+            }
 
-            plan = BuildPlan(MovementKind.Mosey, new[] { fromId, toId }, mapTokens, fuelCost: 0, drawNav: false);
+            plan = BuildPlan(MovementKind.Mosey, path, mapTokens, fuelCost: 0, drawNav: false);
             return true;
         }
 

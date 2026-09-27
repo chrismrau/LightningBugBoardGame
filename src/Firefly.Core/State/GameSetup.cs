@@ -298,6 +298,7 @@ namespace Firefly.Core.State
                 AssignStartingShips(game, seats);
                 HireStartingLeaders(game, seats);
             }
+            RefreshShipUpgradeStats(game);
             options.AfterLeadersHired?.Invoke(game);
 
             if (setup.StripMineOneSupplyDeck)
@@ -772,6 +773,15 @@ namespace Firefly.Core.State
                 if (!player.ShipUpgrades.Contains(upgradeId))
                     player.ShipUpgrades.Add(upgradeId);
             }
+        }
+
+        /// <summary>
+        /// After seats have ships and upgrades listed, apply typed hold / Max Crew bonuses.
+        /// </summary>
+        private static void RefreshShipUpgradeStats(GameState game)
+        {
+            foreach (var player in game.Players)
+                ShipUpgradeApply.Refresh(game, player);
         }
 
         private static void ApplyBrowncoatResourceBuys(

@@ -408,11 +408,45 @@ namespace Firefly.Core.Actions
             if (game.Scenario != null && game.Scenario.IncreasedEnforcement && !job.Legal)
                 player.Warrants++;
             ActiveAlertRules.OnJobCompleted(game, job.ContactName);
+            TryApplyShipUpgradeJobBonuses(game, player, job);
             game.WorkGearLocked = false;
             game.TryConsumeAction(TurnAction.Work, out _);
             result = new WorkResult(WorkKind.Complete, job, false, false, pay, disgruntled);
             error = null;
             return true;
+        }
+
+        /// <summary>
+        /// Sky Hook: Requires Pilot; after Crime Job, Load 1 Contraband.
+        /// Hydraulic Docking Clamps: Crime also counts as Salvage → Chop Shop pays.
+        /// </summary>
+        public static void TryApplyShipUpgradeJobBonuses(GameState game, PlayerState player, JobCard job)
+        {
+            var isCrime = ContactSolidBenefits.JobHasType(job, "Crime");
+            if (isCrime)
+            {
+                var sky = AbilityDispatcher.FindAfterCrimeLoadContraband(game, player);
+                if (sky != null && MisbehaveResolver.HasTag(game, player, "Pilot"))
+                {
+                    var n = sky.Amount > 0 ? sky.Amount : 1;
+                    if (HoldSpace.Fits(player, addContraband: n))
+                        player.Contraband += n;
+                }
+            }
+
+            var salvage = isCrime && AbilityDispatcher.HasCrimeCountsAsSalvage(game, player);
+            if (!salvage && ContactSolidBenefits.JobHasType(job, "Salvage Op"))
+                salvage = true;
+            if (!salvage)
+                return;
+
+            var chop = AbilityDispatcher.FindAfterSalvageCashAndContraband(game, player);
+            if (chop == null)
+                return;
+            var cash = chop.Amount > 0 ? chop.Amount : 500;
+            player.Cash += cash;
+            if (HoldSpace.Fits(player, addContraband: 1))
+                player.Contraband++;
         }
 
         /// <summary>
