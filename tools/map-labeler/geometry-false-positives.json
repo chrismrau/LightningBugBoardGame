@@ -5,10 +5,6 @@
   },
   "edges": [
     {
-      "a": "border-himinbjorg-r1-01",
-      "b": "border-space-r2-08"
-    },
-    {
       "a": "rim-kalidasa-r3-05",
       "b": "rim-kalidasa-r4-08"
     },
@@ -37,8 +33,8 @@
       "b": "border-space-r2-24"
     },
     {
-      "a": "rim-kalidasa-r4-08",
-      "b": "rim-penglai-r1-01"
+      "a": "border-himinbjorg-r1-01",
+      "b": "border-space-r2-08"
     },
     {
       "a": "border-himinbjorg-r1-02",
@@ -47,6 +43,10 @@
     {
       "a": "border-space-r2-09",
       "b": "rim-kalidasa-r4-12"
+    },
+    {
+      "a": "rim-kalidasa-r4-08",
+      "b": "rim-penglai-r1-01"
     }
   ]
 }
