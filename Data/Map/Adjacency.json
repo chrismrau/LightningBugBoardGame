@@ -3,7 +3,7 @@
     "description": "Firefly: The Game \u2013 Adjacency recalculated under corrected rules",
     "schemaVersion": "4.142",
     "sectorCount": 155,
-    "edgeCount": 402,
+    "edgeCount": 398,
     "source": "User board images (concentric rings + satellite system pods) + Sectors.json (Qin Shi Huang single shell only)",
     "notes": [
       "RULES (user directives 2026-08-24):",
@@ -174,10 +174,7 @@
       "Cortex Relay 2: restored rim-penglai-r1-01 (user correction; shared boundary; prior FP suppress was wrong).",
       "Kalidasa r4-08: restored rim-penglai-r1-02 (user correction; shared boundary; prior FP suppress was wrong).",
       "Kalidasa r4-08: restored rim-space-r2-10 (user correction; shared boundary; prior remove was wrong).",
-      "Himinbjorg r1-01: restored border-space-r2-08 (user correction; shared boundary; prior FP suppress was wrong).",
-      "Himinbjorg r1-02: restored border-space-r2-07 (user correction; shared boundary; prior FP suppress was wrong).",
-      "Border Space r2-09: restored rim-kalidasa-r4-12 (user correction; shared boundary; prior FP suppress was wrong).",
-      "Kalidasa r4-08: restored rim-penglai-r1-01 (user correction; shared boundary; prior remove/FP suppress was wrong)."
+      "Confirmed non-adjacent (geometry FPs; user 2026-09-27): himinbjorg-r1-01\u2194border-space-r2-08, himinbjorg-r1-02\u2194border-space-r2-07, border-space-r2-09\u2194kalidasa-r4-12, kalidasa-r4-08\u2194penglai-r1-01. Kept out of Adjacency."
     ]
   },
   "edges": [
@@ -862,16 +859,8 @@
       "b": "border-space-r2-07"
     },
     {
-      "a": "border-himinbjorg-r1-01",
-      "b": "border-space-r2-08"
-    },
-    {
       "a": "border-himinbjorg-r1-02",
       "b": "border-red-sun-r3-01"
-    },
-    {
-      "a": "border-himinbjorg-r1-02",
-      "b": "border-space-r2-07"
     },
     {
       "a": "border-himinbjorg-r1-02",
@@ -1278,10 +1267,6 @@
       "b": "rim-kalidasa-r4-11"
     },
     {
-      "a": "border-space-r2-09",
-      "b": "rim-kalidasa-r4-12"
-    },
-    {
       "a": "border-space-r2-10",
       "b": "border-space-r2-11"
     },
@@ -1668,10 +1653,6 @@
     {
       "a": "rim-kalidasa-r4-08",
       "b": "rim-kalidasa-r4-09"
-    },
-    {
-      "a": "rim-kalidasa-r4-08",
-      "b": "rim-penglai-r1-01"
     },
     {
       "a": "rim-kalidasa-r4-08",

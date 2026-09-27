@@ -5,11 +5,11 @@ Geometry from `Data/Map/SectorLayout.json` vs edges in `Data/Map/Adjacency.json`
 ## Summary
 
 - Labeled sectors: **155** / 155
-- Geometry edges: **402**
-- Adjacency.json edges: **402**
+- Geometry edges: **398**
+- Adjacency.json edges: **398**
 - Missing in Adjacency.json (geometry has, JSON lacks): **0**
 - Extra in Adjacency.json (JSON has, geometry lacks): **0**
-- Suppressed geometry false positives: **0**
+- Suppressed geometry false positives: **4**
 - Sectors with degree mismatch: **0**
 
 Interpretation:
@@ -28,7 +28,12 @@ _None._
 
 ## Suppressed geometry false positives
 
-_None._
+| a | b | zones |
+|---|---|---|
+| `border-himinbjorg-r1-01` (Aesir) | `border-space-r2-08` (border-space-r2-08) | Himinbjorg / Border Space |
+| `border-himinbjorg-r1-02` (Brisingamen) | `border-space-r2-07` (border-space-r2-07) | Himinbjorg / Border Space |
+| `border-space-r2-09` (border-space-r2-09) | `rim-kalidasa-r4-12` (rim-kalidasa-r4-12) | Border Space / Kalidasa |
+| `rim-kalidasa-r4-08` (rim-kalidasa-r4-08) | `rim-penglai-r1-01` (Newhall) | Kalidasa / Penglai |
 
 ## Per-sector degree mismatches
 
