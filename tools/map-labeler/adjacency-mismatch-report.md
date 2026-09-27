@@ -6,11 +6,11 @@ Geometry from `Data/Map/SectorLayout.json` vs edges in `Data/Map/Adjacency.json`
 
 - Labeled sectors: **155** / 155
 - Geometry edges: **352**
-- Adjacency.json edges: **393**
+- Adjacency.json edges: **392**
 - Missing in Adjacency.json (geometry has, JSON lacks): **0**
-- Extra in Adjacency.json (JSON has, geometry lacks): **41**
+- Extra in Adjacency.json (JSON has, geometry lacks): **40**
 - Suppressed geometry false positives: **11**
-- Sectors with degree mismatch: **61**
+- Sectors with degree mismatch: **60**
 
 Interpretation:
 
@@ -60,7 +60,6 @@ _None._
 | `rim-blue-sun-r3-02` (Dragon's Egg) | `rim-blue-sun-r3-03` (rim-blue-sun-r3-03) | Blue Sun / Blue Sun |
 | `rim-kalidasa-r2-01` (Heaven) | `rim-kalidasa-r2-04` (Angel) | Kalidasa / Kalidasa |
 | `rim-kalidasa-r3-01` (Aberdeen) | `rim-kalidasa-r3-06` (Whittier) | Kalidasa / Kalidasa |
-| `rim-kalidasa-r4-08` (rim-kalidasa-r4-08) | `rim-space-r2-10` (rim-space-r2-10) | Kalidasa / Rim Space |
 | `rim-kalidasa-r4-09` (rim-kalidasa-r4-09) | `rim-kalidasa-r4-10` (Djinn's Bane) | Kalidasa / Kalidasa |
 | `rim-kalidasa-r4-09` (rim-kalidasa-r4-09) | `rim-penglai-r1-01` (Newhall) | Kalidasa / Penglai |
 | `rim-kalidasa-r4-09` (rim-kalidasa-r4-09) | `rim-space-r1-10` (rim-space-r1-10) | Kalidasa / Rim Space |
@@ -194,8 +193,6 @@ _None._
   - extra neighbors: `rim-kalidasa-r3-06`
 - **Whittier** `rim-kalidasa-r3-06` (Kalidasa): geo=7 json=8
   - extra neighbors: `rim-kalidasa-r3-01`
-- **rim-kalidasa-r4-08** `rim-kalidasa-r4-08` (Kalidasa): geo=3 json=4
-  - extra neighbors: `rim-space-r2-10`
 - **rim-kalidasa-r4-09** `rim-kalidasa-r4-09` (Kalidasa): geo=3 json=6
   - extra neighbors: `rim-kalidasa-r4-10`, `rim-penglai-r1-01`, `rim-space-r1-10`
 - **Djinn's Bane** `rim-kalidasa-r4-10` (Kalidasa): geo=5 json=6
@@ -206,6 +203,6 @@ _None._
   - extra neighbors: `rim-penglai-r1-01`, `rim-space-r1-10`
 - **rim-space-r1-10** `rim-space-r1-10` (Rim Space): geo=4 json=6
   - extra neighbors: `rim-kalidasa-r4-09`, `rim-penglai-r1-02`
-- **rim-space-r2-10** `rim-space-r2-10` (Rim Space): geo=1 json=3
-  - extra neighbors: `rim-kalidasa-r4-08`, `rim-penglai-r1-01`
+- **rim-space-r2-10** `rim-space-r2-10` (Rim Space): geo=1 json=2
+  - extra neighbors: `rim-penglai-r1-01`
 

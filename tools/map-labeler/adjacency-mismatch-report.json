@@ -7,13 +7,13 @@
     "labeledSectors": 155,
     "sectorCount": 155,
     "geoEdgeCount": 352,
-    "jsonEdgeCount": 393,
+    "jsonEdgeCount": 392,
     "missingEdgeCount": 0,
-    "extraEdgeCount": 41,
+    "extraEdgeCount": 40,
     "suppressedFalsePositiveCount": 11,
     "unlabeledCount": 0,
     "unknownLabelCount": 0,
-    "sectorsWithDegreeMismatch": 61
+    "sectorsWithDegreeMismatch": 60
   },
   "unlabeled": [],
   "unknownLabels": [],
@@ -290,14 +290,6 @@
       "bPlanet": "Whittier",
       "aZone": "Kalidasa",
       "bZone": "Kalidasa"
-    },
-    {
-      "a": "rim-kalidasa-r4-08",
-      "b": "rim-space-r2-10",
-      "aPlanet": null,
-      "bPlanet": null,
-      "aZone": "Kalidasa",
-      "bZone": "Rim Space"
     },
     {
       "a": "rim-kalidasa-r4-09",
@@ -1048,17 +1040,6 @@
       ]
     },
     {
-      "id": "rim-kalidasa-r4-08",
-      "planet": null,
-      "zone": "Kalidasa",
-      "geoDegree": 3,
-      "jsonDegree": 4,
-      "missingNeighbors": [],
-      "extraNeighbors": [
-        "rim-space-r2-10"
-      ]
-    },
-    {
       "id": "rim-kalidasa-r4-09",
       "planet": null,
       "zone": "Kalidasa",
@@ -1124,10 +1105,9 @@
       "planet": null,
       "zone": "Rim Space",
       "geoDegree": 1,
-      "jsonDegree": 3,
+      "jsonDegree": 2,
       "missingNeighbors": [],
       "extraNeighbors": [
-        "rim-kalidasa-r4-08",
         "rim-penglai-r1-01"
       ]
     }
@@ -1139,8 +1119,8 @@
     "Red Sun": 9,
     "Border Space": 3,
     "Blue Sun": 3,
-    "Kalidasa": 6,
-    "Rim Space": 4,
-    "Penglai": 4
+    "Kalidasa": 5,
+    "Penglai": 4,
+    "Rim Space": 3
   }
 }
