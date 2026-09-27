@@ -6,9 +6,9 @@ Geometry from `Data/Map/SectorLayout.json` vs edges in `Data/Map/Adjacency.json`
 
 - Labeled sectors: **155** / 155
 - Geometry edges: **351**
-- Adjacency.json edges: **398**
+- Adjacency.json edges: **397**
 - Missing in Adjacency.json (geometry has, JSON lacks): **0**
-- Extra in Adjacency.json (JSON has, geometry lacks): **47**
+- Extra in Adjacency.json (JSON has, geometry lacks): **46**
 - Suppressed geometry false positives: **12**
 - Sectors with degree mismatch: **65**
 
@@ -41,7 +41,6 @@ _None._
 | `alliance-white-sun-r4-10` (alliance-white-sun-r4-10) | `alliance-white-sun-r4-11` (Albion) | White Sun / White Sun |
 | `border-georgia-r2-02` (border-georgia-r2-02) | `border-georgia-r2-03` (Boros) | Georgia / Georgia |
 | `border-georgia-r2-03` (Boros) | `border-georgia-r2-04` (Kerry) | Georgia / Georgia |
-| `border-georgia-r2-03` (Boros) | `border-georgia-r3-06` (Three Hills) | Georgia / Georgia |
 | `border-georgia-r3-01` (border-georgia-r3-01) | `border-georgia-r3-02` (Newhope) | Georgia / Georgia |
 | `border-georgia-r3-05` (border-georgia-r3-05) | `border-georgia-r3-06` (Three Hills) | Georgia / Georgia |
 | `border-georgia-r3-06` (Three Hills) | `border-georgia-r3-07` (border-georgia-r3-07) | Georgia / Georgia |
@@ -139,8 +138,8 @@ _None._
   - extra neighbors: `alliance-white-sun-r4-10`
 - **border-georgia-r2-02** `border-georgia-r2-02` (Georgia): geo=5 json=6
   - extra neighbors: `border-georgia-r2-03`
-- **Boros** `border-georgia-r2-03` (Georgia): geo=4 json=7
-  - extra neighbors: `border-georgia-r2-02`, `border-georgia-r2-04`, `border-georgia-r3-06`
+- **Boros** `border-georgia-r2-03` (Georgia): geo=4 json=6
+  - extra neighbors: `border-georgia-r2-02`, `border-georgia-r2-04`
 - **Kerry** `border-georgia-r2-04` (Georgia): geo=4 json=5
   - extra neighbors: `border-georgia-r2-03`
 - **border-georgia-r3-01** `border-georgia-r3-01` (Georgia): geo=2 json=3
@@ -149,8 +148,8 @@ _None._
   - extra neighbors: `border-georgia-r3-01`
 - **border-georgia-r3-05** `border-georgia-r3-05` (Georgia): geo=5 json=6
   - extra neighbors: `border-georgia-r3-06`
-- **Three Hills** `border-georgia-r3-06` (Georgia): geo=2 json=6
-  - extra neighbors: `border-georgia-r2-03`, `border-georgia-r3-05`, `border-georgia-r3-07`, `border-space-r2-24`
+- **Three Hills** `border-georgia-r3-06` (Georgia): geo=2 json=5
+  - extra neighbors: `border-georgia-r3-05`, `border-georgia-r3-07`, `border-space-r2-24`
 - **border-georgia-r3-07** `border-georgia-r3-07` (Georgia): geo=2 json=4
   - extra neighbors: `border-georgia-r3-06`, `rim-space-r1-27`
 - **border-red-sun-r2-01** `border-red-sun-r2-01` (Red Sun): geo=5 json=7
