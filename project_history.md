@@ -85,7 +85,7 @@ Working copies sometimes use `data/` instead of `Data/`. Use GitHub casing on ca
 - Alliance Cruiser Nav cycles the Wanted List.
 - Cortex Alerts stack same-class crew (Enforcer / Scrapper / Bandit).
 - `BotchKill` from the card kills that many attacker crew.
-- Triumph is listed as a Bandits dropoff on some bounty text but is **not** a planet in current `Sectors.json`. Do not invent it.
+- Bandits Cortex Alert dropoff is Triumph (Heinlein); map label fixed same day as `28ba0df` (r1-01 Triumph, r1-02 Silverhold).
 
 ### Alliance Alerts / Crime & Punishment (10 Sep 2026)
 
@@ -109,7 +109,6 @@ Working copies sometimes use `data/` instead of `Data/`. Use GitHub casing on ca
 ## Open / watch items
 
 - No Unity / UI / multiplayer layer yet. Do not add one unless asked.
-- Triumph-as-dropoff vs missing planet in `Sectors.json` is an unresolved data mismatch, not a license to add a sector.
 - GitHub `grok/.grok/project_memory.md` is outdated; this file and `AGENTS.md` supersede it.
 - Always re-read `Documents/` for the next rule. This history is a map of *what we already built*, not a substitute for the books.
 

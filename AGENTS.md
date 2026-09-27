@@ -89,7 +89,6 @@ Implemented action types: Fly, Nav, Crew, Deal, Work, Buy, Shore Leave, Misbehav
 - Muir: `rim-blue-sun-r2-03`
 - Deadwood: `rim-blue-sun-r3-04`
 - White Sun r4-02 is **not** adjacent to r4-03; Lux sits between them (intentional).
-- Triumph is listed as a Bandits dropoff on some bounty text but is not a planet in the current `Sectors.json`. Do not invent it.
 
 ## Win check and turn cycle
 
