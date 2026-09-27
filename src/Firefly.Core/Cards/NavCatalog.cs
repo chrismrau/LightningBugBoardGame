@@ -93,11 +93,11 @@ namespace Firefly.Core.Cards
             return new MisbehaveSkillCheckSpec(skill, dto.Target, dto.Kosherized == true, bribes);
         }
 
-        private static List<CardEffectBand>? ParseBands(List<BandDto>? dtos)
+        private static List<NavBand>? ParseBands(List<BandDto>? dtos)
         {
             if (dtos == null || dtos.Count == 0)
                 return null;
-            var bands = new List<CardEffectBand>(dtos.Count);
+            var bands = new List<NavBand>(dtos.Count);
             foreach (var dto in dtos)
             {
                 int min;
@@ -113,7 +113,7 @@ namespace Firefly.Core.Cards
                 }
                 else
                     throw new InvalidDataException("Nav band requires min or range.");
-                bands.Add(new CardEffectBand(min, max, dto.Text, ParseEffects(dto.Effects)));
+                bands.Add(new NavBand(min, max, dto.Text, ParseEffects(dto.Effects)));
             }
             return bands;
         }
@@ -135,37 +135,60 @@ namespace Firefly.Core.Cards
             max = int.Parse(range.Substring(dash + 1).Trim());
         }
 
-        private static List<CardEffect>? ParseEffects(List<EffectDto>? dtos)
+        private static List<NavEffect>? ParseEffects(List<EffectDto>? dtos)
         {
             if (dtos == null || dtos.Count == 0)
                 return null;
-            var effects = new List<CardEffect>(dtos.Count);
+            var effects = new List<NavEffect>(dtos.Count);
             foreach (var dto in dtos)
             {
                 if (string.IsNullOrWhiteSpace(dto.Type))
                     throw new InvalidDataException("Nav effect.type is required.");
-                if (!CardEffectParsing.TryParseType(dto.Type, out var type))
-                    throw new InvalidDataException(
-                        $"Unknown Nav effect.type '{dto.Type}' (shared vocabulary only).");
                 var count = dto.Count ?? dto.Amount ?? 0;
-                if (type == CardEffectType.LoadUpTo)
+                if (CardEffectParsing.TryParseType(dto.Type, out var type))
                 {
-                    if (!CardEffectParsing.TryParseLoadKind(dto.Kind, out var kind))
-                        throw new InvalidDataException(
-                            "loadUpTo requires kind (Cargo / Contraband / Parts / Fuel).");
-                    effects.Add(new CardEffect(CardEffectType.LoadUpTo, count > 0 ? count : 1, kind));
+                    if (type == CardEffectType.LoadUpTo)
+                    {
+                        if (!CardEffectParsing.TryParseLoadKind(dto.Kind, out var kind))
+                            throw new InvalidDataException(
+                                "loadUpTo requires kind (Cargo / Contraband / Parts / Fuel).");
+                        effects.Add(NavEffect.Of(
+                            new CardEffect(CardEffectType.LoadUpTo, count > 0 ? count : 1, kind)));
+                        continue;
+                    }
+                    if (dto.UpTo == true
+                        && CardEffectParsing.TryLoadKindFromExactType(type, out var promotedKind))
+                    {
+                        effects.Add(NavEffect.Of(
+                            new CardEffect(
+                                CardEffectType.LoadUpTo, count > 0 ? count : 1, promotedKind)));
+                        continue;
+                    }
+                    effects.Add(NavEffect.Of(type, count));
                     continue;
                 }
-                if (dto.UpTo == true
-                    && CardEffectParsing.TryLoadKindFromExactType(type, out var promotedKind))
-                {
-                    effects.Add(new CardEffect(
-                        CardEffectType.LoadUpTo, count > 0 ? count : 1, promotedKind));
-                    continue;
-                }
-                effects.Add(new CardEffect(type, count));
+                if (!TryParseLocalEffectType(dto.Type, out var local))
+                    throw new InvalidDataException($"Unknown Nav effect.type '{dto.Type}'.");
+                if (count <= 0)
+                    throw new InvalidDataException($"{dto.Type} requires count/amount > 0.");
+                effects.Add(NavEffect.Of(local, count));
             }
             return effects;
+        }
+
+        private static bool TryParseLocalEffectType(string raw, out NavLocalEffectType type)
+        {
+            var key = CardEffectParsing.Normalize(raw);
+            foreach (NavLocalEffectType candidate in Enum.GetValues(typeof(NavLocalEffectType)))
+            {
+                if (candidate.ToString().Equals(key, StringComparison.OrdinalIgnoreCase))
+                {
+                    type = candidate;
+                    return true;
+                }
+            }
+            type = default;
+            return false;
         }
 
         private static void AddCopies(List<NavCard> pile, NavCard card, int count)

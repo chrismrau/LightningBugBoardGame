@@ -2336,6 +2336,34 @@ namespace Firefly.Core.Tests
         }
 
         [Fact]
+        public void Batch6_ambush_crew_on_job_excludes_returned_to_ship()
+        {
+            // Printed: Requires 5 or more Crew on Job. Director's Cut C&P p.49:
+            // Returned-to-Ship crew are not on the Job.
+            var game = NewCrimeGame();
+            Assert.True(game.CurrentPlayer.Roster.TryHire(game.Crew!.Get("crew_jayne"), out _));
+            Assert.True(game.CurrentPlayer.Roster.TryHire(game.Crew.Get("crew_zoe"), out _));
+            Assert.True(game.CurrentPlayer.Roster.TryHire(game.Crew.Get("crew_kaylee"), out _));
+            Assert.True(game.CurrentPlayer.Roster.TryHire(game.Crew.Get("crew_wash"), out _));
+            Assert.True(game.CurrentPlayer.Roster.TryHire(
+                LeaderCatalog.LoadDefault().Get("leader_malcolm"), out _));
+            Assert.Equal(5, game.CurrentPlayer.Roster.Count);
+            StartCrime(game);
+            game.CurrentPlayer.FindActive(Crime)!.ReturnToShip("crew_jayne");
+            Assert.Equal(4, JobWorkCrew.AvailableCount(game.CurrentPlayer));
+
+            game.Misbehave!.PlaceOnTop(game.Misbehave.Catalog.Get("misbehave_ambush"));
+            var resolver = new MisbehaveResolver();
+            resolver.DrawNext(game);
+
+            Assert.False(resolver.TryResolve(
+                game, "p1",
+                new MisbehaveChoice { OptionIndex = 1 },
+                out _, out var error));
+            Assert.Contains("Crew on Job", error);
+        }
+
+        [Fact]
         public void Batch6_reaver_raid_hide_takes_cash_and_botches()
         {
             var game = NewCrimeGame();

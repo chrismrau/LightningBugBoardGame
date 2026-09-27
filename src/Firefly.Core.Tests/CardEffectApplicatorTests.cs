@@ -154,6 +154,26 @@ namespace Firefly.Core.Tests
             Assert.Equal(CardLoadKind.Parts, liner.Options[0].Effects[0].Kind);
         }
 
+        [Fact]
+        public void S5_NavLocalEffectType_loseFuel_and_seizeGoods_overlays_parse()
+        {
+            var nav = NavCatalog.LoadFromFile(GameData.NavCardsPath);
+
+            var punctured = nav.Get("nav_punctured-fuel-lines").Options[0];
+            Assert.True(punctured.HasStructuredBands);
+            Assert.True(punctured.Bands[0].Effects[0].Is(NavLocalEffectType.LoseFuel));
+            Assert.Equal(2, punctured.Bands[0].Effects[0].Count);
+
+            var toreUp = nav.Get("nav_shes-tore-up-plenty").Options[0];
+            Assert.True(toreUp.Bands[0].Effects[0].Is(NavLocalEffectType.LoseFuel));
+            Assert.Equal(2, toreUp.Bands[0].Effects[0].Count);
+
+            var tariff = nav.Get("nav_local-tariff-patrol").Options[0];
+            Assert.True(tariff.Bands[0].Effects[0].Is(NavLocalEffectType.SeizeGoodsNotInStash));
+            Assert.Equal(5, tariff.Bands[0].Effects[0].Count);
+            Assert.True(tariff.Bands[0].Effects[0].IsLocal);
+        }
+
         private static bool CardHasSharedLoadUpTo(
             MisbehaveCard card, CardLoadKind kind, int expectedCount)
         {

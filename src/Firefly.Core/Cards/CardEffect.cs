@@ -6,7 +6,8 @@ namespace Firefly.Core.Cards
     /// <summary>
     /// Shared card-effect vocabulary understood by both Nav and Misbehave applicators.
     /// Core intersection (PR #37) plus promoted leftovers (ClearDisgruntledMoral, LoadParts,
-    /// LoadGoods, LoadUpTo). Nav-only / Misbehave-only effects stay in local adapters.
+    /// LoadGoods, LoadUpTo). Nav-only locals use <see cref="NavLocalEffectType"/> (S5);
+    /// Misbehave-only effects stay in <see cref="MisbehaveLocalEffectType"/>.
     /// JSON type names are camelCase of these identifiers (e.g. <c>killCrew</c>).
     /// </summary>
     public enum CardEffectType
