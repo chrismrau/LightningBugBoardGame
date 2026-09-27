@@ -5,12 +5,12 @@ Geometry from `Data/Map/SectorLayout.json` vs edges in `Data/Map/Adjacency.json`
 ## Summary
 
 - Labeled sectors: **155** / 155
-- Geometry edges: **351**
+- Geometry edges: **352**
 - Adjacency.json edges: **395**
 - Missing in Adjacency.json (geometry has, JSON lacks): **0**
-- Extra in Adjacency.json (JSON has, geometry lacks): **44**
-- Suppressed geometry false positives: **12**
-- Sectors with degree mismatch: **64**
+- Extra in Adjacency.json (JSON has, geometry lacks): **43**
+- Suppressed geometry false positives: **11**
+- Sectors with degree mismatch: **63**
 
 Interpretation:
 
@@ -42,8 +42,7 @@ _None._
 | `border-georgia-r2-02` (border-georgia-r2-02) | `border-georgia-r2-03` (Boros) | Georgia / Georgia |
 | `border-georgia-r2-03` (Boros) | `border-georgia-r2-04` (Kerry) | Georgia / Georgia |
 | `border-georgia-r3-01` (border-georgia-r3-01) | `border-georgia-r3-02` (Newhope) | Georgia / Georgia |
-| `border-georgia-r3-06` (Three Hills) | `border-georgia-r3-07` (border-georgia-r3-07) | Georgia / Georgia |
-| `border-georgia-r3-07` (border-georgia-r3-07) | `rim-space-r1-27` (rim-space-r1-27) | Georgia / Rim Space |
+| `border-georgia-r3-06` (border-georgia-r3-06) | `border-georgia-r3-07` (Three Hills) | Georgia / Georgia |
 | `border-red-sun-r2-01` (border-red-sun-r2-01) | `border-red-sun-r2-02` (Harvest) | Red Sun / Red Sun |
 | `border-red-sun-r2-01` (border-red-sun-r2-01) | `border-red-sun-r2-04` (border-red-sun-r2-04) | Red Sun / Red Sun |
 | `border-red-sun-r2-02` (Harvest) | `border-red-sun-r2-03` (St. Albans) | Red Sun / Red Sun |
@@ -75,10 +74,9 @@ _None._
 
 | a | b | zones |
 |---|---|---|
-| `border-georgia-r2-03` (Boros) | `border-georgia-r3-07` (border-georgia-r3-07) | Georgia / Georgia |
-| `border-georgia-r3-05` (border-georgia-r3-05) | `border-georgia-r3-07` (border-georgia-r3-07) | Georgia / Georgia |
-| `border-georgia-r3-06` (Three Hills) | `rim-space-r1-27` (rim-space-r1-27) | Georgia / Rim Space |
-| `border-georgia-r3-07` (border-georgia-r3-07) | `border-space-r2-24` (border-space-r2-24) | Georgia / Border Space |
+| `border-georgia-r2-03` (Boros) | `border-georgia-r3-06` (border-georgia-r3-06) | Georgia / Georgia |
+| `border-georgia-r3-05` (border-georgia-r3-05) | `border-georgia-r3-06` (border-georgia-r3-06) | Georgia / Georgia |
+| `border-georgia-r3-06` (border-georgia-r3-06) | `border-space-r2-24` (border-space-r2-24) | Georgia / Border Space |
 | `border-himinbjorg-r1-01` (Aesir) | `border-space-r2-08` (border-space-r2-08) | Himinbjorg / Border Space |
 | `rim-cortex-relay-2-r1-11` (Cortex Relay 2) | `rim-penglai-r1-01` (Newhall) | Special / Penglai |
 | `rim-kalidasa-r3-05` (New Kasmir) | `rim-kalidasa-r4-08` (rim-kalidasa-r4-08) | Kalidasa / Kalidasa |
@@ -144,10 +142,10 @@ _None._
   - extra neighbors: `border-georgia-r3-02`
 - **Newhope** `border-georgia-r3-02` (Georgia): geo=5 json=6
   - extra neighbors: `border-georgia-r3-01`
-- **Three Hills** `border-georgia-r3-06` (Georgia): geo=2 json=3
+- **border-georgia-r3-06** `border-georgia-r3-06` (Georgia): geo=2 json=3
   - extra neighbors: `border-georgia-r3-07`
-- **border-georgia-r3-07** `border-georgia-r3-07` (Georgia): geo=2 json=4
-  - extra neighbors: `border-georgia-r3-06`, `rim-space-r1-27`
+- **Three Hills** `border-georgia-r3-07` (Georgia): geo=3 json=4
+  - extra neighbors: `border-georgia-r3-06`
 - **border-red-sun-r2-01** `border-red-sun-r2-01` (Red Sun): geo=5 json=7
   - extra neighbors: `border-red-sun-r2-02`, `border-red-sun-r2-04`
 - **Harvest** `border-red-sun-r2-02` (Red Sun): geo=4 json=6
@@ -214,8 +212,6 @@ _None._
   - extra neighbors: `rim-cortex-relay-2-r1-11`, `rim-penglai-r1-01`, `rim-space-r1-10`
 - **rim-space-r1-10** `rim-space-r1-10` (Rim Space): geo=4 json=6
   - extra neighbors: `rim-kalidasa-r4-09`, `rim-penglai-r1-02`
-- **rim-space-r1-27** `rim-space-r1-27` (Rim Space): geo=2 json=3
-  - extra neighbors: `border-georgia-r3-07`
 - **rim-space-r2-10** `rim-space-r2-10` (Rim Space): geo=1 json=3
   - extra neighbors: `rim-kalidasa-r4-08`, `rim-penglai-r1-01`
 

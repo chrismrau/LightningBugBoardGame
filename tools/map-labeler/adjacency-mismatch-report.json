@@ -6,14 +6,14 @@
     "snapTol": 3.0,
     "labeledSectors": 155,
     "sectorCount": 155,
-    "geoEdgeCount": 351,
+    "geoEdgeCount": 352,
     "jsonEdgeCount": 395,
     "missingEdgeCount": 0,
-    "extraEdgeCount": 44,
-    "suppressedFalsePositiveCount": 12,
+    "extraEdgeCount": 43,
+    "suppressedFalsePositiveCount": 11,
     "unlabeledCount": 0,
     "unknownLabelCount": 0,
-    "sectorsWithDegreeMismatch": 64
+    "sectorsWithDegreeMismatch": 63
   },
   "unlabeled": [],
   "unknownLabels": [],
@@ -150,18 +150,10 @@
     {
       "a": "border-georgia-r3-06",
       "b": "border-georgia-r3-07",
-      "aPlanet": "Three Hills",
-      "bPlanet": null,
+      "aPlanet": null,
+      "bPlanet": "Three Hills",
       "aZone": "Georgia",
       "bZone": "Georgia"
-    },
-    {
-      "a": "border-georgia-r3-07",
-      "b": "rim-space-r1-27",
-      "aPlanet": null,
-      "bPlanet": null,
-      "aZone": "Georgia",
-      "bZone": "Rim Space"
     },
     {
       "a": "border-red-sun-r2-01",
@@ -375,7 +367,7 @@
   "suppressedFalsePositives": [
     {
       "a": "border-georgia-r2-03",
-      "b": "border-georgia-r3-07",
+      "b": "border-georgia-r3-06",
       "aPlanet": "Boros",
       "bPlanet": null,
       "aZone": "Georgia",
@@ -383,7 +375,7 @@
     },
     {
       "a": "border-georgia-r3-05",
-      "b": "border-georgia-r3-07",
+      "b": "border-georgia-r3-06",
       "aPlanet": null,
       "bPlanet": null,
       "aZone": "Georgia",
@@ -391,14 +383,6 @@
     },
     {
       "a": "border-georgia-r3-06",
-      "b": "rim-space-r1-27",
-      "aPlanet": "Three Hills",
-      "bPlanet": null,
-      "aZone": "Georgia",
-      "bZone": "Rim Space"
-    },
-    {
-      "a": "border-georgia-r3-07",
       "b": "border-space-r2-24",
       "aPlanet": null,
       "bPlanet": null,
@@ -775,7 +759,7 @@
     },
     {
       "id": "border-georgia-r3-06",
-      "planet": "Three Hills",
+      "planet": null,
       "zone": "Georgia",
       "geoDegree": 2,
       "jsonDegree": 3,
@@ -786,14 +770,13 @@
     },
     {
       "id": "border-georgia-r3-07",
-      "planet": null,
+      "planet": "Three Hills",
       "zone": "Georgia",
-      "geoDegree": 2,
+      "geoDegree": 3,
       "jsonDegree": 4,
       "missingNeighbors": [],
       "extraNeighbors": [
-        "border-georgia-r3-06",
-        "rim-space-r1-27"
+        "border-georgia-r3-06"
       ]
     },
     {
@@ -1177,17 +1160,6 @@
       ]
     },
     {
-      "id": "rim-space-r1-27",
-      "planet": null,
-      "zone": "Rim Space",
-      "geoDegree": 2,
-      "jsonDegree": 3,
-      "missingNeighbors": [],
-      "extraNeighbors": [
-        "border-georgia-r3-07"
-      ]
-    },
-    {
       "id": "rim-space-r2-10",
       "planet": null,
       "zone": "Rim Space",
@@ -1203,13 +1175,13 @@
   "zoneTouchCounts": {
     "Lux": 1,
     "White Sun": 12,
-    "Georgia": 5,
-    "Rim Space": 5,
+    "Georgia": 4,
     "Red Sun": 9,
     "Border Space": 3,
     "Blue Sun": 3,
     "Special": 1,
     "Penglai": 5,
-    "Kalidasa": 7
+    "Kalidasa": 7,
+    "Rim Space": 4
   }
 }
