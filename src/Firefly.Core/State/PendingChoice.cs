@@ -233,6 +233,18 @@ namespace Firefly.Core.State
         /// remaining available Crew form the other team. ContextId = parent Misbehave id.
         /// </summary>
         public const string MisbehaveSplitCrew = "misbehave-split-crew";
+        /// <summary>
+        /// King of All Londinium Goal 1 band: pay $N to Complete Goal, or Attempt Botched.
+        /// Options: <see cref="GoalPayOrBotchOptions"/>. ContextId = dollars required.
+        /// </summary>
+        public const string GoalPayOrBotch = "goal-pay-or-botch";
+    }
+
+    /// <summary>Discrete option ids for <see cref="PendingChoiceKinds.GoalPayOrBotch"/>.</summary>
+    public static class GoalPayOrBotchOptions
+    {
+        public const string PayComplete = "pay-complete";
+        public const string Botch = "botch";
     }
 
     /// <summary>Discrete option ids for <see cref="PendingChoiceKinds.MisbehaveWarrantOrWanted"/>.</summary>

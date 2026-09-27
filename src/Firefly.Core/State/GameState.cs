@@ -109,6 +109,15 @@ namespace Firefly.Core.State
         public ScenarioCard? Scenario { get; set; }
         public PendingMisbehave? PendingMisbehave { get; set; }
         /// <summary>
+        /// Mid-Goal Work after Misbehave (boarding / skill / pay-or-botch / evade).
+        /// Cleared when the Goal attempt ends.
+        /// </summary>
+        public PendingGoalWork? PendingGoalWork { get; set; }
+        /// <summary>
+        /// Jail Break setup: bounty id held as the prisoner to Rescue on Goal 1 success.
+        /// </summary>
+        public string? JailBreakPrisonerBountyId { get; set; }
+        /// <summary>
         /// Shared player-decision wait (at most one). Suspend mid-resolve; resume via
         /// <see cref="TrySubmitChoice"/>. Consumers migrate later — auto-resolve stays until wired.
         /// </summary>
@@ -148,6 +157,7 @@ namespace Firefly.Core.State
             || PendingAlertSectors.Count > 0
             || PendingEncounter.HasValue
             || PendingMisbehave != null
+            || PendingGoalWork != null
             || PendingChoice != null;
 
         public GameState(SectorMap map, IReadOnlyList<PlayerState> players, MapTokens? tokens = null, NavDecks? decks = null)
@@ -212,7 +222,9 @@ namespace Firefly.Core.State
             PendingAllianceContactQueue.Clear();
             PendingEncounterDeferredNav = false;
             PendingMisbehave = null;
+            PendingGoalWork = null;
             PendingChoice = null;
+            WorkGearLocked = false;
             AlertTokenResolver.ClearSuspend(this);
             FlyRangeBonusThisAction = 0;
             DiscardFuelPerExtraSectorThisFly = false;

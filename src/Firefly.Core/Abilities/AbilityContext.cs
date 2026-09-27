@@ -1,3 +1,5 @@
+using Firefly.Core.State;
+
 namespace Firefly.Core.Abilities
 {
     /// <summary>
@@ -8,7 +10,6 @@ namespace Firefly.Core.Abilities
     {
         /// <summary>
         /// GF9 / Director's Cut: "special abilities that apply during Jobs do not apply while Working Goals."
-        /// Goal Work is not implemented — callers leave this false until a Goal Work path exists.
         /// </summary>
         public bool IsWorkingGoal { get; set; }
 
@@ -25,9 +26,20 @@ namespace Firefly.Core.Abilities
 
         public static AbilityContext WorkingJob { get; } = new AbilityContext { IsWorkingJob = true };
 
+        public static AbilityContext WorkingGoal { get; } = new AbilityContext { IsWorkingGoal = true };
+
         public static AbilityContext Flying { get; } = new AbilityContext { IsFlying = true };
 
         public static AbilityContext Misbehaving { get; } =
             new AbilityContext { IsWorkingJob = true, IsMisbehaving = true };
+
+        public static AbilityContext GoalMisbehaving { get; } =
+            new AbilityContext { IsWorkingGoal = true, IsMisbehaving = true };
+
+        /// <summary>
+        /// Misbehave ability context for the pending Work — Job or Goal.
+        /// </summary>
+        public static AbilityContext ForPendingMisbehave(PendingMisbehave? pending) =>
+            pending != null && pending.IsGoalWork ? GoalMisbehaving : Misbehaving;
     }
 }

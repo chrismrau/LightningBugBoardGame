@@ -50,7 +50,14 @@ namespace Firefly.Core.State
     public sealed class PendingMisbehave
     {
         public string PlayerId { get; }
+        /// <summary>Job id when Working a Job; empty when <see cref="GoalNumber"/> is set.</summary>
         public string JobId { get; }
+        /// <summary>
+        /// Story Goal number when Misbehaving for Goal Work (GF9 Working Goals).
+        /// Null when Working a Job.
+        /// </summary>
+        public int? GoalNumber { get; }
+        public bool IsGoalWork => GoalNumber != null;
         public WorkSite Site { get; }
         public int Remaining { get; set; }
         public Cards.MisbehaveCard? FaceUp { get; set; }
@@ -83,8 +90,17 @@ namespace Firefly.Core.State
         public PendingMisbehave(string playerId, string jobId, WorkSite site, int remaining)
         {
             PlayerId = playerId;
-            JobId = jobId;
+            JobId = jobId ?? "";
             Site = site;
+            Remaining = remaining;
+        }
+
+        public PendingMisbehave(string playerId, int goalNumber, int remaining)
+        {
+            PlayerId = playerId;
+            JobId = "";
+            GoalNumber = goalNumber;
+            Site = WorkSite.Pickup;
             Remaining = remaining;
         }
 

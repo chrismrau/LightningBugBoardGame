@@ -17,7 +17,18 @@ namespace Firefly.Core.Cards
         public int Pay { get; }
         public bool GrantsGoalToken { get; }
         public string? Location { get; }
+        public string? System { get; }
         public IReadOnlyList<string> Contacts { get; }
+        public IReadOnlyList<string> RequiresSolidWith { get; }
+        /// <summary>Printed Misbehave count before Goal instructions (0 = none).</summary>
+        public int Misbehave { get; }
+        /// <summary>Printed Skill for the Goal Skill Test, when present.</summary>
+        public Skill? Skill { get; }
+        public int Target { get; }
+        public string? Fail { get; }
+        public string? Success { get; }
+        public IReadOnlyList<ScenarioGoalBand> Bands { get; }
+        public ScenarioGoalBoarding? Boarding { get; }
 
         public ScenarioGoal(
             int number,
@@ -29,7 +40,16 @@ namespace Firefly.Core.Cards
             int pay = 0,
             bool grantsGoalToken = false,
             string? location = null,
-            IReadOnlyList<string>? contacts = null)
+            IReadOnlyList<string>? contacts = null,
+            string? system = null,
+            int misbehave = 0,
+            Skill? skill = null,
+            int target = 0,
+            string? fail = null,
+            string? success = null,
+            IReadOnlyList<ScenarioGoalBand>? bands = null,
+            IReadOnlyList<string>? requiresSolidWith = null,
+            ScenarioGoalBoarding? boarding = null)
         {
             Number = number;
             Name = name;
@@ -40,8 +60,19 @@ namespace Firefly.Core.Cards
             Pay = pay;
             GrantsGoalToken = grantsGoalToken;
             Location = location;
+            System = system;
             Contacts = contacts ?? Array.Empty<string>();
+            RequiresSolidWith = requiresSolidWith ?? Array.Empty<string>();
+            Misbehave = misbehave;
+            Skill = skill;
+            Target = target;
+            Fail = fail;
+            Success = success;
+            Bands = bands ?? Array.Empty<ScenarioGoalBand>();
+            Boarding = boarding;
         }
+
+        public bool IsWorkable => ScenarioGoalWork.IsWorkable(this);
     }
 
     /// <summary>
@@ -88,6 +119,14 @@ namespace Firefly.Core.Cards
         public bool SafeHarbor { get; }
         /// <summary>Any Port: Haven Buy may combine Fuel + Shore Leave; own Haven freebies.</summary>
         public bool FriendsInLowPlaces { get; }
+        /// <summary>
+        /// Patience's War: Must be Solid with Patience and Mr. Universe to Work Goals.
+        /// </summary>
+        public bool GoalWorkRequiresSolidPatienceAndMrUniverse { get; }
+        /// <summary>
+        /// Patience's War: Warrants from Goals do not drop Solid with Patience / Mr. Universe.
+        /// </summary>
+        public bool GoalWarrantsPreserveSolidPatienceAndMrUniverse { get; }
 
         public ScenarioCard(
             string id,
@@ -106,7 +145,9 @@ namespace Firefly.Core.Cards
             bool allianceAlertTokensOnNonHavenAlliancePlanets = false,
             bool increasedEnforcement = false,
             bool safeHarbor = false,
-            bool friendsInLowPlaces = false)
+            bool friendsInLowPlaces = false,
+            bool goalWorkRequiresSolidPatienceAndMrUniverse = false,
+            bool goalWarrantsPreserveSolidPatienceAndMrUniverse = false)
         {
             Id = id;
             Name = name;
@@ -125,6 +166,8 @@ namespace Firefly.Core.Cards
             IncreasedEnforcement = increasedEnforcement;
             SafeHarbor = safeHarbor;
             FriendsInLowPlaces = friendsInLowPlaces;
+            GoalWorkRequiresSolidPatienceAndMrUniverse = goalWorkRequiresSolidPatienceAndMrUniverse;
+            GoalWarrantsPreserveSolidPatienceAndMrUniverse = goalWarrantsPreserveSolidPatienceAndMrUniverse;
         }
 
         public ScenarioGoal? Goal(int number)
@@ -191,6 +234,48 @@ namespace Firefly.Core.Cards
                                     contacts.Add(name);
                             }
                         }
+                        var requiresSolid = new List<string>();
+                        if (g.TryGetProperty("requiresSolidWith", out var solidArr)
+                            && solidArr.ValueKind == JsonValueKind.Array)
+                        {
+                            foreach (var s in solidArr.EnumerateArray())
+                            {
+                                var name = s.GetString();
+                                if (!string.IsNullOrWhiteSpace(name))
+                                    requiresSolid.Add(name!);
+                            }
+                        }
+                        var bands = new List<ScenarioGoalBand>();
+                        if (g.TryGetProperty("bands", out var bandArr) && bandArr.ValueKind == JsonValueKind.Array)
+                        {
+                            foreach (var b in bandArr.EnumerateArray())
+                            {
+                                bands.Add(new ScenarioGoalBand(
+                                    b.TryGetProperty("range", out var rng) ? rng.GetString() ?? "" : "",
+                                    b.TryGetProperty("text", out var tx) ? tx.GetString() ?? "" : ""));
+                            }
+                        }
+                        Skill? skill = null;
+                        if (g.TryGetProperty("skill", out var skEl))
+                        {
+                            var skName = skEl.GetString();
+                            if (ScenarioGoalWork.TryParseSkill(skName, out var parsed))
+                                skill = parsed;
+                        }
+                        ScenarioGoalBoarding? boarding = null;
+                        if (g.TryGetProperty("boardingTest", out var boardEl)
+                            && boardEl.ValueKind == JsonValueKind.Object)
+                        {
+                            Skill? boardSkill = null;
+                            if (g.TryGetProperty("boardingTestSkill", out var bsEl)
+                                && ScenarioGoalWork.TryParseSkill(bsEl.GetString(), out var bsParsed))
+                                boardSkill = bsParsed;
+                            boarding = new ScenarioGoalBoarding(
+                                IntProp(boardEl, "die"),
+                                boardEl.TryGetProperty("botched", out var bot) ? bot.GetString() ?? "" : "",
+                                boardEl.TryGetProperty("success", out var suc) ? suc.GetString() ?? "" : "",
+                                boardSkill);
+                        }
                         goals.Add(new ScenarioGoal(
                             IntProp(g, "number"),
                             g.TryGetProperty("name", out var gn) ? gn.GetString() ?? "" : "",
@@ -201,7 +286,16 @@ namespace Firefly.Core.Cards
                             IntProp(g, "pay"),
                             g.TryGetProperty("grantsGoalToken", out var grant) && grant.ValueKind == JsonValueKind.True,
                             g.TryGetProperty("location", out var loc) ? loc.GetString() : null,
-                            contacts));
+                            contacts,
+                            g.TryGetProperty("system", out var sys) ? sys.GetString() : null,
+                            IntProp(g, "misbehave"),
+                            skill,
+                            IntProp(g, "target"),
+                            g.TryGetProperty("fail", out var fail) ? fail.GetString() : null,
+                            g.TryGetProperty("success", out var success) ? success.GetString() : null,
+                            bands,
+                            requiresSolid,
+                            boarding));
                     }
                 }
 
@@ -244,6 +338,8 @@ namespace Firefly.Core.Cards
                 var increasedEnforcement = false;
                 var safeHarbor = false;
                 var friendsInLowPlaces = false;
+                var goalSolidGate = false;
+                var goalWarrantPreserve = false;
                 if (card.TryGetProperty("specialRules", out var rules)
                     && rules.ValueKind == JsonValueKind.Array)
                 {
@@ -256,6 +352,11 @@ namespace Firefly.Core.Cards
                             safeHarbor = true;
                         else if (string.Equals(ruleName, "Friends in Low Places", StringComparison.OrdinalIgnoreCase))
                             friendsInLowPlaces = true;
+                        else if (string.Equals(ruleName, "Proving Your Worth", StringComparison.OrdinalIgnoreCase))
+                        {
+                            goalSolidGate = true;
+                            goalWarrantPreserve = true;
+                        }
                     }
                 }
 
@@ -276,7 +377,9 @@ namespace Firefly.Core.Cards
                     alertTokensOnNonHaven,
                     increasedEnforcement,
                     safeHarbor,
-                    friendsInLowPlaces));
+                    friendsInLowPlaces,
+                    goalSolidGate,
+                    goalWarrantPreserve));
             }
             return new ScenarioCatalog(list);
         }

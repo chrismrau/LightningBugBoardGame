@@ -81,8 +81,10 @@ namespace Firefly.Core.State
                 return false;
             }
             player.CompletedGoals.Add(number);
-            if (goal.GrantsGoalToken)
-                player.GoalTokens++;
+            // GF9 / Director's Cut Working Goals: "When you complete a Goal, take a Goal token
+            // to mark your progress." Always grant — JSON grantsGoalToken was an oversight for
+            // Workable rows (user 2026-09-27). Auto-claim goals still honor GrantsGoalToken.
+            player.GoalTokens++;
             Refresh(game);
             return true;
         }

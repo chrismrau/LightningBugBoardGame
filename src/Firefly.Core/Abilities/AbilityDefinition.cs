@@ -26,7 +26,6 @@ namespace Firefly.Core.Abilities
         public string? Location { get; }
         /// <summary>
         /// GF9 / Director's Cut: Job-only abilities do not apply while Working Goals.
-        /// Kernel has no Goal Work path yet — flag is reserved for that hook.
         /// </summary>
         public bool JobOnly { get; }
 

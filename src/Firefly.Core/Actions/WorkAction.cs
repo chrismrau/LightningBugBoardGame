@@ -60,6 +60,18 @@ namespace Firefly.Core.Actions
         private WrightBonusChoice? _wrightBonusChoice;
         private MakeWorkChoice? _makeWorkChoice;
 
+        /// <summary>
+        /// GF9 / Director's Cut Working Goals: Work Action at the Goal site.
+        /// </summary>
+        public bool TryWorkGoal(
+            GameState game,
+            string playerId,
+            int goalNumber,
+            out GoalWorkResult? result,
+            out string? error,
+            GoalWorkChoice? choice = null) =>
+            new GoalWorkAction().TryWorkGoal(game, playerId, goalNumber, out result, out error, choice);
+
         public bool TryWork(GameState game, string playerId, string jobId, out WorkResult? result, out string? error)
         {
             result = null;
@@ -169,6 +181,43 @@ namespace Firefly.Core.Actions
                 return false;
             }
             var player = game.GetPlayer(playerId);
+            if (pending.IsGoalWork)
+            {
+                if (!proceed)
+                {
+                    // GF9: botched Goal attempt — may retry next turn; Warrant already on ship if issued.
+                    game.PendingMisbehave = null;
+                    game.PendingGoalWork = null;
+                    game.WorkGearLocked = false;
+                    game.TryConsumeAction(TurnAction.Work, out _);
+                    result = new WorkResult(WorkKind.Complete, null, false, false, 0, 0);
+                    error = null;
+                    return true;
+                }
+
+                pending.Remaining--;
+                if (pending.Remaining > 0)
+                {
+                    result = new WorkResult(WorkKind.Complete, null, true, false, 0, 0);
+                    error = null;
+                    return true;
+                }
+
+                game.PendingMisbehave = null;
+                // Misbehave cleared — Goal skill / boarding waits for GoalWorkAction.TryResume
+                // (keeps dice/kill/evade scriptable; GF9: Misbehave before other Goal instructions).
+                if (game.PendingGoalWork != null)
+                {
+                    var goal = game.Scenario?.Goal(game.PendingGoalWork.GoalNumber);
+                    game.PendingGoalWork.Phase = goal?.Boarding != null && !game.PendingGoalWork.BoardingPassed
+                        ? GoalWorkPhase.Boarding
+                        : GoalWorkPhase.Skill;
+                }
+                result = new WorkResult(WorkKind.Complete, null, false, false, 0, 0);
+                error = null;
+                return true;
+            }
+
             if (game.Jobs == null || !game.Jobs.TryGet(pending.JobId, out var job))
             {
                 error = $"Unknown job '{pending.JobId}'.";
