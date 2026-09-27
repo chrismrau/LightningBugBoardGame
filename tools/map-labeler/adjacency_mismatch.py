@@ -15,6 +15,17 @@ DEFAULT_ADJ = REPO_ROOT / "Data" / "Map" / "Adjacency.json"
 DEFAULT_SECTORS = REPO_ROOT / "Data" / "Map" / "Sectors.json"
 DEFAULT_OUT_JSON = Path(__file__).resolve().parent / "adjacency-mismatch-report.json"
 DEFAULT_OUT_MD = Path(__file__).resolve().parent / "adjacency-mismatch-report.md"
+DEFAULT_FALSE_POSITIVES = Path(__file__).resolve().parent / "geometry-false-positives.json"
+
+
+def load_false_positive_edges(path: Path) -> set[tuple[str, str]]:
+    if not path.is_file():
+        return set()
+    doc = json.loads(path.read_text())
+    out = set()
+    for e in doc.get("edges") or []:
+        out.add(edge_key(e["a"], e["b"]))
+    return out
 
 
 def edge_key(a: str, b: str) -> tuple[str, str]:
@@ -106,11 +117,18 @@ def undirected_edge_set(nbrs: dict[str, set[str]]) -> set[tuple[str, str]]:
     return out
 
 
-def run(layout_path: Path, adj_path: Path, sectors_path: Path, tol: float = 3.0) -> dict:
+def run(
+    layout_path: Path,
+    adj_path: Path,
+    sectors_path: Path,
+    tol: float = 3.0,
+    false_positives_path: Path = DEFAULT_FALSE_POSITIVES,
+) -> dict:
     layout = json.loads(layout_path.read_text())
     adj = json.loads(adj_path.read_text())
     sectors_doc = json.loads(sectors_path.read_text())
     sectors = {s["id"]: s for s in sectors_doc["sectors"]}
+    false_positives = load_false_positive_edges(false_positives_path)
 
     geo = layout.get("sectors") or {}
     assignments = layout.get("assignments") or {}
@@ -123,19 +141,25 @@ def run(layout_path: Path, adj_path: Path, sectors_path: Path, tol: float = 3.0)
     unlabeled = sorted(all_ids - labeled)
     unknown_labels = sorted(labeled - all_ids)
 
-    geo_nbrs = build_geometric_neighbors(geo, tol=tol)
+    geo_nbrs_raw = build_geometric_neighbors(geo, tol=tol)
     json_nbrs = build_json_neighbors(adj.get("edges") or [])
-
-    geo_edges = undirected_edge_set(geo_nbrs)
-    json_edges = undirected_edge_set(
-        {k: {n for n in vs if n in labeled} for k, vs in json_nbrs.items() if k in labeled}
-    )
-    # Also keep full JSON edges for reporting extras that touch unlabeled (shouldn't happen if complete).
     json_edges_all = undirected_edge_set(json_nbrs)
 
-    missing = sorted(geo_edges - json_edges_all)  # geometry says adjacent; Adjacency.json lacks edge
-    extra = sorted(json_edges_all - geo_edges)  # Adjacency.json has edge; no shared geometry
+    suppressed = sorted(
+        false_positives & (undirected_edge_set(geo_nbrs_raw) - json_edges_all)
+    )
 
+    # Strip user-confirmed geometry false positives from geo neighbor sets.
+    geo_nbrs: dict[str, set[str]] = defaultdict(set)
+    for a, bs in geo_nbrs_raw.items():
+        for b in bs:
+            if edge_key(a, b) in false_positives:
+                continue
+            geo_nbrs[a].add(b)
+
+    geo_edges = undirected_edge_set(geo_nbrs)
+    missing = sorted(geo_edges - json_edges_all)
+    extra = sorted(json_edges_all - geo_edges)
     def edge_row(a: str, b: str) -> dict:
         sa, sb = sectors.get(a, {}), sectors.get(b, {})
         return {
@@ -149,6 +173,7 @@ def run(layout_path: Path, adj_path: Path, sectors_path: Path, tol: float = 3.0)
 
     missing_rows = [edge_row(a, b) for a, b in missing]
     extra_rows = [edge_row(a, b) for a, b in extra]
+    suppressed_rows = [edge_row(a, b) for a, b in suppressed]
 
     # Per-sector degree deltas for triage.
     degree_issues = []
@@ -180,6 +205,9 @@ def run(layout_path: Path, adj_path: Path, sectors_path: Path, tol: float = 3.0)
         "meta": {
             "layout": str(layout_path.relative_to(REPO_ROOT)).replace("\\", "/"),
             "adjacency": str(adj_path.relative_to(REPO_ROOT)).replace("\\", "/"),
+            "falsePositives": str(false_positives_path.relative_to(REPO_ROOT)).replace("\\", "/")
+            if false_positives_path.is_file()
+            else None,
             "snapTol": tol,
             "labeledSectors": len(labeled),
             "sectorCount": len(all_ids),
@@ -187,6 +215,7 @@ def run(layout_path: Path, adj_path: Path, sectors_path: Path, tol: float = 3.0)
             "jsonEdgeCount": len(json_edges_all),
             "missingEdgeCount": len(missing),
             "extraEdgeCount": len(extra),
+            "suppressedFalsePositiveCount": len(suppressed),
             "unlabeledCount": len(unlabeled),
             "unknownLabelCount": len(unknown_labels),
             "sectorsWithDegreeMismatch": len(degree_issues),
@@ -195,6 +224,7 @@ def run(layout_path: Path, adj_path: Path, sectors_path: Path, tol: float = 3.0)
         "unknownLabels": unknown_labels,
         "missingEdges": missing_rows,
         "extraEdges": extra_rows,
+        "suppressedFalsePositives": suppressed_rows,
         "degreeIssues": degree_issues,
         "zoneTouchCounts": dict(by_zone),
     }
@@ -214,12 +244,14 @@ def to_markdown(report: dict) -> str:
         f"- Adjacency.json edges: **{m['jsonEdgeCount']}**",
         f"- Missing in Adjacency.json (geometry has, JSON lacks): **{m['missingEdgeCount']}**",
         f"- Extra in Adjacency.json (JSON has, geometry lacks): **{m['extraEdgeCount']}**",
+        f"- Suppressed geometry false positives: **{m.get('suppressedFalsePositiveCount', 0)}**",
         f"- Sectors with degree mismatch: **{m['sectorsWithDegreeMismatch']}**",
         "",
         "Interpretation:",
         "",
         "- **Missing** → likely need to **add** an edge to `Adjacency.json` (if the shared boundary is real).",
         "- **Extra** → likely need to **remove** an edge (or the layout label is wrong / shared edge too short to detect).",
+        "- **Suppressed** → geometry false positives confirmed non-adjacent by review (`geometry-false-positives.json`).",
         "",
     ]
 
@@ -256,6 +288,21 @@ def to_markdown(report: dict) -> str:
             )
         lines.append("")
 
+    lines += ["## Suppressed geometry false positives", ""]
+    suppressed = report.get("suppressedFalsePositives") or []
+    if not suppressed:
+        lines.append("_None._")
+        lines.append("")
+    else:
+        lines += ["| a | b | zones |", "|---|---|---|"]
+        for r in suppressed:
+            a = r["aPlanet"] or r["a"]
+            b = r["bPlanet"] or r["b"]
+            lines.append(
+                f"| `{r['a']}` ({a}) | `{r['b']}` ({b}) | {r['aZone']} / {r['bZone']} |"
+            )
+        lines.append("")
+
     lines += ["## Per-sector degree mismatches", ""]
     if not report["degreeIssues"]:
         lines.append("_None._")
@@ -281,17 +328,25 @@ def main():
     ap.add_argument("--adjacency", type=Path, default=DEFAULT_ADJ)
     ap.add_argument("--sectors", type=Path, default=DEFAULT_SECTORS)
     ap.add_argument("--tol", type=float, default=3.0)
+    ap.add_argument("--false-positives", type=Path, default=DEFAULT_FALSE_POSITIVES)
     ap.add_argument("--out-json", type=Path, default=DEFAULT_OUT_JSON)
     ap.add_argument("--out-md", type=Path, default=DEFAULT_OUT_MD)
     args = ap.parse_args()
 
-    report = run(args.layout, args.adjacency, args.sectors, tol=args.tol)
+    report = run(
+        args.layout,
+        args.adjacency,
+        args.sectors,
+        tol=args.tol,
+        false_positives_path=args.false_positives,
+    )
     args.out_json.write_text(json.dumps(report, indent=2) + "\n")
     args.out_md.write_text(to_markdown(report))
     m = report["meta"]
     print(
         f"Wrote {args.out_md} and {args.out_json}: "
         f"missing={m['missingEdgeCount']} extra={m['extraEdgeCount']} "
+        f"suppressedFP={m.get('suppressedFalsePositiveCount', 0)} "
         f"degreeIssues={m['sectorsWithDegreeMismatch']}"
     )
 
