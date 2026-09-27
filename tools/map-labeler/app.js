@@ -640,8 +640,14 @@
       }
       state.dirty = false;
       updateStats();
-      setDetail(`Saved <strong>${data.assignments}</strong> assignments to <code>${data.path}</code>.`);
-      showToast(`Saved ${data.assignments} assignments`);
+      const facesNote =
+        typeof data.facesSynced === "number" && data.facesSynced > 0
+          ? ` · synced ${data.facesSynced} faces.json polygons`
+          : "";
+      setDetail(
+        `Saved <strong>${data.assignments}</strong> assignments to <code>${data.path}</code>${facesNote}.`
+      );
+      showToast(`Saved ${data.assignments} assignments${facesNote}`);
     } catch (err) {
       setDetail(`Save failed: ${err}`);
       showToast(String(err), { error: true });
