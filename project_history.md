@@ -27,7 +27,7 @@ Working copies sometimes use `data/` instead of `Data/`. Use GitHub casing on ca
 
 ### Map and data (late Aug – 5 Sep 2026)
 
-- 155 sectors, 397 adjacency edges.
+- 155 sectors, 398 adjacency edges.
 - Sector schema ~3.3, adjacency schema ~4.144.
 - White Sun r4-02 is **not** adjacent to r4-03; Lux sits between them (intentional).
 - Santo = `alliance-qin-shi-huang-r1-01`.

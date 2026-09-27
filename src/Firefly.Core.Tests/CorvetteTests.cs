@@ -14,7 +14,7 @@ namespace Firefly.Core.Tests
         private const string Pelorum = "alliance-lux-r1-02";
         private const string CorvetteStart = "rim-cortex-relay-2-r1-11";
         private const string AdjacentRim = "rim-space-r1-10";
-        private const string AdjacentPlanet = "rim-penglai-r1-02"; // Beylix
+        private const string AdjacentPlanet = "rim-penglai-r1-01"; // Newhall (adjacent to rim-space-r1-10)
         private const string ReaverStart = "rim-burnham-r2-01";
         private const string ReaverStartAlt = "rim-burnham-r2-02";
 
