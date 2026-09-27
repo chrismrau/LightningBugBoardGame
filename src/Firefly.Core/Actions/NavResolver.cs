@@ -3407,15 +3407,7 @@ namespace Firefly.Core.Actions
                 return true;
 
             var shared = ResolveSharedBandEffects(bandText, bandEffects);
-            var context = new CardEffectContext(
-                CardEffectSource.Nav,
-                choice?.Kill,
-                enforceHoldSpace: true,
-                skipLoadIfNoSpace: true,
-                loadGoodsFuel: choice?.LoadGoodsFuel ?? 0,
-                loadGoodsParts: choice?.LoadGoodsParts ?? 0,
-                loadGoodsCargo: choice?.LoadGoodsCargo ?? 0,
-                loadGoodsContraband: choice?.LoadGoodsContraband ?? 0);
+            var context = NavSharedContext(choice);
             if (!CardEffectApplicator.CanApply(player, shared, context, out error))
                 return false;
 
@@ -3468,15 +3460,7 @@ namespace Firefly.Core.Actions
             var shared = option.HasStructuredEffects
                 ? FilterOptionSharedEffects(option.Effects, skillCheckPresent)
                 : ParseSharedOptionMicroEffects(text, skillCheckPresent, player, choice);
-            var context = new CardEffectContext(
-                CardEffectSource.Nav,
-                choice?.Kill,
-                enforceHoldSpace: true,
-                skipLoadIfNoSpace: true,
-                loadGoodsFuel: choice?.LoadGoodsFuel ?? 0,
-                loadGoodsParts: choice?.LoadGoodsParts ?? 0,
-                loadGoodsCargo: choice?.LoadGoodsCargo ?? 0,
-                loadGoodsContraband: choice?.LoadGoodsContraband ?? 0);
+            var context = NavSharedContext(choice);
             if (!CardEffectApplicator.CanApply(player, shared, context, out error))
                 return false;
 
@@ -3531,15 +3515,7 @@ namespace Firefly.Core.Actions
 
             var text = bandText ?? "";
             var shared = ResolveSharedBandEffects(bandText, bandEffects);
-            var context = new CardEffectContext(
-                CardEffectSource.Nav,
-                choice?.Kill,
-                enforceHoldSpace: true,
-                skipLoadIfNoSpace: true,
-                loadGoodsFuel: choice?.LoadGoodsFuel ?? 0,
-                loadGoodsParts: choice?.LoadGoodsParts ?? 0,
-                loadGoodsCargo: choice?.LoadGoodsCargo ?? 0,
-                loadGoodsContraband: choice?.LoadGoodsContraband ?? 0);
+            var context = NavSharedContext(choice);
             if (!CardEffectApplicator.TryApply(
                     game, player, shared, rng, context, out var sharedResult, out error))
                 return false;
@@ -3661,15 +3637,7 @@ namespace Firefly.Core.Actions
                 : ParseSharedOptionMicroEffects(text, skillCheckPresent, player, choice);
             if (shared.Count > 0)
             {
-                var context = new CardEffectContext(
-                    CardEffectSource.Nav,
-                    choice?.Kill,
-                    enforceHoldSpace: true,
-                    skipLoadIfNoSpace: true,
-                    loadGoodsFuel: choice?.LoadGoodsFuel ?? 0,
-                    loadGoodsParts: choice?.LoadGoodsParts ?? 0,
-                    loadGoodsCargo: choice?.LoadGoodsCargo ?? 0,
-                    loadGoodsContraband: choice?.LoadGoodsContraband ?? 0);
+                var context = NavSharedContext(choice);
                 if (!CardEffectApplicator.TryApply(
                         game,
                         player,
@@ -3725,6 +3693,20 @@ namespace Firefly.Core.Actions
             return true;
         }
 
+        private static CardEffectContext NavSharedContext(NavResolveChoice? choice) =>
+            new CardEffectContext(
+                CardEffectSource.Nav,
+                choice?.Kill,
+                enforceHoldSpace: true,
+                skipLoadIfNoSpace: true,
+                loadGoodsFuel: choice?.LoadGoodsFuel ?? 0,
+                loadGoodsParts: choice?.LoadGoodsParts ?? 0,
+                loadGoodsCargo: choice?.LoadGoodsCargo ?? 0,
+                loadGoodsContraband: choice?.LoadGoodsContraband ?? 0,
+                loadAmount: choice != null && choice.LoadAmount >= 0
+                    ? choice.LoadAmount
+                    : (int?)null);
+
         private static IReadOnlyList<CardEffect> ResolveSharedBandEffects(
             string? bandText,
             IReadOnlyList<CardEffect>? bandEffects)
@@ -3741,7 +3723,8 @@ namespace Firefly.Core.Actions
                 if (effect.Type == CardEffectType.LoadCargo
                     || effect.Type == CardEffectType.LoadContraband
                     || effect.Type == CardEffectType.LoadParts
-                    || effect.Type == CardEffectType.LoadGoods)
+                    || effect.Type == CardEffectType.LoadGoods
+                    || effect.Type == CardEffectType.LoadUpTo)
                     return true;
             }
             return false;
@@ -3772,6 +3755,7 @@ namespace Firefly.Core.Actions
                     || effect.Type == CardEffectType.LoadContraband
                     || effect.Type == CardEffectType.LoadParts
                     || effect.Type == CardEffectType.LoadGoods
+                    || effect.Type == CardEffectType.LoadUpTo
                     || effect.Type == CardEffectType.TakeCash
                     || effect.Type == CardEffectType.KillCrew)
                     continue;
@@ -3811,6 +3795,15 @@ namespace Firefly.Core.Actions
             var takeParts = PlannedTakeParts(text!);
             if (takeParts > 0)
                 effects.Add(new CardEffect(CardEffectType.LoadParts, takeParts));
+
+            // Load up to N typed (before exact Load N, which does not match "up to").
+            foreach (System.Text.RegularExpressions.Match m in LoadUpToTyped.Matches(text!))
+            {
+                var n = int.Parse(m.Groups[1].Value);
+                if (!CardEffectParsing.TryParseLoadKind(m.Groups[2].Value, out var upToKind))
+                    continue;
+                effects.Add(new CardEffect(CardEffectType.LoadUpTo, n, upToKind));
+            }
 
             // Typed Load Cargo / Contraband / Parts (exact N).
             foreach (System.Text.RegularExpressions.Match m in LoadTypedGoods.Matches(text!))
@@ -3856,6 +3849,18 @@ namespace Firefly.Core.Actions
 
             if (!skillCheckPresent && ShouldIssueWarrant(text, player, choice))
                 effects.Add(new CardEffect(CardEffectType.WarrantIssued));
+
+            // Option-level "Load up to N Parts" (Hollowed Out Space-Liner) — not skill-band Loads.
+            if (!skillCheckPresent)
+            {
+                foreach (System.Text.RegularExpressions.Match m in LoadUpToTyped.Matches(text))
+                {
+                    var n = int.Parse(m.Groups[1].Value);
+                    if (!CardEffectParsing.TryParseLoadKind(m.Groups[2].Value, out var upToKind))
+                        continue;
+                    effects.Add(new CardEffect(CardEffectType.LoadUpTo, n, upToKind));
+                }
+            }
 
             return effects;
         }
@@ -4438,32 +4443,7 @@ namespace Firefly.Core.Actions
                 return true;
             }
 
-            var upTo = LoadUpToTyped.Match(text);
-            if (upTo.Success)
-            {
-                var max = int.Parse(upTo.Groups[1].Value);
-                var kind = NormalizeLoadKind(upTo.Groups[2].Value);
-                var requested = choice?.LoadAmount ?? -1;
-                var count = requested < 0
-                    ? MaxTypedLoad(player, kind, max)
-                    : requested;
-                if (count < 0 || count > max)
-                {
-                    error = $"Load up to {max} {kind} requires LoadAmount between 0 and {max}.";
-                    return false;
-                }
-                AssignTypedLoad(kind, count, ref addFuel, ref addParts, ref addCargo, ref addContra);
-                if (!HoldSpace.TryExplain(
-                    player,
-                    out error,
-                    addFuel: addFuel,
-                    addParts: addParts,
-                    addCargo: addCargo,
-                    addContraband: addContra))
-                    return false;
-                loaded = count;
-                return true;
-            }
+            // Load-up-to typed goods are shared CardEffectType.LoadUpTo (prose + overlays).
 
             if (LoadFuelNoLimit.IsMatch(text))
             {

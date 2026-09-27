@@ -803,7 +803,14 @@
       "options": [
         {
           "name": "Still Some Good Stuff Here",
-          "details": "Requires Mechanic: Salvage Op: --Load up to 6 parts. --Full Stop."
+          "details": "Requires Mechanic: Salvage Op: --Load up to 6 parts. --Full Stop.",
+          "effects": [
+            {
+              "type": "loadUpTo",
+              "count": 6,
+              "kind": "parts"
+            }
+          ]
         },
         {
           "name": "Nothin' We Can Do With That",

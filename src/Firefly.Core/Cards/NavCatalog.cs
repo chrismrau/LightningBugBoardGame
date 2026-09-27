@@ -147,7 +147,23 @@ namespace Firefly.Core.Cards
                 if (!CardEffectParsing.TryParseType(dto.Type, out var type))
                     throw new InvalidDataException(
                         $"Unknown Nav effect.type '{dto.Type}' (shared vocabulary only).");
-                effects.Add(new CardEffect(type, dto.Count ?? dto.Amount ?? 0));
+                var count = dto.Count ?? dto.Amount ?? 0;
+                if (type == CardEffectType.LoadUpTo)
+                {
+                    if (!CardEffectParsing.TryParseLoadKind(dto.Kind, out var kind))
+                        throw new InvalidDataException(
+                            "loadUpTo requires kind (Cargo / Contraband / Parts / Fuel).");
+                    effects.Add(new CardEffect(CardEffectType.LoadUpTo, count > 0 ? count : 1, kind));
+                    continue;
+                }
+                if (dto.UpTo == true
+                    && CardEffectParsing.TryLoadKindFromExactType(type, out var promotedKind))
+                {
+                    effects.Add(new CardEffect(
+                        CardEffectType.LoadUpTo, count > 0 ? count : 1, promotedKind));
+                    continue;
+                }
+                effects.Add(new CardEffect(type, count));
             }
             return effects;
         }
@@ -204,6 +220,8 @@ namespace Firefly.Core.Cards
             public string Type { get; set; } = "";
             public int? Count { get; set; }
             public int? Amount { get; set; }
+            public bool? UpTo { get; set; }
+            public string? Kind { get; set; }
         }
 
         private sealed class NavCountsDto
