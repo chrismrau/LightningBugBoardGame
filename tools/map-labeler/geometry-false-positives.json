@@ -9,16 +9,8 @@
       "b": "border-space-r2-08"
     },
     {
-      "a": "rim-cortex-relay-2-r1-11",
-      "b": "rim-penglai-r1-01"
-    },
-    {
       "a": "rim-kalidasa-r3-05",
       "b": "rim-kalidasa-r4-08"
-    },
-    {
-      "a": "rim-kalidasa-r4-08",
-      "b": "rim-penglai-r1-02"
     },
     {
       "a": "rim-kalidasa-r4-08",
@@ -27,18 +19,6 @@
     {
       "a": "rim-kalidasa-r4-09",
       "b": "rim-space-r2-10"
-    },
-    {
-      "a": "border-georgia-r2-03",
-      "b": "border-georgia-r3-06"
-    },
-    {
-      "a": "border-georgia-r3-05",
-      "b": "border-georgia-r3-06"
-    },
-    {
-      "a": "border-georgia-r3-06",
-      "b": "border-space-r2-24"
     },
     {
       "a": "border-georgia-r3-06",
@@ -55,10 +35,6 @@
     {
       "a": "border-georgia-r3-07",
       "b": "border-space-r2-24"
-    },
-    {
-      "a": "rim-kalidasa-r4-08",
-      "b": "rim-space-r2-10"
     },
     {
       "a": "rim-kalidasa-r4-08",

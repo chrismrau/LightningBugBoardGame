@@ -3,7 +3,7 @@
     "description": "Firefly: The Game \u2013 Adjacency recalculated under corrected rules",
     "schemaVersion": "4.142",
     "sectorCount": 155,
-    "edgeCount": 392,
+    "edgeCount": 398,
     "source": "User board images (concentric rings + satellite system pods) + Sectors.json (Qin Shi Huang single shell only)",
     "notes": [
       "RULES (user directives 2026-08-24):",
@@ -167,7 +167,13 @@
       "Penglai r1-02: removed rim-space-r1-10 and rim-cortex-relay-2-r1-11 (user correction; no shared boundaries).",
       "Kalidasa r4-08: removed rim-penglai-r1-01 (user correction; no shared boundary).",
       "Penglai r1-01: added rim-space-r1-10 (user correction; shared boundary; prior FP suppress was wrong).",
-      "Penglai r1-02: added rim-space-r2-10 (user correction; shared boundary; prior FP suppress was wrong)."
+      "Penglai r1-02: added rim-space-r2-10 (user correction; shared boundary; prior FP suppress was wrong).",
+      "Georgia r2-03: restored border-georgia-r3-06 (user correction; shared boundary; prior remove was wrong).",
+      "Georgia r3-05: restored border-georgia-r3-06 (user correction; shared boundary; prior remove was wrong).",
+      "Georgia r3-06: restored border-space-r2-24 (user correction; shared boundary; prior remove was wrong).",
+      "Cortex Relay 2: restored rim-penglai-r1-01 (user correction; shared boundary; prior FP suppress was wrong).",
+      "Kalidasa r4-08: restored rim-penglai-r1-02 (user correction; shared boundary; prior FP suppress was wrong).",
+      "Kalidasa r4-08: restored rim-space-r2-10 (user correction; shared boundary; prior remove was wrong)."
     ]
   },
   "edges": [
@@ -728,6 +734,10 @@
       "b": "border-georgia-r3-05"
     },
     {
+      "a": "border-georgia-r2-03",
+      "b": "border-georgia-r3-06"
+    },
+    {
       "a": "border-georgia-r2-04",
       "b": "border-georgia-r3-06"
     },
@@ -765,6 +775,10 @@
     },
     {
       "a": "border-georgia-r3-05",
+      "b": "border-georgia-r3-06"
+    },
+    {
+      "a": "border-georgia-r3-05",
       "b": "border-murphy-r1-01"
     },
     {
@@ -778,6 +792,10 @@
     {
       "a": "border-georgia-r3-06",
       "b": "border-georgia-r3-07"
+    },
+    {
+      "a": "border-georgia-r3-06",
+      "b": "border-space-r2-24"
     },
     {
       "a": "border-georgia-r3-06",
@@ -1493,6 +1511,10 @@
     },
     {
       "a": "rim-cortex-relay-2-r1-11",
+      "b": "rim-penglai-r1-01"
+    },
+    {
+      "a": "rim-cortex-relay-2-r1-11",
       "b": "rim-space-r1-10"
     },
     {
@@ -1630,6 +1652,14 @@
     {
       "a": "rim-kalidasa-r4-08",
       "b": "rim-kalidasa-r4-09"
+    },
+    {
+      "a": "rim-kalidasa-r4-08",
+      "b": "rim-penglai-r1-02"
+    },
+    {
+      "a": "rim-kalidasa-r4-08",
+      "b": "rim-space-r2-10"
     },
     {
       "a": "rim-kalidasa-r4-09",
