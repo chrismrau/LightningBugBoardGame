@@ -10,7 +10,7 @@
     "jsonEdgeCount": 398,
     "missingEdgeCount": 0,
     "extraEdgeCount": 0,
-    "suppressedFalsePositiveCount": 4,
+    "suppressedFalsePositiveCount": 3,
     "unlabeledCount": 0,
     "unknownLabelCount": 0,
     "sectorsWithDegreeMismatch": 0
@@ -43,14 +43,6 @@
       "bPlanet": null,
       "aZone": "Border Space",
       "bZone": "Kalidasa"
-    },
-    {
-      "a": "rim-kalidasa-r4-08",
-      "b": "rim-penglai-r1-01",
-      "aPlanet": null,
-      "bPlanet": "Newhall",
-      "aZone": "Kalidasa",
-      "bZone": "Penglai"
     }
   ],
   "degreeIssues": [],
