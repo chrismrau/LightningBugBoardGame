@@ -6,11 +6,11 @@ Geometry from `Data/Map/SectorLayout.json` vs edges in `Data/Map/Adjacency.json`
 
 - Labeled sectors: **155** / 155
 - Geometry edges: **352**
-- Adjacency.json edges: **392**
+- Adjacency.json edges: **394**
 - Missing in Adjacency.json (geometry has, JSON lacks): **0**
-- Extra in Adjacency.json (JSON has, geometry lacks): **40**
+- Extra in Adjacency.json (JSON has, geometry lacks): **42**
 - Suppressed geometry false positives: **11**
-- Sectors with degree mismatch: **60**
+- Sectors with degree mismatch: **62**
 
 Interpretation:
 
@@ -58,8 +58,10 @@ _None._
 | `rim-blue-sun-r2-02` (Fury) | `rim-blue-sun-r2-03` (Muir) | Blue Sun / Blue Sun |
 | `rim-blue-sun-r3-01` (rim-blue-sun-r3-01) | `rim-blue-sun-r3-02` (Dragon's Egg) | Blue Sun / Blue Sun |
 | `rim-blue-sun-r3-02` (Dragon's Egg) | `rim-blue-sun-r3-03` (rim-blue-sun-r3-03) | Blue Sun / Blue Sun |
+| `rim-cortex-relay-2-r1-11` (Cortex Relay 2) | `rim-penglai-r1-02` (Beylix) | Special / Penglai |
 | `rim-kalidasa-r2-01` (Heaven) | `rim-kalidasa-r2-04` (Angel) | Kalidasa / Kalidasa |
 | `rim-kalidasa-r3-01` (Aberdeen) | `rim-kalidasa-r3-06` (Whittier) | Kalidasa / Kalidasa |
+| `rim-kalidasa-r3-05` (New Kasmir) | `rim-kalidasa-r4-09` (rim-kalidasa-r4-09) | Kalidasa / Kalidasa |
 | `rim-kalidasa-r4-09` (rim-kalidasa-r4-09) | `rim-kalidasa-r4-10` (Djinn's Bane) | Kalidasa / Kalidasa |
 | `rim-kalidasa-r4-09` (rim-kalidasa-r4-09) | `rim-penglai-r1-01` (Newhall) | Kalidasa / Penglai |
 | `rim-kalidasa-r4-09` (rim-kalidasa-r4-09) | `rim-space-r1-10` (rim-space-r1-10) | Kalidasa / Rim Space |
@@ -185,22 +187,26 @@ _None._
   - extra neighbors: `rim-blue-sun-r3-01`, `rim-blue-sun-r3-03`
 - **rim-blue-sun-r3-03** `rim-blue-sun-r3-03` (Blue Sun): geo=5 json=6
   - extra neighbors: `rim-blue-sun-r3-02`
+- **Cortex Relay 2** `rim-cortex-relay-2-r1-11` (Special): geo=4 json=5
+  - extra neighbors: `rim-penglai-r1-02`
 - **Heaven** `rim-kalidasa-r2-01` (Kalidasa): geo=3 json=4
   - extra neighbors: `rim-kalidasa-r2-04`
 - **Angel** `rim-kalidasa-r2-04` (Kalidasa): geo=5 json=6
   - extra neighbors: `rim-kalidasa-r2-01`
 - **Aberdeen** `rim-kalidasa-r3-01` (Kalidasa): geo=3 json=4
   - extra neighbors: `rim-kalidasa-r3-06`
+- **New Kasmir** `rim-kalidasa-r3-05` (Kalidasa): geo=6 json=7
+  - extra neighbors: `rim-kalidasa-r4-09`
 - **Whittier** `rim-kalidasa-r3-06` (Kalidasa): geo=7 json=8
   - extra neighbors: `rim-kalidasa-r3-01`
-- **rim-kalidasa-r4-09** `rim-kalidasa-r4-09` (Kalidasa): geo=3 json=6
-  - extra neighbors: `rim-kalidasa-r4-10`, `rim-penglai-r1-01`, `rim-space-r1-10`
+- **rim-kalidasa-r4-09** `rim-kalidasa-r4-09` (Kalidasa): geo=3 json=7
+  - extra neighbors: `rim-kalidasa-r3-05`, `rim-kalidasa-r4-10`, `rim-penglai-r1-01`, `rim-space-r1-10`
 - **Djinn's Bane** `rim-kalidasa-r4-10` (Kalidasa): geo=5 json=6
   - extra neighbors: `rim-kalidasa-r4-09`
 - **Newhall** `rim-penglai-r1-01` (Penglai): geo=2 json=5
   - extra neighbors: `rim-kalidasa-r4-09`, `rim-penglai-r1-02`, `rim-space-r2-10`
-- **Beylix** `rim-penglai-r1-02` (Penglai): geo=2 json=4
-  - extra neighbors: `rim-penglai-r1-01`, `rim-space-r1-10`
+- **Beylix** `rim-penglai-r1-02` (Penglai): geo=2 json=5
+  - extra neighbors: `rim-cortex-relay-2-r1-11`, `rim-penglai-r1-01`, `rim-space-r1-10`
 - **rim-space-r1-10** `rim-space-r1-10` (Rim Space): geo=4 json=6
   - extra neighbors: `rim-kalidasa-r4-09`, `rim-penglai-r1-02`
 - **rim-space-r2-10** `rim-space-r2-10` (Rim Space): geo=1 json=2
