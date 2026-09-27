@@ -2559,6 +2559,20 @@ namespace Firefly.Core.Actions
                 return true;
             }
 
+            var crewOnJobNeed = Regex.Match(need, @"(\d+)\s+or more Crew on Job", RegexOptions.IgnoreCase);
+            if (crewOnJobNeed.Success)
+            {
+                // Ambush / printed "Crew on Job": Returned-to-Ship do not count
+                // (Director's Cut C&P p.49 I'll Be in my Bunk).
+                var n = int.Parse(crewOnJobNeed.Groups[1].Value);
+                if (JobWorkCrew.AvailableCount(player) < n)
+                {
+                    error = $"Requires {n} or more Crew on Job.";
+                    return false;
+                }
+                return true;
+            }
+
             var crewNeed = Regex.Match(need, @"(\d+)\s+or more Crew", RegexOptions.IgnoreCase);
             if (crewNeed.Success)
             {

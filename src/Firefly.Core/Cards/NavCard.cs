@@ -23,15 +23,15 @@ namespace Firefly.Core.Cards
         /// <summary>Optional structured skill test; preferred over parsing <see cref="Details"/>.</summary>
         public MisbehaveSkillCheckSpec? SkillCheck { get; }
         /// <summary>
-        /// Optional structured result bands using the shared <see cref="CardEffect"/> vocabulary.
-        /// Preferred over regex band selection when present.
+        /// Optional structured result bands (shared <see cref="CardEffect"/> and/or
+        /// <see cref="NavLocalEffectType"/>). Preferred over regex band selection when present.
         /// </summary>
-        public IReadOnlyList<CardEffectBand> Bands { get; }
+        public IReadOnlyList<NavBand> Bands { get; }
         /// <summary>
-        /// Optional option-level shared effects when there is no skill band
-        /// (e.g. Disgruntle Moral with Keep Flying).
+        /// Optional option-level effects when there is no skill band
+        /// (e.g. Disgruntle Moral with Keep Flying). Mixed shared + Nav-local.
         /// </summary>
-        public IReadOnlyList<CardEffect> Effects { get; }
+        public IReadOnlyList<NavEffect> Effects { get; }
 
         public bool HasStructuredBands => Bands.Count > 0;
         public bool HasStructuredEffects => Effects.Count > 0;
@@ -41,15 +41,15 @@ namespace Firefly.Core.Cards
             string details,
             FlightOutcome outcome,
             MisbehaveSkillCheckSpec? skillCheck = null,
-            IReadOnlyList<CardEffectBand>? bands = null,
-            IReadOnlyList<CardEffect>? effects = null)
+            IReadOnlyList<NavBand>? bands = null,
+            IReadOnlyList<NavEffect>? effects = null)
         {
             Name = name;
             Details = details ?? "";
             Outcome = outcome;
             SkillCheck = skillCheck;
-            Bands = bands ?? Array.Empty<CardEffectBand>();
-            Effects = effects ?? Array.Empty<CardEffect>();
+            Bands = bands ?? Array.Empty<NavBand>();
+            Effects = effects ?? Array.Empty<NavEffect>();
         }
     }
 

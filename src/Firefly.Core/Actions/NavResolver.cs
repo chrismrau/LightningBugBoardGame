@@ -246,7 +246,7 @@ namespace Firefly.Core.Actions
         private bool _frozenSkillReady;
         private SkillCheckResult? _frozenSkillCheck;
         private string? _frozenBandText;
-        private IReadOnlyList<CardEffect>? _frozenBandEffects;
+        private IReadOnlyList<NavEffect>? _frozenBandEffects;
         private FlightOutcome _frozenOutcome;
 
         /// <summary>
@@ -456,7 +456,7 @@ namespace Firefly.Core.Actions
 
             SkillCheckResult? check = null;
             string? bandText = null;
-            IReadOnlyList<CardEffect>? bandEffects = null;
+            IReadOnlyList<NavEffect>? bandEffects = null;
             if (_frozenSkillReady)
             {
                 check = _frozenSkillCheck;
@@ -2126,7 +2126,7 @@ namespace Firefly.Core.Actions
             ref FlightOutcome outcome,
             out SkillCheckResult? check,
             out string? bandText,
-            out IReadOnlyList<CardEffect>? bandEffects,
+            out IReadOnlyList<NavEffect>? bandEffects,
             out string? error)
         {
             check = null;
@@ -2292,7 +2292,7 @@ namespace Firefly.Core.Actions
 
             if (option.HasStructuredBands)
             {
-                var band = CardEffectBand.Pick(option.Bands, check!.Total);
+                var band = NavBand.Pick(option.Bands, check!.Total);
                 bandEffects = band?.Effects;
                 bandText = !string.IsNullOrWhiteSpace(band?.Text)
                     ? band!.Text
@@ -2301,7 +2301,7 @@ namespace Firefly.Core.Actions
             else
             {
                 bandText = SkillCheck.BandText(option.Details, check!.Total);
-                bandEffects = ParseSharedEffectsFromText(bandText);
+                bandEffects = WrapSharedAsNav(ParseSharedEffectsFromText(bandText));
             }
 
             // Director's Cut Kalidasa Nested Skill Tests: outer fail band is itself a Skill Test.
@@ -2340,7 +2340,7 @@ namespace Firefly.Core.Actions
             ref FlightOutcome outcome,
             out SkillCheckResult? check,
             out string? bandText,
-            out IReadOnlyList<CardEffect>? bandEffects,
+            out IReadOnlyList<NavEffect>? bandEffects,
             out string? error)
         {
             check = null;
@@ -2492,7 +2492,7 @@ namespace Firefly.Core.Actions
             }
 
             bandText = SkillCheck.BandText(nestedDetails, check!.Total);
-            bandEffects = ParseSharedEffectsFromText(bandText);
+            bandEffects = WrapSharedAsNav(ParseSharedEffectsFromText(bandText));
             outcome = SkillCheck.OutcomeFor(nestedDetails, check.Success);
             _nestedSkillTreeDetails = null;
             return true;
@@ -2500,9 +2500,9 @@ namespace Firefly.Core.Actions
 
         private static int PlannedSkillBandKillCount(
             string? bandText,
-            IReadOnlyList<CardEffect>? bandEffects)
+            IReadOnlyList<NavEffect>? bandEffects)
         {
-            var structured = CardEffectApplicator.PlannedKillCount(bandEffects);
+            var structured = CardEffectApplicator.PlannedKillCount(ExtractShared(bandEffects));
             if (structured > 0)
                 return structured;
             if (string.IsNullOrWhiteSpace(bandText) || IsNestedSkillTreeStub(bandText))
@@ -3428,7 +3428,7 @@ namespace Firefly.Core.Actions
             GameState game,
             PlayerState player,
             string? bandText,
-            IReadOnlyList<CardEffect>? bandEffects,
+            IReadOnlyList<NavEffect>? bandEffects,
             NavResolveChoice? choice,
             out string? error)
         {
@@ -3459,7 +3459,8 @@ namespace Firefly.Core.Actions
                 }
             }
 
-            if (!TryPlanGoodsSeize(player, text, choice, out _, out _, out _, out _, out _, out error))
+            if (!TryPlanGoodsSeize(player, text, choice, out _, out _, out _, out _, out _, out error,
+                    LocalCount(bandEffects, NavLocalEffectType.SeizeGoodsNotInStash)))
                 return false;
 
             if (!TryPlanLoseOrDiscardGoods(player, text, choice, out _, out _, out _, out _, out _, out error))
@@ -3522,7 +3523,7 @@ namespace Firefly.Core.Actions
             GameState game,
             PlayerState player,
             string? bandText,
-            IReadOnlyList<CardEffect>? bandEffects,
+            IReadOnlyList<NavEffect>? bandEffects,
             NavResolveChoice? choice,
             IRng rng,
             out int crewKilled,
@@ -3558,13 +3559,23 @@ namespace Firefly.Core.Actions
             goodsLoaded = sharedResult.GoodsLoaded;
 
             // Nav-only adapters: fuel lose, Goods seize, discard grab.
+            // Prefer structured NavLocalEffectType when present (S5); else prose regex.
             // Take/Load Parts and Load N Goods go through shared when parsed.
-            var fuel = LoseOrDiscardFuel.Match(text);
-            if (fuel.Success)
+            var structuredFuel = LocalCount(bandEffects, NavLocalEffectType.LoseFuel);
+            if (structuredFuel != null)
             {
-                var n = int.Parse(fuel.Groups[1].Value);
-                fuelLost = System.Math.Min(n, player.Fuel);
+                fuelLost = System.Math.Min(structuredFuel.Value, player.Fuel);
                 player.Fuel -= fuelLost;
+            }
+            else
+            {
+                var fuel = LoseOrDiscardFuel.Match(text);
+                if (fuel.Success)
+                {
+                    var n = int.Parse(fuel.Groups[1].Value);
+                    fuelLost = System.Math.Min(n, player.Fuel);
+                    player.Fuel -= fuelLost;
+                }
             }
 
             if (!HasSharedEffect(shared, CardEffectType.LoadParts))
@@ -3594,6 +3605,7 @@ namespace Firefly.Core.Actions
                 goodsLoaded += loaded;
             }
 
+            var structuredSeize = LocalCount(bandEffects, NavLocalEffectType.SeizeGoodsNotInStash);
             if (TryPlanGoodsSeize(
                 player,
                 text,
@@ -3603,7 +3615,8 @@ namespace Firefly.Core.Actions
                 out var seizeCargo,
                 out var seizeContra,
                 out var seized,
-                out _))
+                out _,
+                structuredSeize))
             {
                 player.Fuel -= seizeFuel;
                 player.Parts -= seizeParts;
@@ -3741,11 +3754,47 @@ namespace Firefly.Core.Actions
 
         private static IReadOnlyList<CardEffect> ResolveSharedBandEffects(
             string? bandText,
-            IReadOnlyList<CardEffect>? bandEffects)
+            IReadOnlyList<NavEffect>? bandEffects)
         {
-            if (bandEffects != null && bandEffects.Count > 0)
-                return bandEffects;
+            var shared = ExtractShared(bandEffects);
+            if (shared.Count > 0)
+                return shared;
             return ParseSharedEffectsFromText(bandText);
+        }
+
+        private static IReadOnlyList<NavEffect> WrapSharedAsNav(IReadOnlyList<CardEffect> shared)
+        {
+            if (shared == null || shared.Count == 0)
+                return Array.Empty<NavEffect>();
+            var list = new List<NavEffect>(shared.Count);
+            foreach (var effect in shared)
+                list.Add(NavEffect.Of(effect));
+            return list;
+        }
+
+        private static IReadOnlyList<CardEffect> ExtractShared(IReadOnlyList<NavEffect>? effects)
+        {
+            if (effects == null || effects.Count == 0)
+                return Array.Empty<CardEffect>();
+            var list = new List<CardEffect>();
+            foreach (var effect in effects)
+            {
+                if (effect.Shared != null)
+                    list.Add(effect.Shared);
+            }
+            return list;
+        }
+
+        private static int? LocalCount(IReadOnlyList<NavEffect>? effects, NavLocalEffectType type)
+        {
+            if (effects == null)
+                return null;
+            foreach (var effect in effects)
+            {
+                if (effect.Is(type))
+                    return effect.Count;
+            }
+            return null;
         }
 
         private static bool HasTypedSharedLoad(IReadOnlyList<CardEffect> effects)
@@ -3773,25 +3822,26 @@ namespace Firefly.Core.Actions
         }
 
         private static IReadOnlyList<CardEffect> FilterOptionSharedEffects(
-            IReadOnlyList<CardEffect> effects,
+            IReadOnlyList<NavEffect> effects,
             bool skillCheckPresent)
         {
-            if (!skillCheckPresent)
-                return effects;
             // When a skill check is present, Warrant / typed Load / Kill / TakeCash are band-only.
             var filtered = new List<CardEffect>();
             foreach (var effect in effects)
             {
-                if (effect.Type == CardEffectType.WarrantIssued
-                    || effect.Type == CardEffectType.LoadCargo
-                    || effect.Type == CardEffectType.LoadContraband
-                    || effect.Type == CardEffectType.LoadParts
-                    || effect.Type == CardEffectType.LoadGoods
-                    || effect.Type == CardEffectType.LoadUpTo
-                    || effect.Type == CardEffectType.TakeCash
-                    || effect.Type == CardEffectType.KillCrew)
+                if (effect.Shared == null)
                     continue;
-                filtered.Add(effect);
+                if (skillCheckPresent
+                    && (effect.Type == CardEffectType.WarrantIssued
+                        || effect.Type == CardEffectType.LoadCargo
+                        || effect.Type == CardEffectType.LoadContraband
+                        || effect.Type == CardEffectType.LoadParts
+                        || effect.Type == CardEffectType.LoadGoods
+                        || effect.Type == CardEffectType.LoadUpTo
+                        || effect.Type == CardEffectType.TakeCash
+                        || effect.Type == CardEffectType.KillCrew))
+                    continue;
+                filtered.Add(effect.Shared);
             }
             return filtered;
         }
@@ -3969,7 +4019,8 @@ namespace Firefly.Core.Actions
             out int seizeCargo,
             out int seizeContra,
             out int seized,
-            out string? error)
+            out string? error,
+            int? structuredCount = null)
         {
             seizeFuel = 0;
             seizeParts = 0;
@@ -3978,11 +4029,19 @@ namespace Firefly.Core.Actions
             seized = 0;
             error = null;
 
-            var match = SeizeGoodsNotInStash.Match(text);
-            if (!match.Success)
-                return true;
+            int n;
+            if (structuredCount != null)
+            {
+                n = structuredCount.Value;
+            }
+            else
+            {
+                var match = SeizeGoodsNotInStash.Match(text);
+                if (!match.Success)
+                    return true;
+                n = int.Parse(match.Groups[1].Value);
+            }
 
-            var n = int.Parse(match.Groups[1].Value);
             var unprotected = GoodsTokensNotInStash(player);
             var toSeize = System.Math.Min(n, unprotected);
             if (toSeize <= 0)

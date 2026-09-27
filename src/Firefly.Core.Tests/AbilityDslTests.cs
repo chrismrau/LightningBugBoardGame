@@ -131,6 +131,23 @@ namespace Firefly.Core.Tests
         }
 
         [Fact]
+        public void River_Gifted_full_bands_wait_on_printed_card_text()
+        {
+            // Supplies.tsv: "Gifted: See card." FAQ 4.1 mentions return-to-ship outcomes
+            // but does not print numeric bands — hold thin GiftedRoll until card text is in-repo.
+            var river = Crew.Get("crew_river-tam");
+            Assert.Contains("See card", river.Description, StringComparison.OrdinalIgnoreCase);
+            Assert.Empty(river.Abilities);
+            var game = NewGame();
+            Assert.True(game.CurrentPlayer.Roster.TryHire(river, out _));
+            Assert.True(GiftedRoll.HasGiftedCrew(game.CurrentPlayer));
+            var result = GiftedRoll.Roll(game.CurrentPlayer, ScriptedRng.FromDieFaces(6));
+            Assert.Equal(6, result.Total);
+            // No outcome enum / band application — total only.
+            Assert.IsType<GiftedRollResult>(result);
+        }
+
+        [Fact]
         public void Wash_adds_one_to_full_burn_range()
         {
             var game = NewGame();

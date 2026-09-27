@@ -902,7 +902,29 @@
       "options": [
         {
           "name": "Heavy Handed Enforcement",
-          "details": "--Talk 9 Bribes; 1-8 5 Goods not in Stash are seized. 9+ Keep Flying."
+          "details": "--Talk 9 Bribes; 1-8 5 Goods not in Stash are seized. 9+ Keep Flying.",
+          "skillCheck": {
+            "skill": "negotiate",
+            "target": 9,
+            "bribes": true
+          },
+          "bands": [
+            {
+              "range": "1-8",
+              "text": "1-8 5 Goods not in Stash are seized.",
+              "effects": [
+                {
+                  "type": "seizeGoodsNotInStash",
+                  "count": 5
+                }
+              ]
+            },
+            {
+              "range": "9+",
+              "text": "9+ Keep Flying.",
+              "effects": []
+            }
+          ]
         },
         {
           "name": "Turn and Burn!",
@@ -1210,7 +1232,28 @@
       "options": [
         {
           "name": "Patch It Best Ya Can",
-          "details": "Tech 5 Breakdown; 1-4 Lose 2 Fuel. Full Stop. 5+ Keep Flying."
+          "details": "Tech 5 Breakdown; 1-4 Lose 2 Fuel. Full Stop. 5+ Keep Flying.",
+          "skillCheck": {
+            "skill": "tech",
+            "target": 5
+          },
+          "bands": [
+            {
+              "range": "1-4",
+              "text": "1-4 Lose 2 Fuel. Full Stop.",
+              "effects": [
+                {
+                  "type": "loseFuel",
+                  "count": 2
+                }
+              ]
+            },
+            {
+              "range": "5+",
+              "text": "5+ Keep Flying.",
+              "effects": []
+            }
+          ]
         },
         {
           "name": "Replace the Whole Damn Mess",
@@ -1488,7 +1531,28 @@
       "options": [
         {
           "name": "But She'll Fly True",
-          "details": "--Tech 7 Breakdown  1-6 Discard 2 Fuel. Full Stop.  7+ Keep Flying."
+          "details": "--Tech 7 Breakdown  1-6 Discard 2 Fuel. Full Stop.  7+ Keep Flying.",
+          "skillCheck": {
+            "skill": "tech",
+            "target": 7
+          },
+          "bands": [
+            {
+              "range": "1-6",
+              "text": "1-6 Discard 2 Fuel. Full Stop.",
+              "effects": [
+                {
+                  "type": "loseFuel",
+                  "count": 2
+                }
+              ]
+            },
+            {
+              "range": "7+",
+              "text": "7+ Keep Flying.",
+              "effects": []
+            }
+          ]
         },
         {
           "name": "Patch Up Our Hurt",
