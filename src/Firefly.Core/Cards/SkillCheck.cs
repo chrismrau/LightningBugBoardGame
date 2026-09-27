@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.RegularExpressions;
 using Firefly.Core.Abilities;
 using Firefly.Core.State;
@@ -746,25 +747,95 @@ namespace Firefly.Core.Cards
         /// <summary>
         /// Director's Cut p.14 / GF9: Skill Tests list results under the target; the rolled
         /// total selects the matching printed band (e.g. 1-4 … / 5+ …).
+        /// Bracketed Nested Skill Tests (Kalidasa / Director's Cut) are opaque to the outer
+        /// band scan so inner 1-7 / 8+ markers do not steal the outer fail band.
         /// </summary>
         public static string? BandText(string? details, int sum)
         {
             if (string.IsNullOrWhiteSpace(details))
                 return null;
             string? picked = null;
-            foreach (Match match in BandPattern.Matches(details))
+            foreach (var (min, max, text) in EnumerateTopLevelBands(details))
             {
-                var min = int.Parse(match.Groups[1].Value);
-                var max = match.Groups[2].Success ? int.Parse(match.Groups[2].Value) : int.MaxValue;
                 if (sum >= min && sum <= max)
-                    picked = match.Groups[3].Value.Trim().TrimEnd('.');
+                    picked = text;
             }
             return string.IsNullOrWhiteSpace(picked) ? null : picked;
         }
 
-        private static readonly Regex BandPattern = new Regex(
-            @"(\d+)\s*(?:-\s*(\d+)|\+)\s*[:;,]?\s*(.*?)(?=(?:\s+\d+\s*(?:-\s*\d+|\+))|$)",
-            RegexOptions.IgnoreCase | RegexOptions.Singleline | RegexOptions.Compiled);
+        /// <summary>
+        /// Unwrap a Nested Skill Test stub (<c>[Fight 8 …]</c>) for the second roll.
+        /// Director's Cut Kalidasa Nested Skill Tests.
+        /// </summary>
+        public static string UnwrapNestedSkillTree(string? bandText)
+        {
+            if (string.IsNullOrWhiteSpace(bandText))
+                return "";
+            var text = bandText.Trim();
+            if (text.Length >= 2 && text[0] == '[')
+            {
+                var close = text.LastIndexOf(']');
+                if (close > 0)
+                    text = text.Substring(1, close - 1);
+                else
+                    text = text.Substring(1);
+            }
+            return text.Trim().TrimEnd(',', ' ', '.');
+        }
+
+        /// <summary>
+        /// True when band text is itself a Skill Test (Nested Skill Tree stub), including
+        /// bracket-wrapped Kalidasa Nav / Job forms.
+        /// </summary>
+        public static bool IsNestedSkillTree(string? bandText) =>
+            !string.IsNullOrWhiteSpace(bandText)
+            && TryParse(UnwrapNestedSkillTree(bandText), out _);
+
+        private static readonly Regex BandStarter = new Regex(
+            @"(\d+)\s*(?:-\s*(\d+)|\+)",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        private static IEnumerable<(int Min, int Max, string Text)> EnumerateTopLevelBands(string details)
+        {
+            var starts = new List<(int Index, int Length, int Min, int Max)>();
+            foreach (Match match in BandStarter.Matches(details))
+            {
+                if (BracketDepthAt(details, match.Index) != 0)
+                    continue;
+                var min = int.Parse(match.Groups[1].Value);
+                var max = match.Groups[2].Success ? int.Parse(match.Groups[2].Value) : int.MaxValue;
+                starts.Add((match.Index, match.Length, min, max));
+            }
+
+            for (var i = 0; i < starts.Count; i++)
+            {
+                var start = starts[i];
+                var contentStart = start.Index + start.Length;
+                while (contentStart < details.Length
+                       && (details[contentStart] == ' '
+                           || details[contentStart] == '\t'
+                           || details[contentStart] == ':'
+                           || details[contentStart] == ';'
+                           || details[contentStart] == ','))
+                    contentStart++;
+                var contentEnd = i + 1 < starts.Count ? starts[i + 1].Index : details.Length;
+                var text = details.Substring(contentStart, contentEnd - contentStart).Trim().TrimEnd('.');
+                yield return (start.Min, start.Max, text);
+            }
+        }
+
+        private static int BracketDepthAt(string text, int index)
+        {
+            var depth = 0;
+            for (var i = 0; i < index && i < text.Length; i++)
+            {
+                if (text[i] == '[')
+                    depth++;
+                else if (text[i] == ']' && depth > 0)
+                    depth--;
+            }
+            return depth;
+        }
 
         private static bool Contains(string text, string value) =>
             text.IndexOf(value, StringComparison.OrdinalIgnoreCase) >= 0;
