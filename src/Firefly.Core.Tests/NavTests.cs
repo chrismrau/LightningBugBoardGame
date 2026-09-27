@@ -819,21 +819,176 @@ namespace Firefly.Core.Tests
         }
 
         [Fact]
-        public void Nested_Fight_band_does_not_apply_kill_without_nested_roll()
+        public void Nested_Fight_fail_kills_crew_and_issues_warrant()
+        {
+            // Director's Cut Kalidasa Nested Skill Tests: fail Talk → roll Fight → apply nested band.
+            var (game, resolver, player) = GameWithQueuedDraws(1);
+            var catalog = CrewCatalog.LoadDefault();
+            Assert.True(player.Roster.TryHire(catalog.Get("crew_jayne"), out _));
+            player.TalkBonus = 1;
+            // Jayne Fight 2 → nested Fight dice = 2
+            game.Decks!.Alliance.PlaceOnTop(game.Decks.Catalog.Get("nav_alliance-interrogation"));
+            resolver.DrawNext(game);
+
+            // Talk 1 (fail) then Fight 1,1 (fail vs 8)
+            Assert.True(
+                resolver.TryResolve(game, 1, out var resolution, out var error, ScriptedRng.FromDieFaces(1, 1, 1)),
+                error);
+            Assert.False(resolution!.SkillCheck!.Success);
+            Assert.Equal(Skill.Fight, resolution.SkillCheck.Check.Skill);
+            Assert.Equal(1, resolution.CrewKilled);
+            Assert.Equal(1, resolution.WarrantsIssued);
+            Assert.Equal(0, player.Roster.Count);
+            Assert.Equal(1, player.Warrants);
+            Assert.Equal(FlightOutcome.FullStop, resolution.Outcome);
+            Assert.True(resolution.Stopped);
+        }
+
+        [Fact]
+        public void Nested_Fight_success_Evades_to_adjacent_Sector()
+        {
+            var (game, resolver, player) = GameWithQueuedDraws(2);
+            player.TalkBonus = 1;
+            player.FightBonus = 8;
+            game.Decks!.Alliance.PlaceOnTop(game.Decks.Catalog.Get("nav_alliance-interrogation"));
+            resolver.DrawNext(game);
+
+            var choice = new NavResolveChoice { EvadeToSectorId = Persephone };
+            Assert.True(
+                resolver.TryResolve(
+                    game, 1, out var resolution, out var error,
+                    ScriptedRng.FromDieFaces(1, 6),
+                    choice),
+                error);
+            Assert.True(resolution!.SkillCheck!.Success);
+            Assert.Equal(Skill.Fight, resolution.SkillCheck.Check.Skill);
+            Assert.Equal(0, resolution.CrewKilled);
+            Assert.Equal(0, resolution.WarrantsIssued);
+            Assert.Equal(FlightOutcome.Evade, resolution.Outcome);
+            Assert.True(resolution.Stopped);
+            Assert.Equal(Persephone, player.SectorId);
+            Assert.Empty(game.PendingNavDraws);
+        }
+
+        [Fact]
+        public void Nested_Fight_Patience_success_is_Full_Stop_not_Evade()
+        {
+            // Printed nested 8+ Full Stop (user-confirmed card text).
+            var (game, resolver, player) = GameWithQueuedDraws(1);
+            var catalog = CrewCatalog.LoadDefault();
+            Assert.True(player.Roster.TryHire(catalog.Get("crew_jayne"), out _));
+            player.TalkBonus = 1;
+            player.FightBonus = 6;
+            game.Decks!.Alliance.PlaceOnTop(game.Decks.Catalog.Get("nav_patiences-posse"));
+            resolver.DrawNext(game);
+
+            Assert.True(
+                resolver.TryResolve(game, 1, out var resolution, out var error, ScriptedRng.FromDieFaces(1, 6, 6)),
+                error);
+            Assert.True(resolution!.SkillCheck!.Success);
+            Assert.Equal(0, resolution.CrewKilled);
+            Assert.Equal(FlightOutcome.FullStop, resolution.Outcome);
+            Assert.True(resolution.Stopped);
+            Assert.Equal(Pelorum, player.SectorId);
+        }
+
+        [Fact]
+        public void Nested_Fight_discards_chosen_Ship_Upgrade_if_able()
+        {
+            var (game, resolver, player) = GameWithQueuedDraws(1);
+            player.TalkBonus = 1;
+            player.FightBonus = 1;
+            player.ShipUpgrades.Add("ship-upgrade_cry-baby");
+            player.ShipUpgrades.Add("ship-upgrade_stash");
+            player.Cash = 0;
+            game.Decks!.Alliance.PlaceOnTop(game.Decks.Catalog.Get("nav_badgers-boys"));
+            resolver.DrawNext(game);
+
+            var choice = new NavResolveChoice
+            {
+                SkillCheck = new SkillCheckChoice { BribeDollars = 0 },
+                DiscardShipUpgradeId = "ship-upgrade_stash"
+            };
+            Assert.True(
+                resolver.TryResolve(
+                    game, 1, out var resolution, out var error,
+                    ScriptedRng.FromDieFaces(1, 1),
+                    choice),
+                error);
+            Assert.False(resolution!.SkillCheck!.Success);
+            Assert.Equal(FlightOutcome.FullStop, resolution.Outcome);
+            Assert.DoesNotContain("ship-upgrade_stash", player.ShipUpgrades);
+            Assert.Contains("ship-upgrade_cry-baby", player.ShipUpgrades);
+        }
+
+        [Fact]
+        public void Nested_Fight_Lose_Goods_requires_GoodsMix_choice()
+        {
+            var (game, resolver, player) = GameWithQueuedDraws(1);
+            player.TalkBonus = 1;
+            player.FightBonus = 1;
+            player.Fuel = 2;
+            player.Cargo = 2;
+            player.Parts = 0;
+            player.Contraband = 0;
+            game.Decks!.Alliance.PlaceOnTop(game.Decks.Catalog.Get("nav_niskas-neer-do-wells"));
+            resolver.DrawNext(game);
+
+            Assert.False(
+                resolver.TryResolve(game, 1, out _, out var error, ScriptedRng.FromDieFaces(1, 1)));
+            Assert.Contains("Goods", error);
+            Assert.Equal(PendingChoiceKinds.GoodsMix, game.PendingChoice!.Kind);
+            Assert.StartsWith(GoodsMixContexts.LosePrefix, game.PendingChoice.ContextId);
+
+            Assert.True(
+                resolver.TryResumeGoodsMix(
+                    game,
+                    new ChoiceSubmission
+                    {
+                        Values = new[] { "2", "0", "1", "0" }
+                    },
+                    out var resolution,
+                    out var resumeErr,
+                    ScriptedRng.FromDieFaces(1, 1)),
+                resumeErr);
+            Assert.Equal(FlightOutcome.FullStop, resolution!.Outcome);
+            Assert.Equal(0, player.Fuel);
+            Assert.Equal(1, player.Cargo);
+            Assert.Equal(3, resolution.GoodsSeized);
+        }
+
+        [Fact]
+        public void Nested_Fight_Discard_Goods_with_Kill_applies_both()
         {
             var (game, resolver, player) = GameWithQueuedDraws(1);
             var catalog = CrewCatalog.LoadDefault();
             Assert.True(player.Roster.TryHire(catalog.Get("crew_jayne"), out _));
-            player.TalkBonus = 0;
-            game.Decks!.Alliance.PlaceOnTop(game.Decks.Catalog.Get("nav_alliance-interrogation"));
+            player.TalkBonus = 1;
+            player.Fuel = 1;
+            player.Parts = 1;
+            player.Cargo = 0;
+            player.Contraband = 0;
+            game.Decks!.Alliance.PlaceOnTop(game.Decks.Catalog.Get("nav_failure-to-communicate"));
             resolver.DrawNext(game);
 
-            Assert.True(resolver.TryResolve(game, 1, out var resolution, out var error, ScriptedRng.FromDieFaces(1)), error);
-            Assert.False(resolution!.SkillCheck!.Success);
-            Assert.Equal(0, resolution.CrewKilled);
-            Assert.Equal(0, resolution.WarrantsIssued);
-            Assert.Equal(1, player.Roster.Count);
-            Assert.Equal(0, player.Warrants);
+            var choice = new NavResolveChoice
+            {
+                SeizeGoodsFuel = 1,
+                SeizeGoodsParts = 1,
+                SeizeGoodsCargo = 0,
+                SeizeGoodsContraband = 0
+            };
+            Assert.True(
+                resolver.TryResolve(
+                    game, 1, out var resolution, out var error,
+                    ScriptedRng.FromDieFaces(1, 1, 1),
+                    choice),
+                error);
+            Assert.Equal(1, resolution!.CrewKilled);
+            Assert.Equal(2, resolution.GoodsSeized);
+            Assert.Equal(0, player.Fuel);
+            Assert.Equal(0, player.Parts);
+            Assert.Equal(FlightOutcome.FullStop, resolution.Outcome);
         }
 
         [Fact]

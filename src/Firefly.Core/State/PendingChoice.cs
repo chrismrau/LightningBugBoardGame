@@ -199,11 +199,16 @@ namespace Firefly.Core.State
         /// </summary>
         public const string AlertReaverCutter = "alert-reaver-cutter";
         /// <summary>
-        /// Nav Load N Goods / Seize N Goods / Customs stash keep mix.
+        /// Nav Load N Goods / Seize N Goods / Lose|Discard N Goods / Customs stash keep mix.
         /// <see cref="ChoiceSubmission.Values"/> = fuel, parts, cargo, contraband counts
         /// (or contraband, fugitives for stash keep). ContextId discriminates the site.
         /// </summary>
         public const string GoodsMix = "goods-mix";
+        /// <summary>
+        /// Nav "Discard 1 Ship Upgrade, if able": pick which installed upgrade to discard.
+        /// Options = installed ship-upgrade ids. <see cref="ChoiceSubmission.SelectedOptionId"/>.
+        /// </summary>
+        public const string DiscardShipUpgrade = "discard-ship-upgrade";
         /// <summary>
         /// Regulated Salvage: with FAKE ID, may Load 3 Cargo (no Warrant) or take Otherwise
         /// (Load 3 Contraband, Warrant Issued). Options: <see cref="NavFakeIdSalvageOptions"/>.
@@ -288,10 +293,12 @@ namespace Firefly.Core.State
     {
         public const string LoadPrefix = "load:";
         public const string SeizePrefix = "seize:";
+        public const string LosePrefix = "lose:";
         public const string StashKeepPrefix = "stash-keep:";
 
         public static string Load(int count) => LoadPrefix + count;
         public static string Seize(int count) => SeizePrefix + count;
+        public static string Lose(int count) => LosePrefix + count;
         public static string StashKeep(int keepTotal) => StashKeepPrefix + keepTotal;
 
         public static bool TryParseLoad(string? contextId, out int count) =>
@@ -299,6 +306,9 @@ namespace Firefly.Core.State
 
         public static bool TryParseSeize(string? contextId, out int count) =>
             TryParseCount(contextId, SeizePrefix, out count);
+
+        public static bool TryParseLose(string? contextId, out int count) =>
+            TryParseCount(contextId, LosePrefix, out count);
 
         public static bool TryParseStashKeep(string? contextId, out int keepTotal) =>
             TryParseCount(contextId, StashKeepPrefix, out keepTotal);

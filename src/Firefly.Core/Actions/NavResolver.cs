@@ -118,11 +118,17 @@ namespace Firefly.Core.Actions
         /// <summary>
         /// When a band seizes N Goods not in Stash, the chosen mix to remove.
         /// Counts must sum to the seized amount. Negative fields → auto order.
+        /// Also used for Lose/Discard N Goods (any Goods, including Stash).
         /// </summary>
         public int SeizeGoodsFuel { get; set; } = -1;
         public int SeizeGoodsParts { get; set; } = -1;
         public int SeizeGoodsCargo { get; set; } = -1;
         public int SeizeGoodsContraband { get; set; } = -1;
+        /// <summary>
+        /// "Discard 1 Ship Upgrade, if able" — installed upgrade id to discard.
+        /// Null when able and unset → PendingChoice; empty ship → skip (if able).
+        /// </summary>
+        public string? DiscardShipUpgradeId { get; set; }
         /// <summary>
         /// Buy-on-the-go Opportunity purchases (Rogue Trader / Freighter Convoy). "You may" — zeros skip.
         /// </summary>
@@ -202,6 +208,9 @@ namespace Firefly.Core.Actions
     /// <see cref="NavResolveChoice.UseFakeIdSalvage"/> is set; without Fake ID → Otherwise.
     /// Skill-band Kill N suspends via <see cref="PendingChoiceKinds.KillVictim"/> when the
     /// player must pick victims unless <see cref="KillChoice.VictimCrewIds"/> is set.
+    /// Nested Skill Tests (Kalidasa / Director's Cut): outer fail bands that are themselves
+    /// Skill Tests (bracketed <c>[Fight …]</c>) roll the nested Fight and apply that band
+    /// (Kill / Warrant / Evade / Full Stop / Discard Ship Upgrade / Lose|Discard Goods).
     /// Marked Negotiate Bribes suspend via <see cref="PendingChoiceKinds.BribeAmount"/>;
     /// optional Med Foam discard via <see cref="PendingChoiceKinds.MedFoamDiscard"/>.
     /// Cruiser / Reaver / Corvette / ship-nudge / Safe Harbor destinations suspend via
@@ -252,6 +261,14 @@ namespace Firefly.Core.Actions
         private bool _resumingFakeIdSalvage;
         private int _pendingFakeIdSalvageOptionIndex = -1;
         private NavResolveChoice? _pendingFakeIdSalvageResolveChoice;
+        private bool _resumingDiscardShipUpgrade;
+        private int _pendingDiscardShipUpgradeOptionIndex = -1;
+        private NavResolveChoice? _pendingDiscardShipUpgradeResolveChoice;
+        /// <summary>
+        /// Outer Talk/Negotiate finished; Nested Skill Test (Fight …) in progress / awaiting reroll.
+        /// Director's Cut Kalidasa Nested Skill Tests.
+        /// </summary>
+        private string? _nestedSkillTreeDetails;
 
         public bool HasPending(GameState game) => game.PendingNavDraws.Count > 0 || FaceUp != null;
 
@@ -311,14 +328,15 @@ namespace Firefly.Core.Actions
                 return false;
             }
 
-            // Pay-vs-decline / kill-victim / bribe / Med Foam / sector-dest / Fake ID resume clears PendingChoice before re-entering.
+            // Pay-vs-decline / kill-victim / bribe / Med Foam / sector-dest / Fake ID / discard-upgrade resume clears PendingChoice before re-entering.
             if (game.PendingChoice != null
                 && choice?.PayNavCost == null
                 && !_resumingKillVictims
                 && !_resumingBribeOrMedFoam
                 && !_resumingSectorDestination
                 && !_resumingGoodsMix
-                && !_resumingFakeIdSalvage)
+                && !_resumingFakeIdSalvage
+                && !_resumingDiscardShipUpgrade)
             {
                 error = "Resolve the pending choice before continuing Nav.";
                 return false;
@@ -414,7 +432,7 @@ namespace Firefly.Core.Actions
                 return false;
             }
 
-            // Suspend Kill N victim / Med Foam before token moves / costs (skill already frozen).
+            // Suspend Kill N victim / Med Foam / Discard Ship Upgrade before token moves / costs.
             if (check != null)
             {
                 var plannedKill = PlannedSkillBandKillCount(bandText, bandEffects);
@@ -451,6 +469,22 @@ namespace Firefly.Core.Actions
                         return false;
                     }
                     error = "Choose whether to discard Med Foam for a successful Medic Check.";
+                    return false;
+                }
+
+                if (NeedsDiscardShipUpgradeChoice(player, bandText, choice))
+                {
+                    _frozenSkillReady = true;
+                    _frozenSkillCheck = check;
+                    _frozenBandText = bandText;
+                    _frozenBandEffects = bandEffects;
+                    _frozenOutcome = outcome;
+                    if (!TrySuspendDiscardShipUpgrade(game, optionIndex, choice, out error))
+                    {
+                        ClearFrozenKillSkill();
+                        return false;
+                    }
+                    error = "Choose which Ship Upgrade to discard.";
                     return false;
                 }
             }
@@ -1587,6 +1621,15 @@ namespace Firefly.Core.Actions
                 return true;
             }
 
+            if (GoodsMixContexts.TryParseLose(contextId, out _))
+            {
+                choice.SeizeGoodsFuel = fuel;
+                choice.SeizeGoodsParts = parts;
+                choice.SeizeGoodsCargo = cargo;
+                choice.SeizeGoodsContraband = contra2;
+                return true;
+            }
+
             error = "Unknown Goods mix context.";
             return false;
         }
@@ -1606,10 +1649,12 @@ namespace Firefly.Core.Actions
             contextId = "";
             prompt = "";
 
-            // Skill-band Load N Goods
+            // Skill-band Load N Goods / Seize / Lose|Discard Goods
             if (skillCheckPresent && !string.IsNullOrWhiteSpace(bandText))
             {
                 if (TryNeedsLoadGoods(player, bandText!, choice, out contextId, out prompt))
+                    return true;
+                if (TryNeedsLoseOrDiscardGoods(player, bandText!, choice, out contextId, out prompt))
                     return true;
                 if (TryNeedsSeizeGoods(player, bandText!, choice, out contextId, out prompt))
                     return true;
@@ -1694,6 +1739,34 @@ namespace Firefly.Core.Actions
                 return false;
             contextId = GoodsMixContexts.Seize(toSeize);
             prompt = $"Choose which {toSeize} Goods not in Stash are seized.";
+            return true;
+        }
+
+        private static bool TryNeedsLoseOrDiscardGoods(
+            PlayerState player,
+            string text,
+            NavResolveChoice? choice,
+            out string contextId,
+            out string prompt)
+        {
+            contextId = "";
+            prompt = "";
+            var match = LoseOrDiscardGoods.Match(text);
+            if (!match.Success)
+                return false;
+            var n = int.Parse(match.Groups[1].Value);
+            var available = player.Fuel + player.Parts + player.Cargo + player.Contraband;
+            var toLose = System.Math.Min(n, available);
+            if (toLose <= 0)
+                return false;
+            var choiceFuel = choice?.SeizeGoodsFuel ?? -1;
+            var choiceParts = choice?.SeizeGoodsParts ?? -1;
+            var choiceCargo = choice?.SeizeGoodsCargo ?? -1;
+            var choiceContra = choice?.SeizeGoodsContraband ?? -1;
+            if (choiceFuel >= 0 || choiceParts >= 0 || choiceCargo >= 0 || choiceContra >= 0)
+                return false;
+            contextId = GoodsMixContexts.Lose(toLose);
+            prompt = $"Choose which {toLose} Goods to lose or discard.";
             return true;
         }
 
@@ -2011,6 +2084,25 @@ namespace Firefly.Core.Actions
             if (IsImmediateReaverContactOption(option.Details ?? ""))
                 return true;
 
+            // Resume Nested Skill Test (Fight) without re-rolling the outer Talk / Negotiate.
+            if (_nestedSkillTreeDetails != null)
+            {
+                if (outcome == FlightOutcome.Conditional)
+                    outcome = FlightOutcome.FullStop;
+                return TryResolveNestedSkillTree(
+                    game,
+                    player,
+                    optionIndex,
+                    _nestedSkillTreeDetails,
+                    choice,
+                    rng,
+                    ref outcome,
+                    out check,
+                    out bandText,
+                    out bandEffects,
+                    out error);
+            }
+
             SkillCheck? skillCheck = null;
             if (option.SkillCheck != null)
                 skillCheck = option.SkillCheck.ToSkillCheck();
@@ -2157,6 +2249,197 @@ namespace Firefly.Core.Actions
                 bandEffects = ParseSharedEffectsFromText(bandText);
             }
 
+            // Director's Cut Kalidasa Nested Skill Tests: outer fail band is itself a Skill Test.
+            if (!string.IsNullOrWhiteSpace(bandText) && IsNestedSkillTreeStub(bandText))
+            {
+                if (!TryResolveNestedSkillTree(
+                        game,
+                        player,
+                        optionIndex,
+                        bandText!,
+                        choice,
+                        rng,
+                        ref outcome,
+                        out check,
+                        out bandText,
+                        out bandEffects,
+                        out error))
+                    return false;
+            }
+            else
+                _nestedSkillTreeDetails = null;
+
+            return true;
+        }
+
+        /// <summary>
+        /// Roll the Nested Skill Test printed in brackets / as a nested tree, then select its band.
+        /// </summary>
+        private bool TryResolveNestedSkillTree(
+            GameState game,
+            PlayerState player,
+            int optionIndex,
+            string nestedBandStub,
+            NavResolveChoice? choice,
+            IRng? rng,
+            ref FlightOutcome outcome,
+            out SkillCheckResult? check,
+            out string? bandText,
+            out IReadOnlyList<CardEffect>? bandEffects,
+            out string? error)
+        {
+            check = null;
+            bandText = null;
+            bandEffects = null;
+            error = null;
+
+            var nestedDetails = _nestedSkillTreeDetails
+                ?? SkillCheck.UnwrapNestedSkillTree(nestedBandStub);
+            _nestedSkillTreeDetails = nestedDetails;
+
+            if (!SkillCheck.TryParse(nestedDetails, out var nestedSkill))
+            {
+                error = "Nested Skill Test could not be parsed.";
+                _nestedSkillTreeDetails = null;
+                return false;
+            }
+
+            nestedSkill = SkillCheck.WithAbilityBribes(nestedSkill, player);
+            if (SkillCheck.NeedsBribeChoice(player, nestedSkill, choice?.SkillCheck))
+            {
+                if (!SkillCheck.TrySuspendBribeChoice(
+                        game,
+                        player,
+                        contextId: BuildNavPayContext(FaceUp!.Card.Id, optionIndex),
+                        out error))
+                {
+                    _nestedSkillTreeDetails = null;
+                    return false;
+                }
+                _pendingBribeOptionIndex = optionIndex;
+                _pendingBribeResolveChoice = choice;
+                error = "Choose how many Bribes to pay before rolling.";
+                return false;
+            }
+
+            if (_pendingRerollResult != null
+                && choice?.SkillCheck?.AcceptDiscardReroll is bool acceptDiscard)
+            {
+                if (acceptDiscard)
+                {
+                    var gearId = choice.SkillCheck.DiscardRerollGearId
+                        ?? AbilityDispatcher.FindDiscardToRerollGear(
+                            game, player, _pendingRerollResult.Check.Skill);
+                    if (gearId == null
+                        || !GearCarriage.TryDiscardGear(player, gearId, out error))
+                    {
+                        _pendingRerollResult = null;
+                        _pendingRerollOptionIndex = -1;
+                        _pendingRerollResolveChoice = null;
+                        _nestedSkillTreeDetails = null;
+                        return false;
+                    }
+                    check = _pendingRerollResult.Check.RerollKeepingBribes(
+                        player, rng ?? new SystemRng(), _pendingRerollResult,
+                        game, AbilityContext.Flying);
+                }
+                else
+                    check = _pendingRerollResult;
+                _pendingRerollResult = null;
+                _pendingRerollOptionIndex = -1;
+                _pendingRerollResolveChoice = null;
+            }
+            else if (_pendingRerollResult != null && choice?.SkillCheck?.AcceptReroll is bool acceptReroll)
+            {
+                check = acceptReroll
+                    ? _pendingRerollResult.Check.RerollKeepingBribes(
+                        player, rng ?? new SystemRng(), _pendingRerollResult,
+                        game, AbilityContext.Flying)
+                    : _pendingRerollResult;
+                _pendingRerollResult = null;
+
+                if (AbilityDispatcher.NeedsDiscardToRerollChoice(
+                        game, player, check.Check.Skill, choice?.SkillCheck))
+                {
+                    var gearId = AbilityDispatcher.FindDiscardToRerollGear(
+                        game, player, check.Check.Skill)!;
+                    _pendingRerollResult = check;
+                    _pendingRerollOptionIndex = optionIndex;
+                    _pendingRerollResolveChoice = choice;
+                    if (!SkillCheck.TrySuspendDiscardToReroll(game, player, gearId, out error))
+                    {
+                        _pendingRerollResult = null;
+                        _pendingRerollOptionIndex = -1;
+                        _pendingRerollResolveChoice = null;
+                        _nestedSkillTreeDetails = null;
+                        return false;
+                    }
+                    error = "Choose whether to discard gear to re-roll this Fight test.";
+                    return false;
+                }
+            }
+            else
+            {
+                if (!nestedSkill.TryResolve(
+                    player,
+                    rng ?? new SystemRng(),
+                    out check,
+                    out error,
+                    choice?.SkillCheck,
+                    game,
+                    AbilityContext.Flying))
+                {
+                    _nestedSkillTreeDetails = null;
+                    return false;
+                }
+
+                if (AbilityDispatcher.NeedsSkillRerollChoice(
+                        player, nestedSkill.Skill, choice?.SkillCheck))
+                {
+                    _pendingRerollResult = check;
+                    _pendingRerollOptionIndex = optionIndex;
+                    _pendingRerollResolveChoice = choice;
+                    if (!SkillCheck.TrySuspendSkillReroll(
+                            game,
+                            player,
+                            contextId: BuildNavPayContext(FaceUp!.Card.Id, optionIndex),
+                            out error))
+                    {
+                        _pendingRerollResult = null;
+                        _pendingRerollOptionIndex = -1;
+                        _pendingRerollResolveChoice = null;
+                        _nestedSkillTreeDetails = null;
+                        return false;
+                    }
+                    error = "Choose whether to re-roll this skill test.";
+                    return false;
+                }
+
+                if (AbilityDispatcher.NeedsDiscardToRerollChoice(
+                        game, player, nestedSkill.Skill, choice?.SkillCheck))
+                {
+                    var gearId = AbilityDispatcher.FindDiscardToRerollGear(
+                        game, player, nestedSkill.Skill)!;
+                    _pendingRerollResult = check;
+                    _pendingRerollOptionIndex = optionIndex;
+                    _pendingRerollResolveChoice = choice;
+                    if (!SkillCheck.TrySuspendDiscardToReroll(game, player, gearId, out error))
+                    {
+                        _pendingRerollResult = null;
+                        _pendingRerollOptionIndex = -1;
+                        _pendingRerollResolveChoice = null;
+                        _nestedSkillTreeDetails = null;
+                        return false;
+                    }
+                    error = "Choose whether to discard gear to re-roll this Fight test.";
+                    return false;
+                }
+            }
+
+            bandText = SkillCheck.BandText(nestedDetails, check!.Total);
+            bandEffects = ParseSharedEffectsFromText(bandText);
+            outcome = SkillCheck.OutcomeFor(nestedDetails, check.Success);
+            _nestedSkillTreeDetails = null;
             return true;
         }
 
@@ -3044,6 +3327,14 @@ namespace Firefly.Core.Actions
             @"(?:Lose|Discard)\s+(\d+)\s+Fuel",
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
+        private static readonly Regex LoseOrDiscardGoods = new Regex(
+            @"(?:Lose|Discard)\s+(\d+)\s+Goods",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        private static readonly Regex DiscardShipUpgradeCount = new Regex(
+            @"Discard\s+(\d+)\s+Ship Upgrade",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
         private static readonly Regex TakeCash = new Regex(
             @"Take\s+\$(\d+)",
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
@@ -3073,10 +3364,10 @@ namespace Firefly.Core.Actions
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         /// <summary>
-        /// Nested [Fight COP] trees are deferred; do not apply their Kill/Warrant text without rolling.
+        /// Nested [Fight COP] trees: do not apply Kill/Warrant text without rolling the nested test.
         /// </summary>
         private static bool IsNestedSkillTreeStub(string? bandText) =>
-            !string.IsNullOrWhiteSpace(bandText) && SkillCheck.TryParse(bandText, out _);
+            SkillCheck.IsNestedSkillTree(bandText);
 
         private static bool CanApplySkillBandEffects(
             GameState game,
@@ -3122,6 +3413,12 @@ namespace Firefly.Core.Actions
             }
 
             if (!TryPlanGoodsSeize(player, text, choice, out _, out _, out _, out _, out _, out error))
+                return false;
+
+            if (!TryPlanLoseOrDiscardGoods(player, text, choice, out _, out _, out _, out _, out _, out error))
+                return false;
+
+            if (!CanApplyDiscardShipUpgrade(player, text, choice, out error))
                 return false;
 
             if (!CanApplyDiscardGrab(game, player, text, choice, optional: false, out error))
@@ -3284,6 +3581,25 @@ namespace Firefly.Core.Actions
                 goodsSeized = seized;
             }
 
+            if (TryPlanLoseOrDiscardGoods(
+                player,
+                text,
+                choice,
+                out var loseFuel,
+                out var loseParts,
+                out var loseCargo,
+                out var loseContra,
+                out var lost,
+                out _))
+            {
+                player.Fuel -= loseFuel;
+                player.Parts -= loseParts;
+                player.Cargo -= loseCargo;
+                player.Contraband -= loseContra;
+                goodsSeized += lost;
+            }
+
+            TryApplyDiscardShipUpgrade(player, text, choice);
             TryApplyDiscardGrab(game, player, text, choice, optional: false);
             return true;
         }
@@ -3654,6 +3970,269 @@ namespace Firefly.Core.Actions
                 out seizeContra);
             seized = seizeFuel + seizeParts + seizeCargo + seizeContra;
             return true;
+        }
+
+        /// <summary>
+        /// Lose/Discard N Goods (nested Fight bands): any Fuel/Parts/Cargo/Contraband mix totaling N.
+        /// </summary>
+        private static bool TryPlanLoseOrDiscardGoods(
+            PlayerState player,
+            string text,
+            NavResolveChoice? choice,
+            out int loseFuel,
+            out int loseParts,
+            out int loseCargo,
+            out int loseContra,
+            out int lost,
+            out string? error)
+        {
+            loseFuel = 0;
+            loseParts = 0;
+            loseCargo = 0;
+            loseContra = 0;
+            lost = 0;
+            error = null;
+
+            var match = LoseOrDiscardGoods.Match(text);
+            if (!match.Success)
+                return true;
+
+            var n = int.Parse(match.Groups[1].Value);
+            var available = player.Fuel + player.Parts + player.Cargo + player.Contraband;
+            var toLose = System.Math.Min(n, available);
+            if (toLose <= 0)
+                return true;
+
+            var choiceFuel = choice?.SeizeGoodsFuel ?? -1;
+            var choiceParts = choice?.SeizeGoodsParts ?? -1;
+            var choiceCargo = choice?.SeizeGoodsCargo ?? -1;
+            var choiceContra = choice?.SeizeGoodsContraband ?? -1;
+            if (choiceFuel >= 0 || choiceParts >= 0 || choiceCargo >= 0 || choiceContra >= 0)
+            {
+                loseFuel = System.Math.Max(0, choiceFuel);
+                loseParts = System.Math.Max(0, choiceParts);
+                loseCargo = System.Math.Max(0, choiceCargo);
+                loseContra = System.Math.Max(0, choiceContra);
+                var sum = loseFuel + loseParts + loseCargo + loseContra;
+                if (sum != toLose)
+                {
+                    error = $"Lose/Discard {toLose} Goods requires a Goods composition totaling {toLose}.";
+                    return false;
+                }
+                if (loseFuel > player.Fuel
+                    || loseParts > player.Parts
+                    || loseCargo > player.Cargo
+                    || loseContra > player.Contraband)
+                {
+                    error = "Lose/Discard Goods exceeds tokens on board.";
+                    return false;
+                }
+                lost = toLose;
+                return true;
+            }
+
+            // Auto order when thin hook unset and no PendingChoice path (tests with empty choice).
+            AutoLoseGoods(player, toLose, out loseFuel, out loseParts, out loseCargo, out loseContra);
+            lost = loseFuel + loseParts + loseCargo + loseContra;
+            return true;
+        }
+
+        private static void AutoLoseGoods(
+            PlayerState player,
+            int count,
+            out int fuel,
+            out int parts,
+            out int cargo,
+            out int contra)
+        {
+            fuel = 0;
+            parts = 0;
+            cargo = 0;
+            contra = 0;
+            var remaining = count;
+            var takeFuel = System.Math.Min(remaining, player.Fuel);
+            fuel = takeFuel;
+            remaining -= takeFuel;
+            var takeParts = System.Math.Min(remaining, player.Parts);
+            parts = takeParts;
+            remaining -= takeParts;
+            var takeCargo = System.Math.Min(remaining, player.Cargo);
+            cargo = takeCargo;
+            remaining -= takeCargo;
+            contra = System.Math.Min(remaining, player.Contraband);
+        }
+
+        private static bool NeedsDiscardShipUpgradeChoice(
+            PlayerState player,
+            string? bandText,
+            NavResolveChoice? choice)
+        {
+            if (string.IsNullOrWhiteSpace(bandText))
+                return false;
+            var match = DiscardShipUpgradeCount.Match(bandText);
+            if (!match.Success)
+                return false;
+            var n = int.Parse(match.Groups[1].Value);
+            if (n <= 0 || player.ShipUpgrades.Count == 0)
+                return false; // "if able"
+            if (!string.IsNullOrWhiteSpace(choice?.DiscardShipUpgradeId))
+                return false;
+            // Single upgrade: auto-pick in apply path; only suspend when the player must choose.
+            return player.ShipUpgrades.Count > 1 || n > 1;
+        }
+
+        private bool TrySuspendDiscardShipUpgrade(
+            GameState game,
+            int optionIndex,
+            NavResolveChoice? choice,
+            out string? error)
+        {
+            var options = new List<string>(game.CurrentPlayer.ShipUpgrades);
+            var pending = new PendingChoice(
+                game.CurrentPlayer.Id,
+                PendingChoiceKinds.DiscardShipUpgrade,
+                contextId: "1",
+                options: options,
+                prompt: "Choose which Ship Upgrade to discard.");
+            if (!game.TrySetPendingChoice(pending, out error))
+                return false;
+            _pendingDiscardShipUpgradeOptionIndex = optionIndex;
+            _pendingDiscardShipUpgradeResolveChoice = choice;
+            return true;
+        }
+
+        /// <summary>
+        /// Resume after <see cref="PendingChoiceKinds.DiscardShipUpgrade"/>.
+        /// </summary>
+        public bool TryResumeDiscardShipUpgrade(
+            GameState game,
+            ChoiceSubmission submission,
+            out NavResolution? resolution,
+            out string? error,
+            IRng? rng = null)
+        {
+            resolution = null;
+            error = null;
+            if (FaceUp == null)
+            {
+                error = "No Nav card is face up.";
+                return false;
+            }
+            if (game.PendingChoice == null
+                || !string.Equals(
+                    game.PendingChoice.Kind,
+                    PendingChoiceKinds.DiscardShipUpgrade,
+                    StringComparison.Ordinal))
+            {
+                error = "No Ship Upgrade discard choice is pending.";
+                return false;
+            }
+
+            var optionIndex = _pendingDiscardShipUpgradeOptionIndex;
+            if (optionIndex < 0)
+            {
+                error = "Discard Ship Upgrade context is missing the option index.";
+                return false;
+            }
+
+            var upgradeId = submission.SelectedOptionId ?? submission.Value;
+            if (string.IsNullOrWhiteSpace(upgradeId)
+                || game.PendingChoice.Options == null
+                || !ContainsOption(game.PendingChoice.Options, upgradeId!))
+            {
+                error = "Choose a legal Ship Upgrade to discard.";
+                return false;
+            }
+
+            if (!game.TrySubmitChoice(game.CurrentPlayer.Id, submission, out _, out error))
+                return false;
+
+            var choice = _pendingDiscardShipUpgradeResolveChoice ?? new NavResolveChoice();
+            choice.DiscardShipUpgradeId = upgradeId;
+            _pendingDiscardShipUpgradeOptionIndex = -1;
+            _pendingDiscardShipUpgradeResolveChoice = null;
+            _resumingDiscardShipUpgrade = true;
+            _resumingKillVictims = _frozenSkillReady;
+            try
+            {
+                return TryResolve(game, optionIndex, out resolution, out error, rng, choice);
+            }
+            finally
+            {
+                _resumingDiscardShipUpgrade = false;
+                _resumingKillVictims = false;
+            }
+        }
+
+        private static bool ContainsOption(IReadOnlyList<string> options, string id)
+        {
+            foreach (var option in options)
+            {
+                if (string.Equals(option, id, StringComparison.OrdinalIgnoreCase))
+                    return true;
+            }
+            return false;
+        }
+
+        private static bool CanApplyDiscardShipUpgrade(
+            PlayerState player,
+            string text,
+            NavResolveChoice? choice,
+            out string? error)
+        {
+            error = null;
+            var match = DiscardShipUpgradeCount.Match(text);
+            if (!match.Success)
+                return true;
+            var n = int.Parse(match.Groups[1].Value);
+            if (n <= 0 || player.ShipUpgrades.Count == 0)
+                return true; // if able
+            if (player.ShipUpgrades.Count == 1)
+                return true;
+            if (string.IsNullOrWhiteSpace(choice?.DiscardShipUpgradeId))
+            {
+                error = "Choose which Ship Upgrade to discard.";
+                return false;
+            }
+            foreach (var id in player.ShipUpgrades)
+            {
+                if (string.Equals(id, choice!.DiscardShipUpgradeId, StringComparison.OrdinalIgnoreCase))
+                    return true;
+            }
+            error = "Chosen Ship Upgrade is not installed.";
+            return false;
+        }
+
+        private static void TryApplyDiscardShipUpgrade(
+            PlayerState player,
+            string text,
+            NavResolveChoice? choice)
+        {
+            var match = DiscardShipUpgradeCount.Match(text);
+            if (!match.Success)
+                return;
+            var n = int.Parse(match.Groups[1].Value);
+            if (n <= 0 || player.ShipUpgrades.Count == 0)
+                return;
+
+            if (!string.IsNullOrWhiteSpace(choice?.DiscardShipUpgradeId))
+            {
+                for (var i = 0; i < player.ShipUpgrades.Count; i++)
+                {
+                    if (string.Equals(
+                            player.ShipUpgrades[i],
+                            choice!.DiscardShipUpgradeId,
+                            StringComparison.OrdinalIgnoreCase))
+                    {
+                        player.ShipUpgrades.RemoveAt(i);
+                        return;
+                    }
+                }
+            }
+
+            // Single upgrade or auto: discard the first installed.
+            if (player.ShipUpgrades.Count > 0)
+                player.ShipUpgrades.RemoveAt(0);
         }
 
         /// <summary>

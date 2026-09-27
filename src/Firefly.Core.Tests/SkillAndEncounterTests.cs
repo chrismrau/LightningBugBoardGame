@@ -40,6 +40,23 @@ namespace Firefly.Core.Tests
         }
 
         [Fact]
+        public void BandText_keeps_Nested_Skill_Tree_brackets_opaque()
+        {
+            // Director's Cut Kalidasa Nested Skill Tests — outer fail band is the whole [Fight …].
+            const string talk =
+                "Talk 8  1-7 [Fight 8  1-7 Kill 1 Crew. Warrant Issued. Full Stop.  8+ Evade.] 8+ Keep Flying.";
+            var fail = SkillCheck.BandText(talk, 5);
+            Assert.NotNull(fail);
+            Assert.StartsWith("[Fight 8", fail);
+            Assert.True(SkillCheck.IsNestedSkillTree(fail));
+            Assert.Equal("Keep Flying", SkillCheck.BandText(talk, 8));
+
+            var nested = SkillCheck.UnwrapNestedSkillTree(fail);
+            Assert.Equal("Kill 1 Crew. Warrant Issued. Full Stop", SkillCheck.BandText(nested, 3));
+            Assert.Equal("Evade", SkillCheck.BandText(nested, 8));
+        }
+
+        [Fact]
         public void Zero_skill_dice_cannot_meet_a_target()
         {
             var check = new SkillCheck(Skill.Talk, 6);
