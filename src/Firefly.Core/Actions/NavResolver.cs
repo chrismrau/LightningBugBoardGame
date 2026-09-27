@@ -404,7 +404,7 @@ namespace Firefly.Core.Actions
                 return true;
             }
 
-            // Decoy Nav Sat Cluster: Reaver / Alliance Ship movers resolve as The Big Black.
+            // Decoy Nav Sat Cluster: Reaver / Alliance Ship movers (Cruiser + Corvette) → Big Black.
             // Supplies.tsv: "treat all Nav Cards that would normally move a Reaver or Alliance Ship
             // as a \"Big Black\" card instead."
             if (game.DecoyNavSatActiveThisFly

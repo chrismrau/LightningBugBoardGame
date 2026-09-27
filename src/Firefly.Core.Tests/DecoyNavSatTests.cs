@@ -143,7 +143,7 @@ namespace Firefly.Core.Tests
         }
 
         [Fact]
-        public void Decoy_does_not_convert_Operative_Corvette_Nav()
+        public void Decoy_Operative_Corvette_Nav_keeps_flying_without_moving_Corvette()
         {
             var map = SectorMap.LoadFromDirectory(GameData.MapDirectory);
             var decks = NavCatalog.BuildDecks(GameData.NavCardsPath, new SystemRng(4));
@@ -164,10 +164,9 @@ namespace Firefly.Core.Tests
 
             var resolver = new NavResolver();
             resolver.DrawNext(game);
-            // Corvette is not an Alliance Ship for Decoy — still needs a destination choice.
-            Assert.False(resolver.TryResolve(game, 0, out _, out var error));
-            Assert.NotNull(game.PendingChoice);
-            Assert.Contains("Corvette", error ?? game.PendingChoice.Prompt);
+            Assert.True(resolver.TryResolve(game, 0, out var resolution, out var error), error);
+            Assert.Equal(FlightOutcome.KeepFlying, resolution!.Outcome);
+            Assert.Null(game.PendingChoice);
             Assert.Equal(Londinium, game.Tokens.OperativeCorvetteSectorId);
         }
 
@@ -216,8 +215,9 @@ namespace Firefly.Core.Tests
             Assert.True(DecoyNavSatAction.IsReaverOrAllianceShipMover(catalog.Get("nav_alliance-entanglements")));
             Assert.True(DecoyNavSatAction.IsReaverOrAllianceShipMover(catalog.Get("nav_reaver-bait")));
             Assert.True(DecoyNavSatAction.IsReaverOrAllianceShipMover(catalog.Get("nav_reaver-cutter")));
+            Assert.True(DecoyNavSatAction.IsReaverOrAllianceShipMover(catalog.Get("nav_persistent-pursuit")));
+            Assert.True(DecoyNavSatAction.IsReaverOrAllianceShipMover(catalog.Get("nav_hell-come-at-you-sideways")));
             Assert.False(DecoyNavSatAction.IsReaverOrAllianceShipMover(catalog.Get("nav_the-big-black")));
-            Assert.False(DecoyNavSatAction.IsReaverOrAllianceShipMover(catalog.Get("nav_persistent-pursuit")));
             Assert.False(DecoyNavSatAction.IsReaverOrAllianceShipMover(catalog.Get("nav_a-rogue-trader")));
         }
     }

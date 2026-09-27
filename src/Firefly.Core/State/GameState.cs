@@ -63,7 +63,7 @@ namespace Firefly.Core.State
         public bool EmissionsFuelTakenThisFly { get; set; }
         /// <summary>
         /// Decoy Nav Sat Cluster discarded at the start of this Fly (Move) Action:
-        /// Alliance Cruiser / Reaver Cutter Nav resolve as The Big Black instead.
+        /// Alliance Cruiser / Operative's Corvette / Reaver Cutter Nav resolve as The Big Black.
         /// Cleared on new Fly / EndTurn / non-Fly action.
         /// </summary>
         public bool DecoyNavSatActiveThisFly { get; set; }

@@ -8,8 +8,8 @@ namespace Firefly.Core.Actions
     /// Decoy Nav Sat Cluster (Jetwash): discard at the beginning of a Move (Fly) Action to
     /// treat Nav Cards that would move a Reaver or Alliance Ship as "The Big Black" instead.
     /// Supplies.tsv / ShipUpgrades.json card text.
-    /// Alliance Ship = Alliance Cruiser-type Nav (named Cruiser, Patrol, Entanglements).
-    /// Operative's Corvette is not an Alliance Ship token (see Rapid Response / AllianceAlert.tsv).
+    /// Alliance Ship = Alliance Cruiser-type Nav and Operative's Corvette (same reading as
+    /// Rapid Response / AllianceAlert.tsv ExtraAllianceShipMove).
     /// </summary>
     public static class DecoyNavSatAction
     {
@@ -49,12 +49,13 @@ namespace Firefly.Core.Actions
         }
 
         /// <summary>
-        /// Nav Cards that would normally move a Reaver Cutter or Alliance Cruiser.
+        /// Nav Cards that would normally move a Reaver Cutter, Alliance Cruiser, or Corvette.
         /// </summary>
         public static bool IsReaverOrAllianceShipMover(NavCard card)
         {
             var type = card.Type ?? "";
             return type.Equals("Alliance Cruiser", StringComparison.OrdinalIgnoreCase)
+                || type.Equals("Operative's Corvette", StringComparison.OrdinalIgnoreCase)
                 || type.Equals("Reaver Cutter", StringComparison.OrdinalIgnoreCase);
         }
 
