@@ -68,6 +68,11 @@ namespace Firefly.Core.State
         /// </summary>
         public bool DecoyNavSatActiveThisFly { get; set; }
         /// <summary>
+        /// Modded Fuel Catalyzer: +2 Drive Core Max Range for the rest of this turn after
+        /// spending 1 additional Fuel on a Full Burn initiate. Cleared on EndTurn.
+        /// </summary>
+        public int CatalyzerRangeBonusThisTurn { get; set; }
+        /// <summary>
         /// Sectors entered during Fly that still need Alert Token resolution before their Nav draw.
         /// </summary>
         public IList<string> PendingAlertSectors { get; }
@@ -242,6 +247,7 @@ namespace Firefly.Core.State
             ConsecutiveBigBlackNavThisFly = 0;
             EmissionsFuelTakenThisFly = false;
             DecoyNavSatActiveThisFly = false;
+            // CatalyzerRangeBonusThisTurn is turn-scoped — cleared in EndTurn, not here.
         }
 
         /// <summary>
@@ -372,6 +378,34 @@ namespace Firefly.Core.State
             return true;
         }
 
+        /// <summary>
+        /// Xunsu Emergency Ram Jets: consume one Action slot to Initiate a Full Burn without
+        /// marking <see cref="TurnAction.Fly"/> used — printed "in addition to a standard Move Action."
+        /// </summary>
+        public bool TryConsumeRamJetsAction(out string? error)
+        {
+            error = null;
+            if (HasPendingEvents)
+            {
+                error = "Resolve pending Alert Tokens, Nav cards, encounters, Misbehave, or choices before taking another action.";
+                return false;
+            }
+            if (TurnComplete)
+            {
+                error = "This player has already taken both actions this turn.";
+                return false;
+            }
+
+            FlyRangeBonusThisAction = 0;
+            DiscardFuelPerExtraSectorThisFly = false;
+            ConsecutiveBigBlackNavThisFly = 0;
+            EmissionsFuelTakenThisFly = false;
+            DecoyNavSatActiveThisFly = false;
+            ActionsUsedThisTurn++;
+            LastAction = TurnAction.Fly;
+            return true;
+        }
+
         public bool ActionWasUsed(TurnAction action) => _used.Contains(action);
 
         private readonly HashSet<TurnAction> _used = new HashSet<TurnAction>();
@@ -383,6 +417,7 @@ namespace Firefly.Core.State
             WorkGearLocked = false;
             ActionsUsedThisTurn = 0;
             LastAction = TurnAction.None;
+            CatalyzerRangeBonusThisTurn = 0;
             _used.Clear();
             CurrentPlayerIndex = (CurrentPlayerIndex + 1) % Players.Count;
             if (GameOver)

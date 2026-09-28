@@ -24,6 +24,9 @@ namespace Firefly.Core.Actions
         /// <summary>Boarding Bribes / Cortland (Negotiate Boarding is not a Showdown).</summary>
         public SkillCheckChoice? BoardingSkillCheck { get; set; }
 
+        /// <summary>Booby Trap: Kill 1 boarder Crew when a die face is 1.</summary>
+        public KillChoice? BoardingKill { get; set; }
+
         /// <summary>Guardian / Chari Showdown may re-rolls.</summary>
         public ShowdownChoice? Showdown { get; set; }
 
@@ -219,9 +222,14 @@ namespace Firefly.Core.Actions
                 }
 
                 if (!boardCheck.TryResolve(
-                        player, rng, out boarding, out error, choice.BoardingSkillCheck))
+                        player, rng, out boarding, out error, choice.BoardingSkillCheck,
+                        game: game, extraDice: BoardingTest.TechDiceModifier(player, rival, choice.BoardSkill)))
                     return false;
             }
+
+            if (!BoobyTrapAction.TryApplyRollOneKill(
+                    game, player, rival, boarding, rng, out _, out error, choice.BoardingKill))
+                return false;
 
             if (!boarding.Success)
             {

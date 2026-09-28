@@ -2626,6 +2626,11 @@ namespace Firefly.Core.Actions
                     return true;
             }
 
+            // Booby Trap: Discard to count as EXPLOSIVES (Supplies.tsv Explosives:D).
+            if (tag.StartsWith("Explosives", StringComparison.OrdinalIgnoreCase)
+                && BoobyTrapAction.CanCountAsExplosives(player))
+                return true;
+
             return false;
         }
 
@@ -2725,7 +2730,44 @@ namespace Firefly.Core.Actions
                 error = $"Requires {need.Trim()}.";
                 return false;
             }
+
+            // Booby Trap: "Discard to count as EXPLOSIVES" when no other Explosives source.
+            if (IsExplosivesNeed(need)
+                && BoobyTrapAction.CanCountAsExplosives(player)
+                && !HasExplosivesWithoutBoobyTrap(game, player))
+            {
+                if (!BoobyTrapAction.TryDiscardAsExplosives(game, player, out error))
+                    return false;
+            }
+
             return true;
+        }
+
+        private static bool IsExplosivesNeed(string need) =>
+            need.Trim().StartsWith("Explosives", StringComparison.OrdinalIgnoreCase);
+
+        /// <summary>Explosives from crew keywords or carried Gear (not Booby Trap).</summary>
+        private static bool HasExplosivesWithoutBoobyTrap(GameState game, PlayerState player)
+        {
+            if (LawmanRules.HasKeywordForJob(player, job: null, "Explosives"))
+                return true;
+            if (game.Gear == null)
+                return false;
+            foreach (var gearId in player.Gear)
+            {
+                if (!GearCarriage.IsCarried(player, gearId))
+                    continue;
+                if (!game.Gear.TryGet(gearId, out var gear))
+                    continue;
+                if (NamesMatch(gear.Name, "Explosives") || NamesMatch(gear.Id, "Explosives"))
+                    return true;
+                foreach (var keyword in gear.Keywords)
+                {
+                    if (NamesMatch(keyword, "Explosives"))
+                        return true;
+                }
+            }
+            return false;
         }
 
         private static int BonusFromSkillCheck(

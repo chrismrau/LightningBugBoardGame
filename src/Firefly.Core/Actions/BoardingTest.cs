@@ -45,6 +45,7 @@ namespace Firefly.Core.Actions
         /// Resolve a Boarding Test. Fails closed if Fight (or other) is chosen.
         /// Applies Cortland <c>bribesOnAnyNegotiate</c> on Talk. Callers must suspend
         /// via <see cref="SkillCheck.NeedsBribeChoice"/> before resolving when needed.
+        /// Optional <paramref name="defender"/> applies Mag-Grappler / Booby Trap / EDS Tech mods.
         /// </summary>
         public static bool TryResolve(
             PlayerState player,
@@ -53,20 +54,21 @@ namespace Firefly.Core.Actions
             out SkillCheckResult result,
             out string? error,
             int target = DefaultTarget,
-            SkillCheckChoice? choice = null)
+            SkillCheckChoice? choice = null,
+            PlayerState? defender = null,
+            GameState? game = null)
         {
             result = null!;
-            if (!IsAllowedSkill(skill))
-            {
-                error = "Boarding Test uses Tech or Negotiate only (PBH p.3).";
+            if (!IsAllowedSkill(skill, defender, out error))
                 return false;
-            }
 
             if (target < 1)
                 target = DefaultTarget;
 
             var check = SkillCheck.WithAbilityBribes(new SkillCheck(skill, target), player);
-            return check.TryResolve(player, rng, out result, out error, choice);
+            var extraDice = TechDiceModifier(player, defender, skill);
+            return check.TryResolve(
+                player, rng, out result, out error, choice, game, extraDice: extraDice);
         }
 
         /// <summary>
@@ -78,6 +80,16 @@ namespace Firefly.Core.Actions
                 target = DefaultTarget;
             return SkillCheck.WithAbilityBribes(new SkillCheck(skill, target), player);
         }
+
+        /// <summary>
+        /// Mag-Grappler +3 Tech (attacker) and Booby Trap −2 Tech (defender) for Boarding.
+        /// </summary>
+        public static int TechDiceModifier(
+            PlayerState attacker,
+            PlayerState? defender,
+            Skill boardSkill) =>
+            MagGrapplerAction.BoardingTechDiceModifier(attacker, boardSkill)
+            + BoobyTrapAction.BoardingTechDiceModifier(defender, boardSkill);
 
         /// <summary>
         /// Parse "Tech 6 or Negotiate 6" style boarding target from job Description.

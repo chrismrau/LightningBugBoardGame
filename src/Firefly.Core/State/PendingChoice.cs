@@ -248,6 +248,11 @@ namespace Firefly.Core.State
         /// Options: <see cref="GoalPayOrBotchOptions"/>. ContextId = dollars required.
         /// </summary>
         public const string GoalPayOrBotch = "goal-pay-or-botch";
+        /// <summary>
+        /// Mag-Grappler Launchers after Salvage Op Tech 8+: pick 1 Ship Upgrade from any
+        /// discard pile. Options = upgrade card ids; <see cref="ChoiceSubmission.SelectedOptionId"/>.
+        /// </summary>
+        public const string MagGrapplerUpgrade = "mag-grappler-upgrade";
     }
 
     /// <summary>Discrete option ids for <see cref="PendingChoiceKinds.GoalPayOrBotch"/>.</summary>

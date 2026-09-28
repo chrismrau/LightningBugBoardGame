@@ -139,7 +139,7 @@ namespace Firefly.Core.Actions
                 return false;
 
             if (!TryPassBoarding(
-                    game, player, boardSkill, boardingSkillCheck, rng,
+                    game, player, rival, boardSkill, boardingSkillCheck, rng,
                     contextId: $"bounty-board:confront:{bounty.Id}",
                     out var boarded, out error))
             {
@@ -585,7 +585,7 @@ namespace Firefly.Core.Actions
                 return false;
 
             if (!TryPassBoarding(
-                    game, player, boardSkill, boardingSkillCheck, rng,
+                    game, player, rival, boardSkill, boardingSkillCheck, rng,
                     contextId: $"bounty-board:jump:{bounty.Id}",
                     out var boarded, out error))
             {
@@ -705,12 +705,14 @@ namespace Firefly.Core.Actions
         private static bool TryPassBoarding(
             GameState game,
             PlayerState player,
+            PlayerState rival,
             Skill boardSkill,
             SkillCheckChoice? choice,
             IRng rng,
             string contextId,
             out bool success,
-            out string? error)
+            out string? error,
+            KillChoice? boardingKill = null)
         {
             success = false;
             var boardCheck = BoardingTest.BuildCheck(player, boardSkill, BoardingTarget);
@@ -722,8 +724,15 @@ namespace Firefly.Core.Actions
                 return false;
             }
 
-            if (!boardCheck.TryResolve(player, rng, out var result, out error, choice))
+            if (!boardCheck.TryResolve(
+                    player, rng, out var result, out error, choice, game,
+                    extraDice: BoardingTest.TechDiceModifier(player, rival, boardSkill)))
                 return false;
+
+            if (!BoobyTrapAction.TryApplyRollOneKill(
+                    game, player, rival, result, rng, out _, out error, boardingKill))
+                return false;
+
             success = result.Success;
             return true;
         }
