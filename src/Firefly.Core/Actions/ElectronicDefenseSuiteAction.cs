@@ -34,7 +34,9 @@ namespace Firefly.Core.Actions
         public static bool BlocksTechBoarding(PlayerState defender) => HasEds(defender);
 
         /// <summary>
-        /// Reaver Cutter Nav Card (type or printed name). Matches Corvette cancel / Decoy mover check.
+        /// Reaver Cutter ship Nav (type or printed name). Same house pattern as
+        /// <c>NavResolver.IsReaverCutterCardProtectedByCorvette</c> / Decoy mover Type match —
+        /// not an id-only check. Christopher lock on #79.
         /// </summary>
         public static bool IsReaverCutterNavCard(NavCard card)
         {

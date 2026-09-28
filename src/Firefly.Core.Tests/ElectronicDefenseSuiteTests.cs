@@ -230,8 +230,9 @@ namespace Firefly.Core.Tests
         }
 
         [Fact]
-        public void IsReaverCutterNavCard_matches_catalog()
+        public void IsReaverCutterNavCard_matches_type_or_name_like_Corvette()
         {
+            // House pattern: Corvette cancel / Decoy Type — not card-id-only (Christopher #79).
             var catalog = NavCatalog.LoadFromFile(GameData.NavCardsPath);
             Assert.True(ElectronicDefenseSuiteAction.IsReaverCutterNavCard(catalog.Get("nav_reaver-cutter")));
             Assert.True(ElectronicDefenseSuiteAction.IsReaverCutterNavCard(catalog.Get("nav_reaver-bait")));
