@@ -161,6 +161,16 @@ namespace Firefly.Core.Actions
         /// </summary>
         public bool IgnoreCustomsInspection { get; set; }
         /// <summary>
+        /// Electronic Defense Suite: spend 1 Fuel to ignore the Reaver Cutter Nav Card and Evade.
+        /// Supplies.tsv / ShipUpgrades.json. Requires EvadeToSectorId.
+        /// </summary>
+        public bool IgnoreReaverCutterWithEds { get; set; }
+        /// <summary>
+        /// Electronic Defense Suite: after a Reaver Cutter Nav moves the Cutter onto you, spend 1 Fuel
+        /// to ignore the Contact Event and Evade (no Fight / Crew kills). Requires EvadeToSectorId.
+        /// </summary>
+        public bool UseEdsToIgnoreContact { get; set; }
+        /// <summary>
         /// Printed pay-vs-decline (e.g. Spend 1 Part to Keep Flying. Otherwise, Full Stop):
         /// true = pay and Keep Flying; false = decline → Full Stop.
         /// Null when affordable suspends via <see cref="PendingChoiceKinds.NavPayOrDecline"/>.
@@ -381,6 +391,62 @@ namespace Firefly.Core.Actions
                     ignored,
                     FlightOutcome.KeepFlying,
                     stopped: false);
+                return true;
+            }
+
+            // Electronic Defense Suite: Spend 1 Fuel to Evade Reaver Cutter / ignore Reaver Cutter Nav.
+            // Supplies.tsv: "Spend 1 Fuel to Evade Reaver Cutter. Ignore the effects of either the
+            // Reaver Cutter Nav Card or Contact Event."
+            if (choice != null
+                && choice.IgnoreReaverCutterWithEds
+                && ElectronicDefenseSuiteAction.IsReaverCutterNavCard(drawnEarly.Card))
+            {
+                var edsPlayer = game.CurrentPlayer;
+                if (!ElectronicDefenseSuiteAction.HasEds(edsPlayer))
+                {
+                    error = "Electronic Defense Suite ship upgrade is not installed.";
+                    return false;
+                }
+                if (edsPlayer.Fuel < 1)
+                {
+                    error = "Electronic Defense Suite requires 1 Fuel to Evade Reaver Cutter.";
+                    return false;
+                }
+                if (string.IsNullOrWhiteSpace(choice.EvadeToSectorId))
+                {
+                    error = "Electronic Defense Suite Evade requires an adjacent destination sector.";
+                    return false;
+                }
+
+                var fromBeforeEds = edsPlayer.SectorId;
+                edsPlayer.SectorId = drawnEarly.SectorId;
+                if (!FlightEvade.CanMove(game, edsPlayer, choice.EvadeToSectorId!, out error))
+                {
+                    edsPlayer.SectorId = fromBeforeEds;
+                    return false;
+                }
+
+                edsPlayer.Fuel -= 1;
+                if (!FlightEvade.TryMove(game, edsPlayer, choice.EvadeToSectorId!, out error))
+                {
+                    edsPlayer.Fuel += 1;
+                    edsPlayer.SectorId = fromBeforeEds;
+                    return false;
+                }
+
+                game.Decks!.For(drawnEarly.Region).ResolveIntoDiscard(drawnEarly.Card);
+                FaceUp = null;
+                game.PendingNavDraws.Clear();
+                var edsOption = drawnEarly.Card.Options.Count > 0
+                    ? drawnEarly.Card.Options[optionIndex >= 0 && optionIndex < drawnEarly.Card.Options.Count
+                        ? optionIndex
+                        : 0]
+                    : new NavOption(null, "", FlightOutcome.Evade);
+                resolution = new NavResolution(
+                    drawnEarly,
+                    edsOption,
+                    FlightOutcome.Evade,
+                    stopped: true);
                 return true;
             }
 
@@ -659,7 +725,7 @@ namespace Firefly.Core.Actions
                 }
             }
 
-            if (triggersReaverContact && rng == null)
+            if (triggersReaverContact && rng == null && (choice == null || !choice.UseEdsToIgnoreContact))
             {
                 RollbackTokens();
                 error = "Reaver Contact requires a Fight roll.";
@@ -731,7 +797,43 @@ namespace Firefly.Core.Actions
             if (triggersReaverContact)
             {
                 game.CurrentPlayer.SectorId = drawn.SectorId;
-                if (!ReaverContact.TryApplyImmediate(
+                if (choice != null && choice.UseEdsToIgnoreContact)
+                {
+                    if (!ElectronicDefenseSuiteAction.HasEds(game.CurrentPlayer))
+                    {
+                        error = "Electronic Defense Suite ship upgrade is not installed.";
+                        RollbackTokens();
+                        RollbackResources();
+                        return false;
+                    }
+                    if (game.CurrentPlayer.Fuel < 1)
+                    {
+                        error = "Electronic Defense Suite requires 1 Fuel to Evade Reaver Cutter.";
+                        RollbackTokens();
+                        RollbackResources();
+                        return false;
+                    }
+                    if (!FlightEvade.CanMove(game, game.CurrentPlayer, choice.EvadeToSectorId!, out error))
+                    {
+                        RollbackTokens();
+                        RollbackResources();
+                        return false;
+                    }
+
+                    game.CurrentPlayer.Fuel -= 1;
+                    if (!FlightEvade.TryMove(game, game.CurrentPlayer, choice.EvadeToSectorId!, out error))
+                    {
+                        game.CurrentPlayer.Fuel += 1;
+                        RollbackTokens();
+                        RollbackResources();
+                        return false;
+                    }
+
+                    game.PendingNavDraws.Clear();
+                    outcome = FlightOutcome.Evade;
+                    stopped = true;
+                }
+                else if (!ReaverContact.TryApplyImmediate(
                     game,
                     rng!,
                     choice!.EvadeToSectorId!,
@@ -751,9 +853,12 @@ namespace Firefly.Core.Actions
                     RollbackResources();
                     return false;
                 }
-                game.PendingNavDraws.Clear();
-                outcome = FlightOutcome.Evade;
-                stopped = true;
+                else
+                {
+                    game.PendingNavDraws.Clear();
+                    outcome = FlightOutcome.Evade;
+                    stopped = true;
+                }
             }
             else if (triggersCorvetteContact)
             {

@@ -192,11 +192,8 @@ namespace Firefly.Core.Actions
 
             var terms = PiracyTerms.FromJob(job);
 
-            if (!BoardingTest.IsAllowedSkill(choice.BoardSkill))
-            {
-                error = "Boarding Test uses Tech or Negotiate only (PBH p.3).";
+            if (!BoardingTest.IsAllowedSkill(choice.BoardSkill, rival, out error))
                 return false;
-            }
 
             // PBH p.5: place the card in the Active Job area when attempting.
             ActivatePiracyJob(player, jobId);
