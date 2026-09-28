@@ -51,7 +51,7 @@ Standard	PBH	Meadows	Crew	0	Hero Worship: Any time a Crew is Killed, Apprehended
 Standard	F:tG	Med Staff	Crew	200			1		X										X													4				4		N/A	
 Standard	BA	Merchant	Crew	200	Shrewd Trader: Whenever you sell Cargo to a Contact, take an extra $100 per Cargo.		1	1																				2								2		Resources (Sell)	
 Standard	Kal	Mudder	Crew	100	Indentured: Remove from Play at Harvest, Red Sun to take $500. This counts as Immoral.		1			X				X															2	2	2					6		Discard for bonus	
-Standard	F:tG	River Tam	Crew	0	Gifted: See card.				X	X																			1							1		Constant bonus	
+Standard	F:tG	River Tam	Crew	0	Gifted: Before each Test, roll: 1-2 Return to Ship; 3 [FIGHT][FIGHT]; 4 [TECH][TECH]; 5 [NEGOTIATE][NEGOTIATE]; 6: 3 of any chosen Skill.				X	X																			1							1		Constant bonus	
 Standard	Kal	Roberta	Crew	300	Make Nice: You May Discard Roberta instead of losing Solid Rep with a Contact.	1		2												X	X													1		1		discardInsteadOfLoseSolid	[{"type":"discardInsteadOfLoseSolid","mandatory":false}]
 Standard	F:tG	Saffron	Crew	300	Deceptive: If Bridgit or Yolonda are hired by anyone, Remove Saffron from Play.		1	2								X				X										1						1		Downside	
 Standard	F:tG	Scrapper	Crew	200	Dirty Leech: +2 Fuel from Salvage Ops.		1								X													3								3		Resources (Salvage Op)	

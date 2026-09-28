@@ -1493,7 +1493,7 @@
       "name": "River Tam",
       "cost": 0,
       "costRaw": "0",
-      "description": "Gifted: See card.",
+      "description": "Gifted: Before each Test, roll: 1-2 Return to Ship; 3 [FIGHT][FIGHT]; 4 [TECH][TECH]; 5 [NEGOTIATE][NEGOTIATE]; 6: 3 of any chosen Skill.",
       "skills": {
         "fight": null,
         "tech": null,
