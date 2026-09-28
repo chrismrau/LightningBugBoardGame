@@ -82,22 +82,35 @@ namespace Firefly.Core.Actions
             IReadOnlyList<string> path,
             out FlyResult? result,
             out string? error,
-            bool useDecoyNavSat = false)
+            bool useDecoyNavSat = false,
+            bool useFuelCatalyzer = false)
         {
             result = null;
             if (!CanAct(game, playerId, out var player, out error))
                 return false;
 
-            if (player.FullBurnRequiresFuel && player.Fuel < 1)
+            if (useFuelCatalyzer && !FuelCatalyzerAction.HasCatalyzer(player))
             {
-                error = "Not enough fuel for Full Burn.";
+                error = "Modded Fuel Catalyzer ship upgrade is not installed.";
                 return false;
             }
 
+            var initiateFuel = player.FullBurnRequiresFuel ? 1 : 0;
+            var catalyzerFuel = FuelCatalyzerAction.ExtraFuelToActivate(game, player, useFuelCatalyzer);
+            var fuelNeeded = initiateFuel + catalyzerFuel;
+            if (player.Fuel < fuelNeeded)
+            {
+                error = fuelNeeded > 1
+                    ? "Not enough fuel for Full Burn with Fuel Catalyzer."
+                    : "Not enough fuel for Full Burn.";
+                return false;
+            }
+
+            var range = FuelCatalyzerAction.DriveRangeForInitiate(game, player, useFuelCatalyzer);
             var reaverEntry = ReaverEntryAllowance.For(game, player);
             if (!_movement.TryFullBurn(
                     path,
-                    player.GetEffectiveDriveRange(game),
+                    range,
                     game.Tokens,
                     reaverEntry,
                     out var plan,
@@ -114,6 +127,12 @@ namespace Firefly.Core.Actions
                 && !DecoyNavSatAction.TryDiscardAtMoveStart(game, player, out error))
                 return false;
 
+            if (catalyzerFuel > 0)
+            {
+                player.Fuel -= catalyzerFuel;
+                FuelCatalyzerAction.ActivateThisTurn(game);
+            }
+
             Apply(game, player, plan, truncateOnEncounter: true, out result, useDecoyNavSat);
             return true;
         }
@@ -124,7 +143,8 @@ namespace Firefly.Core.Actions
             string toSectorId,
             out FlyResult? result,
             out string? error,
-            bool useDecoyNavSat = false)
+            bool useDecoyNavSat = false,
+            bool useFuelCatalyzer = false)
         {
             result = null;
             if (!CanAct(game, playerId, out var player, out error))
@@ -137,7 +157,8 @@ namespace Firefly.Core.Actions
                 return false;
             }
 
-            return TryFullBurn(game, playerId, path, out result, out error, useDecoyNavSat);
+            return TryFullBurn(
+                game, playerId, path, out result, out error, useDecoyNavSat, useFuelCatalyzer);
         }
 
         /// <summary>
@@ -431,6 +452,34 @@ namespace Firefly.Core.Actions
                 // Should not fail after ClearPendingEvents; leave state unchanged if it does.
             }
 
+            ApplyMovement(game, player, plan, truncateOnEncounter, out result);
+        }
+
+        /// <summary>
+        /// Ram Jets already consumed its Action slot and discarded the upgrade; apply Full Burn
+        /// movement without a second <see cref="GameState.TryConsumeAction"/>.
+        /// </summary>
+        internal static void ApplyRamJetsBurn(
+            GameState game,
+            PlayerState player,
+            MovementPlan plan,
+            out FlyResult result,
+            bool useDecoyNavSat = false)
+        {
+            // RamJetsAction.TryConsumeRamJetsAction already cleared Fly-scoped flags.
+            if (useDecoyNavSat)
+                game.DecoyNavSatActiveThisFly = true;
+
+            ApplyMovement(game, player, plan, truncateOnEncounter: true, out result);
+        }
+
+        private static void ApplyMovement(
+            GameState game,
+            PlayerState player,
+            MovementPlan plan,
+            bool truncateOnEncounter,
+            out FlyResult result)
+        {
             var steps = new List<MovementStep>();
             var path = new List<string> { plan.FromSectorId };
             var stopped = false;

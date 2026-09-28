@@ -408,7 +408,7 @@ namespace Firefly.Core.Actions
             if (game.Scenario != null && game.Scenario.IncreasedEnforcement && !job.Legal)
                 player.Warrants++;
             ActiveAlertRules.OnJobCompleted(game, job.ContactName);
-            TryApplyShipUpgradeJobBonuses(game, player, job);
+            TryApplyShipUpgradeJobBonuses(game, player, job, rng: new SystemRng(0));
             game.WorkGearLocked = false;
             game.TryConsumeAction(TurnAction.Work, out _);
             result = new WorkResult(WorkKind.Complete, job, false, false, pay, disgruntled);
@@ -419,8 +419,14 @@ namespace Firefly.Core.Actions
         /// <summary>
         /// Sky Hook: Requires Pilot; after Crime Job, Load 1 Contraband.
         /// Hydraulic Docking Clamps: Crime also counts as Salvage → Chop Shop pays.
+        /// Mag-Grappler: after Salvage Ops, Tech 8 → Ship Upgrade from discard.
         /// </summary>
-        public static void TryApplyShipUpgradeJobBonuses(GameState game, PlayerState player, JobCard job)
+        public static void TryApplyShipUpgradeJobBonuses(
+            GameState game,
+            PlayerState player,
+            JobCard job,
+            IRng? rng = null,
+            string? magGrapplerUpgradeId = null)
         {
             var isCrime = ContactSolidBenefits.JobHasType(job, "Crime");
             if (isCrime)
@@ -441,12 +447,17 @@ namespace Firefly.Core.Actions
                 return;
 
             var chop = AbilityDispatcher.FindAfterSalvageCashAndContraband(game, player);
-            if (chop == null)
-                return;
-            var cash = chop.Amount > 0 ? chop.Amount : 500;
-            player.Cash += cash;
-            if (HoldSpace.Fits(player, addContraband: 1))
-                player.Contraband++;
+            if (chop != null)
+            {
+                var cash = chop.Amount > 0 ? chop.Amount : 500;
+                player.Cash += cash;
+                if (HoldSpace.Fits(player, addContraband: 1))
+                    player.Contraband++;
+            }
+
+            MagGrapplerAction.TryAfterSalvage(
+                game, player, rng ?? new SystemRng(0), out _, out _, out _,
+                takeUpgradeId: magGrapplerUpgradeId);
         }
 
         /// <summary>

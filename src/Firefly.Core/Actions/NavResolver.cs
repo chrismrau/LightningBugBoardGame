@@ -130,6 +130,12 @@ namespace Firefly.Core.Actions
         /// </summary>
         public string? DiscardShipUpgradeId { get; set; }
         /// <summary>
+        /// Mag-Grappler after Salvage Op Tech 8+: Ship Upgrade id to take from any discard.
+        /// When unset and multiple upgrades are available, suspends
+        /// <see cref="PendingChoiceKinds.MagGrapplerUpgrade"/>.
+        /// </summary>
+        public string? MagGrapplerUpgradeId { get; set; }
+        /// <summary>
         /// Buy-on-the-go Opportunity purchases (Rogue Trader / Freighter Convoy). "You may" — zeros skip.
         /// </summary>
         public int BuyFuel { get; set; }
@@ -952,7 +958,16 @@ namespace Firefly.Core.Actions
                 goodsLoaded = optionGoodsLoaded;
 
             if (IsSalvageOpResolution(drawn.Card, option))
-                TryApplyAfterSalvageBonuses(game, player, ref cashGained, ref goodsLoaded);
+            {
+                TryApplyAfterSalvageBonuses(
+                    game, player, rng ?? new SystemRng(0), choice, ref cashGained, ref goodsLoaded, out error);
+                if (error != null)
+                {
+                    RollbackTokens();
+                    RollbackResources();
+                    return false;
+                }
+            }
 
             game.Decks!.For(drawn.Region).ResolveIntoDiscard(drawn.Card);
             FaceUp = null;
@@ -5349,23 +5364,36 @@ namespace Firefly.Core.Actions
 
         /// <summary>
         /// Onboard Chop Shop: After any Salvage Op, take $500 and Load 1 Contraband.
+        /// Mag-Grappler: After Salvage Ops, Tech 8 → take 1 Ship Upgrade from any discard.
         /// </summary>
         private static void TryApplyAfterSalvageBonuses(
             GameState game,
             PlayerState player,
+            IRng rng,
+            NavResolveChoice? choice,
             ref int cashGained,
-            ref int goodsLoaded)
+            ref int goodsLoaded,
+            out string? error)
         {
+            error = null;
             var chop = AbilityDispatcher.FindAfterSalvageCashAndContraband(game, player);
-            if (chop == null)
-                return;
-            var cash = chop.Amount > 0 ? chop.Amount : 500;
-            player.Cash += cash;
-            cashGained += cash;
-            if (HoldSpace.Fits(player, addContraband: 1))
+            if (chop != null)
             {
-                player.Contraband++;
-                goodsLoaded++;
+                var cash = chop.Amount > 0 ? chop.Amount : 500;
+                player.Cash += cash;
+                cashGained += cash;
+                if (HoldSpace.Fits(player, addContraband: 1))
+                {
+                    player.Contraband++;
+                    goodsLoaded++;
+                }
+            }
+
+            if (!MagGrapplerAction.TryAfterSalvage(
+                    game, player, rng, out _, out _, out error,
+                    takeUpgradeId: choice?.MagGrapplerUpgradeId))
+            {
+                error ??= "Mag-Grappler Salvage bonus failed.";
             }
         }
 
