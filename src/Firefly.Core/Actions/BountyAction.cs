@@ -135,11 +135,8 @@ namespace Firefly.Core.Actions
                 return false;
             }
 
-            if (!BoardingTest.IsAllowedSkill(boardSkill))
-            {
-                error = "Boarding Test uses Tech or Negotiate only (PBH p.3).";
+            if (!BoardingTest.IsAllowedSkill(boardSkill, rival, out error))
                 return false;
-            }
 
             if (!TryPassBoarding(
                     game, player, boardSkill, boardingSkillCheck, rng,
@@ -584,11 +581,8 @@ namespace Firefly.Core.Actions
                 return false;
             }
 
-            if (!BoardingTest.IsAllowedSkill(boardSkill))
-            {
-                error = "Boarding Test uses Tech or Negotiate only (PBH p.3).";
+            if (!BoardingTest.IsAllowedSkill(boardSkill, rival, out error))
                 return false;
-            }
 
             if (!TryPassBoarding(
                     game, player, boardSkill, boardingSkillCheck, rng,

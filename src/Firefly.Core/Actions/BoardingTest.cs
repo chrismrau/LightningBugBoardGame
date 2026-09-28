@@ -18,6 +18,30 @@ namespace Firefly.Core.Actions
             skill == Skill.Tech || skill == Skill.Talk;
 
         /// <summary>
+        /// Boarding skill gate including Electronic Defense Suite on the defender
+        /// (Supplies.tsv: rivals may not use Tech for Boarding Tests).
+        /// </summary>
+        public static bool IsAllowedSkill(Skill skill, PlayerState? defender, out string? error)
+        {
+            if (!IsAllowedSkill(skill))
+            {
+                error = "Boarding Test uses Tech or Negotiate only (PBH p.3).";
+                return false;
+            }
+
+            if (skill == Skill.Tech
+                && defender != null
+                && ElectronicDefenseSuiteAction.BlocksTechBoarding(defender))
+            {
+                error = "Electronic Defense Suite: rivals may not use Tech Skill for Boarding Tests.";
+                return false;
+            }
+
+            error = null;
+            return true;
+        }
+
+        /// <summary>
         /// Resolve a Boarding Test. Fails closed if Fight (or other) is chosen.
         /// Applies Cortland <c>bribesOnAnyNegotiate</c> on Talk. Callers must suspend
         /// via <see cref="SkillCheck.NeedsBribeChoice"/> before resolving when needed.
