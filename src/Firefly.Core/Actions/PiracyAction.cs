@@ -54,6 +54,9 @@ namespace Firefly.Core.Actions
         public IList<string>? DiscardJobHandIds { get; set; }
 
         public KillChoice? KillChoice { get; set; }
+
+        /// <summary>Zero Tolerance / Roberta thin hooks when a Piracy Warrant is Issued.</summary>
+        public SolidRepChoice? SolidRep { get; set; }
     }
 
     public sealed class PiracyResult
@@ -528,10 +531,14 @@ namespace Firefly.Core.Actions
             }
 
             // FAQ 4.1 p.12: all Illegal Piracy Jobs → Warrant Issued on Showdown loss.
+            // GF9 p.16 Zero Tolerance via shared WarrantIssuer.
             var warrants = 0;
             if (!job.Legal)
             {
-                player.Warrants++;
+                if (!WarrantIssuer.TryIssue(
+                        game, player, out error,
+                        choice.SolidRep, choice.SolidRep?.DiscardRobertaInstead))
+                    return false;
                 warrants = 1;
             }
 
@@ -634,8 +641,14 @@ namespace Firefly.Core.Actions
 
             ActiveAlertRules.OnJobCompleted(game, job.ContactName);
             // ScenarioCards.json Increased Enforcement (Any Port): Illegal Job → Warrant.
+            // Zero Tolerance strips Harken Solid immediately after BecomeSolid (GF9 p.16).
             if (game.Scenario != null && game.Scenario.IncreasedEnforcement && !job.Legal)
-                player.Warrants++;
+            {
+                if (!WarrantIssuer.TryIssue(
+                        game, player, out error,
+                        choice.SolidRep, choice.SolidRep?.DiscardRobertaInstead))
+                    return false;
+            }
 
             if (!game.TryConsumeAction(TurnAction.Work, out error))
                 return false;

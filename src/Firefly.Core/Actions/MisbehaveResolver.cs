@@ -1553,7 +1553,10 @@ namespace Firefly.Core.Actions
                 warrants = 0;
                 if (Contains(effectBand, "Warrant Issued"))
                 {
-                    player.Warrants++;
+                    if (!WarrantIssuer.TryIssue(
+                            game, player, out error,
+                            choice.SolidRep, choice.SolidRep?.DiscardRobertaInstead))
+                        return false;
                     warrants = 1;
                 }
 
@@ -2216,7 +2219,9 @@ namespace Firefly.Core.Actions
                 loadGoodsParts: choice.LoadGoodsParts,
                 loadGoodsCargo: choice.LoadGoodsCargo,
                 loadGoodsContraband: choice.LoadGoodsContraband,
-                loadAmount: choice.LoadAmount);
+                loadAmount: choice.LoadAmount,
+                solidRep: choice.SolidRep,
+                discardRobertaInstead: choice.SolidRep?.DiscardRobertaInstead);
 
             foreach (var effect in effects)
             {
@@ -2311,7 +2316,10 @@ namespace Firefly.Core.Actions
                             return false;
                         if (anySeized)
                         {
-                            player.Warrants++;
+                            if (!WarrantIssuer.TryIssue(
+                                    game, player, out error,
+                                    choice.SolidRep, choice.SolidRep?.DiscardRobertaInstead))
+                                return false;
                             warrants++;
                         }
                         else

@@ -44,6 +44,10 @@ namespace Firefly.Core.Actions
         /// Null = load the maximum that still fits (capped at the effect Count).
         /// </summary>
         public int? LoadAmount { get; }
+        /// <summary>Zero Tolerance / Roberta thin hooks when Warrant Issued strips Harken Solid.</summary>
+        public SolidRepChoice? SolidRep { get; }
+        /// <summary>Roberta Make Nice override when issuing a Warrant (null = use SolidRep / PendingChoice).</summary>
+        public bool? DiscardRobertaInstead { get; }
 
         public CardEffectContext(
             CardEffectSource source,
@@ -55,7 +59,9 @@ namespace Firefly.Core.Actions
             int loadGoodsParts = 0,
             int loadGoodsCargo = 0,
             int loadGoodsContraband = 0,
-            int? loadAmount = null)
+            int? loadAmount = null,
+            SolidRepChoice? solidRep = null,
+            bool? discardRobertaInstead = null)
         {
             Source = source;
             Kill = kill;
@@ -67,6 +73,8 @@ namespace Firefly.Core.Actions
             LoadGoodsCargo = loadGoodsCargo;
             LoadGoodsContraband = loadGoodsContraband;
             LoadAmount = loadAmount;
+            SolidRep = solidRep;
+            DiscardRobertaInstead = discardRobertaInstead;
         }
     }
 
@@ -99,7 +107,11 @@ namespace Firefly.Core.Actions
                 switch (effect.Type)
                 {
                     case CardEffectType.WarrantIssued:
-                        player.Warrants++;
+                        // GF9 p.16 / Director's Cut p.24 Zero Tolerance via shared hook.
+                        if (!WarrantIssuer.TryIssue(
+                                game, player, out error,
+                                context.SolidRep, context.DiscardRobertaInstead))
+                            return false;
                         result.WarrantsIssued++;
                         break;
 

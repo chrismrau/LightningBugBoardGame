@@ -58,6 +58,8 @@ namespace Firefly.Core.Actions
         /// <summary>Null = undecided; true = pay to complete; false = Attempt Botched.</summary>
         public bool? AcceptPayToComplete { get; set; }
         public IRng? Rng { get; set; }
+        /// <summary>Zero Tolerance / Roberta thin hooks when a Goal issues a Warrant.</summary>
+        public SolidRepChoice? SolidRep { get; set; }
     }
 
     /// <summary>
@@ -617,10 +619,13 @@ namespace Firefly.Core.Actions
             {
                 if (pending.WarrantsIssued == 0)
                 {
-                    player.Warrants++;
-                    pending.WarrantsIssued = 1;
                     // Patience's War: Goal warrants do not drop Solid with Patience / Mr. Universe.
-                    // Zero Tolerance (Harken) is not yet a general warrant hook in the kernel.
+                    // GF9 p.16 Zero Tolerance: any Warrant still drops Harken Solid (shared hook).
+                    if (!WarrantIssuer.TryIssue(
+                            game, player, out error,
+                            choice.SolidRep, choice.SolidRep?.DiscardRobertaInstead))
+                        return false;
+                    pending.WarrantsIssued = 1;
                 }
             }
 
