@@ -90,10 +90,13 @@
         "fuel": 100
       },
       "sellPrices": null,
-      "specialRules": null,
+      "specialRules": {
+        "name": "Zero Tolerance",
+        "text": "Receiving a Warrant for any reason will cause reputation loss with Harken, regardless of what Contact the Job you were working came from. You may not become Solid with Harken while you have a Warrant."
+      },
       "handSizeBonus": null,
       "activeJobsBonus": null,
-      "notes": "Core / Alliance contact. FAQ 4.1: when Solid, Alliance Cruiser is a refueling station — buy Fuel for $100 each on Deal. Location is the Alliance Command Cruiser."
+      "notes": "Core / Alliance contact. FAQ 4.1: when Solid, Alliance Cruiser is a refueling station — buy Fuel for $100 each on Deal. Location is the Alliance Command Cruiser. Zero Tolerance (GF9 p.16 / Director's Cut p.24) is enforced in WarrantIssuer / ContactSolidBenefits — not a Solid-gated ability. FAQ 4.1: Helmsman / Alliance Ident still count as Solid with Harken even with a Warrant."
     },
     {
       "id": "contact_lord-harrow",

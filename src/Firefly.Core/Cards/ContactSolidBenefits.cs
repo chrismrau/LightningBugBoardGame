@@ -19,6 +19,12 @@ namespace Firefly.Core.Cards
         public string? DiscardActiveJobId { get; set; }
 
         public KillChoice? Kill { get; set; }
+
+        /// <summary>
+        /// Roberta Make Nice: null = PendingChoice / thin-hook required; true = discard Roberta;
+        /// false = lose the Solid.
+        /// </summary>
+        public bool? DiscardRobertaInstead { get; set; }
     }
 
     public static class ContactSolidBenefits
@@ -40,10 +46,72 @@ namespace Firefly.Core.Cards
             player.ActiveJobLimit = BaseActiveJobLimit + ActiveJobsBonus(game, player);
         }
 
+        /// <summary>
+        /// GF9 p.16 / Director's Cut p.24 Zero Tolerance: may not become Solid with Harken
+        /// while you have a Warrant (including scenario starting warrants).
+        /// </summary>
+        public static bool BlocksBecomeSolidHarken(GameState game, PlayerState player, string contactId)
+        {
+            if (player == null || player.Warrants <= 0 || string.IsNullOrWhiteSpace(contactId))
+                return false;
+            return IsHarkenContact(game, contactId);
+        }
+
         public static void BecomeSolid(GameState game, PlayerState player, string contactId)
         {
+            if (BlocksBecomeSolidHarken(game, player, contactId))
+                return;
             player.BecomeSolid(contactId);
             RefreshLimits(game, player);
+        }
+
+        /// <summary>
+        /// GF9 p.16 / Director's Cut p.24 Zero Tolerance: any Warrant → lose Solid with Harken
+        /// (token only). FAQ 4.1 Helmsman / Alliance Ident still count as Solid if present.
+        /// No-op when the player is not Solid with Harken.
+        /// </summary>
+        public static bool TryApplyZeroTolerance(
+            GameState game,
+            PlayerState player,
+            SolidRepChoice? choice,
+            bool? discardRobertaInstead,
+            out string? error)
+        {
+            error = null;
+            if (player == null)
+            {
+                error = "No player.";
+                return false;
+            }
+
+            if (!TryResolveHarkenSolidId(player, out var harkenId))
+                return true;
+
+            var discard = discardRobertaInstead ?? choice?.DiscardRobertaInstead;
+            return TryLoseSolid(game, player, harkenId, choice, out error, discard);
+        }
+
+        private static bool IsHarkenContact(GameState game, string contactIdOrName)
+        {
+            if (ActiveAlertRules.IsHarken(contactIdOrName))
+                return true;
+            return game?.Contacts != null
+                && game.Contacts.TryGet(contactIdOrName, out var c)
+                && c.IsHarken;
+        }
+
+        private static bool TryResolveHarkenSolidId(PlayerState player, out string harkenId)
+        {
+            harkenId = null!;
+            foreach (var id in player.SolidWith)
+            {
+                if (ActiveAlertRules.IsHarken(id))
+                {
+                    harkenId = id;
+                    return true;
+                }
+            }
+            return false;
         }
 
         /// <summary>
