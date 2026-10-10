@@ -91,6 +91,43 @@ namespace Firefly.Core.Cards
             return TryLoseSolid(game, player, harkenId, choice, out error, discard);
         }
 
+        /// <summary>
+        /// GF9 p.16 / Director's Cut p.24 Losing Rep: Warrant while Working a Job for a Contact
+        /// → any reputation with that Contact is lost (Solid token + benefits).
+        /// No-op when not Working a Job, or not Solid with that Job's Contact.
+        /// Orthogonal to Zero Tolerance (Harken always); Niska Pound of Flesh remains separate.
+        /// </summary>
+        public static bool TryApplyLosingRep(
+            GameState game,
+            PlayerState player,
+            JobCard? workingJob,
+            SolidRepChoice? choice,
+            bool? discardRobertaInstead,
+            out string? error)
+        {
+            error = null;
+            if (player == null)
+            {
+                error = "No player.";
+                return false;
+            }
+
+            if (workingJob == null || string.IsNullOrWhiteSpace(workingJob.ContactName))
+                return true;
+
+            string contactKey = workingJob.ContactName;
+            if (game?.Contacts != null
+                && game.Contacts.TryFindByName(workingJob.ContactName, out var contact))
+                contactKey = contact.Id;
+
+            // Already stripped (e.g. Harken Job + Zero Tolerance) or never Solid → no-op.
+            if (ResolveSolidId(player, contactKey) == null)
+                return true;
+
+            var discard = discardRobertaInstead ?? choice?.DiscardRobertaInstead;
+            return TryLoseSolid(game!, player, contactKey, choice, out error, discard);
+        }
+
         private static bool IsHarkenContact(GameState game, string contactIdOrName)
         {
             if (ActiveAlertRules.IsHarken(contactIdOrName))

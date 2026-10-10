@@ -406,6 +406,7 @@ namespace Firefly.Core.Actions
             // ScenarioCards.json Increased Enforcement (Any Port): Illegal Job → Warrant.
             // Issued after completion (Job already leaves Active), so FAQ Warrant-discard does not apply.
             // Zero Tolerance: strips Harken Solid immediately after the just-granted Solid (GF9 p.16).
+            // Losing Rep does not apply — Warrant is not "while working" (Job already completed).
             if (game.Scenario != null && game.Scenario.IncreasedEnforcement && !job.Legal)
             {
                 if (!WarrantIssuer.TryIssue(game, player, out error))

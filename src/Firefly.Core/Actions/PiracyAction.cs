@@ -531,13 +531,14 @@ namespace Firefly.Core.Actions
             }
 
             // FAQ 4.1 p.12: all Illegal Piracy Jobs → Warrant Issued on Showdown loss.
-            // GF9 p.16 Zero Tolerance via shared WarrantIssuer.
+            // GF9 p.16 Zero Tolerance + Losing Rep (pass Job; Piracy has no PendingMisbehave).
             var warrants = 0;
             if (!job.Legal)
             {
                 if (!WarrantIssuer.TryIssue(
                         game, player, out error,
-                        choice.SolidRep, choice.SolidRep?.DiscardRobertaInstead))
+                        choice.SolidRep, choice.SolidRep?.DiscardRobertaInstead,
+                        workingJob: job))
                     return false;
                 warrants = 1;
             }
