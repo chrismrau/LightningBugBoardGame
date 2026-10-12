@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>Firefly.UI</RootNamespace>
+    <AssemblyName>Firefly.UI</AssemblyName>
+    <BlazorDisableThrowNavigationException>true</BlazorDisableThrowNavigationException>
+    <Description>Hotseat Blazor play surface for Lightning Bug (P1 map shell).</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Firefly.Core\Firefly.Core.csproj" />
+  </ItemGroup>
+
+  <!-- Map layout for client-side hit-test; board art served from reference/board at runtime. -->
+  <ItemGroup Condition="'$(GameDataRoot)' != ''">
+    <Content Include="$(GameDataRoot)\Map\SectorLayout.json">
+      <Link>Data\Map\SectorLayout.json</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+    <Content Include="$(GameDataRoot)\Map\Sectors.json">
+      <Link>Data\Map\Sectors.json</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+  </ItemGroup>
+</Project>

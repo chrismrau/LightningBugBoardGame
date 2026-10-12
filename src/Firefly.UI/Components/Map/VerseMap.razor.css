@@ -1,0 +1,128 @@
+.map-viewport {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background:
+        radial-gradient(ellipse at 30% 20%, #1a2740 0%, transparent 55%),
+        radial-gradient(ellipse at 80% 70%, #2a1a18 0%, transparent 50%),
+        #0b1018;
+    cursor: grab;
+    touch-action: none;
+    user-select: none;
+}
+
+.map-viewport.is-panning {
+    cursor: grabbing;
+}
+
+.map-stage {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 5008px;
+    height: 2008px;
+    transform-origin: 0 0;
+    will-change: transform;
+}
+
+.map-stage-bg {
+    position: absolute;
+    display: block;
+    pointer-events: none;
+    user-select: none;
+}
+
+.map-stage-fallback {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #152033;
+    color: #c9d4e8;
+    font: 28px/1.4 "Segoe UI", sans-serif;
+    text-align: center;
+    padding: 2rem;
+    box-sizing: border-box;
+}
+
+.map-overlay {
+    position: absolute;
+    left: 0;
+    top: 0;
+    overflow: visible;
+}
+
+.sector-poly {
+    fill: rgba(120, 180, 255, 0.02);
+    stroke: rgba(180, 210, 255, 0.12);
+    stroke-width: 2;
+    cursor: pointer;
+    transition: fill 160ms ease, stroke 160ms ease, stroke-width 160ms ease;
+}
+
+.sector-poly:hover {
+    fill: rgba(120, 200, 255, 0.14);
+    stroke: rgba(160, 220, 255, 0.55);
+}
+
+.sector-poly.is-occupied {
+    fill: rgba(255, 200, 90, 0.06);
+}
+
+.sector-poly.is-selected {
+    fill: rgba(90, 200, 255, 0.22);
+    stroke: #7ed6ff;
+    stroke-width: 4;
+}
+
+.token {
+    pointer-events: none;
+    transition: transform 280ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.token circle {
+    transition: r 200ms ease, fill 200ms ease, stroke 200ms ease;
+}
+
+.token.ship circle {
+    fill: #d4a24a;
+    stroke: #1a1208;
+    stroke-width: 4;
+    filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.45));
+}
+
+.token.ship.is-current circle {
+    fill: #f0c36a;
+    stroke: #fff4d6;
+}
+
+.token.ship text {
+    font: 700 22px/1 "Segoe UI", system-ui, sans-serif;
+    fill: #1a1208;
+    pointer-events: none;
+}
+
+.token.marker circle {
+    stroke-width: 3;
+    filter: drop-shadow(0 3px 4px rgba(0, 0, 0, 0.4));
+}
+
+.token.marker text {
+    font: 700 16px/1 "Segoe UI", system-ui, sans-serif;
+    fill: #f4f6fa;
+}
+
+.token.cruiser circle {
+    fill: #3d6fd8;
+    stroke: #dce8ff;
+}
+
+.token.cutter circle {
+    fill: #8b1e1e;
+    stroke: #ffb4b4;
+}
+
+.token.corvette circle {
+    fill: #5a6b8a;
+    stroke: #e8eef8;
+}

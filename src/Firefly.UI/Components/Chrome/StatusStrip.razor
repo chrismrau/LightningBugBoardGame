@@ -1,0 +1,42 @@
+@using Firefly.UI.Services
+
+<div class="status-strip" role="status">
+    <div class="stat">
+        <span class="label">Seat</span>
+        <span class="value">@Snapshot.SeatName</span>
+    </div>
+    <div class="stat">
+        <span class="label">Cash</span>
+        <span class="value">$@Snapshot.Cash.ToString("N0")</span>
+    </div>
+    <div class="stat">
+        <span class="label">Fuel</span>
+        <span class="value">@Snapshot.Fuel</span>
+    </div>
+    <div class="stat">
+        <span class="label">Parts</span>
+        <span class="value">@Snapshot.Parts</span>
+    </div>
+    <div class="stat">
+        <span class="label">Warrants</span>
+        <span class="value">@Snapshot.Warrants</span>
+    </div>
+    <div class="stat">
+        <span class="label">Actions</span>
+        <span class="value">@Snapshot.ActionsUsed / @Snapshot.ActionsPerTurn</span>
+    </div>
+    <div class="stat pending @(Snapshot.HasPendingEvents ? "is-active" : null)">
+        <span class="label">Pending</span>
+        <span class="value">@(Snapshot.PendingSummary ?? "—")</span>
+    </div>
+    <button type="button" class="end-turn" @onclick="OnEndTurn" title="Allowed with 0, 1, or 2 actions (GF9 may take 2)">
+        End Turn
+    </button>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public PlayViewSnapshot Snapshot { get; set; } = default!;
+    [Parameter] public EventCallback EndTurnRequested { get; set; }
+
+    private Task OnEndTurn() => EndTurnRequested.InvokeAsync();
+}
