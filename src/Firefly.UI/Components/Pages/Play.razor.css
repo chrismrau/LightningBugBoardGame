@@ -1,0 +1,50 @@
+.play-shell {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    min-height: 100vh;
+    background: #070b12;
+    color: #e8eef8;
+}
+
+.play-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: stretch;
+    gap: 0.5rem 1rem;
+    border-bottom: 1px solid rgba(180, 200, 230, 0.14);
+}
+
+.brand {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 0.55rem 1rem;
+    min-width: 11rem;
+}
+
+.brand .mark {
+    font-family: "Segoe UI Semibold", "Segoe UI", system-ui, sans-serif;
+    font-size: 1.05rem;
+    letter-spacing: 0.02em;
+    color: #f0c36a;
+}
+
+.brand .mode {
+    font-size: 0.7rem;
+    color: #8fa0b8;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.play-header ::deep .scenario-chip {
+    flex: 1;
+    border-bottom: none;
+    background: transparent;
+}
+
+.play-body {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+}

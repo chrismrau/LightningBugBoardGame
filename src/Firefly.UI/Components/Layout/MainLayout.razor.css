@@ -1,0 +1,30 @@
+.play-layout {
+    min-height: 100vh;
+    margin: 0;
+    background: #070b12;
+}
+
+#blazor-error-ui {
+    background: #b32121;
+    bottom: 0;
+    box-shadow: 0 -1px 6px rgba(0, 0, 0, 0.35);
+    display: none;
+    left: 0;
+    padding: 0.6rem 1.25rem;
+    position: fixed;
+    width: 100%;
+    z-index: 2000;
+    color: #fff;
+}
+
+#blazor-error-ui .dismiss {
+    cursor: pointer;
+    position: absolute;
+    right: 0.75rem;
+    top: 0.5rem;
+}
+
+#blazor-error-ui .reload {
+    color: #fff;
+    margin-left: 0.5rem;
+}

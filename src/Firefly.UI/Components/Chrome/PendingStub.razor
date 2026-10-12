@@ -1,0 +1,18 @@
+@using Firefly.UI.Services
+
+@if (!string.IsNullOrEmpty(Summary))
+{
+    <div class="pending-stub" role="status">
+        <strong>Pending (P2 host stub)</strong>
+        <span>@Summary</span>
+        @if (!string.IsNullOrEmpty(ChoiceKind))
+        {
+            <span class="kind">@ChoiceKind</span>
+        }
+    </div>
+}
+
+@code {
+    [Parameter] public string? Summary { get; set; }
+    [Parameter] public string? ChoiceKind { get; set; }
+}

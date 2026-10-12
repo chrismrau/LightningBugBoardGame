@@ -1,0 +1,48 @@
+@using Firefly.UI.Services
+
+<div class="scenario-chip">
+    <label>
+        <span class="eyebrow">Scenario</span>
+        <select @bind="_selectedId" @bind:after="OnChanged" aria-label="Smoke scenario">
+            @foreach (var option in SmokeScenarios.All)
+            {
+                <option value="@option.Id">@option.Name</option>
+            }
+        </select>
+    </label>
+    <div class="expansion-toggles" title="Optional expansion content stays available in UI">
+        <label><input type="checkbox" @bind="_blueSun" @bind:after="OnChanged" /> Blue Sun</label>
+        <label><input type="checkbox" @bind="_bounty" @bind:after="OnChanged" /> PBH / Bounties</label>
+        <label><input type="checkbox" @bind="_corvette" @bind:after="OnChanged" /> Corvette</label>
+    </div>
+</div>
+
+@code {
+    [Parameter] public string ScenarioCardId { get; set; } = SmokeScenarios.DefaultId;
+    [Parameter] public bool UseBlueSun { get; set; }
+    [Parameter] public bool UseBountyDeck { get; set; }
+    [Parameter] public bool UseOperativesCorvette { get; set; }
+    [Parameter] public EventCallback<(string ScenarioId, bool BlueSun, bool Bounty, bool Corvette)> RestartRequested { get; set; }
+
+    private string _selectedId = SmokeScenarios.DefaultId;
+    private bool _blueSun;
+    private bool _bounty;
+    private bool _corvette;
+    private bool _syncing;
+
+    protected override void OnParametersSet()
+    {
+        _syncing = true;
+        _selectedId = ScenarioCardId;
+        _blueSun = UseBlueSun;
+        _bounty = UseBountyDeck;
+        _corvette = UseOperativesCorvette;
+        _syncing = false;
+    }
+
+    private async Task OnChanged()
+    {
+        if (_syncing) return;
+        await RestartRequested.InvokeAsync((_selectedId, _blueSun, _bounty, _corvette));
+    }
+}

@@ -1,0 +1,86 @@
+@page "/"
+@rendermode InteractiveServer
+@using Firefly.Core.Map
+@using Firefly.UI.Components.Chrome
+@using Firefly.UI.Components.Map
+@using Firefly.UI.Services
+@inject IGameSession Session
+@inject RepoPaths Paths
+@implements IDisposable
+
+<PageTitle>Lightning Bug — Play</PageTitle>
+
+<div class="play-shell">
+    <header class="play-header">
+        <div class="brand">
+            <span class="mark">Lightning Bug</span>
+            <span class="mode">Hotseat · P1 map shell</span>
+        </div>
+        <ScenarioChip ScenarioCardId="@_snap.ScenarioCardId"
+                      UseBlueSun="@_snap.UseBlueSun"
+                      UseBountyDeck="@_snap.UseBountyDeck"
+                      UseOperativesCorvette="@_snap.UseOperativesCorvette"
+                      RestartRequested="OnRestart" />
+    </header>
+
+    <StatusStrip Snapshot="_snap" EndTurnRequested="OnEndTurn" />
+    <PendingStub Summary="_snap.PendingSummary" ChoiceKind="_snap.PendingChoiceKind" />
+
+    <div class="play-body">
+        <VerseMap SelectedSectorId="_snap.SelectedSectorId"
+                  Ships="_snap.ShipTokens"
+                  Markers="_snap.Markers"
+                  BoardArtAvailable="_boardArt"
+                  SectorSelected="OnSectorSelected" />
+        <InspectPanel Info="_snap.Inspect" />
+    </div>
+</div>
+
+@code {
+    private PlayViewSnapshot _snap = default!;
+    private bool _boardArt;
+    private SectorMap _map = default!;
+
+    protected override void OnInitialized()
+    {
+        _map = Session.Game.Map;
+        _boardArt = Paths.BoardArtAvailable;
+        Refresh();
+        Session.Changed += OnSessionChanged;
+    }
+
+    private void OnSessionChanged()
+    {
+        InvokeAsync(() =>
+        {
+            Refresh();
+            StateHasChanged();
+        });
+    }
+
+    private void Refresh()
+    {
+        _snap = PlayViewSnapshot.From(Session, _map);
+    }
+
+    private void OnSectorSelected(string sectorId)
+    {
+        var next = string.Equals(Session.SelectedSectorId, sectorId, StringComparison.OrdinalIgnoreCase)
+            ? null
+            : sectorId;
+        Session.SelectSector(next);
+    }
+
+    private void OnEndTurn() => Session.EndTurn();
+
+    private void OnRestart((string ScenarioId, bool BlueSun, bool Bounty, bool Corvette) args)
+    {
+        Session.StartNew(args.ScenarioId, args.BlueSun, args.Bounty, args.Corvette);
+        _map = Session.Game.Map;
+    }
+
+    public void Dispose()
+    {
+        Session.Changed -= OnSessionChanged;
+    }
+}

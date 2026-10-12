@@ -1,0 +1,25 @@
+.pending-stub {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 1rem;
+    padding: 0.45rem 1rem;
+    background: linear-gradient(90deg, rgba(90, 50, 10, 0.92), rgba(40, 24, 8, 0.85));
+    border-bottom: 1px solid rgba(240, 195, 106, 0.35);
+    color: #ffe2a8;
+    font-family: "Segoe UI", system-ui, sans-serif;
+    font-size: 0.9rem;
+    animation: pending-in 220ms ease-out;
+}
+
+.pending-stub .kind {
+    margin-left: auto;
+    font-family: ui-monospace, monospace;
+    font-size: 0.8rem;
+    opacity: 0.85;
+}
+
+@keyframes pending-in {
+    from { opacity: 0; transform: translateY(-6px); }
+    to { opacity: 1; transform: translateY(0); }
+}
