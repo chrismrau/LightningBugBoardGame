@@ -1,0 +1,55 @@
+.inspect {
+    width: 16rem;
+    max-width: 40vw;
+    padding: 0.85rem 1rem;
+    background: rgba(10, 14, 22, 0.92);
+    border-left: 1px solid rgba(180, 200, 230, 0.16);
+    color: #e8eef8;
+    font-family: "Segoe UI", system-ui, sans-serif;
+    overflow: auto;
+}
+
+.inspect.empty {
+    color: #8fa0b8;
+    font-size: 0.9rem;
+}
+
+.inspect h2 {
+    margin: 0 0 0.75rem;
+    font-size: 1.05rem;
+    font-weight: 650;
+}
+
+.inspect dl {
+    margin: 0;
+    display: grid;
+    gap: 0.45rem;
+}
+
+.inspect dl > div {
+    display: grid;
+    grid-template-columns: 5.5rem 1fr;
+    gap: 0.35rem;
+    font-size: 0.85rem;
+}
+
+.inspect dt {
+    color: #8fa0b8;
+    margin: 0;
+}
+
+.inspect dd {
+    margin: 0;
+    word-break: break-word;
+}
+
+.inspect code {
+    font-size: 0.75rem;
+    color: #b7d4ff;
+}
+
+.inspect .hint {
+    margin: 1rem 0 0;
+    font-size: 0.75rem;
+    color: #8fa0b8;
+}

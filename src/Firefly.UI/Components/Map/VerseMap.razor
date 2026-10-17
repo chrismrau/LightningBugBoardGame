@@ -1,0 +1,131 @@
+@using Firefly.UI.Services
+@inject SectorLayoutService LayoutService
+@inject IJSRuntime Js
+@implements IAsyncDisposable
+
+<div class="map-viewport" @ref="_viewport" title="Scroll to zoom · drag empty space / middle-mouse / Space+drag to pan · 0 to fit">
+    <div class="map-stage" @ref="_stage">
+        @if (_boardAvailable)
+        {
+            <img class="map-stage-bg"
+                 src="/board/GameBoardMarkup.png"
+                 width="@SectorLayout.ImageWidth"
+                 height="@SectorLayout.ImageHeight"
+                 style="left: @(SectorLayout.ImageOffsetX)px; top: @(SectorLayout.ImageOffsetY)px;"
+                 alt="Firefly game board"
+                 draggable="false" />
+        }
+        else
+        {
+            <div class="map-stage-bg map-stage-fallback"
+                 style="left: @(SectorLayout.ImageOffsetX)px; top: @(SectorLayout.ImageOffsetY)px; width: @(SectorLayout.ImageWidth)px; height: @(SectorLayout.ImageHeight)px;">
+                Board art missing — expected <code>reference/board/GameBoardMarkup.png</code>
+            </div>
+        }
+
+        <svg class="map-overlay"
+             xmlns="http://www.w3.org/2000/svg"
+             width="@SectorLayout.BoardWidth"
+             height="@SectorLayout.BoardHeight"
+             viewBox="0 0 @SectorLayout.BoardWidth @SectorLayout.BoardHeight">
+            @foreach (var sector in _layout.All)
+            {
+                var selected = string.Equals(SelectedSectorId, sector.SectorId, StringComparison.OrdinalIgnoreCase);
+                var occupied = OccupiedSectorIds.Contains(sector.SectorId);
+                <polygon @key="sector.SectorId"
+                         class="sector-poly @(selected ? "is-selected" : null) @(occupied ? "is-occupied" : null)"
+                         points="@sector.PointsAttribute"
+                         @onclick="() => OnSectorClick(sector.SectorId)"
+                         @onclick:stopPropagation="true" />
+            }
+
+            @foreach (var marker in Markers)
+            {
+                if (!_layout.ById.TryGetValue(marker.SectorId, out var geo)) continue;
+                var css = marker.Kind switch
+                {
+                    MarkerKind.AllianceCruiser => "token marker cruiser",
+                    MarkerKind.ReaverCutter => "token marker cutter",
+                    MarkerKind.Corvette => "token marker corvette",
+                    _ => "token marker"
+                };
+                <g @key="marker.Id" class="@css" transform="translate(@geo.CentroidX.ToString(System.Globalization.CultureInfo.InvariantCulture) @geo.CentroidY.ToString(System.Globalization.CultureInfo.InvariantCulture))">
+                    <circle r="28" />
+                    <text y="6" text-anchor="middle">@(marker.Kind == MarkerKind.AllianceCruiser ? "AC" : marker.Kind == MarkerKind.Corvette ? "OC" : "RC")</text>
+                    <title>@marker.Label</title>
+                </g>
+            }
+
+            @foreach (var ship in Ships)
+            {
+                if (!_layout.ById.TryGetValue(ship.SectorId, out var geo)) continue;
+                <g @key="ship.PlayerId"
+                   class="token ship @(ship.IsCurrent ? "is-current" : null)"
+                   transform="translate(@geo.CentroidX.ToString(System.Globalization.CultureInfo.InvariantCulture) @geo.CentroidY.ToString(System.Globalization.CultureInfo.InvariantCulture))">
+                    <circle r="34" />
+                    <text y="8" text-anchor="middle">@ship.Name</text>
+                    <title>@ship.Name · @ship.ShipId · @ship.SectorId</title>
+                </g>
+            }
+        </svg>
+    </div>
+</div>
+
+@code {
+    [Parameter] public string? SelectedSectorId { get; set; }
+    [Parameter] public IReadOnlyList<ShipTokenView> Ships { get; set; } = Array.Empty<ShipTokenView>();
+    [Parameter] public IReadOnlyList<MarkerTokenView> Markers { get; set; } = Array.Empty<MarkerTokenView>();
+    [Parameter] public bool BoardArtAvailable { get; set; }
+    [Parameter] public EventCallback<string> SectorSelected { get; set; }
+
+    private ElementReference _viewport;
+    private ElementReference _stage;
+    private SectorLayout _layout = new();
+    private bool _boardAvailable;
+    private HashSet<string> OccupiedSectorIds { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+    private IJSObjectReference? _camera;
+
+    protected override void OnParametersSet()
+    {
+        _layout = LayoutService.Layout;
+        _boardAvailable = BoardArtAvailable;
+        OccupiedSectorIds = Ships.Select(s => s.SectorId)
+            .Concat(Markers.Select(m => m.SectorId))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || _camera != null)
+            return;
+        try
+        {
+            var module = await Js.InvokeAsync<IJSObjectReference>("import", "./js/map-camera.js");
+            _camera = await module.InvokeAsync<IJSObjectReference>("attach", _viewport, _stage);
+            await module.DisposeAsync();
+        }
+        catch (JSException)
+        {
+            // Camera is progressive enhancement; map still clickable without it.
+        }
+    }
+
+    private async Task OnSectorClick(string sectorId)
+    {
+        await SectorSelected.InvokeAsync(sectorId);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_camera is not null)
+        {
+            try
+            {
+                await _camera.InvokeVoidAsync("dispose");
+                await _camera.DisposeAsync();
+            }
+            catch (JSDisconnectedException) { }
+            catch (ObjectDisposedException) { }
+        }
+    }
+}

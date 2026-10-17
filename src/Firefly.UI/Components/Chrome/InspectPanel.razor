@@ -1,0 +1,38 @@
+@using Firefly.UI.Services
+
+@if (Info is null)
+{
+    <aside class="inspect empty">
+        <p>Click a sector to inspect.</p>
+    </aside>
+}
+else
+{
+    <aside class="inspect">
+        <h2>@Info.Title</h2>
+        <dl>
+            <div><dt>Id</dt><dd><code>@Info.SectorId</code></dd></div>
+            <div><dt>Region</dt><dd>@Info.Region</dd></div>
+            <div><dt>Zone</dt><dd>@Info.Zone</dd></div>
+            @if (!string.IsNullOrEmpty(Info.Planet))
+            {
+                <div><dt>Planet</dt><dd>@Info.Planet</dd></div>
+            }
+            @if (!string.IsNullOrEmpty(Info.Contact))
+            {
+                <div><dt>Contact</dt><dd>@Info.Contact</dd></div>
+            }
+            <div><dt>Supply</dt><dd>@(Info.HasSupply ? "Yes" : "No")</dd></div>
+            <div><dt>Planetary</dt><dd>@(Info.IsPlanetary ? "Yes" : "No")</dd></div>
+            @if (Info.IsRelay)
+            {
+                <div><dt>Relay</dt><dd>Yes</dd></div>
+            }
+        </dl>
+        <p class="hint">Fly / Nav actions arrive in P3 — inspect only for now.</p>
+    </aside>
+}
+
+@code {
+    [Parameter] public SectorInspectInfo? Info { get; set; }
+}
