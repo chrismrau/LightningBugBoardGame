@@ -1,35 +1,10 @@
 {
   "meta": {
     "description": "Firefly: The Game – Gear cards",
-    "count": 74,
+    "count": 73,
     "schemaVersion": "1.0"
   },
   "gear": [
-    {
-      "class": "Promo",
-      "source": "LootCrate",
-      "sourceLabel": "Loot Crate",
-      "name": "Loot Crate: Silverhold",
-      "cost": 300,
-      "costRaw": "300",
-      "description": "Remove from Play to Use: Draw a card from the Silverhold Supply Deck. If it is a Gear Card, keep it. If not, discard it and draw another card. Repeat until a Gear Card is drawn.",
-      "skills": {
-        "fight": null,
-        "tech": null,
-        "talk": null
-      },
-      "moral": false,
-      "wanted": false,
-      "professions": [],
-      "keywords": [],
-      "locations": {
-        "Persephone": 1
-      },
-      "count": null,
-      "specialAbilityType": null,
-      "ability": null,
-      "id": "gear_loot-crate-silverhold_lootcrate"
-    },
     {
       "class": "Promo",
       "source": "Promo",
