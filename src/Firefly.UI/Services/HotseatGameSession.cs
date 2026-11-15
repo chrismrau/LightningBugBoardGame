@@ -15,12 +15,18 @@ public sealed class HotseatGameSession : IGameSession
     public const string DefaultLeaderId = "leader_malcolm";
     public const string DefaultShipId = "ship_serenity";
 
+    /// <summary>Second smoke seat — Santo / Zoe / next core Firefly (Yun Qi).</summary>
+    public const string SecondStartSectorId = "alliance-qin-shi-huang-r1-01"; // Santo
+    public const string SecondLeaderId = "leader_zoe_jetwash";
+    public const string SecondShipId = "ship_yun-qi";
+
     private readonly object _gate = new();
     private GameState _game;
     private string _scenarioCardId = SmokeScenarios.DefaultId;
     private bool _useBlueSun;
     private bool _useBountyDeck;
     private bool _useOperativesCorvette;
+    private int _seatCount = 1;
     private string? _selectedSectorId;
     private MovementEngine _movement = null!;
     private FlyAction _fly = null!;
@@ -40,7 +46,7 @@ public sealed class HotseatGameSession : IGameSession
 
     public HotseatGameSession()
     {
-        _game = CreateGame(_scenarioCardId, _useBlueSun, _useBountyDeck, _useOperativesCorvette);
+        _game = CreateGame(_scenarioCardId, _useBlueSun, _useBountyDeck, _useOperativesCorvette, _seatCount);
         WireEngines(_game);
     }
 
@@ -71,6 +77,11 @@ public sealed class HotseatGameSession : IGameSession
         get { lock (_gate) return _useOperativesCorvette; }
     }
 
+    public int SeatCount
+    {
+        get { lock (_gate) return _seatCount; }
+    }
+
     public string? SelectedSectorId
     {
         get { lock (_gate) return _selectedSectorId; }
@@ -95,10 +106,13 @@ public sealed class HotseatGameSession : IGameSession
         string scenarioCardId,
         bool useBlueSun = false,
         bool useBountyDeck = false,
-        bool useOperativesCorvette = false)
+        bool useOperativesCorvette = false,
+        int seatCount = 1)
     {
         if (string.IsNullOrWhiteSpace(scenarioCardId))
             throw new ArgumentException("Scenario id is required.", nameof(scenarioCardId));
+        if (seatCount is < 1 or > 2)
+            throw new ArgumentOutOfRangeException(nameof(seatCount), "Hotseat smoke supports 1 or 2 seats.");
 
         lock (_gate)
         {
@@ -106,9 +120,10 @@ public sealed class HotseatGameSession : IGameSession
             _useBlueSun = useBlueSun;
             _useBountyDeck = useBountyDeck;
             _useOperativesCorvette = useOperativesCorvette;
+            _seatCount = seatCount;
             _selectedSectorId = null;
             ClearDealStaging();
-            _game = CreateGame(scenarioCardId, useBlueSun, useBountyDeck, useOperativesCorvette);
+            _game = CreateGame(scenarioCardId, useBlueSun, useBountyDeck, useOperativesCorvette, seatCount);
             WireEngines(_game);
         }
 
@@ -626,17 +641,28 @@ public sealed class HotseatGameSession : IGameSession
         string scenarioCardId,
         bool useBlueSun,
         bool useBountyDeck,
-        bool useOperativesCorvette)
+        bool useOperativesCorvette,
+        int seatCount)
     {
-        var seats = new[]
+        var seats = new List<PlayerSeat>
         {
-            new PlayerSeat(
+            new(
                 id: "p1",
                 name: "Mal",
                 sectorId: DefaultStartSectorId,
                 shipId: DefaultShipId,
                 leaderId: DefaultLeaderId)
         };
+
+        if (seatCount >= 2)
+        {
+            seats.Add(new PlayerSeat(
+                id: "p2",
+                name: "Zoe",
+                sectorId: SecondStartSectorId,
+                shipId: SecondShipId,
+                leaderId: SecondLeaderId));
+        }
 
         return GameSetup.Create(seats, new GameSetupOptions
         {

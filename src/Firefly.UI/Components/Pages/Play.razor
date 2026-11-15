@@ -16,12 +16,13 @@
     <header class="play-header">
         <div class="brand">
             <span class="mark">Lightning Bug</span>
-            <span class="mode">Hotseat · P7 Work/Misbehave</span>
+            <span class="mode">Hotseat · P8 Rival sheets</span>
         </div>
         <ScenarioChip ScenarioCardId="@_snap.ScenarioCardId"
                       UseBlueSun="@_snap.UseBlueSun"
                       UseBountyDeck="@_snap.UseBountyDeck"
                       UseOperativesCorvette="@_snap.UseOperativesCorvette"
+                      SeatCount="@_snap.SeatCount"
                       RestartRequested="OnRestart" />
     </header>
 
@@ -60,7 +61,12 @@
         <div class="map-host">
             <ShipSheet Sheet="_snap.ShipSheet"
                        IsOpen="_shipSheetOpen"
-                       IsOpenChanged="OnShipSheetOpenChanged" />
+                       IsOpenChanged="OnShipSheetOpenChanged"
+                       ShowJobHand="true"
+                       Edge="ShipSheetEdge.Left" />
+            <RivalSheets Rivals="_snap.RivalSheets"
+                         OpenPlayerId="_openRivalId"
+                         OpenPlayerIdChanged="OnRivalOpenChanged" />
             <DiscardBrowser View="_snap.Discards"
                             IsOpen="_discardOpen"
                             IsOpenChanged="OnDiscardOpenChanged"
@@ -121,6 +127,7 @@
     private bool _shipSheetOpen;
     private bool _discardOpen;
     private string? _discardFocus;
+    private string? _openRivalId;
 
     protected override void OnInitialized()
     {
@@ -700,7 +707,7 @@
         _toast = error;
     }
 
-    private void OnRestart((string ScenarioId, bool BlueSun, bool Bounty, bool Corvette) args)
+    private void OnRestart((string ScenarioId, bool BlueSun, bool Bounty, bool Corvette, int SeatCount) args)
     {
         ClearFlyUi();
         ClearEconomyUi(cancelConsider: true);
@@ -708,7 +715,8 @@
         _shipSheetOpen = false;
         _discardOpen = false;
         _discardFocus = null;
-        Session.StartNew(args.ScenarioId, args.BlueSun, args.Bounty, args.Corvette);
+        _openRivalId = null;
+        Session.StartNew(args.ScenarioId, args.BlueSun, args.Bounty, args.Corvette, args.SeatCount);
         _map = Session.Game.Map;
         _toast = null;
     }
@@ -717,11 +725,23 @@
 
     private void OnShipSheetOpenChanged(bool open) => _shipSheetOpen = open;
 
+    private void OnRivalOpenChanged(string? playerId)
+    {
+        _openRivalId = playerId;
+        // Right-edge polish: rival drawer and discards are mutually exclusive.
+        if (!string.IsNullOrEmpty(playerId))
+        {
+            _discardOpen = false;
+            _discardFocus = null;
+        }
+    }
+
     /// <summary>
     /// Opens the discard browser, optionally focused on a <see cref="DiscardBrowseTargets"/> key.
     /// </summary>
     private void OpenDiscardBrowser(string? focusTarget = null)
     {
+        _openRivalId = null;
         _discardFocus = focusTarget;
         _discardOpen = true;
     }
@@ -729,6 +749,8 @@
     private void OnDiscardOpenChanged(bool open)
     {
         _discardOpen = open;
+        if (open)
+            _openRivalId = null;
         if (!open)
             _discardFocus = null;
     }

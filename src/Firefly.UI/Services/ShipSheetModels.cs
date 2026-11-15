@@ -4,12 +4,14 @@ using Firefly.Core.State;
 namespace Firefly.UI.Services;
 
 /// <summary>
-/// Own-seat ship sheet (P4). Packing mirrors kernel <see cref="HoldSpace"/>
+/// Ship sheet (P4 own / P8 rival). Packing mirrors kernel <see cref="HoldSpace"/>
 /// (GF9 setup / Buy: 1 cargo|contraband|passenger|fugitive per space, or up to 2 fuel/parts;
 /// Jetwash/Esmeralda fuel-only stash = 1 fuel each).
+/// Rival public sheets omit the Job hand (prefs / playspace plan visibility lock).
 /// </summary>
 public sealed class ShipSheetView
 {
+    public required string PlayerId { get; init; }
     public required string SeatName { get; init; }
     public required string ShipId { get; init; }
     public required string ShipName { get; init; }
@@ -38,7 +40,10 @@ public sealed class ShipSheetView
     public required IReadOnlyList<CrewSheetEntry> Crew { get; init; }
     public required IReadOnlyList<GearSheetEntry> OnboardGear { get; init; }
     public required IReadOnlyList<JobSheetEntry> ActiveJobs { get; init; }
+    /// <summary>Own seat only. Empty when <see cref="IncludeJobHand"/> is false (rival public sheet).</summary>
     public required IReadOnlyList<JobSheetEntry> JobHand { get; init; }
+    /// <summary>False for rival peeks — Active Jobs stay visible; Job hand stays hidden.</summary>
+    public required bool IncludeJobHand { get; init; }
     public required IReadOnlyList<SolidContactView> SolidWith { get; init; }
 }
 
@@ -52,6 +57,13 @@ public enum HoldCellKind
     Contraband,
     Passenger,
     Fugitive
+}
+
+/// <summary>Drawer edge for own sheet (left) vs rival peeks (right).</summary>
+public enum ShipSheetEdge
+{
+    Left,
+    Right
 }
 
 public sealed record HoldCellView(HoldCellKind Kind, string Label, int FuelCount = 0, int PartsCount = 0);
@@ -102,7 +114,11 @@ public sealed record SolidContactView(string Id, string Name);
 
 public static class ShipSheetBuilder
 {
-    public static ShipSheetView From(GameState game, PlayerState player)
+    /// <param name="includeJobHand">
+    /// Own seat: true (full sheet). Rival public sheet: false — Active Jobs + board resources only
+    /// (prefs visibility lock; Job hand is table-private).
+    /// </param>
+    public static ShipSheetView From(GameState game, PlayerState player, bool includeJobHand = true)
     {
         var shipName = player.ShipId ?? "Ship";
         if (!string.IsNullOrWhiteSpace(player.ShipId)
@@ -206,9 +222,10 @@ public static class ShipSheetBuilder
         var activeJobs = player.ActiveJobs
             .Select(j => ToJob(game, j.JobId, j.PickedUp))
             .ToList();
-        var jobHand = player.JobHand
-            .Select(id => ToJob(game, id, pickedUp: false))
-            .ToList();
+        // Hotseat-safe: never copy rival Job hand ids into the public snapshot.
+        var jobHand = includeJobHand
+            ? player.JobHand.Select(id => ToJob(game, id, pickedUp: false)).ToList()
+            : (IReadOnlyList<JobSheetEntry>)Array.Empty<JobSheetEntry>();
 
         var solid = new List<SolidContactView>();
         foreach (var id in player.SolidWith.OrderBy(x => x, StringComparer.OrdinalIgnoreCase))
@@ -227,6 +244,7 @@ public static class ShipSheetBuilder
 
         return new ShipSheetView
         {
+            PlayerId = player.Id,
             SeatName = player.Name,
             ShipId = player.ShipId ?? "",
             ShipName = shipName,
@@ -263,9 +281,14 @@ public static class ShipSheetBuilder
             OnboardGear = onboard,
             ActiveJobs = activeJobs,
             JobHand = jobHand,
+            IncludeJobHand = includeJobHand,
             SolidWith = solid
         };
     }
+
+    /// <summary>Public table view for another seat — Active Jobs on, Job hand off.</summary>
+    public static ShipSheetView FromRival(GameState game, PlayerState rival) =>
+        From(game, rival, includeJobHand: false);
 
     private static JobSheetEntry ToJob(GameState game, string jobId, bool pickedUp)
     {

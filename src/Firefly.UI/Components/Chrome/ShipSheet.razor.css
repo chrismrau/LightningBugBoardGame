@@ -2,39 +2,70 @@
     position: absolute;
     top: 0;
     bottom: 0;
-    left: 0;
     z-index: 24;
     pointer-events: none;
     font-family: "Segoe UI", system-ui, sans-serif;
     color: #e8eef8;
+    --sheet-tab-index: 0;
+}
+
+.ship-sheet.edge-left {
+    left: 0;
+}
+
+.ship-sheet.edge-right {
+    right: 0;
+    /* Sit under Discards tab; stack multiple rival peeks. */
+    --rival-tab-base: 11.25rem;
+    --rival-tab-step: 5.6rem;
 }
 
 .sheet-tab {
     pointer-events: auto;
     position: absolute;
-    top: 4.5rem;
-    left: 0;
     z-index: 26;
     writing-mode: vertical-rl;
-    transform: rotate(180deg);
     border: 1px solid rgba(180, 200, 230, 0.28);
-    border-left: none;
-    border-radius: 0 4px 4px 0;
     background: linear-gradient(180deg, #243248, #151c28);
-    color: #f0c36a;
     padding: 0.85rem 0.35rem;
     cursor: pointer;
     letter-spacing: 0.08em;
-    transition: background 160ms ease, border-color 160ms ease, transform 180ms ease;
+    transition: background 160ms ease, border-color 160ms ease, left 180ms ease, right 180ms ease, transform 180ms ease;
 }
 
-.ship-sheet.is-open .sheet-tab {
+.ship-sheet.edge-left .sheet-tab {
+    top: 4.5rem;
+    left: 0;
+    transform: rotate(180deg);
+    border-left: none;
+    border-radius: 0 4px 4px 0;
+    color: #f0c36a;
+}
+
+.ship-sheet.edge-left.is-open .sheet-tab {
     left: min(28rem, 92vw);
     transform: rotate(180deg) translateX(1px);
 }
 
-.sheet-tab:hover {
+.ship-sheet.edge-right .sheet-tab {
+    top: calc(var(--rival-tab-base) + (var(--sheet-tab-index) * var(--rival-tab-step)));
+    right: 0;
+    border-right: none;
+    border-radius: 4px 0 0 4px;
+    color: #c9a0ff;
+}
+
+.ship-sheet.edge-right.is-open .sheet-tab {
+    right: min(28rem, 92vw);
+}
+
+.ship-sheet.edge-left .sheet-tab:hover {
     border-color: rgba(240, 195, 106, 0.55);
+    background: linear-gradient(180deg, #2e3d54, #1a2434);
+}
+
+.ship-sheet.edge-right .sheet-tab:hover {
+    border-color: rgba(201, 160, 255, 0.55);
     background: linear-gradient(180deg, #2e3d54, #1a2434);
 }
 
@@ -58,15 +89,25 @@
     position: absolute;
     top: 0;
     bottom: 0;
-    left: 0;
     width: min(28rem, 92vw);
     display: flex;
     flex-direction: column;
     background: linear-gradient(180deg, rgba(14, 20, 32, 0.98), rgba(8, 12, 20, 0.96));
+    transition: transform 220ms ease;
+}
+
+.ship-sheet.edge-left .sheet-panel {
+    left: 0;
     border-right: 1px solid rgba(180, 200, 230, 0.22);
     box-shadow: 8px 0 28px rgba(0, 0, 0, 0.35);
     transform: translateX(-105%);
-    transition: transform 220ms ease;
+}
+
+.ship-sheet.edge-right .sheet-panel {
+    right: 0;
+    border-left: 1px solid rgba(180, 200, 230, 0.22);
+    box-shadow: -8px 0 28px rgba(0, 0, 0, 0.35);
+    transform: translateX(105%);
 }
 
 .ship-sheet.is-open .sheet-panel {
@@ -93,10 +134,22 @@
     font-weight: 650;
 }
 
+.ship-sheet.edge-right .title-block h2 {
+    color: #c9a0ff;
+}
+
 .title-block .seat {
     margin: 0.2rem 0 0;
     font-size: 0.75rem;
     color: #8fa0b8;
+}
+
+.title-block .public-tag {
+    color: #c9a0ff;
+}
+
+.job-hand-hidden {
+    margin-top: 0.35rem;
 }
 
 .close-btn {

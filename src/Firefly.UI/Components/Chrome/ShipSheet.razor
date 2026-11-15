@@ -1,20 +1,31 @@
 @using Firefly.UI.Services
 
-<aside class="ship-sheet @(IsOpen ? "is-open" : "is-closed")" aria-label="Own ship sheet">
-    <button type="button"
-            class="sheet-tab"
-            title="@(IsOpen ? "Collapse ship sheet" : "Open ship sheet")"
-            aria-expanded="@IsOpen"
-            @onclick="Toggle">
-        <span class="tab-label">Ship</span>
-        <span class="tab-ship">@Sheet.ShipName</span>
-    </button>
+<aside class="ship-sheet edge-@EdgeCss @(IsOpen ? "is-open" : "is-closed")"
+       style="@(TabIndex > 0 ? $"--sheet-tab-index:{TabIndex}" : null)"
+       aria-label="@(ShowJobHand ? "Own ship sheet" : $"Rival public sheet — {Sheet.SeatName}")">
+    @if (!HideTab)
+    {
+        <button type="button"
+                class="sheet-tab"
+                title="@(IsOpen ? "Collapse ship sheet" : (ShowJobHand ? "Open ship sheet" : $"Inspect {Sheet.SeatName}"))"
+                aria-expanded="@IsOpen"
+                @onclick="Toggle">
+            <span class="tab-label">@(ShowJobHand ? "Ship" : "Rival")</span>
+            <span class="tab-ship">@(string.IsNullOrWhiteSpace(TabLabel) ? Sheet.ShipName : TabLabel)</span>
+        </button>
+    }
 
     <div class="sheet-panel">
         <header class="sheet-header">
             <div class="title-block">
                 <h2>@Sheet.ShipName</h2>
-                <p class="seat">@Sheet.SeatName · Max crew @Sheet.CrewCount/@Sheet.MaxCrew</p>
+                <p class="seat">
+                    @Sheet.SeatName · Max crew @Sheet.CrewCount/@Sheet.MaxCrew
+                    @if (!ShowJobHand)
+                    {
+                        <span class="public-tag"> · Public</span>
+                    }
+                </p>
             </div>
             <button type="button" class="close-btn" @onclick="Close" title="Collapse">✕</button>
         </header>
@@ -233,31 +244,38 @@
                         </ul>
                     }
                 </div>
-                <div class="job-col">
-                    <h3>Job Hand <span class="count">@Sheet.JobHand.Count</span></h3>
-                    @if (Sheet.JobHand.Count == 0)
-                    {
-                        <p class="empty-note">None</p>
-                    }
-                    else
-                    {
-                        <ul class="job-list">
-                            @foreach (var job in Sheet.JobHand)
-                            {
-                                <li class="job-card inactive">
-                                    <div class="job-name">@job.Name</div>
-                                    <div class="job-meta">
-                                        @job.ContactName
-                                        @if (job.PayLabel != null)
-                                        {
-                                            <span>· @job.PayLabel</span>
-                                        }
-                                    </div>
-                                </li>
-                            }
-                        </ul>
-                    }
-                </div>
+                @if (ShowJobHand)
+                {
+                    <div class="job-col">
+                        <h3>Job Hand <span class="count">@Sheet.JobHand.Count</span></h3>
+                        @if (Sheet.JobHand.Count == 0)
+                        {
+                            <p class="empty-note">None</p>
+                        }
+                        else
+                        {
+                            <ul class="job-list">
+                                @foreach (var job in Sheet.JobHand)
+                                {
+                                    <li class="job-card inactive">
+                                        <div class="job-name">@job.Name</div>
+                                        <div class="job-meta">
+                                            @job.ContactName
+                                            @if (job.PayLabel != null)
+                                            {
+                                                <span>· @job.PayLabel</span>
+                                            }
+                                        </div>
+                                    </li>
+                                }
+                            </ul>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <p class="empty-note job-hand-hidden">Job hand hidden (public sheet)</p>
+                }
             </section>
 
             <section class="solid" aria-label="Solid contacts">
@@ -284,6 +302,15 @@
     [Parameter, EditorRequired] public ShipSheetView Sheet { get; set; } = default!;
     [Parameter] public bool IsOpen { get; set; }
     [Parameter] public EventCallback<bool> IsOpenChanged { get; set; }
+    /// <summary>Own seat shows Job hand; rivals never do (prefs visibility lock).</summary>
+    [Parameter] public bool ShowJobHand { get; set; } = true;
+    [Parameter] public ShipSheetEdge Edge { get; set; } = ShipSheetEdge.Left;
+    /// <summary>Stack offset for multiple right-edge rival peeks (0 = first below Discards).</summary>
+    [Parameter] public int TabIndex { get; set; }
+    [Parameter] public string? TabLabel { get; set; }
+    [Parameter] public bool HideTab { get; set; }
+
+    private string EdgeCss => Edge == ShipSheetEdge.Right ? "right" : "left";
 
     private Task Toggle() => IsOpenChanged.InvokeAsync(!IsOpen);
     private Task Close() => IsOpenChanged.InvokeAsync(false);
