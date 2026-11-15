@@ -61,6 +61,7 @@ MapCardArt(repo.CrewArtDirectory, "/cards/crew");
 MapCardArt(repo.GearArtDirectory, "/cards/gear");
 MapCardArt(repo.DriveCoreArtDirectory, "/cards/drive-cores");
 MapCardArt(repo.ShipUpgradeArtDirectory, "/cards/ship-upgrades");
+MapCardArt(repo.ContactArtDirectory, "/cards/contacts");
 
 app.UseAntiforgery();
 app.MapStaticAssets();

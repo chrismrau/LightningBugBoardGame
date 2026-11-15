@@ -27,7 +27,7 @@ dotnet run
 
 HTTPS profile: `dotnet run --launch-profile https`
 
-## What you get (P1–P4)
+## What you get (P1–P5)
 
 - Pan/zoom Verse map (scroll zoom, drag empty space / middle-mouse / Space+drag, `0` to fit)
 - Sector hit-test + inspect panel
@@ -41,10 +41,10 @@ HTTPS profile: `dotnet run --launch-profile https`
 - **End Turn** on the action bar with 0, 1, or 2 actions used (GF9 BBG p.6 “may take 2 Actions”)
 - **PendingChoice host** — sticky priority banner + center modal; kind → widget registry; Nav reveal/resolve; submit via `TrySubmitChoice` / Nav resume
 - **Fly lean loop** — Mosey (adjacent highlight → click) · Full Burn (path preview within drive range / fuel via kernel) · Nav reveal → option resolve
+- **Discard browser** (right drawer) — Supply (per-planet) + Contact Job discards + Nav; inspect-only; Option B plates / Contact full scans; deep-link keys for P6 Buy/Deal
 
 ## Not yet
 
-- Discard browsers (P5)
 - Deal / Buy / Shore Leave surfaces (P6)
 - Every exotic Nav edge-case widget (happy path + PendingChoice fallback)
 - Rival public sheets (P8)

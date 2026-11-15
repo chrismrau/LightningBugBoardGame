@@ -288,7 +288,7 @@ public static class ShipSheetBuilder
     }
 }
 
-/// <summary>Static URLs for Option B plates / ship card scans served from <c>reference/Cards/</c>.</summary>
+/// <summary>Static URLs for Option B plates / ship &amp; contact card scans served from <c>reference/Cards/</c>.</summary>
 public static class CardArtUrls
 {
     public static string ShipCard(string shipId) => $"/cards/ships/{shipId}.webp";
@@ -296,6 +296,8 @@ public static class CardArtUrls
     public static string Gear(string gearId) => $"/cards/gear/{gearId}.webp";
     public static string DriveCore(string driveCoreId) => $"/cards/drive-cores/{driveCoreId}.webp";
     public static string ShipUpgrade(string upgradeId) => $"/cards/ship-upgrades/{upgradeId}.webp";
+    /// <summary>Full printed Contact card scans (not Option B portraits).</summary>
+    public static string Contact(string contactId) => $"/cards/contacts/{contactId}.webp";
 }
 
 /// <summary>
