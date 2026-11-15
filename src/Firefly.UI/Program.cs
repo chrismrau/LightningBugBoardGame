@@ -34,6 +34,15 @@ if (Directory.Exists(repo.BoardArtDirectory))
     });
 }
 
+if (Directory.Exists(repo.ShipIconsDirectory))
+{
+    app.UseStaticFiles(new StaticFileOptions
+    {
+        FileProvider = new PhysicalFileProvider(repo.ShipIconsDirectory),
+        RequestPath = "/ships"
+    });
+}
+
 app.UseAntiforgery();
 app.MapStaticAssets();
 app.MapHub<PlayHub>("/hubs/play");
