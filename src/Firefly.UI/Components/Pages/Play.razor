@@ -15,7 +15,7 @@
     <header class="play-header">
         <div class="brand">
             <span class="mark">Lightning Bug</span>
-            <span class="mode">Hotseat · P2 turn chrome</span>
+            <span class="mode">Hotseat · P3 Fly / Nav</span>
         </div>
         <ScenarioChip ScenarioCardId="@_snap.ScenarioCardId"
                       UseBlueSun="@_snap.UseBlueSun"
@@ -25,12 +25,24 @@
     </header>
 
     <StatusStrip Snapshot="_snap" />
-    <PendingHost @ref="_pendingHost" Pending="_snap.Pending" ChoiceSubmitted="OnChoiceSubmitted" />
+    <PendingHost @ref="_pendingHost"
+                 Pending="_snap.Pending"
+                 ChoiceSubmitted="OnChoiceSubmitted"
+                 RevealNavRequested="OnRevealNav"
+                 ResolveNavOptionRequested="OnResolveNavOption" />
+    <FlyChrome Chrome="_flyChrome"
+               KindRequested="OnFlyKind"
+               CancelRequested="OnFlyCancel"
+               ConfirmRequested="OnFullBurnConfirm"
+               ClearPathRequested="OnFullBurnClearPath" />
 
     <div class="play-body">
         <VerseMap SelectedSectorId="_snap.SelectedSectorId"
                   Ships="_snap.ShipTokens"
                   Markers="_snap.Markers"
+                  LegalSectorIds="_flyChrome.LegalSectorIds"
+                  PathSectorIds="_flyChrome.PathSectorIds"
+                  PathDestinationId="_flyChrome.PathDestinationId"
                   BoardArtAvailable="_boardArt"
                   SectorSelected="OnSectorSelected" />
         <InspectPanel Info="_snap.Inspect" />
@@ -50,10 +62,24 @@
 
 @code {
     private PlayViewSnapshot _snap = default!;
+    private FlyChromeView _flyChrome = new(
+        FlyUiMode.None,
+        false,
+        null,
+        0,
+        1,
+        0,
+        true,
+        Array.Empty<string>(),
+        Array.Empty<string>(),
+        null,
+        false);
     private bool _boardArt;
     private SectorMap _map = default!;
     private PendingHost? _pendingHost;
     private string? _toast;
+    private FlyUiMode _flyMode = FlyUiMode.None;
+    private IReadOnlyList<string> _burnPath = Array.Empty<string>();
 
     protected override void OnInitialized()
     {
@@ -75,22 +101,152 @@
     private void Refresh()
     {
         _snap = PlayViewSnapshot.From(Session, _map);
+        // Drop Fly chrome if Fly is no longer legal (pending Nav / action consumed / EndTurn).
+        if (_flyMode != FlyUiMode.None
+            && (_snap.HasPendingEvents || !Session.Game.CanTakeAction(TurnAction.Fly, out _)))
+        {
+            _flyMode = FlyUiMode.None;
+            _burnPath = Array.Empty<string>();
+        }
+        _flyChrome = FlyLegalBuilder.Build(Session.Game, Session.Movement, _flyMode, _burnPath);
     }
 
     private void OnSectorSelected(string sectorId)
     {
+        if (_flyMode == FlyUiMode.Mosey)
+        {
+            if (!_flyChrome.LegalSectorIds.Contains(sectorId, StringComparer.OrdinalIgnoreCase))
+            {
+                _toast = "Not a legal Mosey destination.";
+                return;
+            }
+            if (Session.TryMosey(sectorId, out var error))
+            {
+                _flyMode = FlyUiMode.None;
+                _burnPath = Array.Empty<string>();
+                _toast = $"Moseyed to {sectorId}.";
+                return;
+            }
+            _toast = error;
+            _pendingHost?.SetError(error);
+            return;
+        }
+
+        if (_flyMode == FlyUiMode.FullBurn)
+        {
+            if (!_flyChrome.LegalSectorIds.Contains(sectorId, StringComparer.OrdinalIgnoreCase))
+            {
+                _toast = "Not within Full Burn drive range.";
+                return;
+            }
+            var from = Session.Game.CurrentPlayer.SectorId;
+            var path = Session.Movement.Pathfinder.ShortestPath(from, sectorId);
+            if (path == null || path.Count < 2)
+            {
+                _toast = "No path to that sector.";
+                return;
+            }
+            _burnPath = path;
+            _flyChrome = FlyLegalBuilder.Build(Session.Game, Session.Movement, _flyMode, _burnPath);
+            Session.SelectSector(sectorId);
+            return;
+        }
+
         var next = string.Equals(Session.SelectedSectorId, sectorId, StringComparison.OrdinalIgnoreCase)
             ? null
             : sectorId;
         Session.SelectSector(next);
     }
 
-    private void OnEndTurn() => Session.EndTurn();
+    private void OnEndTurn()
+    {
+        _flyMode = FlyUiMode.None;
+        _burnPath = Array.Empty<string>();
+        Session.EndTurn();
+        _toast = null;
+    }
 
     private void OnTurnAction(TurnAction action)
     {
-        // P3 Fly / later action surfaces plug in here. Legality already gated by CanTakeAction.
+        if (action == TurnAction.Fly)
+        {
+            _flyMode = FlyUiMode.PickKind;
+            _burnPath = Array.Empty<string>();
+            _flyChrome = FlyLegalBuilder.Build(Session.Game, Session.Movement, _flyMode, _burnPath);
+            _toast = null;
+            return;
+        }
+
         _toast = $"{action} — action UI arrives in a later phase.";
+    }
+
+    private void OnFlyKind(FlyUiMode kind)
+    {
+        if (kind == FlyUiMode.FullBurn && !_flyChrome.CanFullBurn)
+        {
+            _toast = _flyChrome.FullBurnBlockReason;
+            return;
+        }
+        _flyMode = kind;
+        _burnPath = Array.Empty<string>();
+        _flyChrome = FlyLegalBuilder.Build(Session.Game, Session.Movement, _flyMode, _burnPath);
+        _toast = null;
+    }
+
+    private void OnFlyCancel()
+    {
+        _flyMode = FlyUiMode.None;
+        _burnPath = Array.Empty<string>();
+        _flyChrome = FlyLegalBuilder.Build(Session.Game, Session.Movement, _flyMode, _burnPath);
+        _toast = null;
+    }
+
+    private void OnFullBurnClearPath()
+    {
+        _burnPath = Array.Empty<string>();
+        _flyChrome = FlyLegalBuilder.Build(Session.Game, Session.Movement, _flyMode, _burnPath);
+    }
+
+    private void OnFullBurnConfirm()
+    {
+        if (_burnPath.Count < 2)
+        {
+            _toast = "Pick a Full Burn destination first.";
+            return;
+        }
+        if (Session.TryFullBurn(_burnPath, out var error))
+        {
+            _flyMode = FlyUiMode.None;
+            _burnPath = Array.Empty<string>();
+            _toast = "Full Burn complete — resolve Nav if queued.";
+            return;
+        }
+        _toast = error;
+        _pendingHost?.SetError(error);
+    }
+
+    private void OnRevealNav()
+    {
+        if (Session.TryDrawNav(out var error))
+        {
+            _toast = null;
+            _pendingHost?.SetError(null);
+            return;
+        }
+        _pendingHost?.SetError(error);
+        _toast = error;
+    }
+
+    private void OnResolveNavOption(int optionIndex)
+    {
+        if (Session.TryResolveNavOption(optionIndex, out var error))
+        {
+            _toast = null;
+            _pendingHost?.SetError(null);
+            return;
+        }
+        _pendingHost?.SetError(error);
+        _toast = error;
     }
 
     private void OnShoreLeave()
@@ -118,6 +274,8 @@
 
     private void OnRestart((string ScenarioId, bool BlueSun, bool Bounty, bool Corvette) args)
     {
+        _flyMode = FlyUiMode.None;
+        _burnPath = Array.Empty<string>();
         Session.StartNew(args.ScenarioId, args.BlueSun, args.Bounty, args.Corvette);
         _map = Session.Game.Map;
         _toast = null;

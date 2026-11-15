@@ -1,3 +1,6 @@
+using Firefly.Core.Actions;
+using Firefly.Core.Cards;
+using Firefly.Core.Movement;
 using Firefly.Core.State;
 
 namespace Firefly.UI.Services;
@@ -19,10 +22,15 @@ public sealed class HotseatGameSession : IGameSession
     private bool _useBountyDeck;
     private bool _useOperativesCorvette;
     private string? _selectedSectorId;
+    private MovementEngine _movement = null!;
+    private FlyAction _fly = null!;
+    private NavResolver _nav = null!;
+    private readonly IRng _rng = new SystemRng(Environment.TickCount);
 
     public HotseatGameSession()
     {
         _game = CreateGame(_scenarioCardId, _useBlueSun, _useBountyDeck, _useOperativesCorvette);
+        WireEngines(_game);
     }
 
     public event Action? Changed;
@@ -57,6 +65,16 @@ public sealed class HotseatGameSession : IGameSession
         get { lock (_gate) return _selectedSectorId; }
     }
 
+    public DrawnNav? NavFaceUp
+    {
+        get { lock (_gate) return _nav.FaceUp; }
+    }
+
+    public MovementEngine Movement
+    {
+        get { lock (_gate) return _movement; }
+    }
+
     public void StartNew(
         string scenarioCardId,
         bool useBlueSun = false,
@@ -74,6 +92,7 @@ public sealed class HotseatGameSession : IGameSession
             _useOperativesCorvette = useOperativesCorvette;
             _selectedSectorId = null;
             _game = CreateGame(scenarioCardId, useBlueSun, useBountyDeck, useOperativesCorvette);
+            WireEngines(_game);
         }
 
         Changed?.Invoke();
@@ -92,7 +111,9 @@ public sealed class HotseatGameSession : IGameSession
     {
         lock (_gate)
         {
+            DiscardFaceUpNavIfAny();
             _game.EndTurn();
+            _nav = new NavResolver();
         }
         Changed?.Invoke();
     }
@@ -102,8 +123,7 @@ public sealed class HotseatGameSession : IGameSession
         bool ok;
         lock (_gate)
         {
-            var playerId = _game.PendingChoice?.PlayerId ?? _game.CurrentPlayer.Id;
-            ok = _game.TrySubmitChoice(playerId, submission, out _, out error);
+            ok = NavChoiceResume.TryResume(_game, _nav, submission, _rng, out error);
         }
         if (ok)
             Changed?.Invoke();
@@ -120,6 +140,101 @@ public sealed class HotseatGameSession : IGameSession
         if (ok)
             Changed?.Invoke();
         return ok;
+    }
+
+    public bool TryMosey(string toSectorId, out string? error)
+    {
+        bool ok;
+        lock (_gate)
+        {
+            ok = _fly.TryMosey(_game, _game.CurrentPlayer.Id, toSectorId, out _, out error);
+        }
+        if (ok)
+            Changed?.Invoke();
+        return ok;
+    }
+
+    public bool TryFullBurn(IReadOnlyList<string> path, out string? error)
+    {
+        bool ok;
+        lock (_gate)
+        {
+            ok = _fly.TryFullBurn(_game, _game.CurrentPlayer.Id, path, out _, out error);
+        }
+        if (ok)
+            Changed?.Invoke();
+        return ok;
+    }
+
+    public bool TryFullBurnTo(string toSectorId, out string? error)
+    {
+        bool ok;
+        lock (_gate)
+        {
+            ok = _fly.TryFullBurnTo(_game, _game.CurrentPlayer.Id, toSectorId, out _, out error);
+        }
+        if (ok)
+            Changed?.Invoke();
+        return ok;
+    }
+
+    public bool TryDrawNav(out string? error)
+    {
+        error = null;
+        lock (_gate)
+        {
+            try
+            {
+                if (_nav.FaceUp != null)
+                {
+                    error = "A Nav card is already face up — resolve it first.";
+                    return false;
+                }
+                if (_game.PendingNavDraws.Count == 0)
+                {
+                    error = "No pending Nav draws.";
+                    return false;
+                }
+                _nav.DrawNext(_game);
+            }
+            catch (Exception ex)
+            {
+                error = ex.Message;
+                return false;
+            }
+        }
+        Changed?.Invoke();
+        return true;
+    }
+
+    public bool TryResolveNavOption(int optionIndex, out string? error)
+    {
+        bool ok;
+        var suspended = false;
+        lock (_gate)
+        {
+            ok = _nav.TryResolve(_game, optionIndex, out _, out error, _rng);
+            // TryResolve returns false when it suspends into PendingChoice; still notify UI.
+            suspended = !ok && _game.PendingChoice != null;
+        }
+        if (ok || suspended)
+            Changed?.Invoke();
+        return ok || suspended;
+    }
+
+    private void DiscardFaceUpNavIfAny()
+    {
+        var faceUp = _nav.FaceUp;
+        if (faceUp == null || _game.Decks == null)
+            return;
+        _game.Decks.For(faceUp.Region).ResolveIntoDiscard(faceUp.Card);
+    }
+
+    private void WireEngines(GameState game)
+    {
+        _movement = new MovementEngine(game.Map);
+        _fly = new FlyAction(_movement);
+        _nav = new NavResolver();
     }
 
     private static GameState CreateGame(
