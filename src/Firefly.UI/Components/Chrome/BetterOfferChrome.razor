@@ -1,0 +1,40 @@
+@using Firefly.UI.Services
+
+@if (Chrome.Mode == EconomyUiMode.BetterOfferPick)
+{
+    <div class="econ-chrome better-offer-chrome" role="region" aria-label="A Better Offer">
+        <div class="econ-label">
+            <strong>A Better Offer</strong>
+            <span class="hint">@Chrome.StatusHint</span>
+        </div>
+
+        @if (Chrome.Targets.Count == 0)
+        {
+            <div class="econ-actions">
+                <span class="status warn">No legal targets.</span>
+                <button type="button" class="econ-btn ghost" @onclick="CancelRequested">Cancel</button>
+            </div>
+        }
+        else
+        {
+            <div class="chip-row">
+                @foreach (var t in Chrome.Targets)
+                {
+                    <button type="button" class="chip"
+                            @onclick="() => PoachRequested.InvokeAsync(t)">
+                        @t.CrewName <span class="tag">$@t.Cost · @t.RivalName</span>
+                    </button>
+                }
+            </div>
+            <div class="econ-actions">
+                <button type="button" class="econ-btn ghost" @onclick="CancelRequested">Cancel</button>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired] public BetterOfferChromeView Chrome { get; set; } = default!;
+    [Parameter] public EventCallback CancelRequested { get; set; }
+    [Parameter] public EventCallback<BetterOfferTargetView> PoachRequested { get; set; }
+}

@@ -1,0 +1,138 @@
+@using Firefly.Core.Cards
+@using Firefly.UI.Services
+
+@if (Chrome.Mode == EconomyUiMode.BuyPick)
+{
+    <div class="econ-chrome buy-chrome" role="region" aria-label="Buy action">
+        <div class="econ-label">
+            <strong>Buy</strong>
+            <span class="hint">@(Chrome.StatusHint ?? "Supply Buy")</span>
+        </div>
+
+        @if (!Chrome.AtSupplyPlanet)
+        {
+            <div class="econ-actions">
+                <span class="status warn">@(Chrome.BlockReason ?? "Not at a Supply planet.")</span>
+                <button type="button" class="econ-btn ghost" @onclick="CancelRequested">Cancel</button>
+            </div>
+        }
+        else
+        {
+            <div class="econ-row">
+                <label class="field narrow">
+                    Fuel
+                    <input type="number" min="0" value="@_fuel"
+                           @onchange="e => _fuel = ParseNonNeg(e.Value)" />
+                    <span class="sub">$@Chrome.FuelPrice each · cash $@Chrome.Cash</span>
+                </label>
+                <label class="field narrow">
+                    Parts
+                    <input type="number" min="0" value="@_parts"
+                           @onchange="e => _parts = ParseNonNeg(e.Value)" />
+                    <span class="sub">$@Chrome.PartsPrice each</span>
+                </label>
+                <span class="status">Cards @_selected.Count/@Chrome.MaxBuyCards · est. $@Estimate()</span>
+                <button type="button" class="econ-btn ghost tiny" @onclick="BrowseDiscard">Supply discards</button>
+            </div>
+
+            @if (Chrome.FaceUp.Count > 0)
+            {
+                <div class="econ-section">
+                    <div class="section-head"><span>Face-up at @Chrome.Planet</span></div>
+                    <div class="supply-row">
+                        @foreach (var card in Chrome.FaceUp)
+                        {
+                            var on = _selected.Contains(card.Id);
+                            <button type="button"
+                                    class="supply-card @(on ? "is-on" : null)"
+                                    disabled="@(!on && _selected.Count >= Chrome.MaxBuyCards)"
+                                    title="@card.Kind · $@card.EffectiveCost"
+                                    @onclick="() => ToggleCard(card.Id)">
+                                @if (!string.IsNullOrEmpty(card.PortraitUrl))
+                                {
+                                    <img src="@card.PortraitUrl" alt="" class="plate" />
+                                }
+                                <span class="name">@card.Name</span>
+                                <span class="meta">@card.Kind · $@card.EffectiveCost</span>
+                            </button>
+                        }
+                    </div>
+                </div>
+            }
+            else
+            {
+                <span class="status">No face-up Supply cards — Fuel / Parts still available.</span>
+            }
+
+            <div class="econ-actions">
+                <button type="button"
+                        class="econ-btn primary"
+                        disabled="@(!CanConfirm())"
+                        @onclick="OnConfirm">
+                    Confirm Buy
+                </button>
+                <button type="button" class="econ-btn ghost" @onclick="CancelRequested">Cancel</button>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired] public BuyChromeView Chrome { get; set; } = default!;
+    [Parameter] public EventCallback CancelRequested { get; set; }
+    [Parameter] public EventCallback<BuyPickSubmission> ConfirmRequested { get; set; }
+    [Parameter] public EventCallback BrowseDiscardRequested { get; set; }
+
+    private int _fuel;
+    private int _parts;
+    private readonly HashSet<string> _selected = new(StringComparer.Ordinal);
+    private string? _syncedPlanet;
+
+    protected override void OnParametersSet()
+    {
+        if (!string.Equals(_syncedPlanet, Chrome.Planet, StringComparison.OrdinalIgnoreCase))
+        {
+            _syncedPlanet = Chrome.Planet;
+            _fuel = 0;
+            _parts = 0;
+            _selected.Clear();
+        }
+    }
+
+    private void ToggleCard(string id)
+    {
+        if (_selected.Contains(id))
+        {
+            _selected.Remove(id);
+            return;
+        }
+        if (_selected.Count >= Chrome.MaxBuyCards)
+            return;
+        _selected.Add(id);
+    }
+
+    private bool CanConfirm() => _fuel > 0 || _parts > 0 || _selected.Count > 0;
+
+    private int Estimate()
+    {
+        var total = _fuel * Chrome.FuelPrice + _parts * Chrome.PartsPrice;
+        foreach (var card in Chrome.FaceUp)
+        {
+            if (_selected.Contains(card.Id))
+                total += card.EffectiveCost;
+        }
+        return total;
+    }
+
+    private Task BrowseDiscard() => BrowseDiscardRequested.InvokeAsync();
+
+    private Task OnConfirm() =>
+        ConfirmRequested.InvokeAsync(new BuyPickSubmission(_fuel, _parts, _selected.ToList()));
+
+    private static int ParseNonNeg(object? value)
+    {
+        if (!int.TryParse(value?.ToString(), out var n) || n < 0)
+            return 0;
+        return n;
+    }
+}
