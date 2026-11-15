@@ -27,7 +27,7 @@ dotnet run
 
 HTTPS profile: `dotnet run --launch-profile https`
 
-## What you get (P1–P5)
+## What you get (P1–P6)
 
 - Pan/zoom Verse map (scroll zoom, drag empty space / middle-mouse / Space+drag, `0` to fit)
 - Sector hit-test + inspect panel
@@ -41,11 +41,15 @@ HTTPS profile: `dotnet run --launch-profile https`
 - **End Turn** on the action bar with 0, 1, or 2 actions used (GF9 BBG p.6 “may take 2 Actions”)
 - **PendingChoice host** — sticky priority banner + center modal; kind → widget registry; Nav reveal/resolve; submit via `TrySubmitChoice` / Nav resume
 - **Fly lean loop** — Mosey (adjacent highlight → click) · Full Burn (path preview within drive range / fuel via kernel) · Nav reveal → option resolve
-- **Discard browser** (right drawer) — Supply (per-planet) + Contact Job discards + Nav; inspect-only; Option B plates / Contact full scans; deep-link keys for P6 Buy/Deal
+- **Discard browser** (right drawer) — Supply (per-planet) + Contact Job discards + Nav; inspect-only; Option B plates / Contact full scans; deep-link keys for Buy/Deal
+- **Deal** — planet/remote Contact picker; consider staging → keep up to 2; take from public discard; sell goods / Badger warrant wipe when legal; `DealSellParts` via PendingHost
+- **Buy** — face-up Supply at current planet + Fuel/Parts; packing/prices via kernel `BuyAction`; deep-links Supply discard browser
+- **Shore Leave** — consumes Buy action type; $100/crew incl. Leader; clears Disgruntled (kernel `ShoreLeaveAction`)
+- **A Better Offer** — non-action poach when same-sector Disgruntled rival crew is legal (`PoachAction`)
 
 ## Not yet
 
-- Deal / Buy / Shore Leave surfaces (P6)
+- Work / Misbehave surfaces (P7)
 - Every exotic Nav edge-case widget (happy path + PendingChoice fallback)
 - Rival public sheets (P8)
 - Multi-seat SignalR lobbies (session API is shaped for it)

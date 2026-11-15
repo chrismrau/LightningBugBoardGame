@@ -25,7 +25,15 @@ public sealed class HotseatGameSession : IGameSession
     private MovementEngine _movement = null!;
     private FlyAction _fly = null!;
     private NavResolver _nav = null!;
+    private DealAction _deal = null!;
+    private BuyAction _buy = null!;
+    private ShoreLeaveAction _shore = null!;
+    private PoachAction _poach = null!;
     private readonly IRng _rng = new SystemRng(Environment.TickCount);
+
+    private DealRequest? _dealStagingRequest;
+    private List<JobCard>? _dealStagingDrawn;
+    private string? _dealStagingContact;
 
     public HotseatGameSession()
     {
@@ -75,6 +83,11 @@ public sealed class HotseatGameSession : IGameSession
         get { lock (_gate) return _movement; }
     }
 
+    public IReadOnlyList<JobCard>? DealConsideredJobs
+    {
+        get { lock (_gate) return _dealStagingDrawn; }
+    }
+
     public void StartNew(
         string scenarioCardId,
         bool useBlueSun = false,
@@ -91,6 +104,7 @@ public sealed class HotseatGameSession : IGameSession
             _useBountyDeck = useBountyDeck;
             _useOperativesCorvette = useOperativesCorvette;
             _selectedSectorId = null;
+            ClearDealStaging();
             _game = CreateGame(scenarioCardId, useBlueSun, useBountyDeck, useOperativesCorvette);
             WireEngines(_game);
         }
@@ -111,6 +125,7 @@ public sealed class HotseatGameSession : IGameSession
     {
         lock (_gate)
         {
+            CancelDealConsiderUnlocked();
             DiscardFaceUpNavIfAny();
             _game.EndTurn();
             _nav = new NavResolver();
@@ -121,13 +136,29 @@ public sealed class HotseatGameSession : IGameSession
     public bool TrySubmitChoice(ChoiceSubmission submission, out string? error)
     {
         bool ok;
+        var suspended = false;
         lock (_gate)
         {
-            ok = NavChoiceResume.TryResume(_game, _nav, submission, _rng, out error);
+            var kind = _game.PendingChoice?.Kind;
+            if (string.Equals(kind, PendingChoiceKinds.DealSellParts, StringComparison.Ordinal))
+            {
+                ok = _deal.TryResumeDealSellParts(_game, submission, out _, out error);
+                suspended = !ok && _game.PendingChoice != null;
+            }
+            else if (string.Equals(kind, PendingChoiceKinds.HavenFuelAmount, StringComparison.Ordinal))
+            {
+                ok = _shore.TryResumeHavenFuel(_game, submission, out _, out error);
+                suspended = !ok && _game.PendingChoice != null;
+            }
+            else
+            {
+                ok = NavChoiceResume.TryResume(_game, _nav, submission, _rng, out error);
+                suspended = !ok && _game.PendingChoice != null;
+            }
         }
-        if (ok)
+        if (ok || suspended)
             Changed?.Invoke();
-        return ok;
+        return ok || suspended;
     }
 
     public bool TrySeedPendingChoice(PendingChoice choice, out string? error)
@@ -222,6 +253,207 @@ public sealed class HotseatGameSession : IGameSession
         return ok || suspended;
     }
 
+    public bool TryDeal(DealRequest request, out string? error)
+    {
+        bool ok;
+        var suspended = false;
+        lock (_gate)
+        {
+            CancelDealConsiderUnlocked();
+            ok = _deal.TryDeal(_game, _game.CurrentPlayer.Id, request, out _, out error);
+            suspended = !ok && _game.PendingChoice != null;
+        }
+        if (ok || suspended)
+            Changed?.Invoke();
+        return ok || suspended;
+    }
+
+    public bool TryBeginDealConsider(DealRequest request, out string? error)
+    {
+        lock (_gate)
+        {
+            CancelDealConsiderUnlocked();
+            if (request == null || string.IsNullOrWhiteSpace(request.ContactName))
+            {
+                error = "A contact is required.";
+                return false;
+            }
+            if (request.ConsiderCount <= 0)
+            {
+                error = "Consider count must be at least 1 to stage a consider.";
+                return false;
+            }
+            if (!_game.CanTakeAction(TurnAction.Deal, out error))
+                return false;
+            if (_game.Contacts == null || _game.ContactDecks == null)
+            {
+                error = "Contact and job decks are not loaded.";
+                return false;
+            }
+            if (!_game.Contacts.TryFindByName(request.ContactName, out var contact))
+            {
+                error = $"Unknown contact '{request.ContactName}'.";
+                return false;
+            }
+            var player = _game.CurrentPlayer;
+            var at = DealAction.IsAtContact(_game, player, contact);
+            if (!DealAction.CanReachContact(_game, player, contact, at, out error))
+                return false;
+            if (!_game.ContactDecks.TryGet(contact.Name, out var deck))
+            {
+                error = $"No job deck for {contact.Name}.";
+                return false;
+            }
+
+            var limit = DealAction.ConsiderLimit(player, contact, remote: !at);
+            if (request.ConsiderCount > limit)
+            {
+                error = $"May consider at most {limit} job(s) with this Contact.";
+                return false;
+            }
+
+            var drawn = deck.DrawConsider(request.ConsiderCount);
+            if (drawn.Count == 0)
+            {
+                error = $"{contact.Name}'s job deck is empty.";
+                return false;
+            }
+
+            _dealStagingRequest = CloneDealRequest(request);
+            _dealStagingRequest.ConsiderCount = drawn.Count;
+            _dealStagingDrawn = drawn.ToList();
+            _dealStagingContact = contact.Name;
+            error = null;
+        }
+        Changed?.Invoke();
+        return true;
+    }
+
+    public void CancelDealConsider()
+    {
+        lock (_gate)
+        {
+            CancelDealConsiderUnlocked();
+        }
+        Changed?.Invoke();
+    }
+
+    public bool TryFinishDealConsider(IReadOnlyList<string> keepJobIds, out string? error)
+    {
+        bool ok;
+        var suspended = false;
+        lock (_gate)
+        {
+            if (_dealStagingRequest == null
+                || _dealStagingDrawn == null
+                || string.IsNullOrWhiteSpace(_dealStagingContact))
+            {
+                error = "No Deal consider is staged.";
+                return false;
+            }
+            if (_game.ContactDecks == null
+                || !_game.ContactDecks.TryGet(_dealStagingContact, out var deck))
+            {
+                error = $"No job deck for {_dealStagingContact}.";
+                return false;
+            }
+
+            var request = CloneDealRequest(_dealStagingRequest);
+            request.KeepFromConsidered = keepJobIds?.ToList() ?? new List<string>();
+            var drawn = _dealStagingDrawn;
+            deck.RestoreToTop(drawn);
+            ClearDealStaging();
+
+            ok = _deal.TryDeal(_game, _game.CurrentPlayer.Id, request, out _, out error);
+            suspended = !ok && _game.PendingChoice != null;
+        }
+        if (ok || suspended)
+            Changed?.Invoke();
+        return ok || suspended;
+    }
+
+    public bool TryBuy(BuyRequest request, out string? error)
+    {
+        bool ok;
+        lock (_gate)
+        {
+            ok = _buy.TryBuy(_game, _game.CurrentPlayer.Id, request, out _, out error);
+        }
+        if (ok)
+            Changed?.Invoke();
+        return ok;
+    }
+
+    public bool TryShoreLeave(out string? error)
+    {
+        bool ok;
+        var suspended = false;
+        lock (_gate)
+        {
+            ok = _shore.TryShoreLeave(_game, _game.CurrentPlayer.Id, out _, out error);
+            suspended = !ok && _game.PendingChoice != null;
+        }
+        if (ok || suspended)
+            Changed?.Invoke();
+        return ok || suspended;
+    }
+
+    public bool TryPoach(string fromPlayerId, string crewId, out string? error)
+    {
+        bool ok;
+        lock (_gate)
+        {
+            ok = _poach.TryPoach(
+                _game,
+                _game.CurrentPlayer.Id,
+                fromPlayerId,
+                crewId,
+                out _,
+                out error);
+        }
+        if (ok)
+            Changed?.Invoke();
+        return ok;
+    }
+
+    private void CancelDealConsiderUnlocked()
+    {
+        if (_dealStagingDrawn != null
+            && !string.IsNullOrWhiteSpace(_dealStagingContact)
+            && _game.ContactDecks != null
+            && _game.ContactDecks.TryGet(_dealStagingContact, out var deck))
+        {
+            deck.RestoreToTop(_dealStagingDrawn);
+        }
+        ClearDealStaging();
+    }
+
+    private void ClearDealStaging()
+    {
+        _dealStagingRequest = null;
+        _dealStagingDrawn = null;
+        _dealStagingContact = null;
+    }
+
+    private static DealRequest CloneDealRequest(DealRequest source) =>
+        new()
+        {
+            ContactName = source.ContactName,
+            ConsiderCount = source.ConsiderCount,
+            KeepFromConsidered = source.KeepFromConsidered?.ToList() ?? new List<string>(),
+            TakeFromDiscard = source.TakeFromDiscard?.ToList() ?? new List<string>(),
+            SellContraband = source.SellContraband,
+            SellCargo = source.SellCargo,
+            SellParts = source.SellParts,
+            ClearWarrants = source.ClearWarrants,
+            LoadPassengers = source.LoadPassengers,
+            LoadFugitives = source.LoadFugitives,
+            BuyContraband = source.BuyContraband,
+            BuyCargo = source.BuyCargo,
+            BuyFuel = source.BuyFuel,
+            MisbehaveReorderIds = source.MisbehaveReorderIds?.ToList() ?? new List<string>()
+        };
+
     private void DiscardFaceUpNavIfAny()
     {
         var faceUp = _nav.FaceUp;
@@ -235,6 +467,11 @@ public sealed class HotseatGameSession : IGameSession
         _movement = new MovementEngine(game.Map);
         _fly = new FlyAction(_movement);
         _nav = new NavResolver();
+        _deal = new DealAction();
+        _buy = new BuyAction();
+        _shore = new ShoreLeaveAction();
+        _poach = new PoachAction();
+        ClearDealStaging();
     }
 
     private static GameState CreateGame(

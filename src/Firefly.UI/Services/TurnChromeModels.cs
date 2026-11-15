@@ -202,19 +202,14 @@ public static class ActionBarBuilder
                 ActionChromeKind.TurnAction));
         }
 
-        // Shore Leave consumes Buy (GF9 / AGENTS.md). Same CanTakeAction gate; P6 wires TryShoreLeave.
+        // Shore Leave consumes Buy (GF9 / AGENTS.md). Legality mirrors ShoreLeaveAction gates.
         {
-            var ok = game.CanTakeAction(TurnAction.Buy, out var error);
-            if (ok && faceUpBlock != null)
-            {
-                ok = false;
-                error = faceUpBlock;
-            }
+            var (ok, reason) = EconomyChromeBuilder.ShoreLeaveLegality(game, navFaceUpBlocking);
             list.Add(new ActionButtonView(
                 "shore-leave",
                 "Shore Leave",
                 ok,
-                ok ? null : error,
+                ok ? null : reason,
                 TurnAction.Buy,
                 ActionChromeKind.ShoreLeave));
         }

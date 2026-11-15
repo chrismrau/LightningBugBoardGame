@@ -32,6 +32,19 @@ namespace Firefly.Core.Cards
             return taken;
         }
 
+        /// <summary>
+        /// Put previously drawn consider cards back on top in original order
+        /// (first card becomes the new top). Used by hotseat Deal UI staging
+        /// before a single <c>DealAction.TryDeal</c> consumes the same draw.
+        /// </summary>
+        public void RestoreToTop(IReadOnlyList<JobCard> jobs)
+        {
+            if (jobs == null || jobs.Count == 0)
+                return;
+            for (var i = jobs.Count - 1; i >= 0; i--)
+                _draw.Insert(0, jobs[i]);
+        }
+
         public void PutOnBottom(JobCard job) => _draw.Add(job);
 
         public void PutOnBottom(IEnumerable<JobCard> jobs)

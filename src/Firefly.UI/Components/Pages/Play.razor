@@ -1,5 +1,6 @@
 @page "/"
 @rendermode InteractiveServer
+@using Firefly.Core.Actions
 @using Firefly.Core.Map
 @using Firefly.Core.State
 @using Firefly.UI.Components.Chrome
@@ -15,7 +16,7 @@
     <header class="play-header">
         <div class="brand">
             <span class="mark">Lightning Bug</span>
-            <span class="mode">Hotseat · P5 Discards</span>
+            <span class="mode">Hotseat · P6 Deal/Buy</span>
         </div>
         <ScenarioChip ScenarioCardId="@_snap.ScenarioCardId"
                       UseBlueSun="@_snap.UseBlueSun"
@@ -35,6 +36,19 @@
                CancelRequested="OnFlyCancel"
                ConfirmRequested="OnFullBurnConfirm"
                ClearPathRequested="OnFullBurnClearPath" />
+    <DealChrome Chrome="_dealChrome"
+                ContactChanged="OnDealContactChanged"
+                CancelRequested="OnEconomyCancel"
+                PickConfirmed="OnDealPick"
+                KeepConfirmed="OnDealKeepSubmission"
+                BrowseDiscardRequested="OnDealBrowseDiscard" />
+    <BuyChrome Chrome="_buyChrome"
+               CancelRequested="OnEconomyCancel"
+               ConfirmRequested="OnBuyConfirm"
+               BrowseDiscardRequested="OnBuyBrowseDiscard" />
+    <BetterOfferChrome Chrome="_betterOfferChrome"
+                       CancelRequested="OnEconomyCancel"
+                       PoachRequested="OnPoach" />
 
     <div class="play-body">
         <div class="map-host">
@@ -84,12 +98,18 @@
         Array.Empty<string>(),
         null,
         false);
+    private DealChromeView _dealChrome = IdleDealChrome();
+    private BuyChromeView _buyChrome = IdleBuyChrome();
+    private BetterOfferChromeView _betterOfferChrome = IdleBetterOfferChrome();
+
     private bool _boardArt;
     private SectorMap _map = default!;
     private PendingHost? _pendingHost;
     private string? _toast;
     private FlyUiMode _flyMode = FlyUiMode.None;
     private IReadOnlyList<string> _burnPath = Array.Empty<string>();
+    private EconomyUiMode _economyMode = EconomyUiMode.None;
+    private string? _dealContact;
     private bool _shipSheetOpen;
     private bool _discardOpen;
     private string? _discardFocus;
@@ -101,6 +121,46 @@
         Refresh();
         Session.Changed += OnSessionChanged;
     }
+
+    private static DealChromeView IdleDealChrome() =>
+        new(
+            EconomyUiMode.None,
+            null,
+            Array.Empty<DealContactOption>(),
+            Array.Empty<DealDiscardJobOption>(),
+            0,
+            2,
+            0,
+            3,
+            0,
+            0,
+            0,
+            0,
+            0,
+            false,
+            null,
+            null,
+            false,
+            Array.Empty<DealConsideredJobView>(),
+            null);
+
+    private static BuyChromeView IdleBuyChrome() =>
+        new(
+            EconomyUiMode.None,
+            null,
+            false,
+            null,
+            0,
+            0,
+            0,
+            BuyAction.FuelPrice,
+            BuyAction.PartsPrice,
+            2,
+            Array.Empty<BuyFaceUpCardView>(),
+            null);
+
+    private static BetterOfferChromeView IdleBetterOfferChrome() =>
+        new(EconomyUiMode.None, Array.Empty<BetterOfferTargetView>(), null);
 
     private void OnSessionChanged()
     {
@@ -122,6 +182,74 @@
             _burnPath = Array.Empty<string>();
         }
         _flyChrome = FlyLegalBuilder.Build(Session.Game, Session.Movement, _flyMode, _burnPath);
+
+        if (_economyMode is EconomyUiMode.DealPick or EconomyUiMode.DealConsider)
+        {
+            if (_snap.HasPendingEvents || !Session.Game.CanTakeAction(TurnAction.Deal, out _))
+            {
+                // Keep consider staging visible while PendingChoice (e.g. DealSellParts) is up;
+                // otherwise collapse when Deal is spent / blocked.
+                if (Session.DealConsideredJobs == null
+                    && Session.Game.PendingChoice?.Kind != PendingChoiceKinds.DealSellParts)
+                {
+                    _economyMode = EconomyUiMode.None;
+                    _dealContact = null;
+                }
+            }
+        }
+        else if (_economyMode == EconomyUiMode.BuyPick)
+        {
+            if (_snap.HasPendingEvents || !Session.Game.CanTakeAction(TurnAction.Buy, out _))
+                _economyMode = EconomyUiMode.None;
+        }
+        else if (_economyMode == EconomyUiMode.BetterOfferPick)
+        {
+            if (_snap.HasPendingEvents)
+                _economyMode = EconomyUiMode.None;
+        }
+
+        RebuildEconomyChrome();
+    }
+
+    private void RebuildEconomyChrome()
+    {
+        if (_economyMode is EconomyUiMode.DealPick or EconomyUiMode.DealConsider)
+        {
+            IReadOnlyList<DealConsideredJobView>? considered = null;
+            var staged = Session.DealConsideredJobs;
+            if (staged != null)
+            {
+                considered = staged
+                    .Select(j => new DealConsideredJobView(
+                        j.Id,
+                        j.Name,
+                        j.Legal,
+                        j.Immoral,
+                        j.PayBase != null ? $"${j.PayBase:N0}" : j.PayRaw))
+                    .ToList();
+            }
+            _dealChrome = EconomyChromeBuilder.BuildDeal(Session.Game, _dealContact, considered);
+            _buyChrome = _buyChrome with { Mode = EconomyUiMode.None };
+            _betterOfferChrome = _betterOfferChrome with { Mode = EconomyUiMode.None };
+        }
+        else if (_economyMode == EconomyUiMode.BuyPick)
+        {
+            _buyChrome = EconomyChromeBuilder.BuildBuy(Session.Game);
+            _dealChrome = _dealChrome with { Mode = EconomyUiMode.None };
+            _betterOfferChrome = _betterOfferChrome with { Mode = EconomyUiMode.None };
+        }
+        else if (_economyMode == EconomyUiMode.BetterOfferPick)
+        {
+            _betterOfferChrome = EconomyChromeBuilder.BuildBetterOffer(Session.Game);
+            _dealChrome = _dealChrome with { Mode = EconomyUiMode.None };
+            _buyChrome = _buyChrome with { Mode = EconomyUiMode.None };
+        }
+        else
+        {
+            _dealChrome = _dealChrome with { Mode = EconomyUiMode.None };
+            _buyChrome = _buyChrome with { Mode = EconomyUiMode.None };
+            _betterOfferChrome = _betterOfferChrome with { Mode = EconomyUiMode.None };
+        }
     }
 
     private void OnSectorSelected(string sectorId)
@@ -173,8 +301,8 @@
 
     private void OnEndTurn()
     {
-        _flyMode = FlyUiMode.None;
-        _burnPath = Array.Empty<string>();
+        ClearFlyUi();
+        ClearEconomyUi(cancelConsider: true);
         Session.EndTurn();
         _toast = null;
     }
@@ -183,9 +311,32 @@
     {
         if (action == TurnAction.Fly)
         {
+            ClearEconomyUi(cancelConsider: true);
             _flyMode = FlyUiMode.PickKind;
             _burnPath = Array.Empty<string>();
             _flyChrome = FlyLegalBuilder.Build(Session.Game, Session.Movement, _flyMode, _burnPath);
+            _toast = null;
+            return;
+        }
+
+        if (action == TurnAction.Deal)
+        {
+            ClearFlyUi();
+            _economyMode = EconomyUiMode.DealPick;
+            _dealContact = null;
+            RebuildEconomyChrome();
+            _dealContact = _dealChrome.SelectedContact;
+            _toast = null;
+            return;
+        }
+
+        if (action == TurnAction.Buy)
+        {
+            ClearFlyUi();
+            _economyMode = EconomyUiMode.BuyPick;
+            RebuildEconomyChrome();
+            if (_buyChrome.Planet != null)
+                OpenDiscardBrowser(DiscardBrowseTargets.Supply(_buyChrome.Planet));
             _toast = null;
             return;
         }
@@ -208,9 +359,7 @@
 
     private void OnFlyCancel()
     {
-        _flyMode = FlyUiMode.None;
-        _burnPath = Array.Empty<string>();
-        _flyChrome = FlyLegalBuilder.Build(Session.Game, Session.Movement, _flyMode, _burnPath);
+        ClearFlyUi();
         _toast = null;
     }
 
@@ -229,8 +378,7 @@
         }
         if (Session.TryFullBurn(_burnPath, out var error))
         {
-            _flyMode = FlyUiMode.None;
-            _burnPath = Array.Empty<string>();
+            ClearFlyUi();
             _toast = "Full Burn complete — resolve Nav if queued.";
             return;
         }
@@ -264,12 +412,152 @@
 
     private void OnShoreLeave()
     {
-        _toast = "Shore Leave — Buy-action UI in P6.";
+        ClearFlyUi();
+        ClearEconomyUi(cancelConsider: true);
+        if (Session.TryShoreLeave(out var error))
+        {
+            _toast = "Shore Leave complete (Buy action).";
+            return;
+        }
+        _toast = error;
+        _pendingHost?.SetError(error);
     }
 
     private void OnBetterOffer()
     {
-        _toast = "A Better Offer — poach UI later (not an action).";
+        ClearFlyUi();
+        _economyMode = EconomyUiMode.BetterOfferPick;
+        RebuildEconomyChrome();
+        _toast = null;
+    }
+
+    private void OnDealContactChanged(string contactName)
+    {
+        _dealContact = contactName;
+        RebuildEconomyChrome();
+    }
+
+    private void OnDealPick(DealPickSubmission pick)
+    {
+        var request = new DealRequest
+        {
+            ContactName = pick.ContactName,
+            ConsiderCount = pick.ConsiderCount,
+            SellContraband = pick.SellContraband,
+            SellCargo = pick.SellCargo,
+            ClearWarrants = pick.ClearWarrants
+        };
+        foreach (var id in pick.TakeFromDiscard)
+            request.TakeFromDiscard.Add(id);
+
+        if (pick.ConsiderCount > 0)
+        {
+            if (Session.TryBeginDealConsider(request, out var beginError))
+            {
+                _economyMode = EconomyUiMode.DealConsider;
+                _dealContact = pick.ContactName;
+                RebuildEconomyChrome();
+                _toast = null;
+                return;
+            }
+            _toast = beginError;
+            _pendingHost?.SetError(beginError);
+            return;
+        }
+
+        if (Session.TryDeal(request, out var error))
+        {
+            if (Session.Game.PendingChoice != null)
+            {
+                // e.g. DealSellParts — PendingHost takes over; leave Deal chrome collapsed.
+                ClearEconomyUi(cancelConsider: false);
+                _toast = null;
+                return;
+            }
+            ClearEconomyUi(cancelConsider: false);
+            _toast = $"Dealt with {pick.ContactName}.";
+            return;
+        }
+        _toast = error;
+        _pendingHost?.SetError(error);
+        RebuildEconomyChrome();
+    }
+
+    private void OnDealKeepSubmission(DealKeepSubmission keep)
+    {
+        if (Session.TryFinishDealConsider(keep.KeepJobIds, out var error))
+        {
+            if (Session.Game.PendingChoice != null)
+            {
+                ClearEconomyUi(cancelConsider: false);
+                _toast = null;
+                return;
+            }
+            ClearEconomyUi(cancelConsider: false);
+            _toast = keep.KeepJobIds.Count == 0
+                ? "Deal complete — no jobs kept."
+                : $"Deal complete — kept {keep.KeepJobIds.Count} job(s).";
+            return;
+        }
+        _toast = error;
+        _pendingHost?.SetError(error);
+        RebuildEconomyChrome();
+    }
+
+    private void OnDealBrowseDiscard()
+    {
+        var contact = _dealChrome.SelectedContact;
+        if (!string.IsNullOrEmpty(contact))
+            OpenDiscardBrowser(DiscardBrowseTargets.Contact(contact));
+        else
+            OpenDiscardBrowser();
+    }
+
+    private void OnBuyConfirm(BuyPickSubmission pick)
+    {
+        var request = new BuyRequest
+        {
+            Fuel = pick.Fuel,
+            Parts = pick.Parts
+        };
+        foreach (var id in pick.SupplyCardIds)
+            request.SupplyCardIds.Add(id);
+
+        if (Session.TryBuy(request, out var error))
+        {
+            ClearEconomyUi(cancelConsider: false);
+            _toast = $"Buy at {_buyChrome.Planet} complete.";
+            return;
+        }
+        _toast = error;
+        _pendingHost?.SetError(error);
+    }
+
+    private void OnBuyBrowseDiscard()
+    {
+        if (!string.IsNullOrEmpty(_buyChrome.Planet))
+            OpenDiscardBrowser(DiscardBrowseTargets.Supply(_buyChrome.Planet));
+        else
+            OpenDiscardBrowser();
+    }
+
+    private void OnPoach(BetterOfferTargetView target)
+    {
+        if (Session.TryPoach(target.RivalPlayerId, target.CrewId, out var error))
+        {
+            ClearEconomyUi(cancelConsider: false);
+            _toast = $"Hired {target.CrewName} for ${target.Cost} (A Better Offer).";
+            return;
+        }
+        _toast = error;
+        _pendingHost?.SetError(error);
+        RebuildEconomyChrome();
+    }
+
+    private void OnEconomyCancel()
+    {
+        ClearEconomyUi(cancelConsider: true);
+        _toast = null;
     }
 
     private void OnChoiceSubmitted(ChoiceSubmission submission)
@@ -287,8 +575,8 @@
 
     private void OnRestart((string ScenarioId, bool BlueSun, bool Bounty, bool Corvette) args)
     {
-        _flyMode = FlyUiMode.None;
-        _burnPath = Array.Empty<string>();
+        ClearFlyUi();
+        ClearEconomyUi(cancelConsider: true);
         _shipSheetOpen = false;
         _discardOpen = false;
         _discardFocus = null;
@@ -303,7 +591,6 @@
 
     /// <summary>
     /// Opens the discard browser, optionally focused on a <see cref="DiscardBrowseTargets"/> key.
-    /// P6 Buy/Deal can call this with e.g. <c>supply:Persephone</c> / <c>contact:Badger</c>.
     /// </summary>
     private void OpenDiscardBrowser(string? focusTarget = null)
     {
@@ -319,6 +606,22 @@
     }
 
     private void OnDiscardFocusConsumed() => _discardFocus = null;
+
+    private void ClearFlyUi()
+    {
+        _flyMode = FlyUiMode.None;
+        _burnPath = Array.Empty<string>();
+        _flyChrome = FlyLegalBuilder.Build(Session.Game, Session.Movement, _flyMode, _burnPath);
+    }
+
+    private void ClearEconomyUi(bool cancelConsider)
+    {
+        if (cancelConsider && Session.DealConsideredJobs != null)
+            Session.CancelDealConsider();
+        _economyMode = EconomyUiMode.None;
+        _dealContact = null;
+        RebuildEconomyChrome();
+    }
 
     public void Dispose()
     {

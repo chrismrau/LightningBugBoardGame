@@ -1,0 +1,218 @@
+@using Firefly.UI.Services
+
+@if (Chrome.Mode is EconomyUiMode.DealPick or EconomyUiMode.DealConsider)
+{
+    <div class="econ-chrome deal-chrome" role="region" aria-label="Deal action">
+        <div class="econ-label">
+            <strong>Deal</strong>
+            <span class="hint">@Chrome.StatusHint</span>
+        </div>
+
+        @if (Chrome.Mode == EconomyUiMode.DealPick)
+        {
+            <div class="econ-row">
+                <label class="field">
+                    Contact
+                    <select value="@Chrome.SelectedContact" @onchange="OnContactChanged">
+                        @foreach (var c in Chrome.Contacts.Where(x => x.Reachable))
+                        {
+                            <option value="@c.Name">
+                                @c.Name
+                                @(c.AtLocation ? " · here" : " · remote")
+                                @if (c.Planet != null)
+                                {
+                                    <text> (@c.Planet)</text>
+                                }
+                            </option>
+                        }
+                    </select>
+                </label>
+
+                <label class="field narrow">
+                    Consider
+                    <input type="number" min="0" max="@Chrome.ConsiderLimit"
+                           value="@_considerCount"
+                           @onchange="e => _considerCount = ParseInt(e.Value, 0, Chrome.ConsiderLimit)" />
+                    <span class="sub">0–@Chrome.ConsiderLimit</span>
+                </label>
+
+                <span class="status">Hand @Chrome.JobHandCount/@Chrome.JobHandLimit</span>
+            </div>
+
+            @if (Chrome.DiscardJobs.Count > 0)
+            {
+                <div class="econ-section">
+                    <div class="section-head">
+                        <span>Take from discard</span>
+                        <button type="button" class="econ-btn ghost tiny" @onclick="BrowseDiscard">Browse pile</button>
+                    </div>
+                    <div class="chip-row">
+                        @foreach (var job in Chrome.DiscardJobs)
+                        {
+                            var on = _takeFromDiscard.Contains(job.Id);
+                            <button type="button"
+                                    class="chip @(on ? "is-on" : null)"
+                                    title="@(job.PayLabel ?? job.Name)"
+                                    @onclick="() => ToggleDiscard(job.Id)">
+                                @job.Name
+                                @if (job.Immoral)
+                                {
+                                    <span class="tag">Immoral</span>
+                                }
+                            </button>
+                        }
+                    </div>
+                </div>
+            }
+
+            @if (Chrome.SellContrabandPrice != null || Chrome.SellCargoPrice != null || Chrome.CanClearWarrants)
+            {
+                <div class="econ-row wrap">
+                    @if (Chrome.SellContrabandPrice != null)
+                    {
+                        <label class="field narrow">
+                            Sell contraband
+                            <input type="number" min="0" max="@Chrome.Contraband"
+                                   value="@_sellContraband"
+                                   @onchange="e => _sellContraband = ParseInt(e.Value, 0, Chrome.Contraband)" />
+                            <span class="sub">$@Chrome.SellContrabandPrice each · have @Chrome.Contraband</span>
+                        </label>
+                    }
+                    @if (Chrome.SellCargoPrice != null)
+                    {
+                        <label class="field narrow">
+                            Sell cargo
+                            <input type="number" min="0" max="@Chrome.Cargo"
+                                   value="@_sellCargo"
+                                   @onchange="e => _sellCargo = ParseInt(e.Value, 0, Chrome.Cargo)" />
+                            <span class="sub">$@Chrome.SellCargoPrice each · have @Chrome.Cargo</span>
+                        </label>
+                    }
+                    @if (Chrome.CanClearWarrants && Chrome.Warrants > 0)
+                    {
+                        <label class="check">
+                            <input type="checkbox" @bind="_clearWarrants" />
+                            Clear warrants ($1000)
+                        </label>
+                    }
+                </div>
+            }
+
+            <div class="econ-actions">
+                <button type="button" class="econ-btn primary" @onclick="OnConfirmPick">
+                    @(_considerCount > 0 ? "Consider jobs" : "Deal")
+                </button>
+                <button type="button" class="econ-btn ghost" @onclick="CancelRequested">Cancel</button>
+            </div>
+        }
+        else
+        {
+            <div class="econ-section">
+                <div class="section-head">
+                    <span>Keep up to @Chrome.MaxKeep</span>
+                    <span class="sub">@(_keepIds.Count)/@Chrome.MaxKeep selected</span>
+                </div>
+                <div class="chip-row">
+                    @foreach (var job in Chrome.Considered)
+                    {
+                        var on = _keepIds.Contains(job.Id);
+                        <button type="button"
+                                class="chip @(on ? "is-on" : null)"
+                                disabled="@(!on && _keepIds.Count >= Chrome.MaxKeep)"
+                                @onclick="() => ToggleKeep(job.Id)">
+                            @job.Name
+                            @if (job.PayLabel != null)
+                            {
+                                <span class="tag">@job.PayLabel</span>
+                            }
+                        </button>
+                    }
+                </div>
+            </div>
+            <div class="econ-actions">
+                <button type="button" class="econ-btn primary" @onclick="OnConfirmKeep">Keep selected &amp; Deal</button>
+                <button type="button" class="econ-btn ghost" @onclick="CancelRequested">Cancel</button>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired] public DealChromeView Chrome { get; set; } = default!;
+    [Parameter] public EventCallback<string> ContactChanged { get; set; }
+    [Parameter] public EventCallback CancelRequested { get; set; }
+    [Parameter] public EventCallback<DealPickSubmission> PickConfirmed { get; set; }
+    [Parameter] public EventCallback<DealKeepSubmission> KeepConfirmed { get; set; }
+    [Parameter] public EventCallback BrowseDiscardRequested { get; set; }
+
+    private int _considerCount = 3;
+    private int _sellContraband;
+    private int _sellCargo;
+    private bool _clearWarrants;
+    private readonly HashSet<string> _takeFromDiscard = new(StringComparer.Ordinal);
+    private readonly HashSet<string> _keepIds = new(StringComparer.Ordinal);
+    private string? _syncedContact;
+    private EconomyUiMode _syncedMode;
+
+    protected override void OnParametersSet()
+    {
+        if (!string.Equals(_syncedContact, Chrome.SelectedContact, StringComparison.Ordinal)
+            || _syncedMode != Chrome.Mode)
+        {
+            _syncedContact = Chrome.SelectedContact;
+            _syncedMode = Chrome.Mode;
+            _considerCount = Math.Min(3, Chrome.ConsiderLimit);
+            _sellContraband = 0;
+            _sellCargo = 0;
+            _clearWarrants = false;
+            _takeFromDiscard.Clear();
+            _keepIds.Clear();
+        }
+    }
+
+    private Task OnContactChanged(ChangeEventArgs e)
+    {
+        var name = e.Value?.ToString() ?? "";
+        return ContactChanged.InvokeAsync(name);
+    }
+
+    private void ToggleDiscard(string id)
+    {
+        if (!_takeFromDiscard.Add(id))
+            _takeFromDiscard.Remove(id);
+    }
+
+    private void ToggleKeep(string id)
+    {
+        if (_keepIds.Contains(id))
+        {
+            _keepIds.Remove(id);
+            return;
+        }
+        if (_keepIds.Count >= Chrome.MaxKeep)
+            return;
+        _keepIds.Add(id);
+    }
+
+    private Task BrowseDiscard() => BrowseDiscardRequested.InvokeAsync();
+
+    private Task OnConfirmPick() =>
+        PickConfirmed.InvokeAsync(new DealPickSubmission(
+            Chrome.SelectedContact ?? "",
+            _considerCount,
+            _takeFromDiscard.ToList(),
+            _sellContraband,
+            _sellCargo,
+            _clearWarrants));
+
+    private Task OnConfirmKeep() => KeepConfirmed.InvokeAsync(new DealKeepSubmission(_keepIds.ToList()));
+
+    private static int ParseInt(object? value, int min, int max)
+    {
+        if (!int.TryParse(value?.ToString(), out var n))
+            return min;
+        if (n < min) return min;
+        if (n > max) return max;
+        return n;
+    }
+}
