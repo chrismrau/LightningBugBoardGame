@@ -38,6 +38,7 @@ public sealed class HotseatGameSession : IGameSession
     private WorkAction _work = null!;
     private MisbehaveResolver _misbehave = null!;
     private GoalWorkAction _goals = null!;
+    private BountyAction _bounty = null!;
     private readonly IRng _rng = new SystemRng(Environment.TickCount);
 
     private DealRequest? _dealStagingRequest;
@@ -172,6 +173,11 @@ public sealed class HotseatGameSession : IGameSession
             {
                 ok = MisbehaveChoiceResume.TryResume(
                     _game, _misbehave, _work, _goals, submission, _rng, out error);
+                suspended = !ok && _game.PendingChoice != null;
+            }
+            else if (IsAlertTokenChoice(kind))
+            {
+                ok = AlertTokenResolver.TryResume(_game, submission, _rng, out _, out error);
                 suspended = !ok && _game.PendingChoice != null;
             }
             else
@@ -576,6 +582,186 @@ public sealed class HotseatGameSession : IGameSession
         return ok || suspended;
     }
 
+    public bool TryBountyConfront(string bountyId, string rivalId, string crewId, out string? error)
+    {
+        bool ok;
+        var suspended = false;
+        lock (_gate)
+        {
+            var player = _game.CurrentPlayer;
+            var rival = _game.GetPlayer(rivalId);
+            var attack = WorkChromeBuilder.BestAttackSkill(player);
+            var defend = WorkChromeBuilder.BestDefendSkill(rival);
+            var board = WorkChromeBuilder.BestBoardSkill(player, rival);
+            ok = _bounty.TryApprehendRival(
+                _game, player.Id, bountyId, rivalId, crewId,
+                attack, defend, board, _rng,
+                out _, out error);
+            suspended = !ok && _game.PendingChoice != null;
+        }
+        if (ok || suspended)
+            Changed?.Invoke();
+        return ok || suspended;
+    }
+
+    public bool TryBountyLone(string bountyId, string crewId, out string? error)
+    {
+        bool ok;
+        var suspended = false;
+        lock (_gate)
+        {
+            var player = _game.CurrentPlayer;
+            var attack = WorkChromeBuilder.BestAttackSkill(player);
+            ok = _bounty.TryApprehendLone(
+                _game, player.Id, bountyId, crewId, attack, _rng,
+                out _, out error);
+            suspended = !ok && _game.PendingChoice != null;
+        }
+        if (ok || suspended)
+            Changed?.Invoke();
+        return ok || suspended;
+    }
+
+    public bool TryBountyBetray(string bountyId, string crewId, out string? error)
+    {
+        bool ok;
+        var suspended = false;
+        lock (_gate)
+        {
+            ok = _bounty.TryBetray(
+                _game, _game.CurrentPlayer.Id, bountyId, crewId,
+                out _, out error, _rng);
+            suspended = !ok && _game.PendingChoice != null;
+        }
+        if (ok || suspended)
+            Changed?.Invoke();
+        return ok || suspended;
+    }
+
+    public bool TryBountyDeliver(string bountyId, out string? error)
+    {
+        bool ok;
+        lock (_gate)
+        {
+            ok = _bounty.TryDeliver(_game, _game.CurrentPlayer.Id, bountyId, out _, out error);
+        }
+        if (ok)
+            Changed?.Invoke();
+        return ok;
+    }
+
+    public bool TryBountyJump(string bountyId, string fromPlayerId, bool rescue, out string? error)
+    {
+        bool ok;
+        var suspended = false;
+        lock (_gate)
+        {
+            var player = _game.CurrentPlayer;
+            var rival = _game.GetPlayer(fromPlayerId);
+            var attack = WorkChromeBuilder.BestAttackSkill(player);
+            var defend = WorkChromeBuilder.BestDefendSkill(rival);
+            var board = WorkChromeBuilder.BestBoardSkill(player, rival);
+            ok = _bounty.TryJump(
+                _game, player.Id, fromPlayerId, bountyId,
+                attack, defend, board, _rng, rescue,
+                out _, out error);
+            suspended = !ok && _game.PendingChoice != null;
+        }
+        if (ok || suspended)
+            Changed?.Invoke();
+        return ok || suspended;
+    }
+
+    public bool TryResolveAlertTokens(out string? error)
+    {
+        bool ok;
+        var suspended = false;
+        lock (_gate)
+        {
+            ok = AlertTokenResolver.TryResolvePending(_game, _rng, out _, out error);
+            suspended = !ok && _game.PendingChoice != null;
+        }
+        if (ok || suspended)
+            Changed?.Invoke();
+        return ok || suspended;
+    }
+
+    public bool TryResolveEncounter(string optionId, out string? error)
+    {
+        bool ok;
+        var suspended = false;
+        lock (_gate)
+        {
+            ok = ResolveEncounterUnlocked(optionId, out error);
+            suspended = !ok && _game.PendingChoice != null;
+        }
+        if (ok || suspended)
+            Changed?.Invoke();
+        return ok || suspended;
+    }
+
+    private bool ResolveEncounterUnlocked(string optionId, out string? error)
+    {
+        error = null;
+        if (!_game.PendingEncounter.HasValue)
+        {
+            error = "No encounter is pending.";
+            return false;
+        }
+
+        switch (_game.PendingEncounter.Value)
+        {
+            case TokenKind.OperativeCorvette:
+            {
+                CorvetteContactChoice? choice = null;
+                if (!string.IsNullOrWhiteSpace(optionId) && optionId != "resolve")
+                {
+                    choice = new CorvetteContactChoice { RemoveWantedCrewId = optionId };
+                }
+                return CorvetteContact.TryResolve(_game, out _, out error, choice);
+            }
+            case TokenKind.AllianceCruiser:
+            {
+                CruiserBoardingChoice? choice = null;
+                if (!string.IsNullOrWhiteSpace(optionId)
+                    && optionId.StartsWith("incarcerate:", StringComparison.OrdinalIgnoreCase))
+                {
+                    choice = new CruiserBoardingChoice
+                    {
+                        UseIncarcerationOrder = true,
+                        RemoveWantedCrewId = optionId["incarcerate:".Length..]
+                    };
+                }
+                return CruiserBoarding.TryResolve(_game, _rng, out _, out error, choice);
+            }
+            case TokenKind.ReaverCutter:
+                error =
+                    "Reaver Contact requires an evade sector (ReaverContact.TryResolve); UI picker is a documented P9 gap.";
+                return false;
+            default:
+                error = $"Encounter '{_game.PendingEncounter}' has no hotseat resolve wired.";
+                return false;
+        }
+    }
+
+    private bool IsAlertTokenChoice(string? kind)
+    {
+        if (string.Equals(kind, PendingChoiceKinds.AlertAllianceShip, StringComparison.Ordinal)
+            || string.Equals(kind, PendingChoiceKinds.AlertReaverCutter, StringComparison.Ordinal))
+            return true;
+
+        if (!string.Equals(kind, PendingChoiceKinds.SectorDestination, StringComparison.Ordinal))
+            return false;
+
+        var contextId = _game.PendingChoice?.ContextId ?? "";
+        if (SectorDestinationContexts.TryParseAlertSafeHarbor(contextId, out _))
+            return true;
+        return string.Equals(
+            contextId,
+            SectorDestinationContexts.AlertDriveOffReaver,
+            StringComparison.Ordinal);
+    }
+
     private void CancelDealConsiderUnlocked()
     {
         if (_dealStagingDrawn != null
@@ -634,6 +820,7 @@ public sealed class HotseatGameSession : IGameSession
         _work = new WorkAction();
         _misbehave = new MisbehaveResolver();
         _goals = new GoalWorkAction();
+        _bounty = new BountyAction();
         ClearDealStaging();
     }
 

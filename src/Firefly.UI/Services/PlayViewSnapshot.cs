@@ -35,6 +35,7 @@ public sealed class PlayViewSnapshot
     public required bool UseBountyDeck { get; init; }
     public required bool UseOperativesCorvette { get; init; }
     public required int SeatCount { get; init; }
+    public required ExpansionChromeView Expansions { get; init; }
 
     public static PlayViewSnapshot From(IGameSession session, SectorMap map)
     {
@@ -94,6 +95,41 @@ public sealed class PlayViewSnapshot
                 MarkerIconUrl(MarkerKind.ReaverCutter)));
         }
 
+        if (game.UseAlertTokens)
+        {
+            foreach (var kv in game.Tokens.AlertTokens)
+            {
+                if (kv.Value.Alliance > 0)
+                {
+                    markers.Add(new MarkerTokenView(
+                        "alert-alliance-" + kv.Key,
+                        $"Alliance Alert ×{kv.Value.Alliance}",
+                        kv.Key,
+                        MarkerKind.AllianceAlertChit,
+                        MarkerIconUrl(MarkerKind.AllianceAlertChit)));
+                }
+                if (kv.Value.Reaver > 0)
+                {
+                    markers.Add(new MarkerTokenView(
+                        "alert-reaver-" + kv.Key,
+                        $"Reaver Alert ×{kv.Value.Reaver}",
+                        kv.Key,
+                        MarkerKind.ReaverAlertChit,
+                        MarkerIconUrl(MarkerKind.ReaverAlertChit)));
+                }
+            }
+
+            foreach (var id in Firefly.Core.Movement.AlertTokenRules.PermanentReaverSpaceSectorIds)
+            {
+                markers.Add(new MarkerTokenView(
+                    "alert-reaver-perm-" + id,
+                    "Reaver Space (permanent)",
+                    id,
+                    MarkerKind.ReaverAlertChit,
+                    MarkerIconUrl(MarkerKind.ReaverAlertChit)));
+            }
+        }
+
         var navFaceUp = session.NavFaceUp;
         var pending = PendingHostBuilder.From(game, navFaceUp);
         // Face-up Nav is session-owned; treat it like HasPendingEvents for chrome.
@@ -131,7 +167,8 @@ public sealed class PlayViewSnapshot
             UseBlueSun = session.UseBlueSun,
             UseBountyDeck = session.UseBountyDeck,
             UseOperativesCorvette = session.UseOperativesCorvette,
-            SeatCount = game.Players.Count
+            SeatCount = game.Players.Count,
+            Expansions = ExpansionChromeBuilder.From(game)
         };
     }
 
@@ -144,6 +181,9 @@ public sealed class PlayViewSnapshot
         MarkerKind.AllianceCruiser => "/ships/alliance-cruiser.webp",
         MarkerKind.Corvette => "/ships/operative-corvette.webp",
         MarkerKind.ReaverCutter => "/ships/reaver-cutter.webp",
+        // Prefs / sprite atlas: alert chits use IconSpriteSheet logos (not separate scans).
+        MarkerKind.AllianceAlertChit => "/tokens/IconSpriteSheet.webp#alliance",
+        MarkerKind.ReaverAlertChit => "/tokens/IconSpriteSheet.webp#reaver",
         _ => "/ships/firefly.webp"
     };
 }
@@ -160,7 +200,9 @@ public enum MarkerKind
 {
     AllianceCruiser,
     ReaverCutter,
-    Corvette
+    Corvette,
+    AllianceAlertChit,
+    ReaverAlertChit
 }
 
 public sealed record MarkerTokenView(

@@ -8,6 +8,8 @@ public static class SmokeScenarios
         new("scenario_king-of-all-londinium", "The King of All Londinium"),
         new("scenario_first-time-in-the-captains-chair", "First Time in the Captain's Chair"),
         new("scenario_awful-lonely-in-the-big-black", "Awful Lonely in the Big Black"),
+        // Nested setup.startingAlertCard — smoke for Alliance Alert chrome (P9).
+        new("scenario_wanted-men", "Wanted Men (starting Alliance Alert)"),
     };
 
     public const string DefaultId = "scenario_king-of-all-londinium";
