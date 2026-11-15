@@ -27,6 +27,7 @@ public sealed class PlayViewSnapshot
     public required SectorInspectInfo? Inspect { get; init; }
     public required IReadOnlyList<ShipTokenView> ShipTokens { get; init; }
     public required IReadOnlyList<MarkerTokenView> Markers { get; init; }
+    public required ShipSheetView ShipSheet { get; init; }
     public required bool UseBlueSun { get; init; }
     public required bool UseBountyDeck { get; init; }
     public required bool UseOperativesCorvette { get; init; }
@@ -117,6 +118,7 @@ public sealed class PlayViewSnapshot
             Inspect = inspect,
             ShipTokens = ships,
             Markers = markers,
+            ShipSheet = ShipSheetBuilder.From(game, player),
             UseBlueSun = session.UseBlueSun,
             UseBountyDeck = session.UseBountyDeck,
             UseOperativesCorvette = session.UseOperativesCorvette

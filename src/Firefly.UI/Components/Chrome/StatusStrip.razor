@@ -6,6 +6,12 @@
         <span class="value">@Snapshot.SeatName</span>
     </div>
     <div class="stat">
+        <span class="label">Ship</span>
+        <button type="button" class="ship-link" @onclick="ShipSheetRequested">
+            @Snapshot.ShipSheet.ShipName
+        </button>
+    </div>
+    <div class="stat">
         <span class="label">Cash</span>
         <span class="value">$@Snapshot.Cash.ToString("N0")</span>
     </div>
@@ -33,4 +39,5 @@
 
 @code {
     [Parameter, EditorRequired] public PlayViewSnapshot Snapshot { get; set; } = default!;
+    [Parameter] public EventCallback ShipSheetRequested { get; set; }
 }

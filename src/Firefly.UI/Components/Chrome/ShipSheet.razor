@@ -1,0 +1,304 @@
+@using Firefly.UI.Services
+
+<aside class="ship-sheet @(IsOpen ? "is-open" : "is-closed")" aria-label="Own ship sheet">
+    <button type="button"
+            class="sheet-tab"
+            title="@(IsOpen ? "Collapse ship sheet" : "Open ship sheet")"
+            aria-expanded="@IsOpen"
+            @onclick="Toggle">
+        <span class="tab-label">Ship</span>
+        <span class="tab-ship">@Sheet.ShipName</span>
+    </button>
+
+    <div class="sheet-panel">
+        <header class="sheet-header">
+            <div class="title-block">
+                <h2>@Sheet.ShipName</h2>
+                <p class="seat">@Sheet.SeatName · Max crew @Sheet.CrewCount/@Sheet.MaxCrew</p>
+            </div>
+            <button type="button" class="close-btn" @onclick="Close" title="Collapse">✕</button>
+        </header>
+
+        <div class="sheet-scroll">
+            <section class="meta-row" aria-label="Seat resources">
+                <div class="meta"><span class="k">Cash</span><span class="v">$@Sheet.Cash.ToString("N0")</span></div>
+                <div class="meta"><span class="k">Warrants</span><span class="v">@Sheet.Warrants</span></div>
+                <div class="meta"><span class="k">Haven</span><span class="v code">@Sheet.HavenSectorId</span></div>
+                <div class="meta"><span class="k">Sector</span><span class="v code">@Sheet.SectorId</span></div>
+                <div class="meta"><span class="k">Holds</span><span class="v">@Sheet.UsedGeneralHolds/@Sheet.GeneralHoldSlots</span></div>
+            </section>
+
+            @if (!string.IsNullOrEmpty(Sheet.ShipCardArtUrl))
+            {
+                <section class="ship-art" aria-label="Ship card">
+                    <img src="@Sheet.ShipCardArtUrl"
+                         alt="@Sheet.ShipName ship card"
+                         class="ship-card-img"
+                         loading="lazy" />
+                </section>
+            }
+
+            <section class="holds" aria-label="Hold and stash">
+                <div class="hold-block">
+                    <h3>Cargo Hold <span class="count">@Sheet.CargoHoldCells.Count</span></h3>
+                    <div class="hold-grid cargo">
+                        @foreach (var cell in Sheet.CargoHoldCells)
+                        {
+                            <div class="hold-cell kind-@CssKind(cell.Kind)" title="@cell.Label">
+                                @if (cell.Kind != HoldCellKind.Empty)
+                                {
+                                    <span>@ShortLabel(cell)</span>
+                                }
+                            </div>
+                        }
+                    </div>
+                </div>
+                <div class="hold-block">
+                    <h3>Stash <span class="count">@Sheet.StashCells.Count</span></h3>
+                    <div class="hold-grid stash">
+                        @foreach (var cell in Sheet.StashCells)
+                        {
+                            <div class="hold-cell kind-@CssKind(cell.Kind)" title="@cell.Label">
+                                @if (cell.Kind != HoldCellKind.Empty)
+                                {
+                                    <span>@ShortLabel(cell)</span>
+                                }
+                            </div>
+                        }
+                    </div>
+                </div>
+                @if (Sheet.FuelOnlyStashCells.Count > 0)
+                {
+                    <div class="hold-block">
+                        <h3>Fuel Stash <span class="count">@Sheet.FuelOnlyStashCells.Count</span></h3>
+                        <div class="hold-grid fuel-only">
+                            @foreach (var cell in Sheet.FuelOnlyStashCells)
+                            {
+                                <div class="hold-cell kind-@CssKind(cell.Kind)" title="@cell.Label">
+                                    @if (cell.Kind != HoldCellKind.Empty)
+                                    {
+                                        <span>@ShortLabel(cell)</span>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+                @if (Sheet.PassengerOnlyCells.Count > 0)
+                {
+                    <div class="hold-block">
+                        <h3>Passenger Hold <span class="count">@Sheet.PassengerOnlyCells.Count</span></h3>
+                        <div class="hold-grid passenger-only">
+                            @foreach (var cell in Sheet.PassengerOnlyCells)
+                            {
+                                <div class="hold-cell kind-@CssKind(cell.Kind)" title="@cell.Label">
+                                    @if (cell.Kind != HoldCellKind.Empty)
+                                    {
+                                        <span>@ShortLabel(cell)</span>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+                <p class="hold-legend">
+                    Fuel @Sheet.Fuel · Parts @Sheet.Parts · Cargo @Sheet.Cargo · Contraband @Sheet.Contraband ·
+                    Passengers @Sheet.Passengers · Fugitives @Sheet.Fugitives
+                </p>
+            </section>
+
+            <section class="drive-upgrades" aria-label="Drive core and upgrades">
+                <div class="drive-slot">
+                    <h3>Drive Core</h3>
+                    <div class="slot-card">
+                        <PortraitPlate Src="@Sheet.DriveCore.PortraitUrl" Alt="@Sheet.DriveCore.Name" />
+                        <div>
+                            <div class="slot-name">@Sheet.DriveCore.Name</div>
+                            <div class="slot-meta">
+                                Range @Sheet.DriveCore.Range
+                                · @(Sheet.DriveCore.RequiresFuel ? "Fuel to Full Burn" : "No fuel to initiate")
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="upgrade-slots">
+                    <h3>Ship Upgrades <span class="count">@Sheet.UpgradeSlotsFilled.Count(u => !u.Empty)/@Sheet.UpgradeSlots</span></h3>
+                    <div class="upgrade-list">
+                        @foreach (var slot in Sheet.UpgradeSlotsFilled)
+                        {
+                            <div class="slot-card @(slot.Empty ? "is-empty" : null)">
+                                @if (!slot.Empty)
+                                {
+                                    <PortraitPlate Src="@slot.PortraitUrl" Alt="@slot.Name" />
+                                }
+                                <div class="slot-name">@slot.Name</div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </section>
+
+            <section class="crew-roster" aria-label="Crew roster">
+                <h3>Crew <span class="count">@Sheet.CrewCount/@Sheet.MaxCrew</span></h3>
+                <ul class="crew-list">
+                    @foreach (var member in Sheet.Crew)
+                    {
+                        <li class="crew-card @(member.IsLeader ? "is-leader" : null) @(member.Disgruntled ? "is-disgruntled" : null)">
+                            <PortraitPlate Src="@member.PortraitUrl" Alt="@member.Name" />
+                            <div class="crew-body">
+                                <div class="crew-name">
+                                    @member.Name
+                                    @if (member.IsLeader)
+                                    {
+                                        <span class="badge leader">Leader</span>
+                                    }
+                                    @if (member.Disgruntled)
+                                    {
+                                        <span class="badge disg">Disgruntled</span>
+                                    }
+                                    @if (member.Wanted)
+                                    {
+                                        <span class="badge wanted">Wanted</span>
+                                    }
+                                </div>
+                                <div class="skills">F @member.Fight · T @member.Tech · N @member.Talk</div>
+                                @if (member.EquippedGear.Count > 0)
+                                {
+                                    <ul class="gear-list">
+                                        @foreach (var gear in member.EquippedGear)
+                                        {
+                                            <li class="gear-chip">
+                                                <PortraitPlate Src="@gear.PortraitUrl" Alt="@gear.Name" Compact="true" />
+                                                <span>@gear.Name</span>
+                                            </li>
+                                        }
+                                    </ul>
+                                }
+                            </div>
+                        </li>
+                    }
+                </ul>
+                @if (Sheet.OnboardGear.Count > 0)
+                {
+                    <div class="onboard-gear">
+                        <h4>Onboard gear</h4>
+                        <ul class="gear-list">
+                            @foreach (var gear in Sheet.OnboardGear)
+                            {
+                                <li class="gear-chip">
+                                    <PortraitPlate Src="@gear.PortraitUrl" Alt="@gear.Name" Compact="true" />
+                                    <span>@gear.Name</span>
+                                </li>
+                            }
+                        </ul>
+                    </div>
+                }
+            </section>
+
+            <section class="jobs" aria-label="Jobs">
+                <div class="job-col">
+                    <h3>Active Jobs <span class="count">@Sheet.ActiveJobs.Count</span></h3>
+                    @if (Sheet.ActiveJobs.Count == 0)
+                    {
+                        <p class="empty-note">None</p>
+                    }
+                    else
+                    {
+                        <ul class="job-list">
+                            @foreach (var job in Sheet.ActiveJobs)
+                            {
+                                <li class="job-card">
+                                    <div class="job-name">@job.Name</div>
+                                    <div class="job-meta">
+                                        @job.ContactName
+                                        @if (job.PayLabel != null)
+                                        {
+                                            <span>· @job.PayLabel</span>
+                                        }
+                                        @if (job.Immoral)
+                                        {
+                                            <span class="badge immoral">Immoral</span>
+                                        }
+                                        else if (!job.Legal)
+                                        {
+                                            <span class="badge illegal">Illegal</span>
+                                        }
+                                        @if (job.PickedUp)
+                                        {
+                                            <span class="badge">Picked up</span>
+                                        }
+                                    </div>
+                                </li>
+                            }
+                        </ul>
+                    }
+                </div>
+                <div class="job-col">
+                    <h3>Job Hand <span class="count">@Sheet.JobHand.Count</span></h3>
+                    @if (Sheet.JobHand.Count == 0)
+                    {
+                        <p class="empty-note">None</p>
+                    }
+                    else
+                    {
+                        <ul class="job-list">
+                            @foreach (var job in Sheet.JobHand)
+                            {
+                                <li class="job-card inactive">
+                                    <div class="job-name">@job.Name</div>
+                                    <div class="job-meta">
+                                        @job.ContactName
+                                        @if (job.PayLabel != null)
+                                        {
+                                            <span>· @job.PayLabel</span>
+                                        }
+                                    </div>
+                                </li>
+                            }
+                        </ul>
+                    }
+                </div>
+            </section>
+
+            <section class="solid" aria-label="Solid contacts">
+                <h3>Solid With <span class="count">@Sheet.SolidWith.Count</span></h3>
+                @if (Sheet.SolidWith.Count == 0)
+                {
+                    <p class="empty-note">No Solid contacts</p>
+                }
+                else
+                {
+                    <ul class="solid-list">
+                        @foreach (var c in Sheet.SolidWith)
+                        {
+                            <li>@c.Name</li>
+                        }
+                    </ul>
+                }
+            </section>
+        </div>
+    </div>
+</aside>
+
+@code {
+    [Parameter, EditorRequired] public ShipSheetView Sheet { get; set; } = default!;
+    [Parameter] public bool IsOpen { get; set; }
+    [Parameter] public EventCallback<bool> IsOpenChanged { get; set; }
+
+    private Task Toggle() => IsOpenChanged.InvokeAsync(!IsOpen);
+    private Task Close() => IsOpenChanged.InvokeAsync(false);
+
+    private static string CssKind(HoldCellKind kind) => kind.ToString().ToLowerInvariant();
+
+    private static string ShortLabel(HoldCellView cell) => cell.Kind switch
+    {
+        HoldCellKind.Fuel => cell.FuelCount > 1 ? $"F×{cell.FuelCount}" : "F",
+        HoldCellKind.Parts => cell.PartsCount > 1 ? $"P×{cell.PartsCount}" : "P",
+        HoldCellKind.FuelAndParts => $"F{cell.FuelCount}P{cell.PartsCount}",
+        HoldCellKind.Cargo => "C",
+        HoldCellKind.Contraband => "X",
+        HoldCellKind.Passenger => "Pa",
+        HoldCellKind.Fugitive => "Fu",
+        _ => ""
+    };
+}

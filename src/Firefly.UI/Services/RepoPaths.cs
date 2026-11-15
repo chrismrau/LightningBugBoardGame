@@ -4,13 +4,20 @@ namespace Firefly.UI.Services;
 
 /// <summary>
 /// Locates the Lightning Bug repo root (Firefly.sln) so we can serve
-/// <c>reference/board</c> art, <c>reference/Ships</c> map icons, and resolve Data paths outside bin/.
+/// <c>reference/board</c> art, <c>reference/Ships</c> map icons,
+/// <c>reference/Cards/</c> Option B plates / ship scans, and resolve Data paths outside bin/.
 /// </summary>
 public sealed class RepoPaths
 {
     public string Root { get; }
     public string BoardArtDirectory { get; }
     public string ShipIconsDirectory { get; }
+    public string CardArtRoot { get; }
+    public string ShipCardsDirectory { get; }
+    public string CrewArtDirectory { get; }
+    public string GearArtDirectory { get; }
+    public string DriveCoreArtDirectory { get; }
+    public string ShipUpgradeArtDirectory { get; }
     public string SectorLayoutPath { get; }
     public string SectorsPath { get; }
 
@@ -22,6 +29,12 @@ public sealed class RepoPaths
 
         BoardArtDirectory = Path.Combine(Root, "reference", "board");
         ShipIconsDirectory = Path.Combine(Root, "reference", "Ships");
+        CardArtRoot = Path.Combine(Root, "reference", "Cards");
+        ShipCardsDirectory = Path.Combine(CardArtRoot, "Ships");
+        CrewArtDirectory = Path.Combine(CardArtRoot, "Crew");
+        GearArtDirectory = Path.Combine(CardArtRoot, "Gear");
+        DriveCoreArtDirectory = Path.Combine(CardArtRoot, "DriveCores");
+        ShipUpgradeArtDirectory = Path.Combine(CardArtRoot, "ShipUpgrades");
         SectorLayoutPath = FirstExisting(
             Path.Combine(AppContext.BaseDirectory, "Data", "Map", "SectorLayout.json"),
             Path.Combine(Root, "Data", "Map", "SectorLayout.json"),
