@@ -89,7 +89,10 @@ public sealed class PlayViewSnapshot
                 MarkerIconUrl(MarkerKind.ReaverCutter)));
         }
 
-        var pending = PendingHostBuilder.From(game);
+        var navFaceUp = session.NavFaceUp;
+        var pending = PendingHostBuilder.From(game, navFaceUp);
+        // Face-up Nav is session-owned; treat it like HasPendingEvents for chrome.
+        var hasPending = game.HasPendingEvents || navFaceUp != null;
 
         return new PlayViewSnapshot
         {
@@ -105,11 +108,11 @@ public sealed class PlayViewSnapshot
             Warrants = player.Warrants,
             ActionsUsed = game.ActionsUsedThisTurn,
             ActionsPerTurn = game.ActionsPerTurn,
-            HasPendingEvents = game.HasPendingEvents,
+            HasPendingEvents = hasPending,
             PendingChoiceKind = pending.Choice?.Kind,
             PendingSummary = pending.HasPending ? pending.Summary : null,
             Pending = pending,
-            ActionButtons = ActionBarBuilder.Build(game),
+            ActionButtons = ActionBarBuilder.Build(game, navFaceUpBlocking: navFaceUp != null),
             SelectedSectorId = session.SelectedSectorId,
             Inspect = inspect,
             ShipTokens = ships,

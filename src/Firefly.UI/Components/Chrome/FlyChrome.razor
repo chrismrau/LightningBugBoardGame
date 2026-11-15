@@ -1,0 +1,76 @@
+@using Firefly.UI.Services
+
+@if (Chrome.Mode != FlyUiMode.None)
+{
+    <div class="fly-chrome" role="region" aria-label="Fly action">
+        <div class="fly-label">
+            <strong>Fly</strong>
+            <span class="hint">@HintText</span>
+        </div>
+
+        @if (Chrome.Mode == FlyUiMode.PickKind)
+        {
+            <div class="fly-actions">
+                <button type="button" class="fly-btn" @onclick="() => KindRequested.InvokeAsync(FlyUiMode.Mosey)">
+                    Mosey
+                    <span class="sub">range @Chrome.MoseyRange · no fuel · no Nav</span>
+                </button>
+                <button type="button"
+                        class="fly-btn @(Chrome.CanFullBurn ? null : "is-disabled")"
+                        disabled="@(!Chrome.CanFullBurn)"
+                        title="@(Chrome.FullBurnBlockReason ?? "Full Burn")"
+                        @onclick="() => KindRequested.InvokeAsync(FlyUiMode.FullBurn)">
+                    Full Burn
+                    <span class="sub">
+                        range @Chrome.DriveRange
+                        · @(Chrome.FullBurnRequiresFuel ? "1 fuel" : "no fuel to initiate")
+                        · Nav per sector
+                    </span>
+                </button>
+                <button type="button" class="fly-btn ghost" @onclick="CancelRequested">Cancel</button>
+            </div>
+        }
+        else if (Chrome.Mode == FlyUiMode.Mosey)
+        {
+            <div class="fly-actions">
+                <span class="status">Click a highlighted adjacent sector to Mosey.</span>
+                <button type="button" class="fly-btn ghost" @onclick="CancelRequested">Cancel</button>
+            </div>
+        }
+        else if (Chrome.Mode == FlyUiMode.FullBurn)
+        {
+            <div class="fly-actions">
+                @if (Chrome.PathReady)
+                {
+                    <span class="status">
+                        Path ready → <code>@Chrome.PathDestinationId</code>
+                        (@(Chrome.PathSectorIds.Count - 1) hop@(Chrome.PathSectorIds.Count - 1 == 1 ? "" : "s"))
+                    </span>
+                    <button type="button" class="fly-btn primary" @onclick="ConfirmRequested">Confirm Full Burn</button>
+                    <button type="button" class="fly-btn ghost" @onclick="ClearPathRequested">Clear path</button>
+                }
+                else
+                {
+                    <span class="status">Click a highlighted sector within drive range to preview path.</span>
+                }
+                <button type="button" class="fly-btn ghost" @onclick="CancelRequested">Cancel</button>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired] public FlyChromeView Chrome { get; set; } = default!;
+    [Parameter] public EventCallback<FlyUiMode> KindRequested { get; set; }
+    [Parameter] public EventCallback CancelRequested { get; set; }
+    [Parameter] public EventCallback ConfirmRequested { get; set; }
+    [Parameter] public EventCallback ClearPathRequested { get; set; }
+
+    private string HintText => Chrome.Mode switch
+    {
+        FlyUiMode.PickKind => "Choose Mosey or Full Burn (GF9 Fly action)",
+        FlyUiMode.Mosey => $"Mosey · fuel {Chrome.Fuel}",
+        FlyUiMode.FullBurn => $"Full Burn · fuel {Chrome.Fuel} · drive {Chrome.DriveRange}",
+        _ => ""
+    };
+}

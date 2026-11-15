@@ -1,3 +1,4 @@
+using Firefly.Core.Cards;
 using Firefly.Core.State;
 
 namespace Firefly.UI.Services;
@@ -25,7 +26,8 @@ public sealed record PendingHostView(
     string PriorityLabel,
     string Summary,
     PendingQueueKind QueueKind,
-    PendingChoiceView? Choice);
+    PendingChoiceView? Choice,
+    NavRevealView? Nav = null);
 
 public enum PendingQueueKind
 {
@@ -54,16 +56,23 @@ public sealed record PendingChoiceView(
 /// </summary>
 public static class PendingHostBuilder
 {
-    public static PendingHostView From(GameState game)
+    /// <param name="navFaceUp">
+    /// Session-owned face-up Nav (not on GameState). Counts as pending until resolved.
+    /// </param>
+    public static PendingHostView From(GameState game, DrawnNav? navFaceUp = null)
     {
-        if (!game.HasPendingEvents)
+        var navView = FlyLegalBuilder.FromNav(game, navFaceUp);
+        var hasNavPending = game.PendingNavDraws.Count > 0 || navFaceUp != null;
+
+        if (!game.HasPendingEvents && navFaceUp == null)
         {
             return new PendingHostView(
                 false,
                 "",
                 "",
                 PendingQueueKind.None,
-                null);
+                null,
+                navView);
         }
 
         PendingChoiceView? choice = null;
@@ -87,7 +96,8 @@ public static class PendingHostBuilder
                 "Choice",
                 choice.Prompt ?? $"PendingChoice: {choice.Kind}",
                 PendingQueueKind.Choice,
-                choice);
+                choice,
+                navView);
         }
 
         if (game.PendingAlertSectors.Count > 0)
@@ -97,7 +107,8 @@ public static class PendingHostBuilder
                 "Alert Tokens",
                 $"Alert Tokens ({game.PendingAlertSectors.Count}) — resolve before other actions",
                 PendingQueueKind.Alerts,
-                null);
+                null,
+                navView);
         }
 
         if (game.PendingEncounter.HasValue)
@@ -107,17 +118,22 @@ public static class PendingHostBuilder
                 "Encounter",
                 $"Encounter: {game.PendingEncounter}",
                 PendingQueueKind.Encounter,
-                null);
+                null,
+                navView);
         }
 
-        if (game.PendingNavDraws.Count > 0)
+        if (hasNavPending)
         {
+            var summary = navFaceUp != null
+                ? $"Nav: {navFaceUp.Card.Name} — choose an option"
+                : $"Nav draws ({game.PendingNavDraws.Count}) — reveal to resolve";
             return new PendingHostView(
                 true,
                 "Nav",
-                $"Nav draws ({game.PendingNavDraws.Count}) — P3 resolve loop",
+                summary,
                 PendingQueueKind.Nav,
-                null);
+                null,
+                navView);
         }
 
         if (game.PendingMisbehave != null)
@@ -127,7 +143,8 @@ public static class PendingHostBuilder
                 "Misbehave",
                 "Misbehave in progress",
                 PendingQueueKind.Misbehave,
-                null);
+                null,
+                navView);
         }
 
         if (game.PendingGoalWork != null)
@@ -137,10 +154,11 @@ public static class PendingHostBuilder
                 "Goal Work",
                 "Goal Work in progress",
                 PendingQueueKind.GoalWork,
-                null);
+                null,
+                navView);
         }
 
-        return new PendingHostView(true, "Pending", "Pending events", PendingQueueKind.None, null);
+        return new PendingHostView(true, "Pending", "Pending events", PendingQueueKind.None, null, navView);
     }
 }
 
@@ -156,13 +174,25 @@ public static class ActionBarBuilder
         TurnAction.Crew
     };
 
-    public static IReadOnlyList<ActionButtonView> Build(GameState game)
+    /// <param name="navFaceUpBlocking">
+    /// True when a Nav card is face-up on the session resolver (GameState.HasPendingEvents
+    /// does not see FaceUp). Blocks turn actions the same way queued Nav draws do.
+    /// </param>
+    public static IReadOnlyList<ActionButtonView> Build(GameState game, bool navFaceUpBlocking = false)
     {
         var list = new List<ActionButtonView>(TurnActions.Length + 3);
+        var faceUpBlock = navFaceUpBlocking
+            ? "Resolve the face-up Nav card before taking another action."
+            : null;
 
         foreach (var action in TurnActions)
         {
             var ok = game.CanTakeAction(action, out var error);
+            if (ok && faceUpBlock != null)
+            {
+                ok = false;
+                error = faceUpBlock;
+            }
             list.Add(new ActionButtonView(
                 action.ToString().ToLowerInvariant(),
                 action.ToString(),
@@ -175,6 +205,11 @@ public static class ActionBarBuilder
         // Shore Leave consumes Buy (GF9 / AGENTS.md). Same CanTakeAction gate; P6 wires TryShoreLeave.
         {
             var ok = game.CanTakeAction(TurnAction.Buy, out var error);
+            if (ok && faceUpBlock != null)
+            {
+                ok = false;
+                error = faceUpBlock;
+            }
             list.Add(new ActionButtonView(
                 "shore-leave",
                 "Shore Leave",

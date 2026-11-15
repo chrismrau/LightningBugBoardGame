@@ -11,6 +11,10 @@
         {
             <span class="kind">@Pending.Choice.Kind</span>
         }
+        else if (Pending.Nav?.HasFaceUp == true)
+        {
+            <span class="kind">@Pending.Nav.CardId</span>
+        }
     </div>
 
     @if (Pending.Choice is { } choice)
@@ -61,11 +65,67 @@
             </div>
         </div>
     }
+    else if (Pending.QueueKind == PendingQueueKind.Nav && Pending.Nav is { } nav)
+    {
+        <div class="pending-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="nav-title">
+            <div class="pending-modal nav-modal">
+                <header class="pending-modal-header">
+                    <h2 id="nav-title">Nav</h2>
+                    <span class="kind-chip">@(nav.Region ?? "queued")</span>
+                </header>
+
+                @if (nav.NeedsReveal)
+                {
+                    <p class="prompt">
+                        Full Burn queued <strong>@nav.QueuedCount</strong> Nav draw@(nav.QueuedCount == 1 ? "" : "s").
+                        Reveal the next card.
+                    </p>
+                    <button type="button" class="nav-btn primary" @onclick="OnRevealNav">Reveal Nav card</button>
+                }
+                else if (nav.NeedsResolve)
+                {
+                    <div class="nav-card">
+                        <p class="nav-type">@nav.CardType</p>
+                        <h3 class="nav-name">@nav.CardName</h3>
+                        <p class="nav-meta">
+                            <code>@nav.CardId</code>
+                            · @nav.SectorId
+                            @if (nav.QueuedCount > 0)
+                            {
+                                <span>· @nav.QueuedCount more queued</span>
+                            }
+                        </p>
+                    </div>
+
+                    <div class="nav-options" role="list">
+                        @foreach (var opt in nav.Options)
+                        {
+                            <button type="button"
+                                    class="nav-option"
+                                    role="listitem"
+                                    @onclick="() => OnResolveNav(opt.Index)">
+                                <span class="opt-label">@opt.Label</span>
+                                <span class="opt-outcome">@opt.Outcome</span>
+                                <span class="opt-details">@opt.Details</span>
+                            </button>
+                        }
+                    </div>
+                }
+
+                @if (!string.IsNullOrEmpty(_error))
+                {
+                    <p class="error" role="alert">@_error</p>
+                }
+            </div>
+        </div>
+    }
 }
 
 @code {
     [Parameter, EditorRequired] public PendingHostView Pending { get; set; } = default!;
     [Parameter] public EventCallback<ChoiceSubmission> ChoiceSubmitted { get; set; }
+    [Parameter] public EventCallback RevealNavRequested { get; set; }
+    [Parameter] public EventCallback<int> ResolveNavOptionRequested { get; set; }
 
     private string? _error;
 
@@ -73,6 +133,18 @@
     {
         _error = null;
         await ChoiceSubmitted.InvokeAsync(submission);
+    }
+
+    private async Task OnRevealNav()
+    {
+        _error = null;
+        await RevealNavRequested.InvokeAsync();
+    }
+
+    private async Task OnResolveNav(int optionIndex)
+    {
+        _error = null;
+        await ResolveNavOptionRequested.InvokeAsync(optionIndex);
     }
 
     /// <summary>Parent can push a kernel rejection message after a failed submit.</summary>

@@ -33,11 +33,21 @@
             {
                 var selected = string.Equals(SelectedSectorId, sector.SectorId, StringComparison.OrdinalIgnoreCase);
                 var occupied = OccupiedSectorIds.Contains(sector.SectorId);
+                var legal = LegalSet.Contains(sector.SectorId);
+                var onPath = PathSet.Contains(sector.SectorId);
+                var pathEnd = string.Equals(PathDestinationId, sector.SectorId, StringComparison.OrdinalIgnoreCase);
                 <polygon @key="sector.SectorId"
-                         class="sector-poly @(selected ? "is-selected" : null) @(occupied ? "is-occupied" : null)"
+                         class="sector-poly @(selected ? "is-selected" : null) @(occupied ? "is-occupied" : null) @(legal ? "is-legal" : null) @(onPath ? "is-path" : null) @(pathEnd ? "is-path-end" : null)"
                          points="@sector.PointsAttribute"
                          @onclick="() => OnSectorClick(sector.SectorId)"
                          @onclick:stopPropagation="true" />
+            }
+
+            @if (PathSectorIds.Count >= 2)
+            {
+                <polyline class="fly-path-line"
+                          points="@PathPolylinePoints"
+                          fill="none" />
             }
 
             @foreach (var placed in _placed)
@@ -79,6 +89,9 @@
     [Parameter] public string? SelectedSectorId { get; set; }
     [Parameter] public IReadOnlyList<ShipTokenView> Ships { get; set; } = Array.Empty<ShipTokenView>();
     [Parameter] public IReadOnlyList<MarkerTokenView> Markers { get; set; } = Array.Empty<MarkerTokenView>();
+    [Parameter] public IReadOnlyList<string> LegalSectorIds { get; set; } = Array.Empty<string>();
+    [Parameter] public IReadOnlyList<string> PathSectorIds { get; set; } = Array.Empty<string>();
+    [Parameter] public string? PathDestinationId { get; set; }
     [Parameter] public bool BoardArtAvailable { get; set; }
     [Parameter] public EventCallback<string> SectorSelected { get; set; }
 
@@ -87,7 +100,10 @@
     private SectorLayout _layout = new();
     private bool _boardAvailable;
     private HashSet<string> OccupiedSectorIds { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+    private HashSet<string> LegalSet { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+    private HashSet<string> PathSet { get; set; } = new(StringComparer.OrdinalIgnoreCase);
     private List<PlacedToken> _placed = new();
+    private string PathPolylinePoints { get; set; } = "";
     private IJSObjectReference? _camera;
 
     protected override void OnParametersSet()
@@ -97,7 +113,25 @@
         OccupiedSectorIds = Ships.Select(s => s.SectorId)
             .Concat(Markers.Select(m => m.SectorId))
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        LegalSet = LegalSectorIds.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        PathSet = PathSectorIds.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        PathPolylinePoints = BuildPathPolyline();
         _placed = BuildPlacedTokens();
+    }
+
+    private string BuildPathPolyline()
+    {
+        if (PathSectorIds.Count < 2)
+            return "";
+        var inv = CultureInfo.InvariantCulture;
+        var parts = new List<string>(PathSectorIds.Count);
+        foreach (var id in PathSectorIds)
+        {
+            if (!_layout.ById.TryGetValue(id, out var geo))
+                continue;
+            parts.Add($"{geo.CentroidX.ToString("0.###", inv)},{geo.CentroidY.ToString("0.###", inv)}");
+        }
+        return string.Join(" ", parts);
     }
 
     private List<PlacedToken> BuildPlacedTokens()
