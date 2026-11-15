@@ -17,7 +17,17 @@ public enum WorkAttemptKind
     Job,
     MakeWork,
     Datascope,
-    Goal
+    Goal,
+    /// <summary>PBH Confrontation — board rival then showdown (Most Wanted).</summary>
+    BountyConfront,
+    /// <summary>PBH Lone Target — showdown vs Supply / Last Seen crew.</summary>
+    BountyLone,
+    /// <summary>PBH Betrayal — nab own wanted crew (no roll).</summary>
+    BountyBetray,
+    /// <summary>PBH Deliver bound bounty at printed dropoff.</summary>
+    BountyDeliver,
+    /// <summary>PBH Jump — board rival transporting a bound bounty.</summary>
+    BountyJump
 }
 
 /// <summary>One Work attempt the current seat can consider (legal or blocked with kernel-mirrored reason).</summary>
@@ -35,7 +45,10 @@ public sealed record WorkAttemptOption(
     bool PickedUp,
     int? MisbehaveCount,
     WorkSite? Site,
-    int? GoalNumber);
+    int? GoalNumber,
+    string? RivalId = null,
+    string? CrewId = null,
+    bool Rescue = false);
 
 public sealed record WorkChromeView(
     WorkUiMode Mode,
@@ -84,7 +97,9 @@ public static class WorkChromeBuilder
                 ? "Finish the pending Misbehave before working again."
                 : enabled == 0
                     ? "No legal Work attempts at this sector."
-                    : "Pick a legal Job, Make-Work, Goal, or Datascope.";
+                    : game.BountyDeck != null
+                        ? "Pick a legal Job, bounty (Most Wanted), Make-Work, Goal, or Datascope."
+                        : "Pick a legal Job, Make-Work, Goal, or Datascope.";
 
         return new WorkChromeView(WorkUiMode.Pick, attempts, hint);
     }
@@ -158,12 +173,352 @@ public static class WorkChromeBuilder
             }
         }
 
+        if (game.BountyDeck != null)
+            AddBountyAttempts(game, player, canWork, workErr, list);
+
         return list
             .OrderByDescending(a => a.Enabled)
             .ThenBy(a => a.Kind)
             .ThenBy(a => a.Title, StringComparer.OrdinalIgnoreCase)
             .ToList();
     }
+
+    /// <summary>
+    /// PBH pp.8–12: face-up Most Wanted + own bound deliveries + jumps of rival-bound stacks.
+    /// Skills are chosen at submit time (best Fight/Tech/Talk; boarding Tech/Talk).
+    /// </summary>
+    private static void AddBountyAttempts(
+        GameState game,
+        PlayerState player,
+        bool canWork,
+        string? workErr,
+        List<WorkAttemptOption> list)
+    {
+        foreach (var bound in player.BoundBounties)
+        {
+            if (game.Bounties == null || !game.Bounties.TryResolve(bound.BountyId, out var bounty))
+                continue;
+
+            string? block = null;
+            var enabled = canWork;
+            if (!canWork)
+                block = workErr;
+            else if (string.IsNullOrWhiteSpace(bounty.DropoffPlanet))
+            {
+                enabled = false;
+                block = "No printed dropoff.";
+            }
+            else if (!AtBountyPlanet(game, player, bounty.DropoffPlanet))
+            {
+                enabled = false;
+                block = $"Deliver at {bounty.DropoffPlanet}.";
+            }
+
+            var count = bound.CrewIds.Count;
+            var pay = bounty.Pay * Math.Max(1, count);
+            list.Add(new WorkAttemptOption(
+                WorkAttemptKind.BountyDeliver,
+                bounty.Id,
+                $"Deliver · {bounty.Name}",
+                $"Bound ×{count} → {bounty.DropoffPlanet}",
+                enabled,
+                enabled ? null : block,
+                $"${pay:N0}",
+                Legal: true,
+                Immoral: bounty.Immoral,
+                IsActive: true,
+                PickedUp: true,
+                MisbehaveCount: null,
+                Site: null,
+                GoalNumber: null));
+        }
+
+        foreach (var face in game.BountyDeck!.FaceUp)
+            AddFaceUpBountyAttempts(game, player, face, canWork, workErr, list);
+
+        foreach (var rival in game.Players)
+        {
+            if (string.Equals(rival.Id, player.Id, StringComparison.Ordinal))
+                continue;
+            if (rival.SectorId != player.SectorId)
+                continue;
+
+            foreach (var bound in rival.BoundBounties)
+            {
+                string? block = null;
+                var enabled = canWork;
+                if (!canWork)
+                    block = workErr;
+
+                list.Add(new WorkAttemptOption(
+                    WorkAttemptKind.BountyJump,
+                    bound.BountyId,
+                    $"Jump · {bound.BountyName}",
+                    $"Steal from {rival.Name} (same sector)",
+                    enabled,
+                    enabled ? null : block,
+                    null,
+                    Legal: true,
+                    Immoral: false,
+                    IsActive: false,
+                    PickedUp: false,
+                    MisbehaveCount: null,
+                    Site: null,
+                    GoalNumber: null,
+                    RivalId: rival.Id,
+                    Rescue: false));
+
+                list.Add(new WorkAttemptOption(
+                    WorkAttemptKind.BountyJump,
+                    bound.BountyId,
+                    $"Rescue · {bound.BountyName}",
+                    $"Free from {rival.Name}; hire + return bounty to deck",
+                    enabled,
+                    enabled ? null : block,
+                    null,
+                    Legal: true,
+                    Immoral: false,
+                    IsActive: false,
+                    PickedUp: false,
+                    MisbehaveCount: null,
+                    Site: null,
+                    GoalNumber: null,
+                    RivalId: rival.Id,
+                    Rescue: true));
+            }
+        }
+    }
+
+    private static void AddFaceUpBountyAttempts(
+        GameState game,
+        PlayerState player,
+        BountyCard bounty,
+        bool canWork,
+        string? workErr,
+        List<WorkAttemptOption> list)
+    {
+        // Betrayal: wanted name on own roster (non-Leader).
+        foreach (var member in player.Roster.Members)
+        {
+            if (member.IsLeader || !bounty.MatchesCrewName(member.Name))
+                continue;
+
+            string? block = null;
+            var enabled = canWork;
+            if (!canWork)
+                block = workErr;
+
+            list.Add(new WorkAttemptOption(
+                WorkAttemptKind.BountyBetray,
+                bounty.Id,
+                $"Betray · {bounty.Name}",
+                $"Nab {member.Name} from your own crew (PBH Betrayal)",
+                enabled,
+                enabled ? null : block,
+                $"${bounty.Pay:N0}",
+                Legal: true,
+                Immoral: bounty.Immoral,
+                IsActive: false,
+                PickedUp: false,
+                MisbehaveCount: null,
+                Site: null,
+                GoalNumber: null,
+                CrewId: member.Id));
+        }
+
+        // Confrontation: matching crew on a same-sector rival.
+        foreach (var rival in game.Players)
+        {
+            if (string.Equals(rival.Id, player.Id, StringComparison.Ordinal))
+                continue;
+            if (rival.SectorId != player.SectorId)
+                continue;
+
+            foreach (var member in rival.Roster.Members)
+            {
+                if (member.IsLeader || !bounty.MatchesCrewName(member.Name))
+                    continue;
+
+                string? block = null;
+                var enabled = canWork;
+                if (!canWork)
+                    block = workErr;
+
+                list.Add(new WorkAttemptOption(
+                    WorkAttemptKind.BountyConfront,
+                    bounty.Id,
+                    $"Confront · {bounty.Name}",
+                    $"Board {rival.Name} for {member.Name}",
+                    enabled,
+                    enabled ? null : block,
+                    $"${bounty.Pay:N0}",
+                    Legal: true,
+                    Immoral: bounty.Immoral,
+                    IsActive: false,
+                    PickedUp: false,
+                    MisbehaveCount: null,
+                    Site: null,
+                    GoalNumber: null,
+                    RivalId: rival.Id,
+                    CrewId: member.Id));
+            }
+        }
+
+        // Lone Target: matching crew not hired/bound — at Supply discard / Last Seen.
+        if (game.Crew == null)
+            return;
+
+        var candidates = new List<CrewCard>();
+        foreach (var crew in game.Crew.Cards.Values)
+        {
+            if (!bounty.MatchesCrewName(crew.Name))
+                continue;
+            if (HiredOrBoundAnywhere(game, crew.Id))
+                continue;
+            candidates.Add(crew);
+        }
+
+        // Prefer one candidate per bounty name (first non-promo via FindByName when possible).
+        if (candidates.Count == 0)
+            return;
+
+        var preferred = ExpansionChromeBuilder.ResolveCrewForBounty(game.Crew, bounty);
+        if (preferred != null && candidates.Exists(c => c.Id == preferred.Id))
+            candidates = new List<CrewCard> { preferred };
+        else
+            candidates = candidates.Take(1).ToList();
+
+        foreach (var crew in candidates)
+        {
+            string? block = null;
+            var enabled = canWork;
+            if (!canWork)
+                block = workErr;
+            else if (!TryLonePlanet(game, bounty, crew, out var planet, out block))
+                enabled = false;
+            else if (!AtBountyPlanet(game, player, planet))
+            {
+                enabled = false;
+                block = $"Must be at {planet} (Lone Target).";
+            }
+            else
+                block = null;
+
+            var where = bounty.IsCortex ? "Cortex Alert" : (bounty.PickupPlanet ?? "?");
+            list.Add(new WorkAttemptOption(
+                WorkAttemptKind.BountyLone,
+                bounty.Id,
+                $"Lone Target · {bounty.Name}",
+                $"{crew.Name} · Last Seen / Supply · {where}",
+                enabled,
+                enabled ? null : block,
+                $"${bounty.Pay:N0}",
+                Legal: true,
+                Immoral: bounty.Immoral,
+                IsActive: false,
+                PickedUp: false,
+                MisbehaveCount: null,
+                Site: null,
+                GoalNumber: null,
+                CrewId: crew.Id));
+        }
+    }
+
+    private static bool HiredOrBoundAnywhere(GameState game, string crewId)
+    {
+        foreach (var p in game.Players)
+        {
+            if (p.Roster.Find(crewId) != null)
+                return true;
+            foreach (var bound in p.BoundBounties)
+            {
+                if (bound.CrewIds.Contains(crewId, StringComparer.OrdinalIgnoreCase))
+                    return true;
+            }
+        }
+        return false;
+    }
+
+    private static bool TryLonePlanet(
+        GameState game,
+        BountyCard bounty,
+        CrewCard crew,
+        out string planet,
+        out string? error)
+    {
+        planet = "";
+        error = null;
+        if (game.SupplyDecks != null)
+        {
+            foreach (var market in game.SupplyDecks.Markets)
+            {
+                if (market.Discard.Any(c => c.Id == crew.Id)
+                    || market.FaceUp.Any(c => c.Id == crew.Id)
+                    || market.Deck.Any(c => c.Id == crew.Id))
+                {
+                    planet = market.Planet;
+                    return true;
+                }
+            }
+        }
+
+        if (!bounty.IsCortex && !string.IsNullOrWhiteSpace(bounty.PickupPlanet))
+        {
+            planet = bounty.PickupPlanet!;
+            return true;
+        }
+
+        error = bounty.IsCortex
+            ? $"{crew.Name} is not on a Supply market — use confrontation or betrayal."
+            : $"Must be at {bounty.PickupPlanet}.";
+        return false;
+    }
+
+    private static bool AtBountyPlanet(GameState game, PlayerState player, string planet)
+    {
+        if (planet.Equals("Command Cruiser", StringComparison.OrdinalIgnoreCase))
+        {
+            return !string.IsNullOrEmpty(game.Tokens.AllianceCruiserSectorId)
+                && game.Tokens.AllianceCruiserSectorId == player.SectorId;
+        }
+
+        if (!game.Map.TryGet(player.SectorId, out var sector))
+            return false;
+        var here = BuyAction.ShopPlanet(sector);
+        return string.Equals(here, planet, StringComparison.OrdinalIgnoreCase)
+            || string.Equals(sector.DisplayName, planet, StringComparison.OrdinalIgnoreCase)
+            || string.Equals(sector.Planet, planet, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>Best Fight/Tech/Talk on the seat for Showdown attack.</summary>
+    public static Skill BestAttackSkill(PlayerState player)
+    {
+        var best = Skill.Fight;
+        var v = player.Fight;
+        if (player.Tech > v)
+        {
+            best = Skill.Tech;
+            v = player.Tech;
+        }
+        if (player.Talk > v)
+            best = Skill.Talk;
+        return best;
+    }
+
+    /// <summary>Best allowed Boarding skill (Tech / Negotiate) vs defender.</summary>
+    public static Skill BestBoardSkill(PlayerState attacker, PlayerState defender)
+    {
+        var talkOk = BoardingTest.IsAllowedSkill(Skill.Talk, defender, out _);
+        var techOk = BoardingTest.IsAllowedSkill(Skill.Tech, defender, out _);
+        if (talkOk && (!techOk || attacker.Talk >= attacker.Tech))
+            return Skill.Talk;
+        if (techOk)
+            return Skill.Tech;
+        return Skill.Talk;
+    }
+
+    /// <summary>Defender showdown skill = their best Fight/Tech/Talk.</summary>
+    public static Skill BestDefendSkill(PlayerState defender) => BestAttackSkill(defender);
 
     private static void TryAddJob(
         GameState game,

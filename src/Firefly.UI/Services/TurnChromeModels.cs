@@ -1,3 +1,4 @@
+using Firefly.Core.Actions;
 using Firefly.Core.Cards;
 using Firefly.Core.State;
 
@@ -21,6 +22,20 @@ public enum ActionChromeKind
 }
 
 /// <summary>What the pending host should show right now (banner + optional choice payload).</summary>
+public sealed record EncounterView(
+    string TokenKind,
+    string? SectorId,
+    string? SubjectPlayerId,
+    string Prompt,
+    IReadOnlyList<EncounterOptionView> Options);
+
+public sealed record EncounterOptionView(string Id, string Label, string? Detail = null);
+
+public sealed record AlertTokensPendingView(
+    int SectorCount,
+    string? FirstSectorId,
+    string Prompt);
+
 public sealed record PendingHostView(
     bool HasPending,
     string PriorityLabel,
@@ -28,7 +43,9 @@ public sealed record PendingHostView(
     PendingQueueKind QueueKind,
     PendingChoiceView? Choice,
     NavRevealView? Nav = null,
-    MisbehaveRevealView? Misbehave = null);
+    MisbehaveRevealView? Misbehave = null,
+    EncounterView? Encounter = null,
+    AlertTokensPendingView? AlertTokens = null);
 
 public enum PendingQueueKind
 {
@@ -66,6 +83,14 @@ public static class PendingHostBuilder
         var misbehaveView = WorkChromeBuilder.FromPending(game);
         var hasNavPending = game.PendingNavDraws.Count > 0 || navFaceUp != null;
 
+        var encounterView = BuildEncounter(game);
+        var alertTokensView = game.PendingAlertSectors.Count > 0
+            ? new AlertTokensPendingView(
+                game.PendingAlertSectors.Count,
+                game.PendingAlertSectors[0],
+                $"Resolve Alert Tokens in {game.PendingAlertSectors.Count} sector(s) before Nav (Blue Sun).")
+            : null;
+
         if (!game.HasPendingEvents && navFaceUp == null)
         {
             return new PendingHostView(
@@ -75,7 +100,9 @@ public static class PendingHostBuilder
                 PendingQueueKind.None,
                 null,
                 navView,
-                misbehaveView);
+                misbehaveView,
+                encounterView,
+                alertTokensView);
         }
 
         PendingChoiceView? choice = null;
@@ -101,7 +128,9 @@ public static class PendingHostBuilder
                 PendingQueueKind.Choice,
                 choice,
                 navView,
-                misbehaveView);
+                misbehaveView,
+                encounterView,
+                alertTokensView);
         }
 
         if (game.PendingAlertSectors.Count > 0)
@@ -113,19 +142,25 @@ public static class PendingHostBuilder
                 PendingQueueKind.Alerts,
                 null,
                 navView,
-                misbehaveView);
+                misbehaveView,
+                encounterView,
+                alertTokensView);
         }
 
         if (game.PendingEncounter.HasValue)
         {
+            var encSummary = encounterView?.Prompt
+                ?? $"Encounter: {game.PendingEncounter}";
             return new PendingHostView(
                 true,
                 "Encounter",
-                $"Encounter: {game.PendingEncounter}",
+                encSummary,
                 PendingQueueKind.Encounter,
                 null,
                 navView,
-                misbehaveView);
+                misbehaveView,
+                encounterView,
+                alertTokensView);
         }
 
         if (hasNavPending)
@@ -140,7 +175,9 @@ public static class PendingHostBuilder
                 PendingQueueKind.Nav,
                 null,
                 navView,
-                misbehaveView);
+                misbehaveView,
+                encounterView,
+                alertTokensView);
         }
 
         if (game.PendingMisbehave != null)
@@ -155,7 +192,9 @@ public static class PendingHostBuilder
                 PendingQueueKind.Misbehave,
                 null,
                 navView,
-                misbehaveView);
+                misbehaveView,
+                encounterView,
+                alertTokensView);
         }
 
         if (game.PendingGoalWork != null)
@@ -167,10 +206,93 @@ public static class PendingHostBuilder
                 PendingQueueKind.GoalWork,
                 null,
                 navView,
-                misbehaveView);
+                misbehaveView,
+                encounterView,
+                alertTokensView);
         }
 
-        return new PendingHostView(true, "Pending", "Pending events", PendingQueueKind.None, null, navView, misbehaveView);
+        return new PendingHostView(
+            true, "Pending", "Pending events", PendingQueueKind.None, null,
+            navView, misbehaveView, encounterView, alertTokensView);
+    }
+
+    private static EncounterView? BuildEncounter(GameState game)
+    {
+        if (!game.PendingEncounter.HasValue)
+            return null;
+
+        var kind = game.PendingEncounter.Value;
+        var sector = game.PendingEncounterSectorId;
+        var subject = game.PendingEncounterPlayerId;
+        var options = new List<EncounterOptionView>();
+
+        switch (kind)
+        {
+            case Firefly.Core.Movement.TokenKind.OperativeCorvette:
+            {
+                var player = game.CurrentPlayer;
+                var wanted = player.Roster.WantedMembers();
+                if (wanted.Count == 0)
+                {
+                    options.Add(new EncounterOptionView(
+                        "resolve",
+                        "Resolve Corvette Contact",
+                        "Discard Fugitive Tokens not in Stash; Full Stop if Flying."));
+                }
+                else
+                {
+                    foreach (var member in wanted)
+                    {
+                        options.Add(new EncounterOptionView(
+                            member.Id,
+                            $"Remove {member.Name}",
+                            "Wanted crew removed from play (Corvette Contact)."));
+                    }
+                }
+                return new EncounterView(
+                    kind.ToString(),
+                    sector,
+                    subject,
+                    "Operative's Corvette Contact — Outlaw ship",
+                    options);
+            }
+            case Firefly.Core.Movement.TokenKind.AllianceCruiser:
+                options.Add(new EncounterOptionView(
+                    "board",
+                    "Resolve Cruiser boarding",
+                    "Pay fine, clear warrants, seize Contraband / Fugitive Tokens."));
+                if (ActiveAlertRules.CanUseIncarcerationOrder(game, AllianceCruiserContact.Subject(game)))
+                {
+                    foreach (var member in AllianceCruiserContact.Subject(game).Roster.WantedMembers())
+                    {
+                        options.Add(new EncounterOptionView(
+                            "incarcerate:" + member.Id,
+                            $"Incarceration Order · {member.Name}",
+                            "Waive one warrant by removing Wanted crew (Active Alert)."));
+                    }
+                }
+                return new EncounterView(
+                    kind.ToString(),
+                    sector,
+                    subject,
+                    "Alliance Cruiser Contact",
+                    options);
+            case Firefly.Core.Movement.TokenKind.ReaverCutter:
+                // ReaverContact.TryResolve requires evadeToSectorId — exotic gap (document in P9 status).
+                return new EncounterView(
+                    kind.ToString(),
+                    sector,
+                    subject,
+                    "Reaver Cutter Contact — evade sector picker not wired (see P9 gaps)",
+                    Array.Empty<EncounterOptionView>());
+            default:
+                return new EncounterView(
+                    kind.ToString(),
+                    sector,
+                    subject,
+                    $"Encounter: {kind}",
+                    Array.Empty<EncounterOptionView>());
+        }
     }
 }
 

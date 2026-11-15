@@ -461,6 +461,20 @@
     gap: 0.85rem;
 }
 
+.bound-bounties {
+    margin-bottom: 0.75rem;
+}
+
+.bound-bounties .bounty-row {
+    display: flex;
+    gap: 0.4rem;
+    align-items: flex-start;
+}
+
+.job-card.bounty-card {
+    border-color: rgba(220, 180, 100, 0.35);
+}
+
 .job-card {
     padding: 0.4rem 0.5rem;
     border: 1px solid rgba(180, 200, 230, 0.18);

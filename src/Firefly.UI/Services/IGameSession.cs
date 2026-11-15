@@ -132,4 +132,28 @@ public interface IGameSession
 
     /// <summary>Resolve the face-up Misbehave via <c>MisbehaveResolver.TryResolve</c>.</summary>
     bool TryResolveMisbehave(MisbehaveChoice choice, out string? error);
+
+    /// <summary>PBH Confrontation — <c>BountyAction.TryApprehendRival</c>.</summary>
+    bool TryBountyConfront(string bountyId, string rivalId, string crewId, out string? error);
+
+    /// <summary>PBH Lone Target — <c>BountyAction.TryApprehendLone</c>.</summary>
+    bool TryBountyLone(string bountyId, string crewId, out string? error);
+
+    /// <summary>PBH Betrayal — <c>BountyAction.TryBetray</c>.</summary>
+    bool TryBountyBetray(string bountyId, string crewId, out string? error);
+
+    /// <summary>PBH Deliver — <c>BountyAction.TryDeliver</c>.</summary>
+    bool TryBountyDeliver(string bountyId, out string? error);
+
+    /// <summary>PBH Jump / Rescue — <c>BountyAction.TryJump</c>.</summary>
+    bool TryBountyJump(string bountyId, string fromPlayerId, bool rescue, out string? error);
+
+    /// <summary>Blue Sun Alert Tokens — <c>AlertTokenResolver.TryResolvePending</c>.</summary>
+    bool TryResolveAlertTokens(out string? error);
+
+    /// <summary>
+    /// Resolve pending Cruiser / Corvette / Reaver encounter.
+    /// Option ids come from <see cref="PendingHostBuilder"/> encounter chrome.
+    /// </summary>
+    bool TryResolveEncounter(string optionId, out string? error);
 }

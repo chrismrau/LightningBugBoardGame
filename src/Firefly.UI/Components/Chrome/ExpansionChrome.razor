@@ -1,0 +1,110 @@
+@using Firefly.UI.Services
+
+@if (Chrome.BountyDeckInPlay || Chrome.AllianceAlertDeckInPlay || Chrome.CorvetteInPlay || Chrome.UseAlertTokens)
+{
+    <div class="expansion-chrome" role="region" aria-label="Expansion chrome">
+        @if (Chrome.BountyDeckInPlay)
+        {
+            <div class="exp-block most-wanted">
+                <div class="exp-label">
+                    <strong>Most Wanted</strong>
+                    <span class="hint">
+                        Face-up @Chrome.MostWanted.Count · draw @Chrome.BountyDrawCount
+                        @if (Chrome.BountyOutOfGameCount > 0)
+                        {
+                            <text> · out @Chrome.BountyOutOfGameCount</text>
+                        }
+                        · Work from this list (PBH)
+                    </span>
+                </div>
+                <div class="wanted-row" role="list">
+                    @foreach (var card in Chrome.MostWanted)
+                    {
+                        <article class="wanted-card @(card.IsCortex ? "cortex" : null)" role="listitem" title="@(card.Description ?? card.Name)">
+                            <PortraitPlate Src="@card.PortraitUrl" Alt="@card.Name" Compact="true" />
+                            <div class="wanted-body">
+                                <div class="wanted-name">@card.Name</div>
+                                <div class="wanted-meta">
+                                    $@card.Pay.ToString("N0")
+                                    @if (card.Immoral)
+                                    {
+                                        <span class="tag immoral">Immoral</span>
+                                    }
+                                    @if (card.IsCortex)
+                                    {
+                                        <span class="tag cortex">Cortex</span>
+                                    }
+                                    @if (card.BotchKill > 0)
+                                    {
+                                        <span class="tag">Botch Kill @card.BotchKill</span>
+                                    }
+                                </div>
+                                <div class="wanted-route">
+                                    @(card.PickupPlanet ?? "—") → @(card.DropoffPlanet ?? "—")
+                                </div>
+                            </div>
+                        </article>
+                    }
+                    @if (Chrome.MostWanted.Count == 0)
+                    {
+                        <p class="empty-note">No face-up bounties (deck empty).</p>
+                    }
+                </div>
+            </div>
+        }
+
+        @if (Chrome.AllianceAlertDeckInPlay && Chrome.ActiveAlert is { } alert)
+        {
+            <div class="exp-block alliance-alert">
+                <div class="exp-label">
+                    <strong>Alliance Alert</strong>
+                    <span class="hint">
+                        Draw @alert.DrawCount
+                        @if (!string.IsNullOrEmpty(alert.SourceLabel))
+                        {
+                            <text> · @alert.SourceLabel</text>
+                        }
+                        · Misbehave “Alliance Alert!” / Cruiser Nav cycle the deck
+                    </span>
+                </div>
+                <article class="alert-card text-only" aria-label="@alert.Name">
+                    <h3 class="alert-name">@(string.IsNullOrEmpty(alert.Name) ? "—" : alert.Name)</h3>
+                    @if (!string.IsNullOrEmpty(alert.ParkedLabel))
+                    {
+                        <p class="parked">Parked: @alert.ParkedLabel</p>
+                    }
+                    @if (!string.IsNullOrEmpty(alert.Detail))
+                    {
+                        <p class="alert-detail">@alert.Detail</p>
+                    }
+                    @if (alert.SystemWide && !string.IsNullOrEmpty(alert.SystemWideText))
+                    {
+                        <p class="alert-system">@alert.SystemWideText.Replace("\\n", " ")</p>
+                    }
+                </article>
+            </div>
+        }
+
+        @if (Chrome.CorvetteInPlay || Chrome.UseAlertTokens)
+        {
+            <div class="exp-block tokens-meta">
+                @if (Chrome.CorvetteInPlay)
+                {
+                    <span class="chip corvette" title="@Chrome.CorvetteSectorId">
+                        Operative's Corvette · <code>@Chrome.CorvetteSectorId</code>
+                    </span>
+                }
+                @if (Chrome.UseAlertTokens)
+                {
+                    <span class="chip alerts">
+                        Alert Tokens · @Chrome.AlertTokenSectorCount sector(s)
+                    </span>
+                }
+            </div>
+        }
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired] public ExpansionChromeView Chrome { get; set; } = default!;
+}

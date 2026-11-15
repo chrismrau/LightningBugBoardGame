@@ -206,6 +206,33 @@
                 }
             </section>
 
+            @if (Sheet.BoundBounties.Count > 0)
+            {
+                <section class="bound-bounties" aria-label="Bound bounties">
+                    <h3>Bound Bounties <span class="count">@Sheet.BoundBounties.Count</span></h3>
+                    <ul class="job-list">
+                        @foreach (var bounty in Sheet.BoundBounties)
+                        {
+                            <li class="job-card bounty-card">
+                                <div class="bounty-row">
+                                    <PortraitPlate Src="@bounty.PortraitUrl" Alt="@bounty.Name" Compact="true" />
+                                    <div>
+                                        <div class="job-name">@bounty.Name</div>
+                                        <div class="job-meta">
+                                            ×@bounty.CrewCount bound
+                                            @if (!string.IsNullOrEmpty(bounty.DropoffPlanet))
+                                            {
+                                                <span>· Deliver @bounty.DropoffPlanet</span>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                            </li>
+                        }
+                    </ul>
+                </section>
+            }
+
             <section class="jobs" aria-label="Jobs">
                 <div class="job-col">
                     <h3>Active Jobs <span class="count">@Sheet.ActiveJobs.Count</span></h3>

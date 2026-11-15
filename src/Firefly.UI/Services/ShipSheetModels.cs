@@ -45,7 +45,16 @@ public sealed class ShipSheetView
     /// <summary>False for rival peeks — Active Jobs stay visible; Job hand stays hidden.</summary>
     public required bool IncludeJobHand { get; init; }
     public required IReadOnlyList<SolidContactView> SolidWith { get; init; }
+    /// <summary>Bound-by-Law bounty stacks (PBH) — table-visible, not Fugitive Tokens.</summary>
+    public required IReadOnlyList<BoundBountySheetEntry> BoundBounties { get; init; }
 }
+
+public sealed record BoundBountySheetEntry(
+    string BountyId,
+    string Name,
+    int CrewCount,
+    string? DropoffPlanet,
+    string? PortraitUrl);
 
 public enum HoldCellKind
 {
@@ -242,6 +251,29 @@ public static class ShipSheetBuilder
             solid.Add(new SolidContactView(id, name));
         }
 
+        var bound = new List<BoundBountySheetEntry>();
+        foreach (var b in player.BoundBounties)
+        {
+            string? dropoff = null;
+            string? portrait = null;
+            if (game.Bounties != null && game.Bounties.TryResolve(b.BountyId, out var bounty))
+            {
+                dropoff = bounty.DropoffPlanet;
+                if (game.Crew != null)
+                {
+                    var bountyCrew = ExpansionChromeBuilder.ResolveCrewForBounty(game.Crew, bounty);
+                    if (bountyCrew != null)
+                        portrait = CardArtUrls.Crew(bountyCrew.Id);
+                }
+            }
+            bound.Add(new BoundBountySheetEntry(
+                b.BountyId,
+                b.BountyName,
+                b.CrewIds.Count,
+                dropoff,
+                portrait));
+        }
+
         return new ShipSheetView
         {
             PlayerId = player.Id,
@@ -282,7 +314,8 @@ public static class ShipSheetBuilder
             ActiveJobs = activeJobs,
             JobHand = jobHand,
             IncludeJobHand = includeJobHand,
-            SolidWith = solid
+            SolidWith = solid,
+            BoundBounties = bound
         };
     }
 

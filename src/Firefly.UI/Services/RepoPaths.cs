@@ -19,6 +19,7 @@ public sealed class RepoPaths
     public string DriveCoreArtDirectory { get; }
     public string ShipUpgradeArtDirectory { get; }
     public string ContactArtDirectory { get; }
+    public string TokensDirectory { get; }
     public string SectorLayoutPath { get; }
     public string SectorsPath { get; }
 
@@ -37,6 +38,7 @@ public sealed class RepoPaths
         DriveCoreArtDirectory = Path.Combine(CardArtRoot, "DriveCores");
         ShipUpgradeArtDirectory = Path.Combine(CardArtRoot, "ShipUpgrades");
         ContactArtDirectory = Path.Combine(CardArtRoot, "Contacts");
+        TokensDirectory = Path.Combine(Root, "reference", "Tokens");
         SectorLayoutPath = FirstExisting(
             Path.Combine(AppContext.BaseDirectory, "Data", "Map", "SectorLayout.json"),
             Path.Combine(Root, "Data", "Map", "SectorLayout.json"),

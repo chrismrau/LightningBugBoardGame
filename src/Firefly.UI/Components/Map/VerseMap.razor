@@ -64,12 +64,30 @@
                     {
                         <circle class="token-halo" r="@(Math.Max(halfW, halfH) + 10)" />
                     }
-                    <image href="@placed.IconSrc"
-                           x="@((-halfW).ToString("0.###", inv))"
-                           y="@((-halfH).ToString("0.###", inv))"
-                           width="@placed.DisplayWidth.ToString("0.###", inv)"
-                           height="@placed.DisplayHeight.ToString("0.###", inv)"
-                           preserveAspectRatio="xMidYMid meet" />
+                    @if (placed.AlertSprite is { } sprite)
+                    {
+                        @* Prefs / sprite atlas: crop IconSpriteSheet logos for Alliance / Reaver alert chits. *@
+                        <svg x="@((-halfW).ToString("0.###", inv))"
+                             y="@((-halfH).ToString("0.###", inv))"
+                             width="@placed.DisplayWidth.ToString("0.###", inv)"
+                             height="@placed.DisplayHeight.ToString("0.###", inv)"
+                             viewBox="@sprite.ViewBox"
+                             overflow="hidden">
+                            <image href="@sprite.SheetHref"
+                                   width="@sprite.SheetWidth.ToString(inv)"
+                                   height="@sprite.SheetHeight.ToString(inv)"
+                                   preserveAspectRatio="none" />
+                        </svg>
+                    }
+                    else
+                    {
+                        <image href="@placed.IconSrc"
+                               x="@((-halfW).ToString("0.###", inv))"
+                               y="@((-halfH).ToString("0.###", inv))"
+                               width="@placed.DisplayWidth.ToString("0.###", inv)"
+                               height="@placed.DisplayHeight.ToString("0.###", inv)"
+                               preserveAspectRatio="xMidYMid meet" />
+                    }
                     <title>@placed.Title</title>
                 </g>
             }
@@ -84,7 +102,15 @@
     private const double MarkerDisplayHeight = 72;
     private const double CruiserDisplayWidth = 64;
     private const double CruiserDisplayHeight = 104;
+    private const double AlertChitDisplayWidth = 36;
+    private const double AlertChitDisplayHeight = 44;
     private const double StackRadius = 36;
+
+    // docs/sprite-sheet-atlas.md — IconSpriteSheet.webp 2550×2316
+    private static readonly AlertSpriteCrop AllianceAlertSprite = new(
+        "/tokens/IconSpriteSheet.webp", 2550, 2316, "1812 172 300 368");
+    private static readonly AlertSpriteCrop ReaverAlertSprite = new(
+        "/tokens/IconSpriteSheet.webp", 2550, 2316, "2176 180 356 360");
 
     [Parameter] public string? SelectedSectorId { get; set; }
     [Parameter] public IReadOnlyList<ShipTokenView> Ships { get; set; } = Array.Empty<ShipTokenView>();
@@ -170,15 +196,27 @@
         {
             if (!_layout.ById.TryGetValue(marker.SectorId, out var geo))
                 continue;
-            var (w, h) = marker.Kind == MarkerKind.AllianceCruiser
-                ? (CruiserDisplayWidth, CruiserDisplayHeight)
-                : (MarkerDisplayWidth, MarkerDisplayHeight);
+            var (w, h) = marker.Kind switch
+            {
+                MarkerKind.AllianceCruiser => (CruiserDisplayWidth, CruiserDisplayHeight),
+                MarkerKind.AllianceAlertChit or MarkerKind.ReaverAlertChit =>
+                    (AlertChitDisplayWidth, AlertChitDisplayHeight),
+                _ => (MarkerDisplayWidth, MarkerDisplayHeight)
+            };
             var css = marker.Kind switch
             {
                 MarkerKind.AllianceCruiser => "token marker cruiser",
                 MarkerKind.ReaverCutter => "token marker cutter",
                 MarkerKind.Corvette => "token marker corvette",
+                MarkerKind.AllianceAlertChit => "token marker alert-chit alliance",
+                MarkerKind.ReaverAlertChit => "token marker alert-chit reaver",
                 _ => "token marker"
+            };
+            AlertSpriteCrop? sprite = marker.Kind switch
+            {
+                MarkerKind.AllianceAlertChit => AllianceAlertSprite,
+                MarkerKind.ReaverAlertChit => ReaverAlertSprite,
+                _ => null
             };
             Add(marker.SectorId, new PlacedToken(
                 marker.Id,
@@ -190,7 +228,8 @@
                 marker.IconSrc,
                 css,
                 $"{marker.Label} · {marker.SectorId}",
-                IsCurrent: false));
+                IsCurrent: false,
+                sprite));
         }
 
         var result = new List<PlacedToken>();
@@ -252,6 +291,12 @@
         }
     }
 
+    private sealed record AlertSpriteCrop(
+        string SheetHref,
+        int SheetWidth,
+        int SheetHeight,
+        string ViewBox);
+
     private sealed record PlacedToken(
         string Key,
         string SectorId,
@@ -262,5 +307,6 @@
         string IconSrc,
         string CssClass,
         string Title,
-        bool IsCurrent);
+        bool IsCurrent,
+        AlertSpriteCrop? AlertSprite = null);
 }

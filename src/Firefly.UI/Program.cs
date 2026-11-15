@@ -63,6 +63,16 @@ MapCardArt(repo.DriveCoreArtDirectory, "/cards/drive-cores");
 MapCardArt(repo.ShipUpgradeArtDirectory, "/cards/ship-upgrades");
 MapCardArt(repo.ContactArtDirectory, "/cards/contacts");
 
+// Alert chit logos (prefs / sprite atlas) from reference/Tokens/
+if (Directory.Exists(repo.TokensDirectory))
+{
+    app.UseStaticFiles(new StaticFileOptions
+    {
+        FileProvider = new PhysicalFileProvider(repo.TokensDirectory),
+        RequestPath = "/tokens"
+    });
+}
+
 app.UseAntiforgery();
 app.MapStaticAssets();
 app.MapHub<PlayHub>("/hubs/play");

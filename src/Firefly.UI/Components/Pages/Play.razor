@@ -16,7 +16,7 @@
     <header class="play-header">
         <div class="brand">
             <span class="mark">Lightning Bug</span>
-            <span class="mode">Hotseat · P8 Rival sheets</span>
+            <span class="mode">Hotseat · P9 Expansions</span>
         </div>
         <ScenarioChip ScenarioCardId="@_snap.ScenarioCardId"
                       UseBlueSun="@_snap.UseBlueSun"
@@ -27,6 +27,7 @@
     </header>
 
     <StatusStrip Snapshot="_snap" ShipSheetRequested="OpenShipSheet" />
+    <ExpansionChrome Chrome="_snap.Expansions" />
     <PendingHost @ref="_pendingHost"
                  Pending="_snap.Pending"
                  ChoiceSubmitted="OnChoiceSubmitted"
@@ -34,7 +35,9 @@
                  ResolveNavOptionRequested="OnResolveNavOption"
                  RevealMisbehaveRequested="OnRevealMisbehave"
                  ResolveMisbehaveRequested="OnResolveMisbehave"
-                 ContinueGoalWorkRequested="OnContinueGoalWork" />
+                 ContinueGoalWorkRequested="OnContinueGoalWork"
+                 ResolveAlertTokensRequested="OnResolveAlertTokens"
+                 ResolveEncounterRequested="OnResolveEncounter" />
     <FlyChrome Chrome="_flyChrome"
                KindRequested="OnFlyKind"
                CancelRequested="OnFlyCancel"
@@ -541,6 +544,22 @@
             case WorkAttemptKind.Goal when attempt.GoalNumber is int goal:
                 ok = Session.TryWorkGoal(goal, out error);
                 break;
+            case WorkAttemptKind.BountyConfront when attempt.RivalId is { } rival
+                && attempt.CrewId is { } crew:
+                ok = Session.TryBountyConfront(attempt.Id, rival, crew, out error);
+                break;
+            case WorkAttemptKind.BountyLone when attempt.CrewId is { } loneCrew:
+                ok = Session.TryBountyLone(attempt.Id, loneCrew, out error);
+                break;
+            case WorkAttemptKind.BountyBetray when attempt.CrewId is { } betrayCrew:
+                ok = Session.TryBountyBetray(attempt.Id, betrayCrew, out error);
+                break;
+            case WorkAttemptKind.BountyDeliver:
+                ok = Session.TryBountyDeliver(attempt.Id, out error);
+                break;
+            case WorkAttemptKind.BountyJump when attempt.RivalId is { } fromRival:
+                ok = Session.TryBountyJump(attempt.Id, fromRival, attempt.Rescue, out error);
+                break;
             default:
                 _toast = "Unknown Work attempt.";
                 return;
@@ -563,6 +582,30 @@
         _toast = error;
         _pendingHost?.SetError(error);
         RebuildWorkChrome();
+    }
+
+    private void OnResolveAlertTokens()
+    {
+        if (Session.TryResolveAlertTokens(out var error))
+        {
+            _toast = null;
+            _pendingHost?.SetError(null);
+            return;
+        }
+        _pendingHost?.SetError(error);
+        _toast = error;
+    }
+
+    private void OnResolveEncounter(string optionId)
+    {
+        if (Session.TryResolveEncounter(optionId, out var error))
+        {
+            _toast = null;
+            _pendingHost?.SetError(null);
+            return;
+        }
+        _pendingHost?.SetError(error);
+        _toast = error;
     }
 
     private void OnDealContactChanged(string contactName)

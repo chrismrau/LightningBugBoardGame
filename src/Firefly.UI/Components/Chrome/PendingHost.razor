@@ -215,6 +215,66 @@
             </div>
         </div>
     }
+    else if (Pending.QueueKind == PendingQueueKind.Alerts && Pending.AlertTokens is { } alerts)
+    {
+        <div class="pending-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="alert-tokens-title">
+            <div class="pending-modal nav-modal">
+                <header class="pending-modal-header">
+                    <h2 id="alert-tokens-title">Alert Tokens</h2>
+                    <span class="kind-chip">@alerts.SectorCount sector(s)</span>
+                </header>
+                <p class="prompt">@alerts.Prompt</p>
+                @if (!string.IsNullOrEmpty(alerts.FirstSectorId))
+                {
+                    <p class="context">Next: <code>@alerts.FirstSectorId</code></p>
+                }
+                <button type="button" class="nav-btn primary" @onclick="OnResolveAlertTokens">Resolve next Alert Token sector</button>
+                @if (!string.IsNullOrEmpty(_error))
+                {
+                    <p class="error" role="alert">@_error</p>
+                }
+            </div>
+        </div>
+    }
+    else if (Pending.QueueKind == PendingQueueKind.Encounter && Pending.Encounter is { } enc)
+    {
+        <div class="pending-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="encounter-title">
+            <div class="pending-modal nav-modal">
+                <header class="pending-modal-header">
+                    <h2 id="encounter-title">Encounter</h2>
+                    <span class="kind-chip">@enc.TokenKind</span>
+                </header>
+                <p class="prompt">@enc.Prompt</p>
+                @if (!string.IsNullOrEmpty(enc.SectorId))
+                {
+                    <p class="context">Sector: <code>@enc.SectorId</code></p>
+                }
+                <div class="nav-options" role="list">
+                    @foreach (var opt in enc.Options)
+                    {
+                        <button type="button"
+                                class="nav-option"
+                                role="listitem"
+                                @onclick="() => OnResolveEncounter(opt.Id)">
+                            <span class="opt-label">@opt.Label</span>
+                            @if (!string.IsNullOrEmpty(opt.Detail))
+                            {
+                                <span class="opt-details">@opt.Detail</span>
+                            }
+                        </button>
+                    }
+                </div>
+                @if (enc.Options.Count == 0)
+                {
+                    <p class="prompt">No resolve options — document as exotic gap.</p>
+                }
+                @if (!string.IsNullOrEmpty(_error))
+                {
+                    <p class="error" role="alert">@_error</p>
+                }
+            </div>
+        </div>
+    }
 }
 
 @code {
@@ -225,6 +285,8 @@
     [Parameter] public EventCallback RevealMisbehaveRequested { get; set; }
     [Parameter] public EventCallback<MisbehaveChoice> ResolveMisbehaveRequested { get; set; }
     [Parameter] public EventCallback ContinueGoalWorkRequested { get; set; }
+    [Parameter] public EventCallback ResolveAlertTokensRequested { get; set; }
+    [Parameter] public EventCallback<string> ResolveEncounterRequested { get; set; }
 
     private string? _error;
 
@@ -268,6 +330,18 @@
     {
         _error = null;
         await ContinueGoalWorkRequested.InvokeAsync();
+    }
+
+    private async Task OnResolveAlertTokens()
+    {
+        _error = null;
+        await ResolveAlertTokensRequested.InvokeAsync();
+    }
+
+    private async Task OnResolveEncounter(string optionId)
+    {
+        _error = null;
+        await ResolveEncounterRequested.InvokeAsync(optionId);
     }
 
     /// <summary>Parent can push a kernel rejection message after a failed submit.</summary>

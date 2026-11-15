@@ -19,6 +19,10 @@
                         @onclick="() => OnPick(attempt)">
                     <span class="work-title">
                         @attempt.Title
+                        @if (IsBounty(attempt.Kind))
+                        {
+                            <span class="tag bounty">Bounty</span>
+                        }
                         @if (attempt.Immoral)
                         {
                             <span class="tag">Immoral</span>
@@ -30,6 +34,10 @@
                         @if (attempt.MisbehaveCount is > 0)
                         {
                             <span class="tag mb">Misbehave @attempt.MisbehaveCount</span>
+                        }
+                        @if (attempt.Rescue)
+                        {
+                            <span class="tag">Rescue</span>
                         }
                     </span>
                     <span class="work-sub">@attempt.Subtitle</span>
@@ -58,4 +66,11 @@
 
     private Task OnPick(WorkAttemptOption attempt) =>
         AttemptRequested.InvokeAsync(attempt);
+
+    private static bool IsBounty(WorkAttemptKind kind) =>
+        kind is WorkAttemptKind.BountyConfront
+            or WorkAttemptKind.BountyLone
+            or WorkAttemptKind.BountyBetray
+            or WorkAttemptKind.BountyDeliver
+            or WorkAttemptKind.BountyJump;
 }

@@ -49,6 +49,11 @@
 .better-offer-chrome .econ-label strong { color: #f0a0b0; }
 .work-chrome .econ-label strong { color: #d0b0f0; }
 
+.work-title .tag.bounty {
+    background: rgba(220, 180, 100, 0.22);
+    color: #f0d090;
+}
+
 .econ-label .hint {
     color: #9eb0c8;
     font-size: 0.78rem;
