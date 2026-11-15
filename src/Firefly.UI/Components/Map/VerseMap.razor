@@ -1,3 +1,4 @@
+@using System.Globalization
 @using Firefly.UI.Services
 @inject SectorLayoutService LayoutService
 @inject IJSRuntime Js
@@ -39,32 +40,27 @@
                          @onclick:stopPropagation="true" />
             }
 
-            @foreach (var marker in Markers)
+            @foreach (var placed in _placed)
             {
-                if (!_layout.ById.TryGetValue(marker.SectorId, out var geo)) continue;
-                var css = marker.Kind switch
-                {
-                    MarkerKind.AllianceCruiser => "token marker cruiser",
-                    MarkerKind.ReaverCutter => "token marker cutter",
-                    MarkerKind.Corvette => "token marker corvette",
-                    _ => "token marker"
-                };
-                <g @key="marker.Id" class="@css" transform="translate(@geo.CentroidX.ToString(System.Globalization.CultureInfo.InvariantCulture) @geo.CentroidY.ToString(System.Globalization.CultureInfo.InvariantCulture))">
-                    <circle r="28" />
-                    <text y="6" text-anchor="middle">@(marker.Kind == MarkerKind.AllianceCruiser ? "AC" : marker.Kind == MarkerKind.Corvette ? "OC" : "RC")</text>
-                    <title>@marker.Label</title>
-                </g>
-            }
-
-            @foreach (var ship in Ships)
-            {
-                if (!_layout.ById.TryGetValue(ship.SectorId, out var geo)) continue;
-                <g @key="ship.PlayerId"
-                   class="token ship @(ship.IsCurrent ? "is-current" : null)"
-                   transform="translate(@geo.CentroidX.ToString(System.Globalization.CultureInfo.InvariantCulture) @geo.CentroidY.ToString(System.Globalization.CultureInfo.InvariantCulture))">
-                    <circle r="34" />
-                    <text y="8" text-anchor="middle">@ship.Name</text>
-                    <title>@ship.Name · @ship.ShipId · @ship.SectorId</title>
+                var inv = CultureInfo.InvariantCulture;
+                var tx = placed.X.ToString("0.###", inv);
+                var ty = placed.Y.ToString("0.###", inv);
+                var halfW = placed.DisplayWidth / 2;
+                var halfH = placed.DisplayHeight / 2;
+                <g @key="placed.Key"
+                   class="@placed.CssClass"
+                   transform="translate(@tx @ty)">
+                    @if (placed.IsCurrent)
+                    {
+                        <circle class="token-halo" r="@(Math.Max(halfW, halfH) + 10)" />
+                    }
+                    <image href="@placed.IconSrc"
+                           x="@((-halfW).ToString("0.###", inv))"
+                           y="@((-halfH).ToString("0.###", inv))"
+                           width="@placed.DisplayWidth.ToString("0.###", inv)"
+                           height="@placed.DisplayHeight.ToString("0.###", inv)"
+                           preserveAspectRatio="xMidYMid meet" />
+                    <title>@placed.Title</title>
                 </g>
             }
         </svg>
@@ -72,6 +68,14 @@
 </div>
 
 @code {
+    private const double ShipDisplayWidth = 96;
+    private const double ShipDisplayHeight = 56;
+    private const double MarkerDisplayWidth = 88;
+    private const double MarkerDisplayHeight = 72;
+    private const double CruiserDisplayWidth = 64;
+    private const double CruiserDisplayHeight = 104;
+    private const double StackRadius = 36;
+
     [Parameter] public string? SelectedSectorId { get; set; }
     [Parameter] public IReadOnlyList<ShipTokenView> Ships { get; set; } = Array.Empty<ShipTokenView>();
     [Parameter] public IReadOnlyList<MarkerTokenView> Markers { get; set; } = Array.Empty<MarkerTokenView>();
@@ -83,6 +87,7 @@
     private SectorLayout _layout = new();
     private bool _boardAvailable;
     private HashSet<string> OccupiedSectorIds { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+    private List<PlacedToken> _placed = new();
     private IJSObjectReference? _camera;
 
     protected override void OnParametersSet()
@@ -92,6 +97,90 @@
         OccupiedSectorIds = Ships.Select(s => s.SectorId)
             .Concat(Markers.Select(m => m.SectorId))
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        _placed = BuildPlacedTokens();
+    }
+
+    private List<PlacedToken> BuildPlacedTokens()
+    {
+        var bySector = new Dictionary<string, List<PlacedToken>>(StringComparer.OrdinalIgnoreCase);
+
+        void Add(string sectorId, PlacedToken token)
+        {
+            if (!bySector.TryGetValue(sectorId, out var list))
+            {
+                list = new List<PlacedToken>();
+                bySector[sectorId] = list;
+            }
+            list.Add(token);
+        }
+
+        foreach (var ship in Ships)
+        {
+            if (!_layout.ById.TryGetValue(ship.SectorId, out var geo))
+                continue;
+            var css = "token ship" + (ship.IsCurrent ? " is-current" : "");
+            Add(ship.SectorId, new PlacedToken(
+                ship.PlayerId,
+                ship.SectorId,
+                geo.CentroidX,
+                geo.CentroidY,
+                ShipDisplayWidth,
+                ShipDisplayHeight,
+                ship.IconSrc,
+                css,
+                $"{ship.Name} · {ship.ShipId} · {ship.SectorId}",
+                ship.IsCurrent));
+        }
+
+        foreach (var marker in Markers)
+        {
+            if (!_layout.ById.TryGetValue(marker.SectorId, out var geo))
+                continue;
+            var (w, h) = marker.Kind == MarkerKind.AllianceCruiser
+                ? (CruiserDisplayWidth, CruiserDisplayHeight)
+                : (MarkerDisplayWidth, MarkerDisplayHeight);
+            var css = marker.Kind switch
+            {
+                MarkerKind.AllianceCruiser => "token marker cruiser",
+                MarkerKind.ReaverCutter => "token marker cutter",
+                MarkerKind.Corvette => "token marker corvette",
+                _ => "token marker"
+            };
+            Add(marker.SectorId, new PlacedToken(
+                marker.Id,
+                marker.SectorId,
+                geo.CentroidX,
+                geo.CentroidY,
+                w,
+                h,
+                marker.IconSrc,
+                css,
+                $"{marker.Label} · {marker.SectorId}",
+                IsCurrent: false));
+        }
+
+        var result = new List<PlacedToken>();
+        foreach (var group in bySector.Values)
+        {
+            var count = group.Count;
+            for (var i = 0; i < count; i++)
+            {
+                var (dx, dy) = StackOffset(i, count);
+                var t = group[i];
+                result.Add(t with { X = t.X + dx, Y = t.Y + dy });
+            }
+        }
+
+        return result;
+    }
+
+    /// <summary>Slight ring offset when multiple ships/NPCs share a sector so icons do not stack perfectly.</summary>
+    private static (double Dx, double Dy) StackOffset(int index, int count)
+    {
+        if (count <= 1)
+            return (0, 0);
+        var angle = (Math.PI * 2 * index / count) - (Math.PI / 2);
+        return (Math.Cos(angle) * StackRadius, Math.Sin(angle) * StackRadius);
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -128,4 +217,16 @@
             catch (ObjectDisposedException) { }
         }
     }
+
+    private sealed record PlacedToken(
+        string Key,
+        string SectorId,
+        double X,
+        double Y,
+        double DisplayWidth,
+        double DisplayHeight,
+        string IconSrc,
+        string CssClass,
+        string Title,
+        bool IsCurrent);
 }

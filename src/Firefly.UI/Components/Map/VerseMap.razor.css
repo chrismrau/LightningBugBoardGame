@@ -80,49 +80,20 @@
     transition: transform 280ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.token circle {
-    transition: r 200ms ease, fill 200ms ease, stroke 200ms ease;
+.token image {
+    filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.55));
 }
 
-.token.ship circle {
-    fill: #d4a24a;
-    stroke: #1a1208;
-    stroke-width: 4;
-    filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.45));
-}
-
-.token.ship.is-current circle {
-    fill: #f0c36a;
+.token-halo {
+    fill: rgba(240, 195, 106, 0.18);
     stroke: #fff4d6;
-}
-
-.token.ship text {
-    font: 700 22px/1 "Segoe UI", system-ui, sans-serif;
-    fill: #1a1208;
-    pointer-events: none;
-}
-
-.token.marker circle {
     stroke-width: 3;
-    filter: drop-shadow(0 3px 4px rgba(0, 0, 0, 0.4));
 }
 
-.token.marker text {
-    font: 700 16px/1 "Segoe UI", system-ui, sans-serif;
-    fill: #f4f6fa;
+.token.ship.is-current image {
+    filter: drop-shadow(0 0 8px rgba(255, 232, 170, 0.85)) drop-shadow(0 4px 6px rgba(0, 0, 0, 0.55));
 }
 
-.token.cruiser circle {
-    fill: #3d6fd8;
-    stroke: #dce8ff;
-}
-
-.token.cutter circle {
-    fill: #8b1e1e;
-    stroke: #ffb4b4;
-}
-
-.token.corvette circle {
-    fill: #5a6b8a;
-    stroke: #e8eef8;
+.token.marker image {
+    filter: drop-shadow(0 3px 4px rgba(0, 0, 0, 0.5));
 }

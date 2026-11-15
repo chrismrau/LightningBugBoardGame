@@ -4,12 +4,13 @@ namespace Firefly.UI.Services;
 
 /// <summary>
 /// Locates the Lightning Bug repo root (Firefly.sln) so we can serve
-/// <c>reference/board</c> art and resolve Data paths outside bin/.
+/// <c>reference/board</c> art, <c>reference/Ships</c> map icons, and resolve Data paths outside bin/.
 /// </summary>
 public sealed class RepoPaths
 {
     public string Root { get; }
     public string BoardArtDirectory { get; }
+    public string ShipIconsDirectory { get; }
     public string SectorLayoutPath { get; }
     public string SectorsPath { get; }
 
@@ -20,6 +21,7 @@ public sealed class RepoPaths
             ?? env.ContentRootPath;
 
         BoardArtDirectory = Path.Combine(Root, "reference", "board");
+        ShipIconsDirectory = Path.Combine(Root, "reference", "Ships");
         SectorLayoutPath = FirstExisting(
             Path.Combine(AppContext.BaseDirectory, "Data", "Map", "SectorLayout.json"),
             Path.Combine(Root, "Data", "Map", "SectorLayout.json"),
@@ -34,6 +36,10 @@ public sealed class RepoPaths
 
     public bool BoardArtAvailable =>
         File.Exists(Path.Combine(BoardArtDirectory, "GameBoardMarkup.png"));
+
+    public bool ShipIconsAvailable =>
+        Directory.Exists(ShipIconsDirectory)
+        && File.Exists(Path.Combine(ShipIconsDirectory, "ship_serenity.webp"));
 
     private static string? FindRepoRoot(string start)
     {

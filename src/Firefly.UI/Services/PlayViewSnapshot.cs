@@ -45,12 +45,17 @@ public sealed class PlayViewSnapshot
         }
 
         var ships = game.Players
-            .Select(p => new ShipTokenView(
-                p.Id,
-                p.Name,
-                p.ShipId ?? "ship",
-                p.SectorId,
-                p.Id == player.Id))
+            .Select(p =>
+            {
+                var shipId = p.ShipId ?? "ship";
+                return new ShipTokenView(
+                    p.Id,
+                    p.Name,
+                    shipId,
+                    p.SectorId,
+                    p.Id == player.Id,
+                    ShipIconUrl(shipId));
+            })
             .ToList();
 
         var markers = new List<MarkerTokenView>();
@@ -60,7 +65,8 @@ public sealed class PlayViewSnapshot
                 "alliance-cruiser",
                 "Alliance Cruiser",
                 game.Tokens.AllianceCruiserSectorId,
-                MarkerKind.AllianceCruiser));
+                MarkerKind.AllianceCruiser,
+                MarkerIconUrl(MarkerKind.AllianceCruiser)));
         }
         if (!string.IsNullOrEmpty(game.Tokens.OperativeCorvetteSectorId))
         {
@@ -68,7 +74,8 @@ public sealed class PlayViewSnapshot
                 "operative-corvette",
                 "Operative's Corvette",
                 game.Tokens.OperativeCorvetteSectorId,
-                MarkerKind.Corvette));
+                MarkerKind.Corvette,
+                MarkerIconUrl(MarkerKind.Corvette)));
         }
         foreach (var cutter in game.Tokens.ReaverCutterSectorIds)
         {
@@ -76,7 +83,8 @@ public sealed class PlayViewSnapshot
                 "reaver-" + cutter,
                 "Reaver Cutter",
                 cutter,
-                MarkerKind.ReaverCutter));
+                MarkerKind.ReaverCutter,
+                MarkerIconUrl(MarkerKind.ReaverCutter)));
         }
 
         var pendingSummary = BuildPendingSummary(game);
@@ -126,6 +134,18 @@ public sealed class PlayViewSnapshot
             return "Goal Work in progress";
         return "Pending events";
     }
+
+    /// <summary>Map token URL under <c>/ships</c> (served from <c>reference/Ships/{id}.webp</c>).</summary>
+    public static string ShipIconUrl(string shipId) =>
+        $"/ships/{shipId}.webp";
+
+    public static string MarkerIconUrl(MarkerKind kind) => kind switch
+    {
+        MarkerKind.AllianceCruiser => "/ships/alliance-cruiser.webp",
+        MarkerKind.Corvette => "/ships/operative-corvette.webp",
+        MarkerKind.ReaverCutter => "/ships/reaver-cutter.webp",
+        _ => "/ships/firefly.webp"
+    };
 }
 
 public sealed record ShipTokenView(
@@ -133,7 +153,8 @@ public sealed record ShipTokenView(
     string Name,
     string ShipId,
     string SectorId,
-    bool IsCurrent);
+    bool IsCurrent,
+    string IconSrc);
 
 public enum MarkerKind
 {
@@ -146,7 +167,8 @@ public sealed record MarkerTokenView(
     string Id,
     string Label,
     string SectorId,
-    MarkerKind Kind);
+    MarkerKind Kind,
+    string IconSrc);
 
 public sealed record SectorInspectInfo(
     string SectorId,
