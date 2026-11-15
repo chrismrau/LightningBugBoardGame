@@ -1,4 +1,4 @@
-# Firefly.UI — Hotseat Blazor play surface (P1)
+# Firefly.UI — Hotseat Blazor play surface
 
 Map-centric hotseat shell for Lightning Bug. Server owns `Firefly.Core` / `GameState`. SignalR lobby rooms can wrap the same `IGameSession` later.
 
@@ -27,7 +27,7 @@ dotnet run
 
 HTTPS profile: `dotnet run --launch-profile https`
 
-## P1 what you get
+## What you get (P1 + P2)
 
 - Pan/zoom Verse map (scroll zoom, drag empty space / middle-mouse / Space+drag, `0` to fit)
 - Sector hit-test + inspect panel
@@ -35,14 +35,16 @@ HTTPS profile: `dotnet run --launch-profile https`
 - Alliance Cruiser / Cutter / Corvette markers when present
 - Scenario chip: King of All Londinium · First Time in the Captain's Chair · Awful Lonely in the Big Black
 - Optional expansion toggles (Blue Sun / PBH / Corvette) — restart the hotseat game
-- Compact status strip (cash / fuel / parts / warrants / actions / pending stub)
-- **End Turn** with 0, 1, or 2 actions used (GF9 BBG p.6 “may take 2 Actions”)
+- Compact status strip (cash / fuel / parts / warrants / actions / pending)
+- **Bottom action bar** — Fly / Deal / Work / Buy / Shore Leave / Crew / A Better Offer, legality via kernel `CanTakeAction` (blocked while pending)
+- **End Turn** on the action bar with 0, 1, or 2 actions used (GF9 BBG p.6 “may take 2 Actions”)
+- **PendingChoice host** — sticky priority banner + center modal; kind → widget registry (generic options fallback + stubs); submit via `TrySubmitChoice`
 
-## Not in P1
+## Not yet
 
-- Fly / Nav / Mosey / Full Burn (P3)
-- Full PendingChoice widget host (P2 — stub banner only)
+- Fly / Nav / Mosey / Full Burn (P3) — action bar fires a toast hook only
 - Ship sheet drawer (P4)
+- Deal / Buy / Shore Leave surfaces (P6)
 - Multi-seat SignalR lobbies (session API is shaped for it)
 
 ## Art drops (ask Christopher)

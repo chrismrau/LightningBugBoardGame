@@ -97,6 +97,31 @@ public sealed class HotseatGameSession : IGameSession
         Changed?.Invoke();
     }
 
+    public bool TrySubmitChoice(ChoiceSubmission submission, out string? error)
+    {
+        bool ok;
+        lock (_gate)
+        {
+            var playerId = _game.PendingChoice?.PlayerId ?? _game.CurrentPlayer.Id;
+            ok = _game.TrySubmitChoice(playerId, submission, out _, out error);
+        }
+        if (ok)
+            Changed?.Invoke();
+        return ok;
+    }
+
+    public bool TrySeedPendingChoice(PendingChoice choice, out string? error)
+    {
+        bool ok;
+        lock (_gate)
+        {
+            ok = _game.TrySetPendingChoice(choice, out error);
+        }
+        if (ok)
+            Changed?.Invoke();
+        return ok;
+    }
+
     private static GameState CreateGame(
         string scenarioCardId,
         bool useBlueSun,

@@ -31,24 +31,3 @@
 .stat.pending.is-active .value {
     color: #ffd27a;
 }
-
-.end-turn {
-    margin-left: auto;
-    border: 1px solid rgba(240, 195, 106, 0.55);
-    background: linear-gradient(180deg, #3a2c14, #241a0c);
-    color: #f0c36a;
-    padding: 0.4rem 0.9rem;
-    border-radius: 4px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background 160ms ease, border-color 160ms ease, transform 120ms ease;
-}
-
-.end-turn:hover {
-    background: linear-gradient(180deg, #4a3818, #2e220f);
-    border-color: #f0c36a;
-}
-
-.end-turn:active {
-    transform: translateY(1px);
-}

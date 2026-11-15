@@ -1,0 +1,51 @@
+.choice-widget {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+}
+
+.option-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+}
+
+.option-btn {
+    border: 1px solid rgba(240, 195, 106, 0.45);
+    background: linear-gradient(180deg, #3a2c14, #241a0c);
+    color: #f0c36a;
+    padding: 0.4rem 0.85rem;
+    border-radius: 4px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.option-btn:hover:not(:disabled) {
+    border-color: #f0c36a;
+    background: linear-gradient(180deg, #4a3818, #2e220f);
+}
+
+.option-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.option-btn.primary {
+    align-self: flex-start;
+}
+
+.field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    font-size: 0.8rem;
+    color: #9eb0c8;
+}
+
+.field input {
+    border: 1px solid rgba(160, 185, 220, 0.35);
+    background: #0c121a;
+    color: #e8eef8;
+    padding: 0.4rem 0.55rem;
+    border-radius: 4px;
+}

@@ -1,0 +1,51 @@
+@using Firefly.Core.State
+@using Firefly.UI.Services
+
+<nav class="action-bar" aria-label="Turn actions">
+    <div class="action-group">
+        @foreach (var btn in Snapshot.ActionButtons)
+        {
+            if (btn.Kind == ActionChromeKind.EndTurn)
+                continue;
+
+            <button type="button"
+                    class="action-btn @(btn.Enabled ? null : "is-disabled") kind-@btn.Kind.ToString().ToLowerInvariant()"
+                    disabled="@(!btn.Enabled)"
+                    title="@(btn.DisabledReason ?? btn.Label)"
+                    @onclick="() => OnClick(btn)">
+                @btn.Label
+            </button>
+        }
+    </div>
+    @{
+        var end = Snapshot.ActionButtons.FirstOrDefault(b => b.Kind == ActionChromeKind.EndTurn);
+    }
+    @if (end != null)
+    {
+        <button type="button"
+                class="action-btn end-turn"
+                title="Allowed with 0, 1, or 2 actions (GF9 may take 2)"
+                @onclick="() => OnClick(end)">
+            End Turn
+        </button>
+    }
+</nav>
+
+@code {
+    [Parameter, EditorRequired] public PlayViewSnapshot Snapshot { get; set; } = default!;
+    [Parameter] public EventCallback EndTurnRequested { get; set; }
+    /// <summary>P3+ hook: Fly / Deal / Work / Buy / Crew when legal. Not consumed in P2.</summary>
+    [Parameter] public EventCallback<TurnAction> TurnActionRequested { get; set; }
+    [Parameter] public EventCallback ShoreLeaveRequested { get; set; }
+    [Parameter] public EventCallback BetterOfferRequested { get; set; }
+
+    private Task OnClick(ActionButtonView btn) => btn.Kind switch
+    {
+        ActionChromeKind.EndTurn => EndTurnRequested.InvokeAsync(),
+        ActionChromeKind.ShoreLeave => ShoreLeaveRequested.InvokeAsync(),
+        ActionChromeKind.BetterOffer => BetterOfferRequested.InvokeAsync(),
+        ActionChromeKind.TurnAction when btn.TurnAction is { } action =>
+            TurnActionRequested.InvokeAsync(action),
+        _ => Task.CompletedTask
+    };
+}

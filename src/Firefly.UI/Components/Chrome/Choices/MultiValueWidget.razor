@@ -1,0 +1,69 @@
+@using Firefly.Core.State
+@using Firefly.UI.Services
+
+<div class="choice-widget">
+    @if (Choice.Options is { Count: > 0 } options)
+    {
+        <div class="check-list">
+            @foreach (var option in options)
+            {
+                <label class="check">
+                    <input type="checkbox" checked="@_selected.Contains(option)"
+                           @onchange="e => Toggle(option, (bool)(e.Value ?? false))" />
+                    <span>@FormatLabel(option)</span>
+                </label>
+            }
+        </div>
+        <button type="button" class="option-btn" @onclick="SubmitSelected">
+            Submit (@_selected.Count)
+        </button>
+    }
+    else
+    {
+        <label class="field">
+            <span>Comma-separated ids</span>
+            <input @bind="_raw" @bind:event="oninput" placeholder="id1, id2" />
+        </label>
+        <button type="button" class="option-btn" @onclick="SubmitRaw">Submit</button>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public PendingChoiceView Choice { get; set; } = default!;
+    [Parameter] public EventCallback<ChoiceSubmission> SubmitRequested { get; set; }
+
+    private readonly HashSet<string> _selected = new(StringComparer.Ordinal);
+    private string _raw = "";
+
+    private void Toggle(string option, bool on)
+    {
+        if (on) _selected.Add(option);
+        else _selected.Remove(option);
+    }
+
+    private Task SubmitSelected()
+    {
+        var values = _selected.ToList();
+        // When Options require SelectedOptionId, pick the first selected as the discrete answer
+        // and still pass Values for multi-victim consumers.
+        return SubmitRequested.InvokeAsync(new ChoiceSubmission
+        {
+            SelectedOptionId = values.FirstOrDefault(),
+            Values = values
+        });
+    }
+
+    private Task SubmitRaw()
+    {
+        var values = _raw.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .ToList();
+        return SubmitRequested.InvokeAsync(new ChoiceSubmission
+        {
+            SelectedOptionId = values.FirstOrDefault(),
+            Values = values
+        });
+    }
+
+    private static string FormatLabel(string id) =>
+        id.Replace('-', ' ').Replace('_', ' ');
+}

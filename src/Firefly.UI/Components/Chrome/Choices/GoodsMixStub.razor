@@ -1,0 +1,35 @@
+@using Firefly.Core.State
+@using Firefly.UI.Services
+
+<div class="choice-widget">
+    <p class="hint">Goods mix stub — enter fuel, parts, cargo, contraband counts (kernel Values order).</p>
+    <div class="mix-grid">
+        <label class="field">Fuel <input type="number" min="0" @bind="_fuel" /></label>
+        <label class="field">Parts <input type="number" min="0" @bind="_parts" /></label>
+        <label class="field">Cargo <input type="number" min="0" @bind="_cargo" /></label>
+        <label class="field">Contra <input type="number" min="0" @bind="_contra" /></label>
+    </div>
+    <button type="button" class="option-btn" @onclick="Submit">Submit mix</button>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public PendingChoiceView Choice { get; set; } = default!;
+    [Parameter] public EventCallback<ChoiceSubmission> SubmitRequested { get; set; }
+
+    private int _fuel;
+    private int _parts;
+    private int _cargo;
+    private int _contra;
+
+    private Task Submit() =>
+        SubmitRequested.InvokeAsync(new ChoiceSubmission
+        {
+            Values = new List<string>
+            {
+                _fuel.ToString(),
+                _parts.ToString(),
+                _cargo.ToString(),
+                _contra.ToString()
+            }
+        });
+}

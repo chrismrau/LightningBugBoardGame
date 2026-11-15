@@ -1,0 +1,38 @@
+@using Firefly.Core.State
+@using Firefly.UI.Services
+
+<div class="choice-widget">
+    @if (Choice.Options is { Count: > 0 } options)
+    {
+        <div class="option-row">
+            @foreach (var option in options)
+            {
+                <button type="button" class="option-btn" @onclick="() => SubmitOption(option)">
+                    @FormatLabel(option)
+                </button>
+            }
+        </div>
+        <p class="hint">Or enter an amount:</p>
+    }
+    <label class="field">
+        <span>Amount</span>
+        <input type="number" min="0" step="100" @bind="_amount" @bind:event="oninput" />
+    </label>
+    <button type="button" class="option-btn" @onclick="SubmitAmount">Submit amount</button>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public PendingChoiceView Choice { get; set; } = default!;
+    [Parameter] public EventCallback<ChoiceSubmission> SubmitRequested { get; set; }
+
+    private int _amount;
+
+    private Task SubmitOption(string option) =>
+        SubmitRequested.InvokeAsync(new ChoiceSubmission { SelectedOptionId = option });
+
+    private Task SubmitAmount() =>
+        SubmitRequested.InvokeAsync(new ChoiceSubmission { Amount = _amount });
+
+    private static string FormatLabel(string id) =>
+        id.Replace('-', ' ').Replace('_', ' ');
+}

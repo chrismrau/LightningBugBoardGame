@@ -1,0 +1,84 @@
+@using Firefly.Core.State
+@using Firefly.UI.Components.Chrome.Choices
+@using Firefly.UI.Services
+
+@if (Pending.HasPending)
+{
+    <div class="pending-banner" role="status" data-queue="@Pending.QueueKind">
+        <strong class="priority">@Pending.PriorityLabel</strong>
+        <span class="summary">@Pending.Summary</span>
+        @if (Pending.Choice is not null)
+        {
+            <span class="kind">@Pending.Choice.Kind</span>
+        }
+    </div>
+
+    @if (Pending.Choice is { } choice)
+    {
+        <div class="pending-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="pending-choice-title">
+            <div class="pending-modal">
+                <header class="pending-modal-header">
+                    <h2 id="pending-choice-title">Pending choice</h2>
+                    <span class="kind-chip">@choice.Kind</span>
+                </header>
+                <p class="prompt">@(choice.Prompt ?? "Choose an option to continue.")</p>
+                @if (!string.IsNullOrEmpty(choice.ContextId))
+                {
+                    <p class="context">Context: <code>@choice.ContextId</code></p>
+                }
+
+                @switch (choice.WidgetMode)
+                {
+                    case ChoiceWidgetMode.AcceptDecline:
+                        <AcceptDeclineWidget Choice="choice" SubmitRequested="OnSubmit" />
+                        break;
+                    case ChoiceWidgetMode.Amount:
+                        <AmountWidget Choice="choice" SubmitRequested="OnSubmit" />
+                        break;
+                    case ChoiceWidgetMode.SingleValue:
+                        <SingleValueWidget Choice="choice" SubmitRequested="OnSubmit" />
+                        break;
+                    case ChoiceWidgetMode.MultiValue:
+                        <MultiValueWidget Choice="choice" SubmitRequested="OnSubmit" />
+                        break;
+                    case ChoiceWidgetMode.GoodsMix:
+                        <GoodsMixStub Choice="choice" SubmitRequested="OnSubmit" />
+                        break;
+                    case ChoiceWidgetMode.SplitCrew:
+                        <SplitCrewStub Choice="choice" SubmitRequested="OnSubmit" />
+                        break;
+                    case ChoiceWidgetMode.Options:
+                    case ChoiceWidgetMode.Generic:
+                    default:
+                        <GenericChoiceWidget Choice="choice" SubmitRequested="OnSubmit" />
+                        break;
+                }
+
+                @if (!string.IsNullOrEmpty(_error))
+                {
+                    <p class="error" role="alert">@_error</p>
+                }
+            </div>
+        </div>
+    }
+}
+
+@code {
+    [Parameter, EditorRequired] public PendingHostView Pending { get; set; } = default!;
+    [Parameter] public EventCallback<ChoiceSubmission> ChoiceSubmitted { get; set; }
+
+    private string? _error;
+
+    private async Task OnSubmit(ChoiceSubmission submission)
+    {
+        _error = null;
+        await ChoiceSubmitted.InvokeAsync(submission);
+    }
+
+    /// <summary>Parent can push a kernel rejection message after a failed submit.</summary>
+    public void SetError(string? error)
+    {
+        _error = error;
+        StateHasChanged();
+    }
+}

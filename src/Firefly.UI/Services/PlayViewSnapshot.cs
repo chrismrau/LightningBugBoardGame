@@ -21,6 +21,8 @@ public sealed class PlayViewSnapshot
     public required bool HasPendingEvents { get; init; }
     public required string? PendingChoiceKind { get; init; }
     public required string? PendingSummary { get; init; }
+    public required PendingHostView Pending { get; init; }
+    public required IReadOnlyList<ActionButtonView> ActionButtons { get; init; }
     public required string? SelectedSectorId { get; init; }
     public required SectorInspectInfo? Inspect { get; init; }
     public required IReadOnlyList<ShipTokenView> ShipTokens { get; init; }
@@ -87,7 +89,7 @@ public sealed class PlayViewSnapshot
                 MarkerIconUrl(MarkerKind.ReaverCutter)));
         }
 
-        var pendingSummary = BuildPendingSummary(game);
+        var pending = PendingHostBuilder.From(game);
 
         return new PlayViewSnapshot
         {
@@ -104,8 +106,10 @@ public sealed class PlayViewSnapshot
             ActionsUsed = game.ActionsUsedThisTurn,
             ActionsPerTurn = game.ActionsPerTurn,
             HasPendingEvents = game.HasPendingEvents,
-            PendingChoiceKind = game.PendingChoice?.Kind,
-            PendingSummary = pendingSummary,
+            PendingChoiceKind = pending.Choice?.Kind,
+            PendingSummary = pending.HasPending ? pending.Summary : null,
+            Pending = pending,
+            ActionButtons = ActionBarBuilder.Build(game),
             SelectedSectorId = session.SelectedSectorId,
             Inspect = inspect,
             ShipTokens = ships,
@@ -114,25 +118,6 @@ public sealed class PlayViewSnapshot
             UseBountyDeck = session.UseBountyDeck,
             UseOperativesCorvette = session.UseOperativesCorvette
         };
-    }
-
-    private static string? BuildPendingSummary(GameState game)
-    {
-        if (!game.HasPendingEvents)
-            return null;
-        if (game.PendingChoice != null)
-            return $"PendingChoice: {game.PendingChoice.Kind}";
-        if (game.PendingAlertSectors.Count > 0)
-            return $"Alert Tokens ({game.PendingAlertSectors.Count})";
-        if (game.PendingEncounter.HasValue)
-            return $"Encounter: {game.PendingEncounter}";
-        if (game.PendingNavDraws.Count > 0)
-            return $"Nav draws ({game.PendingNavDraws.Count})";
-        if (game.PendingMisbehave != null)
-            return "Misbehave in progress";
-        if (game.PendingGoalWork != null)
-            return "Goal Work in progress";
-        return "Pending events";
     }
 
     /// <summary>Map token URL under <c>/ships</c> (served from <c>reference/Ships/{id}.webp</c>).</summary>
