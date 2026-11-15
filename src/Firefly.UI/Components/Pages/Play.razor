@@ -15,7 +15,7 @@
     <header class="play-header">
         <div class="brand">
             <span class="mark">Lightning Bug</span>
-            <span class="mode">Hotseat · P4 Ship Sheet</span>
+            <span class="mode">Hotseat · P5 Discards</span>
         </div>
         <ScenarioChip ScenarioCardId="@_snap.ScenarioCardId"
                       UseBlueSun="@_snap.UseBlueSun"
@@ -41,6 +41,11 @@
             <ShipSheet Sheet="_snap.ShipSheet"
                        IsOpen="_shipSheetOpen"
                        IsOpenChanged="OnShipSheetOpenChanged" />
+            <DiscardBrowser View="_snap.Discards"
+                            IsOpen="_discardOpen"
+                            IsOpenChanged="OnDiscardOpenChanged"
+                            FocusTarget="_discardFocus"
+                            FocusTargetConsumed="OnDiscardFocusConsumed" />
             <VerseMap SelectedSectorId="_snap.SelectedSectorId"
                       Ships="_snap.ShipTokens"
                       Markers="_snap.Markers"
@@ -86,6 +91,8 @@
     private FlyUiMode _flyMode = FlyUiMode.None;
     private IReadOnlyList<string> _burnPath = Array.Empty<string>();
     private bool _shipSheetOpen;
+    private bool _discardOpen;
+    private string? _discardFocus;
 
     protected override void OnInitialized()
     {
@@ -283,6 +290,8 @@
         _flyMode = FlyUiMode.None;
         _burnPath = Array.Empty<string>();
         _shipSheetOpen = false;
+        _discardOpen = false;
+        _discardFocus = null;
         Session.StartNew(args.ScenarioId, args.BlueSun, args.Bounty, args.Corvette);
         _map = Session.Game.Map;
         _toast = null;
@@ -291,6 +300,25 @@
     private void OpenShipSheet() => _shipSheetOpen = true;
 
     private void OnShipSheetOpenChanged(bool open) => _shipSheetOpen = open;
+
+    /// <summary>
+    /// Opens the discard browser, optionally focused on a <see cref="DiscardBrowseTargets"/> key.
+    /// P6 Buy/Deal can call this with e.g. <c>supply:Persephone</c> / <c>contact:Badger</c>.
+    /// </summary>
+    private void OpenDiscardBrowser(string? focusTarget = null)
+    {
+        _discardFocus = focusTarget;
+        _discardOpen = true;
+    }
+
+    private void OnDiscardOpenChanged(bool open)
+    {
+        _discardOpen = open;
+        if (!open)
+            _discardFocus = null;
+    }
+
+    private void OnDiscardFocusConsumed() => _discardFocus = null;
 
     public void Dispose()
     {

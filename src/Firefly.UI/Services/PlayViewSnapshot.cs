@@ -28,6 +28,7 @@ public sealed class PlayViewSnapshot
     public required IReadOnlyList<ShipTokenView> ShipTokens { get; init; }
     public required IReadOnlyList<MarkerTokenView> Markers { get; init; }
     public required ShipSheetView ShipSheet { get; init; }
+    public required DiscardBrowserView Discards { get; init; }
     public required bool UseBlueSun { get; init; }
     public required bool UseBountyDeck { get; init; }
     public required bool UseOperativesCorvette { get; init; }
@@ -119,6 +120,7 @@ public sealed class PlayViewSnapshot
             ShipTokens = ships,
             Markers = markers,
             ShipSheet = ShipSheetBuilder.From(game, player),
+            Discards = DiscardBrowserBuilder.From(game),
             UseBlueSun = session.UseBlueSun,
             UseBountyDeck = session.UseBountyDeck,
             UseOperativesCorvette = session.UseOperativesCorvette

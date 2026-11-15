@@ -89,5 +89,8 @@ namespace Firefly.Core.Cards
 
         public bool TryGet(string contactName, out ContactDeck deck) =>
             _decks.TryGetValue(ContactNames.Normalize(contactName), out deck!);
+
+        /// <summary>All Contact Deal decks (for discard browsing / Deal UI).</summary>
+        public IReadOnlyCollection<ContactDeck> All => _decks.Values;
     }
 }

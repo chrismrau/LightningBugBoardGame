@@ -1,0 +1,333 @@
+@using Firefly.Core.Cards
+@using Firefly.UI.Services
+
+<aside class="discard-browser @(IsOpen ? "is-open" : "is-closed")" aria-label="Discard piles">
+    <button type="button"
+            class="discard-tab"
+            title="@(IsOpen ? "Collapse discards" : "Browse discard piles")"
+            aria-expanded="@IsOpen"
+            @onclick="Toggle">
+        <span class="tab-label">Discards</span>
+        <span class="tab-count">@View.TotalCount</span>
+    </button>
+
+    <div class="discard-panel">
+        <header class="discard-header">
+            <div class="title-block">
+                <h2>Discard piles</h2>
+                <p class="hint">Inspect only · does not use an action</p>
+            </div>
+            <button type="button" class="close-btn" @onclick="Close" title="Collapse">✕</button>
+        </header>
+
+        <nav class="section-tabs" aria-label="Discard categories">
+            <button type="button"
+                    class="section-tab @(_section == DiscardBrowseSection.Supply ? "is-active" : null)"
+                    @onclick="() => SelectSection(DiscardBrowseSection.Supply)">
+                Supply <span class="n">@View.SupplyCardCount</span>
+            </button>
+            <button type="button"
+                    class="section-tab @(_section == DiscardBrowseSection.Contacts ? "is-active" : null)"
+                    @onclick="() => SelectSection(DiscardBrowseSection.Contacts)">
+                Contacts <span class="n">@View.ContactCardCount</span>
+            </button>
+            <button type="button"
+                    class="section-tab @(_section == DiscardBrowseSection.Nav ? "is-active" : null)"
+                    @onclick="() => SelectSection(DiscardBrowseSection.Nav)">
+                Nav <span class="n">@View.NavCardCount</span>
+            </button>
+        </nav>
+
+        <div class="discard-body">
+            <div class="pile-rail" role="tablist" aria-label="Piles">
+                @if (_section == DiscardBrowseSection.Supply)
+                {
+                    @foreach (var pile in View.SupplyPiles)
+                    {
+                        <button type="button"
+                                class="pile-chip @(IsSelected(pile.TargetKey) ? "is-active" : null)"
+                                @onclick="() => SelectPile(pile.TargetKey)">
+                            <span class="pile-name">@pile.Planet</span>
+                            <span class="pile-n">@pile.Count</span>
+                        </button>
+                    }
+                }
+                else if (_section == DiscardBrowseSection.Contacts)
+                {
+                    @foreach (var pile in View.ContactPiles)
+                    {
+                        <button type="button"
+                                class="pile-chip @(IsSelected(pile.TargetKey) ? "is-active" : null)"
+                                @onclick="() => SelectPile(pile.TargetKey)">
+                            <span class="pile-name">@pile.ContactName</span>
+                            <span class="pile-n">@pile.Count</span>
+                        </button>
+                    }
+                }
+                else
+                {
+                    @foreach (var pile in View.NavPiles)
+                    {
+                        <button type="button"
+                                class="pile-chip @(IsSelected(pile.TargetKey) ? "is-active" : null)"
+                                @onclick="() => SelectPile(pile.TargetKey)">
+                            <span class="pile-name">@pile.RegionLabel</span>
+                            <span class="pile-n">@pile.Count</span>
+                        </button>
+                    }
+                }
+            </div>
+
+            <div class="pile-detail">
+                @if (_section == DiscardBrowseSection.Supply)
+                {
+                    var pile = SelectedSupply;
+                    if (pile == null)
+                    {
+                        <p class="empty-note">No supply markets.</p>
+                    }
+                    else
+                    {
+                        <h3>@pile.Planet Supply discard <span class="count">@pile.Count</span></h3>
+                        @if (pile.Count == 0)
+                        {
+                            <p class="empty-note">Empty</p>
+                        }
+                        else
+                        {
+                            <ul class="card-grid">
+                                @foreach (var card in pile.Cards)
+                                {
+                                    <li class="supply-card">
+                                        <PortraitPlate Src="@card.PortraitUrl" Alt="@card.Name" />
+                                        <div class="card-body">
+                                            <div class="card-name">@card.Name</div>
+                                            <div class="card-meta">
+                                                <span class="kind">@KindLabel(card.Kind)</span>
+                                                <span>· $@card.Cost.ToString("N0")</span>
+                                            </div>
+                                        </div>
+                                    </li>
+                                }
+                            </ul>
+                        }
+                    }
+                }
+                else if (_section == DiscardBrowseSection.Contacts)
+                {
+                    var pile = SelectedContact;
+                    if (pile == null)
+                    {
+                        <p class="empty-note">No contact decks.</p>
+                    }
+                    else
+                    {
+                        <div class="contact-banner">
+                            @if (!string.IsNullOrEmpty(pile.ContactArtUrl) && !_contactArtMissing)
+                            {
+                                <img class="contact-scan"
+                                     src="@pile.ContactArtUrl"
+                                     alt="@pile.ContactName contact card"
+                                     loading="lazy"
+                                     @onerror="OnContactArtError" />
+                            }
+                            <div>
+                                <h3>@pile.ContactName Jobs discard <span class="count">@pile.Count</span></h3>
+                                <p class="hint">Job cards · text from JSON (no unique job art)</p>
+                            </div>
+                        </div>
+                        @if (pile.Count == 0)
+                        {
+                            <p class="empty-note">Empty</p>
+                        }
+                        else
+                        {
+                            <ul class="job-discard-list">
+                                @foreach (var job in pile.Jobs)
+                                {
+                                    <li class="job-discard-card">
+                                        <div class="card-name">@job.Name</div>
+                                        <div class="card-meta">
+                                            @if (!string.IsNullOrEmpty(job.JobType))
+                                            {
+                                                <span>@job.JobType</span>
+                                            }
+                                            @if (job.PayLabel != null)
+                                            {
+                                                <span>· @job.PayLabel</span>
+                                            }
+                                            @if (job.Immoral)
+                                            {
+                                                <span class="badge immoral">Immoral</span>
+                                            }
+                                            else if (!job.Legal)
+                                            {
+                                                <span class="badge illegal">Illegal</span>
+                                            }
+                                        </div>
+                                    </li>
+                                }
+                            </ul>
+                        }
+                    }
+                }
+                else
+                {
+                    var pile = SelectedNav;
+                    if (pile == null)
+                    {
+                        <p class="empty-note">No Nav decks.</p>
+                    }
+                    else
+                    {
+                        <h3>@pile.RegionLabel Nav discard <span class="count">@pile.Count</span></h3>
+                        @if (pile.Count == 0)
+                        {
+                            <p class="empty-note">Empty</p>
+                        }
+                        else
+                        {
+                            <ul class="nav-discard-list">
+                                @foreach (var card in pile.Cards)
+                                {
+                                    <li class="nav-discard-card">
+                                        <div class="card-name">@card.Name</div>
+                                        <div class="card-meta">
+                                            <span>@card.Type</span>
+                                            @if (card.IsReshuffle)
+                                            {
+                                                <span class="badge reshuffle">Reshuffle</span>
+                                            }
+                                        </div>
+                                    </li>
+                                }
+                            </ul>
+                        }
+                    }
+                }
+            </div>
+        </div>
+    </div>
+</aside>
+
+@code {
+    [Parameter, EditorRequired] public DiscardBrowserView View { get; set; } = default!;
+    [Parameter] public bool IsOpen { get; set; }
+    [Parameter] public EventCallback<bool> IsOpenChanged { get; set; }
+    /// <summary>
+    /// Deep-link target from <see cref="DiscardBrowseTargets"/> (e.g. <c>supply:Persephone</c>).
+    /// When set while opening, selects that section/pile. Cleared after apply so the user can navigate freely.
+    /// </summary>
+    [Parameter] public string? FocusTarget { get; set; }
+    [Parameter] public EventCallback FocusTargetConsumed { get; set; }
+
+    private DiscardBrowseSection _section = DiscardBrowseSection.Supply;
+    private string? _selectedKey;
+    private string? _appliedFocus;
+    private bool _contactArtMissing;
+    private string? _contactArtFor;
+
+    private SupplyDiscardPileView? SelectedSupply =>
+        View.SupplyPiles.FirstOrDefault(p => IsSelected(p.TargetKey))
+        ?? View.SupplyPiles.FirstOrDefault();
+
+    private ContactDiscardPileView? SelectedContact =>
+        View.ContactPiles.FirstOrDefault(p => IsSelected(p.TargetKey))
+        ?? View.ContactPiles.FirstOrDefault();
+
+    private NavDiscardPileView? SelectedNav =>
+        View.NavPiles.FirstOrDefault(p => IsSelected(p.TargetKey))
+        ?? View.NavPiles.FirstOrDefault();
+
+    protected override void OnParametersSet()
+    {
+        if (!string.IsNullOrWhiteSpace(FocusTarget)
+            && !string.Equals(FocusTarget, _appliedFocus, StringComparison.Ordinal))
+        {
+            ApplyFocus(FocusTarget);
+            _appliedFocus = FocusTarget;
+            _ = FocusTargetConsumed.InvokeAsync();
+        }
+
+        EnsureSelection();
+        var contactId = SelectedContact?.ContactId;
+        if (!string.Equals(contactId, _contactArtFor, StringComparison.Ordinal))
+        {
+            _contactArtFor = contactId;
+            _contactArtMissing = false;
+        }
+    }
+
+    private void ApplyFocus(string target)
+    {
+        if (!DiscardBrowseTargets.TryParse(target, out var section, out var pileKey))
+            return;
+
+        _section = section;
+        _selectedKey = section switch
+        {
+            DiscardBrowseSection.Supply =>
+                View.SupplyPiles.FirstOrDefault(p =>
+                    string.Equals(p.Planet, pileKey, StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(p.TargetKey, target, StringComparison.OrdinalIgnoreCase))
+                    ?.TargetKey,
+            DiscardBrowseSection.Contacts =>
+                View.ContactPiles.FirstOrDefault(p =>
+                    string.Equals(p.ContactName, pileKey, StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(p.ContactId, pileKey, StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(p.TargetKey, target, StringComparison.OrdinalIgnoreCase))
+                    ?.TargetKey,
+            DiscardBrowseSection.Nav =>
+                View.NavPiles.FirstOrDefault(p =>
+                    string.Equals(p.RegionLabel, pileKey, StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(p.TargetKey, target, StringComparison.OrdinalIgnoreCase))
+                    ?.TargetKey,
+            _ => null
+        };
+    }
+
+    private void EnsureSelection()
+    {
+        if (_section == DiscardBrowseSection.Supply)
+        {
+            if (_selectedKey == null || View.SupplyPiles.All(p => !IsSelected(p.TargetKey)))
+                _selectedKey = View.SupplyPiles.FirstOrDefault()?.TargetKey;
+        }
+        else if (_section == DiscardBrowseSection.Contacts)
+        {
+            if (_selectedKey == null || View.ContactPiles.All(p => !IsSelected(p.TargetKey)))
+                _selectedKey = View.ContactPiles.FirstOrDefault()?.TargetKey;
+        }
+        else
+        {
+            if (_selectedKey == null || View.NavPiles.All(p => !IsSelected(p.TargetKey)))
+                _selectedKey = View.NavPiles.FirstOrDefault()?.TargetKey;
+        }
+    }
+
+    private bool IsSelected(string key) =>
+        string.Equals(_selectedKey, key, StringComparison.OrdinalIgnoreCase);
+
+    private void SelectSection(DiscardBrowseSection section)
+    {
+        _section = section;
+        _selectedKey = null;
+        EnsureSelection();
+    }
+
+    private void SelectPile(string key) => _selectedKey = key;
+
+    private Task Toggle() => IsOpenChanged.InvokeAsync(!IsOpen);
+    private Task Close() => IsOpenChanged.InvokeAsync(false);
+
+    private void OnContactArtError() => _contactArtMissing = true;
+
+    private static string KindLabel(SupplyKind kind) => kind switch
+    {
+        SupplyKind.Crew => "Crew",
+        SupplyKind.Gear => "Gear",
+        SupplyKind.DriveCore => "Drive Core",
+        SupplyKind.ShipUpgrade => "Ship Upgrade",
+        _ => kind.ToString()
+    };
+}
