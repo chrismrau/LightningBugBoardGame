@@ -6,7 +6,7 @@
     <RootNamespace>Firefly.UI</RootNamespace>
     <AssemblyName>Firefly.UI</AssemblyName>
     <BlazorDisableThrowNavigationException>true</BlazorDisableThrowNavigationException>
-    <Description>Hotseat Blazor play surface for Lightning Bug (P1–P5: map, turn chrome, Fly/Nav, ship sheet, discard browsers).</Description>
+    <Description>Hotseat Blazor play surface for Lightning Bug (P1–P7: map, turn chrome, Fly/Nav, ship sheet, discards, Deal/Buy, Work/Misbehave).</Description>
   </PropertyGroup>
 
   <ItemGroup>

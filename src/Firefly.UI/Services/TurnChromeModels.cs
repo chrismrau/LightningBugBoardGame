@@ -27,7 +27,8 @@ public sealed record PendingHostView(
     string Summary,
     PendingQueueKind QueueKind,
     PendingChoiceView? Choice,
-    NavRevealView? Nav = null);
+    NavRevealView? Nav = null,
+    MisbehaveRevealView? Misbehave = null);
 
 public enum PendingQueueKind
 {
@@ -62,6 +63,7 @@ public static class PendingHostBuilder
     public static PendingHostView From(GameState game, DrawnNav? navFaceUp = null)
     {
         var navView = FlyLegalBuilder.FromNav(game, navFaceUp);
+        var misbehaveView = WorkChromeBuilder.FromPending(game);
         var hasNavPending = game.PendingNavDraws.Count > 0 || navFaceUp != null;
 
         if (!game.HasPendingEvents && navFaceUp == null)
@@ -72,7 +74,8 @@ public static class PendingHostBuilder
                 "",
                 PendingQueueKind.None,
                 null,
-                navView);
+                navView,
+                misbehaveView);
         }
 
         PendingChoiceView? choice = null;
@@ -97,7 +100,8 @@ public static class PendingHostBuilder
                 choice.Prompt ?? $"PendingChoice: {choice.Kind}",
                 PendingQueueKind.Choice,
                 choice,
-                navView);
+                navView,
+                misbehaveView);
         }
 
         if (game.PendingAlertSectors.Count > 0)
@@ -108,7 +112,8 @@ public static class PendingHostBuilder
                 $"Alert Tokens ({game.PendingAlertSectors.Count}) — resolve before other actions",
                 PendingQueueKind.Alerts,
                 null,
-                navView);
+                navView,
+                misbehaveView);
         }
 
         if (game.PendingEncounter.HasValue)
@@ -119,7 +124,8 @@ public static class PendingHostBuilder
                 $"Encounter: {game.PendingEncounter}",
                 PendingQueueKind.Encounter,
                 null,
-                navView);
+                navView,
+                misbehaveView);
         }
 
         if (hasNavPending)
@@ -133,18 +139,23 @@ public static class PendingHostBuilder
                 summary,
                 PendingQueueKind.Nav,
                 null,
-                navView);
+                navView,
+                misbehaveView);
         }
 
         if (game.PendingMisbehave != null)
         {
+            var summary = misbehaveView.HasFaceUp
+                ? $"Misbehave: {misbehaveView.CardName} — {misbehaveView.Remaining} remaining"
+                : $"Misbehave ({misbehaveView.Remaining}) — reveal to resolve";
             return new PendingHostView(
                 true,
                 "Misbehave",
-                "Misbehave in progress",
+                summary,
                 PendingQueueKind.Misbehave,
                 null,
-                navView);
+                navView,
+                misbehaveView);
         }
 
         if (game.PendingGoalWork != null)
@@ -152,13 +163,14 @@ public static class PendingHostBuilder
             return new PendingHostView(
                 true,
                 "Goal Work",
-                "Goal Work in progress",
+                $"Goal {game.PendingGoalWork.GoalNumber} — {game.PendingGoalWork.Phase}",
                 PendingQueueKind.GoalWork,
                 null,
-                navView);
+                navView,
+                misbehaveView);
         }
 
-        return new PendingHostView(true, "Pending", "Pending events", PendingQueueKind.None, null, navView);
+        return new PendingHostView(true, "Pending", "Pending events", PendingQueueKind.None, null, navView, misbehaveView);
     }
 }
 

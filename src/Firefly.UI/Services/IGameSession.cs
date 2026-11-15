@@ -103,4 +103,28 @@ public interface IGameSession
 
     /// <summary>Kernel <c>PoachAction.TryPoach</c> — A Better Offer; not a turn action.</summary>
     bool TryPoach(string fromPlayerId, string crewId, out string? error);
+
+    /// <summary>Kernel <c>WorkAction.TryWork</c> for a Contact Job in hand or Active.</summary>
+    bool TryWork(string jobId, out string? error);
+
+    /// <summary>Kernel <c>WorkAction.TryMakeWork</c> — planetary $200 Work.</summary>
+    bool TryMakeWork(out string? error);
+
+    /// <summary>Kernel <c>WorkAction.TryDatascope</c> when Early's Datascope is carried.</summary>
+    bool TryDatascope(out string? error);
+
+    /// <summary>Kernel <c>WorkAction.TryWorkGoal</c> / Goal Work at a Story Card site.</summary>
+    bool TryWorkGoal(int goalNumber, out string? error);
+
+    /// <summary>
+    /// Continue Goal Work after Misbehave (or when boarding/skill is already pending).
+    /// Kernel <c>GoalWorkAction.TryResume</c> — may suspend into PendingChoice.
+    /// </summary>
+    bool TryContinueGoalWork(out string? error);
+
+    /// <summary>Draw the next Misbehave card onto <c>GameState.PendingMisbehave.FaceUp</c>.</summary>
+    bool TryDrawMisbehave(out string? error);
+
+    /// <summary>Resolve the face-up Misbehave via <c>MisbehaveResolver.TryResolve</c>.</summary>
+    bool TryResolveMisbehave(MisbehaveChoice choice, out string? error);
 }
