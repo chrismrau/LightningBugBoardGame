@@ -27,7 +27,7 @@ dotnet run
 
 HTTPS profile: `dotnet run --launch-profile https`
 
-## What you get (P1–P6)
+## What you get (P1–P7)
 
 - Pan/zoom Verse map (scroll zoom, drag empty space / middle-mouse / Space+drag, `0` to fit)
 - Sector hit-test + inspect panel
@@ -46,12 +46,15 @@ HTTPS profile: `dotnet run --launch-profile https`
 - **Buy** — face-up Supply at current planet + Fuel/Parts; packing/prices via kernel `BuyAction`; deep-links Supply discard browser
 - **Shore Leave** — consumes Buy action type; $100/crew incl. Leader; clears Disgruntled (kernel `ShoreLeaveAction`)
 - **A Better Offer** — non-action poach when same-sector Disgruntled rival crew is legal (`PoachAction`)
+- **Work** — legal Job / Make-Work / Datascope / Goal picker (`WorkAction` / `GoalWorkAction`); Job activates on first Work (FAQ 4.1 p.5)
+- **Misbehave** — PendingHost reveal/resolve (text chrome); Ace + option buttons; resume via `MisbehaveResolver` / `MisbehaveChoiceResume`
+- **Goal Work** — continue boarding/skill after Misbehave via PendingHost
 
 ## Not yet
 
-- Work / Misbehave surfaces (P7)
-- Every exotic Nav edge-case widget (happy path + PendingChoice fallback)
+- Every exotic Misbehave / Goal branch widget (happy path + PendingChoice coverage; gaps in `internal/ui-p7-status.md`)
 - Rival public sheets (P8)
+- Bounty / Most Wanted Work chrome (P9)
 - Multi-seat SignalR lobbies (session API is shaped for it)
 
 ## Art drops (ask Christopher)

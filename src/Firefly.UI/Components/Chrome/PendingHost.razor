@@ -1,3 +1,4 @@
+@using Firefly.Core.Actions
 @using Firefly.Core.State
 @using Firefly.UI.Components.Chrome.Choices
 @using Firefly.UI.Services
@@ -10,6 +11,10 @@
         @if (Pending.Choice is not null)
         {
             <span class="kind">@Pending.Choice.Kind</span>
+        }
+        else if (Pending.Misbehave?.HasFaceUp == true)
+        {
+            <span class="kind">@Pending.Misbehave.CardId</span>
         }
         else if (Pending.Nav?.HasFaceUp == true)
         {
@@ -119,6 +124,97 @@
             </div>
         </div>
     }
+    else if (Pending.QueueKind == PendingQueueKind.Misbehave && Pending.Misbehave is { } mb)
+    {
+        <div class="pending-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="misbehave-title">
+            <div class="pending-modal nav-modal misbehave-modal">
+                <header class="pending-modal-header">
+                    <h2 id="misbehave-title">Misbehave</h2>
+                    <span class="kind-chip">
+                        @(mb.IsGoalWork ? $"Goal {mb.GoalNumber}" : mb.Site?.ToString() ?? "Work")
+                        · @mb.Remaining left
+                    </span>
+                </header>
+
+                @if (mb.NeedsReveal)
+                {
+                    <p class="prompt">
+                        Draw the next Misbehave card
+                        @if (!string.IsNullOrEmpty(mb.JobId))
+                        {
+                            <text> for <code>@mb.JobId</code></text>
+                        }
+                        .
+                    </p>
+                    <button type="button" class="nav-btn primary" @onclick="OnRevealMisbehave">Reveal Misbehave</button>
+                }
+                else if (mb.NeedsResolve)
+                {
+                    <div class="nav-card misbehave-card">
+                        <p class="nav-type">Misbehave@(string.IsNullOrEmpty(mb.Suit) ? "" : $" · {mb.Suit}")</p>
+                        <h3 class="nav-name">@mb.CardName</h3>
+                        <p class="nav-meta">
+                            <code>@mb.CardId</code>
+                            @if (!string.IsNullOrEmpty(mb.Keyword))
+                            {
+                                <span>· @mb.Keyword</span>
+                            }
+                            @if (!string.IsNullOrEmpty(mb.Other))
+                            {
+                                <span>· @mb.Other</span>
+                            }
+                        </p>
+                        @if (!string.IsNullOrEmpty(mb.Ace))
+                        {
+                            <p class="ace-hint">Ace: @mb.Ace — auto-succeed when you have this keyword (GF9 p.14).</p>
+                        }
+                    </div>
+
+                    <div class="nav-options" role="list">
+                        @foreach (var opt in mb.Options)
+                        {
+                            <button type="button"
+                                    class="nav-option"
+                                    role="listitem"
+                                    @onclick="() => OnResolveMisbehaveOption(opt.Index)">
+                                <span class="opt-label">@(string.IsNullOrWhiteSpace(opt.Name) ? $"Option {opt.Index + 1}" : opt.Name)</span>
+                                <span class="opt-details">@opt.Details</span>
+                            </button>
+                        }
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(mb.Ace))
+                    {
+                        <button type="button" class="nav-btn ace" @onclick="OnResolveMisbehaveAce">
+                            Use Ace (@mb.Ace)
+                        </button>
+                    }
+                }
+
+                @if (!string.IsNullOrEmpty(_error))
+                {
+                    <p class="error" role="alert">@_error</p>
+                }
+            </div>
+        </div>
+    }
+    else if (Pending.QueueKind == PendingQueueKind.GoalWork)
+    {
+        <div class="pending-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="goal-work-title">
+            <div class="pending-modal nav-modal">
+                <header class="pending-modal-header">
+                    <h2 id="goal-work-title">Goal Work</h2>
+                    <span class="kind-chip">continue</span>
+                </header>
+                <p class="prompt">@Pending.Summary — continue boarding / skill / evade via the kernel.</p>
+                <button type="button" class="nav-btn primary" @onclick="OnContinueGoalWork">Continue Goal Work</button>
+                @if (!string.IsNullOrEmpty(_error))
+                {
+                    <p class="error" role="alert">@_error</p>
+                }
+            </div>
+        </div>
+    }
 }
 
 @code {
@@ -126,6 +222,9 @@
     [Parameter] public EventCallback<ChoiceSubmission> ChoiceSubmitted { get; set; }
     [Parameter] public EventCallback RevealNavRequested { get; set; }
     [Parameter] public EventCallback<int> ResolveNavOptionRequested { get; set; }
+    [Parameter] public EventCallback RevealMisbehaveRequested { get; set; }
+    [Parameter] public EventCallback<MisbehaveChoice> ResolveMisbehaveRequested { get; set; }
+    [Parameter] public EventCallback ContinueGoalWorkRequested { get; set; }
 
     private string? _error;
 
@@ -145,6 +244,30 @@
     {
         _error = null;
         await ResolveNavOptionRequested.InvokeAsync(optionIndex);
+    }
+
+    private async Task OnRevealMisbehave()
+    {
+        _error = null;
+        await RevealMisbehaveRequested.InvokeAsync();
+    }
+
+    private async Task OnResolveMisbehaveOption(int optionIndex)
+    {
+        _error = null;
+        await ResolveMisbehaveRequested.InvokeAsync(new MisbehaveChoice { OptionIndex = optionIndex });
+    }
+
+    private async Task OnResolveMisbehaveAce()
+    {
+        _error = null;
+        await ResolveMisbehaveRequested.InvokeAsync(new MisbehaveChoice { UseAce = true });
+    }
+
+    private async Task OnContinueGoalWork()
+    {
+        _error = null;
+        await ContinueGoalWorkRequested.InvokeAsync();
     }
 
     /// <summary>Parent can push a kernel rejection message after a failed submit.</summary>

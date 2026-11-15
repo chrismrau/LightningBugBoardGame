@@ -1,0 +1,61 @@
+@using Firefly.UI.Services
+
+@if (Chrome.Mode == WorkUiMode.Pick)
+{
+    <div class="econ-chrome work-chrome" role="region" aria-label="Work action">
+        <div class="econ-label">
+            <strong>Work</strong>
+            <span class="hint">@Chrome.StatusHint</span>
+        </div>
+
+        <div class="work-list" role="list">
+            @foreach (var attempt in Chrome.Attempts)
+            {
+                <button type="button"
+                        class="work-row @(attempt.Enabled ? null : "is-disabled")"
+                        role="listitem"
+                        disabled="@(!attempt.Enabled)"
+                        title="@(attempt.BlockReason ?? attempt.Subtitle)"
+                        @onclick="() => OnPick(attempt)">
+                    <span class="work-title">
+                        @attempt.Title
+                        @if (attempt.Immoral)
+                        {
+                            <span class="tag">Immoral</span>
+                        }
+                        else if (!attempt.Legal && attempt.Kind == WorkAttemptKind.Job)
+                        {
+                            <span class="tag illegal">Illegal</span>
+                        }
+                        @if (attempt.MisbehaveCount is > 0)
+                        {
+                            <span class="tag mb">Misbehave @attempt.MisbehaveCount</span>
+                        }
+                    </span>
+                    <span class="work-sub">@attempt.Subtitle</span>
+                    @if (!string.IsNullOrEmpty(attempt.PayLabel))
+                    {
+                        <span class="work-pay">@attempt.PayLabel</span>
+                    }
+                    @if (!attempt.Enabled && !string.IsNullOrEmpty(attempt.BlockReason))
+                    {
+                        <span class="work-block">@attempt.BlockReason</span>
+                    }
+                </button>
+            }
+        </div>
+
+        <div class="econ-actions">
+            <button type="button" class="econ-btn ghost" @onclick="CancelRequested">Cancel</button>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired] public WorkChromeView Chrome { get; set; } = default!;
+    [Parameter] public EventCallback CancelRequested { get; set; }
+    [Parameter] public EventCallback<WorkAttemptOption> AttemptRequested { get; set; }
+
+    private Task OnPick(WorkAttemptOption attempt) =>
+        AttemptRequested.InvokeAsync(attempt);
+}

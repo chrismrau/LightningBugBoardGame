@@ -29,6 +29,9 @@ public sealed class HotseatGameSession : IGameSession
     private BuyAction _buy = null!;
     private ShoreLeaveAction _shore = null!;
     private PoachAction _poach = null!;
+    private WorkAction _work = null!;
+    private MisbehaveResolver _misbehave = null!;
+    private GoalWorkAction _goals = null!;
     private readonly IRng _rng = new SystemRng(Environment.TickCount);
 
     private DealRequest? _dealStagingRequest;
@@ -148,6 +151,12 @@ public sealed class HotseatGameSession : IGameSession
             else if (string.Equals(kind, PendingChoiceKinds.HavenFuelAmount, StringComparison.Ordinal))
             {
                 ok = _shore.TryResumeHavenFuel(_game, submission, out _, out error);
+                suspended = !ok && _game.PendingChoice != null;
+            }
+            else if (MisbehaveChoiceResume.OwnsPendingChoice(_game))
+            {
+                ok = MisbehaveChoiceResume.TryResume(
+                    _game, _misbehave, _work, _goals, submission, _rng, out error);
                 suspended = !ok && _game.PendingChoice != null;
             }
             else
@@ -416,6 +425,142 @@ public sealed class HotseatGameSession : IGameSession
         return ok;
     }
 
+    public bool TryWork(string jobId, out string? error)
+    {
+        bool ok;
+        var suspended = false;
+        lock (_gate)
+        {
+            ok = _work.TryWork(_game, _game.CurrentPlayer.Id, jobId, out _, out error);
+            suspended = !ok && _game.PendingChoice != null;
+        }
+        if (ok || suspended)
+            Changed?.Invoke();
+        return ok || suspended;
+    }
+
+    public bool TryMakeWork(out string? error)
+    {
+        bool ok;
+        var suspended = false;
+        lock (_gate)
+        {
+            ok = _work.TryMakeWork(_game, _game.CurrentPlayer.Id, out _, out error);
+            suspended = !ok && _game.PendingChoice != null;
+        }
+        if (ok || suspended)
+            Changed?.Invoke();
+        return ok || suspended;
+    }
+
+    public bool TryDatascope(out string? error)
+    {
+        bool ok;
+        lock (_gate)
+        {
+            ok = _work.TryDatascope(_game, _game.CurrentPlayer.Id, out _, out error);
+        }
+        if (ok)
+            Changed?.Invoke();
+        return ok;
+    }
+
+    public bool TryWorkGoal(int goalNumber, out string? error)
+    {
+        bool ok;
+        var suspended = false;
+        lock (_gate)
+        {
+            ok = _work.TryWorkGoal(_game, _game.CurrentPlayer.Id, goalNumber, out _, out error);
+            suspended = !ok && _game.PendingChoice != null;
+        }
+        if (ok || suspended)
+            Changed?.Invoke();
+        return ok || suspended;
+    }
+
+    public bool TryContinueGoalWork(out string? error)
+    {
+        bool ok;
+        var suspended = false;
+        lock (_gate)
+        {
+            var pending = _game.PendingGoalWork;
+            if (pending == null)
+            {
+                error = "No Goal Work is pending.";
+                return false;
+            }
+
+            if (_game.PendingMisbehave != null)
+            {
+                error = "Finish Misbehave before continuing Goal Work.";
+                return false;
+            }
+
+            // After Misbehave Proceed chain, phase is Boarding/Skill — TryResume continues.
+            // If still marked Misbehave (edge), TryContinueAfterMisbehave advances the phase.
+            if (pending.Phase == GoalWorkPhase.Misbehave)
+                ok = _goals.TryContinueAfterMisbehave(_game, pending.PlayerId, out _, out error);
+            else
+                ok = _goals.TryResume(_game, pending.PlayerId, out _, out error);
+
+            suspended = !ok && _game.PendingChoice != null;
+        }
+        if (ok || suspended)
+            Changed?.Invoke();
+        return ok || suspended;
+    }
+
+    public bool TryDrawMisbehave(out string? error)
+    {
+        error = null;
+        lock (_gate)
+        {
+            try
+            {
+                if (_game.PendingMisbehave == null)
+                {
+                    error = "No Misbehave is pending.";
+                    return false;
+                }
+                if (_game.PendingMisbehave.FaceUp != null)
+                {
+                    error = "A Misbehave card is already face up — resolve it first.";
+                    return false;
+                }
+                _misbehave.DrawNext(_game);
+            }
+            catch (Exception ex)
+            {
+                error = ex.Message;
+                return false;
+            }
+        }
+        Changed?.Invoke();
+        return true;
+    }
+
+    public bool TryResolveMisbehave(MisbehaveChoice choice, out string? error)
+    {
+        bool ok;
+        var suspended = false;
+        lock (_gate)
+        {
+            ok = _misbehave.TryResolve(
+                _game,
+                _game.CurrentPlayer.Id,
+                choice,
+                out _,
+                out error,
+                _rng);
+            suspended = !ok && _game.PendingChoice != null;
+        }
+        if (ok || suspended)
+            Changed?.Invoke();
+        return ok || suspended;
+    }
+
     private void CancelDealConsiderUnlocked()
     {
         if (_dealStagingDrawn != null
@@ -471,6 +616,9 @@ public sealed class HotseatGameSession : IGameSession
         _buy = new BuyAction();
         _shore = new ShoreLeaveAction();
         _poach = new PoachAction();
+        _work = new WorkAction();
+        _misbehave = new MisbehaveResolver();
+        _goals = new GoalWorkAction();
         ClearDealStaging();
     }
 

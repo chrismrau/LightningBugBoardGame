@@ -16,7 +16,7 @@
     <header class="play-header">
         <div class="brand">
             <span class="mark">Lightning Bug</span>
-            <span class="mode">Hotseat · P6 Deal/Buy</span>
+            <span class="mode">Hotseat · P7 Work/Misbehave</span>
         </div>
         <ScenarioChip ScenarioCardId="@_snap.ScenarioCardId"
                       UseBlueSun="@_snap.UseBlueSun"
@@ -30,7 +30,10 @@
                  Pending="_snap.Pending"
                  ChoiceSubmitted="OnChoiceSubmitted"
                  RevealNavRequested="OnRevealNav"
-                 ResolveNavOptionRequested="OnResolveNavOption" />
+                 ResolveNavOptionRequested="OnResolveNavOption"
+                 RevealMisbehaveRequested="OnRevealMisbehave"
+                 ResolveMisbehaveRequested="OnResolveMisbehave"
+                 ContinueGoalWorkRequested="OnContinueGoalWork" />
     <FlyChrome Chrome="_flyChrome"
                KindRequested="OnFlyKind"
                CancelRequested="OnFlyCancel"
@@ -49,6 +52,9 @@
     <BetterOfferChrome Chrome="_betterOfferChrome"
                        CancelRequested="OnEconomyCancel"
                        PoachRequested="OnPoach" />
+    <WorkChrome Chrome="_workChrome"
+                CancelRequested="OnWorkCancel"
+                AttemptRequested="OnWorkAttempt" />
 
     <div class="play-body">
         <div class="map-host">
@@ -101,6 +107,7 @@
     private DealChromeView _dealChrome = IdleDealChrome();
     private BuyChromeView _buyChrome = IdleBuyChrome();
     private BetterOfferChromeView _betterOfferChrome = IdleBetterOfferChrome();
+    private WorkChromeView _workChrome = IdleWorkChrome();
 
     private bool _boardArt;
     private SectorMap _map = default!;
@@ -109,6 +116,7 @@
     private FlyUiMode _flyMode = FlyUiMode.None;
     private IReadOnlyList<string> _burnPath = Array.Empty<string>();
     private EconomyUiMode _economyMode = EconomyUiMode.None;
+    private WorkUiMode _workMode = WorkUiMode.None;
     private string? _dealContact;
     private bool _shipSheetOpen;
     private bool _discardOpen;
@@ -162,6 +170,9 @@
     private static BetterOfferChromeView IdleBetterOfferChrome() =>
         new(EconomyUiMode.None, Array.Empty<BetterOfferTargetView>(), null);
 
+    private static WorkChromeView IdleWorkChrome() =>
+        new(WorkUiMode.None, Array.Empty<WorkAttemptOption>(), null);
+
     private void OnSessionChanged()
     {
         InvokeAsync(() =>
@@ -208,7 +219,15 @@
                 _economyMode = EconomyUiMode.None;
         }
 
+        if (_workMode == WorkUiMode.Pick
+            && (_snap.HasPendingEvents || !Session.Game.CanTakeAction(TurnAction.Work, out _)))
+        {
+            // Keep chrome collapsed once Work suspends into Misbehave / PendingChoice.
+            _workMode = WorkUiMode.None;
+        }
+
         RebuildEconomyChrome();
+        RebuildWorkChrome();
     }
 
     private void RebuildEconomyChrome()
@@ -250,6 +269,14 @@
             _buyChrome = _buyChrome with { Mode = EconomyUiMode.None };
             _betterOfferChrome = _betterOfferChrome with { Mode = EconomyUiMode.None };
         }
+    }
+
+    private void RebuildWorkChrome()
+    {
+        if (_workMode == WorkUiMode.Pick)
+            _workChrome = WorkChromeBuilder.Build(Session.Game);
+        else
+            _workChrome = IdleWorkChrome();
     }
 
     private void OnSectorSelected(string sectorId)
@@ -303,6 +330,7 @@
     {
         ClearFlyUi();
         ClearEconomyUi(cancelConsider: true);
+        ClearWorkUi();
         Session.EndTurn();
         _toast = null;
     }
@@ -312,6 +340,7 @@
         if (action == TurnAction.Fly)
         {
             ClearEconomyUi(cancelConsider: true);
+            ClearWorkUi();
             _flyMode = FlyUiMode.PickKind;
             _burnPath = Array.Empty<string>();
             _flyChrome = FlyLegalBuilder.Build(Session.Game, Session.Movement, _flyMode, _burnPath);
@@ -322,6 +351,7 @@
         if (action == TurnAction.Deal)
         {
             ClearFlyUi();
+            ClearWorkUi();
             _economyMode = EconomyUiMode.DealPick;
             _dealContact = null;
             RebuildEconomyChrome();
@@ -333,10 +363,21 @@
         if (action == TurnAction.Buy)
         {
             ClearFlyUi();
+            ClearWorkUi();
             _economyMode = EconomyUiMode.BuyPick;
             RebuildEconomyChrome();
             if (_buyChrome.Planet != null)
                 OpenDiscardBrowser(DiscardBrowseTargets.Supply(_buyChrome.Planet));
+            _toast = null;
+            return;
+        }
+
+        if (action == TurnAction.Work)
+        {
+            ClearFlyUi();
+            ClearEconomyUi(cancelConsider: true);
+            _workMode = WorkUiMode.Pick;
+            RebuildWorkChrome();
             _toast = null;
             return;
         }
@@ -414,6 +455,7 @@
     {
         ClearFlyUi();
         ClearEconomyUi(cancelConsider: true);
+        ClearWorkUi();
         if (Session.TryShoreLeave(out var error))
         {
             _toast = "Shore Leave complete (Buy action).";
@@ -426,9 +468,94 @@
     private void OnBetterOffer()
     {
         ClearFlyUi();
+        ClearWorkUi();
         _economyMode = EconomyUiMode.BetterOfferPick;
         RebuildEconomyChrome();
         _toast = null;
+    }
+
+    private void OnRevealMisbehave()
+    {
+        if (Session.TryDrawMisbehave(out var error))
+        {
+            _toast = null;
+            _pendingHost?.SetError(null);
+            return;
+        }
+        _pendingHost?.SetError(error);
+        _toast = error;
+    }
+
+    private void OnResolveMisbehave(MisbehaveChoice choice)
+    {
+        if (Session.TryResolveMisbehave(choice, out var error))
+        {
+            _toast = null;
+            _pendingHost?.SetError(null);
+            return;
+        }
+        _pendingHost?.SetError(error);
+        _toast = error;
+    }
+
+    private void OnContinueGoalWork()
+    {
+        if (Session.TryContinueGoalWork(out var error))
+        {
+            _toast = null;
+            _pendingHost?.SetError(null);
+            return;
+        }
+        _pendingHost?.SetError(error);
+        _toast = error;
+    }
+
+    private void OnWorkCancel()
+    {
+        ClearWorkUi();
+        _toast = null;
+    }
+
+    private void OnWorkAttempt(WorkAttemptOption attempt)
+    {
+        bool ok;
+        string? error;
+        switch (attempt.Kind)
+        {
+            case WorkAttemptKind.Job:
+                ok = Session.TryWork(attempt.Id, out error);
+                break;
+            case WorkAttemptKind.MakeWork:
+                ok = Session.TryMakeWork(out error);
+                break;
+            case WorkAttemptKind.Datascope:
+                ok = Session.TryDatascope(out error);
+                break;
+            case WorkAttemptKind.Goal when attempt.GoalNumber is int goal:
+                ok = Session.TryWorkGoal(goal, out error);
+                break;
+            default:
+                _toast = "Unknown Work attempt.";
+                return;
+        }
+
+        if (ok)
+        {
+            ClearWorkUi();
+            if (Session.Game.PendingMisbehave != null)
+                _toast = "Work started — resolve Misbehave.";
+            else if (Session.Game.PendingGoalWork != null)
+                _toast = "Goal Work started — continue in PendingHost.";
+            else if (Session.Game.PendingChoice != null)
+                _toast = null; // PendingHost takes over
+            else
+                _toast = $"{attempt.Title} complete.";
+            return;
+        }
+
+        _toast = error;
+        _pendingHost?.SetError(error);
+        RebuildWorkChrome();
     }
 
     private void OnDealContactChanged(string contactName)
@@ -577,6 +704,7 @@
     {
         ClearFlyUi();
         ClearEconomyUi(cancelConsider: true);
+        ClearWorkUi();
         _shipSheetOpen = false;
         _discardOpen = false;
         _discardFocus = null;
@@ -621,6 +749,12 @@
         _economyMode = EconomyUiMode.None;
         _dealContact = null;
         RebuildEconomyChrome();
+    }
+
+    private void ClearWorkUi()
+    {
+        _workMode = WorkUiMode.None;
+        RebuildWorkChrome();
     }
 
     public void Dispose()
