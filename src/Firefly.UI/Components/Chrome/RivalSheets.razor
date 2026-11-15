@@ -1,0 +1,42 @@
+@using Firefly.UI.Services
+
+@*
+  Right-edge peeks for other seats (P8). Reuses ShipSheet layout with Job hand omitted.
+  Coexists with DiscardBrowser on the same edge — mutually exclusive open state via parent.
+*@
+@if (Rivals.Count > 0)
+{
+    <div class="rival-sheets" aria-label="Rival public sheets">
+        @for (var i = 0; i < Rivals.Count; i++)
+        {
+            var rival = Rivals[i];
+            var index = i;
+            <ShipSheet Sheet="rival"
+                       IsOpen="string.Equals(OpenPlayerId, rival.PlayerId, StringComparison.Ordinal)"
+                       IsOpenChanged="open => OnRivalOpenChanged(rival.PlayerId, open)"
+                       ShowJobHand="false"
+                       Edge="ShipSheetEdge.Right"
+                       TabIndex="index"
+                       TabLabel="@rival.SeatName" />
+        }
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<ShipSheetView> Rivals { get; set; } = Array.Empty<ShipSheetView>();
+    [Parameter] public string? OpenPlayerId { get; set; }
+    [Parameter] public EventCallback<string?> OpenPlayerIdChanged { get; set; }
+
+    private Task OnRivalOpenChanged(string playerId, bool open)
+    {
+        var next = open ? playerId : null;
+        // Opening a different rival closes the previous (one right-edge sheet at a time).
+        if (open
+            && !string.IsNullOrEmpty(OpenPlayerId)
+            && !string.Equals(OpenPlayerId, playerId, StringComparison.Ordinal))
+        {
+            next = playerId;
+        }
+        return OpenPlayerIdChanged.InvokeAsync(next);
+    }
+}

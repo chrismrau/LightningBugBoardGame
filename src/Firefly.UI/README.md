@@ -27,7 +27,7 @@ dotnet run
 
 HTTPS profile: `dotnet run --launch-profile https`
 
-## What you get (P1–P7)
+## What you get (P1–P8)
 
 - Pan/zoom Verse map (scroll zoom, drag empty space / middle-mouse / Space+drag, `0` to fit)
 - Sector hit-test + inspect panel
@@ -49,12 +49,13 @@ HTTPS profile: `dotnet run --launch-profile https`
 - **Work** — legal Job / Make-Work / Datascope / Goal picker (`WorkAction` / `GoalWorkAction`); Job activates on first Work (FAQ 4.1 p.5)
 - **Misbehave** — PendingHost reveal/resolve (text chrome); Ace + option buttons; resume via `MisbehaveResolver` / `MisbehaveChoiceResume`
 - **Goal Work** — continue boarding/skill after Misbehave via PendingHost
+- **Rival public sheets** (right peeks) — Active Jobs + board resources; Job hand hidden (prefs visibility lock). Own left sheet still shows Job hand. Set **Seats → 2P** on the scenario chip for smoke; End Turn swaps whose sheet is private.
+- Right-edge polish: opening a rival peek closes Discards (and vice versa)
 
 ## Not yet
 
 - Every exotic Misbehave / Goal branch widget (happy path + PendingChoice coverage; gaps in `internal/ui-p7-status.md`)
-- Rival public sheets (P8)
-- Bounty / Most Wanted Work chrome (P9)
+- Bounty / Most Wanted / Alliance Alert chrome (P9)
 - Multi-seat SignalR lobbies (session API is shaped for it)
 
 ## Art drops (ask Christopher)

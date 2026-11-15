@@ -29,11 +29,16 @@ public interface IGameSession
     /// <summary>Jobs drawn while staging a Deal consider (P6); null when idle.</summary>
     IReadOnlyList<JobCard>? DealConsideredJobs { get; }
 
+    /// <param name="seatCount">1 (default smoke) or 2 (rival-sheet smoke). Unique ships/leaders per seat.</param>
     void StartNew(
         string scenarioCardId,
         bool useBlueSun = false,
         bool useBountyDeck = false,
-        bool useOperativesCorvette = false);
+        bool useOperativesCorvette = false,
+        int seatCount = 1);
+
+    /// <summary>Configured hotseat seat count (1 or 2 for smoke).</summary>
+    int SeatCount { get; }
 
     void SelectSector(string? sectorId);
 

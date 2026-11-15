@@ -10,6 +10,13 @@
             }
         </select>
     </label>
+    <label>
+        <span class="eyebrow">Seats</span>
+        <select @bind="_seatCount" @bind:after="OnChanged" aria-label="Hotseat seat count">
+            <option value="1">1P smoke</option>
+            <option value="2">2P (rival peeks)</option>
+        </select>
+    </label>
     <div class="expansion-toggles" title="Optional expansion content stays available in UI">
         <label><input type="checkbox" @bind="_blueSun" @bind:after="OnChanged" /> Blue Sun</label>
         <label><input type="checkbox" @bind="_bounty" @bind:after="OnChanged" /> PBH / Bounties</label>
@@ -22,9 +29,11 @@
     [Parameter] public bool UseBlueSun { get; set; }
     [Parameter] public bool UseBountyDeck { get; set; }
     [Parameter] public bool UseOperativesCorvette { get; set; }
-    [Parameter] public EventCallback<(string ScenarioId, bool BlueSun, bool Bounty, bool Corvette)> RestartRequested { get; set; }
+    [Parameter] public int SeatCount { get; set; } = 1;
+    [Parameter] public EventCallback<(string ScenarioId, bool BlueSun, bool Bounty, bool Corvette, int SeatCount)> RestartRequested { get; set; }
 
     private string _selectedId = SmokeScenarios.DefaultId;
+    private int _seatCount = 1;
     private bool _blueSun;
     private bool _bounty;
     private bool _corvette;
@@ -34,6 +43,7 @@
     {
         _syncing = true;
         _selectedId = ScenarioCardId;
+        _seatCount = SeatCount is 1 or 2 ? SeatCount : 1;
         _blueSun = UseBlueSun;
         _bounty = UseBountyDeck;
         _corvette = UseOperativesCorvette;
@@ -43,6 +53,6 @@
     private async Task OnChanged()
     {
         if (_syncing) return;
-        await RestartRequested.InvokeAsync((_selectedId, _blueSun, _bounty, _corvette));
+        await RestartRequested.InvokeAsync((_selectedId, _blueSun, _bounty, _corvette, _seatCount));
     }
 }

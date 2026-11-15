@@ -28,6 +28,10 @@
     padding: 0.35rem 0.5rem;
 }
 
+.scenario-chip label:has(select[aria-label="Hotseat seat count"]) select {
+    min-width: 9.5rem;
+}
+
 .expansion-toggles {
     display: flex;
     flex-wrap: wrap;

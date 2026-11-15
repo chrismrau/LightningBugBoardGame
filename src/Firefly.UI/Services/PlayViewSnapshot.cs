@@ -28,10 +28,13 @@ public sealed class PlayViewSnapshot
     public required IReadOnlyList<ShipTokenView> ShipTokens { get; init; }
     public required IReadOnlyList<MarkerTokenView> Markers { get; init; }
     public required ShipSheetView ShipSheet { get; init; }
+    /// <summary>Other seats' public sheets (no Job hand). Empty in 1P smoke.</summary>
+    public required IReadOnlyList<ShipSheetView> RivalSheets { get; init; }
     public required DiscardBrowserView Discards { get; init; }
     public required bool UseBlueSun { get; init; }
     public required bool UseBountyDeck { get; init; }
     public required bool UseOperativesCorvette { get; init; }
+    public required int SeatCount { get; init; }
 
     public static PlayViewSnapshot From(IGameSession session, SectorMap map)
     {
@@ -119,11 +122,16 @@ public sealed class PlayViewSnapshot
             Inspect = inspect,
             ShipTokens = ships,
             Markers = markers,
-            ShipSheet = ShipSheetBuilder.From(game, player),
+            ShipSheet = ShipSheetBuilder.From(game, player, includeJobHand: true),
+            RivalSheets = game.Players
+                .Where(p => p.Id != player.Id)
+                .Select(p => ShipSheetBuilder.FromRival(game, p))
+                .ToList(),
             Discards = DiscardBrowserBuilder.From(game),
             UseBlueSun = session.UseBlueSun,
             UseBountyDeck = session.UseBountyDeck,
-            UseOperativesCorvette = session.UseOperativesCorvette
+            UseOperativesCorvette = session.UseOperativesCorvette,
+            SeatCount = game.Players.Count
         };
     }
 
