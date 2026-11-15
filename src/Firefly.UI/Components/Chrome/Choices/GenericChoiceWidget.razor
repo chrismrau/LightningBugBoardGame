@@ -1,0 +1,49 @@
+@using Firefly.Core.State
+@using Firefly.UI.Services
+
+<div class="choice-widget">
+    @if (Choice.Options is { Count: > 0 } options)
+    {
+        <div class="option-row">
+            @foreach (var option in options)
+            {
+                <button type="button" class="option-btn" @onclick="() => SubmitOption(option)">
+                    @FormatLabel(option)
+                </button>
+            }
+        </div>
+    }
+    else
+    {
+        <label class="field">
+            <span>Value / option id</span>
+            <input @bind="_value" @bind:event="oninput" placeholder="option or value id" />
+        </label>
+        <button type="button" class="option-btn primary" disabled="@string.IsNullOrWhiteSpace(_value)" @onclick="SubmitFree">
+            Submit
+        </button>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public PendingChoiceView Choice { get; set; } = default!;
+    [Parameter] public EventCallback<ChoiceSubmission> SubmitRequested { get; set; }
+
+    private string _value = "";
+
+    private Task SubmitOption(string option) =>
+        SubmitRequested.InvokeAsync(new ChoiceSubmission { SelectedOptionId = option });
+
+    private Task SubmitFree()
+    {
+        var v = _value.Trim();
+        return SubmitRequested.InvokeAsync(new ChoiceSubmission
+        {
+            SelectedOptionId = v,
+            Value = v
+        });
+    }
+
+    private static string FormatLabel(string id) =>
+        id.Replace('-', ' ').Replace('_', ' ');
+}

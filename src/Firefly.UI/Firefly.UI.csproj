@@ -6,7 +6,7 @@
     <RootNamespace>Firefly.UI</RootNamespace>
     <AssemblyName>Firefly.UI</AssemblyName>
     <BlazorDisableThrowNavigationException>true</BlazorDisableThrowNavigationException>
-    <Description>Hotseat Blazor play surface for Lightning Bug (P1 map shell).</Description>
+    <Description>Hotseat Blazor play surface for Lightning Bug (P1 map + P2 turn chrome).</Description>
   </PropertyGroup>
 
   <ItemGroup>

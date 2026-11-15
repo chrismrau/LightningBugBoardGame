@@ -29,14 +29,8 @@
         <span class="label">Pending</span>
         <span class="value">@(Snapshot.PendingSummary ?? "—")</span>
     </div>
-    <button type="button" class="end-turn" @onclick="OnEndTurn" title="Allowed with 0, 1, or 2 actions (GF9 may take 2)">
-        End Turn
-    </button>
 </div>
 
 @code {
     [Parameter, EditorRequired] public PlayViewSnapshot Snapshot { get; set; } = default!;
-    [Parameter] public EventCallback EndTurnRequested { get; set; }
-
-    private Task OnEndTurn() => EndTurnRequested.InvokeAsync();
 }

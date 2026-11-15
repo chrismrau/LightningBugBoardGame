@@ -30,4 +30,16 @@ public interface IGameSession
     /// GF9 BBG p.6: "On your turn, you may take 2 Actions…"
     /// </summary>
     void EndTurn();
+
+    /// <summary>
+    /// Submit the current <see cref="GameState.PendingChoice"/> via kernel
+    /// <see cref="GameState.TrySubmitChoice"/>. Returns false with an error when rejected.
+    /// </summary>
+    bool TrySubmitChoice(ChoiceSubmission submission, out string? error);
+
+    /// <summary>
+    /// Smoke / test helper: seed a single PendingChoice on the live game.
+    /// Does not invent kinds — caller supplies a kernel <see cref="PendingChoice"/>.
+    /// </summary>
+    bool TrySeedPendingChoice(PendingChoice choice, out string? error);
 }

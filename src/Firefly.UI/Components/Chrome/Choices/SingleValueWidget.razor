@@ -1,0 +1,50 @@
+@using Firefly.Core.State
+@using Firefly.UI.Services
+
+<div class="choice-widget">
+    @if (Choice.Options is { Count: > 0 } options)
+    {
+        <div class="option-row">
+            @foreach (var option in options)
+            {
+                <button type="button" class="option-btn" @onclick="() => SubmitOption(option)">
+                    @FormatLabel(option)
+                </button>
+            }
+        </div>
+    }
+    else
+    {
+        <label class="field">
+            <span>Sector / player / crew id</span>
+            <input @bind="_value" @bind:event="oninput" placeholder="id" />
+        </label>
+        <button type="button" class="option-btn" disabled="@string.IsNullOrWhiteSpace(_value)" @onclick="SubmitValue">
+            Submit
+        </button>
+        <p class="hint">P3 map pick can fill this; free-text stub for now.</p>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public PendingChoiceView Choice { get; set; } = default!;
+    [Parameter] public EventCallback<ChoiceSubmission> SubmitRequested { get; set; }
+
+    private string _value = "";
+
+    private Task SubmitOption(string option) =>
+        SubmitRequested.InvokeAsync(new ChoiceSubmission
+        {
+            SelectedOptionId = option,
+            Value = option
+        });
+
+    private Task SubmitValue()
+    {
+        var v = _value.Trim();
+        return SubmitRequested.InvokeAsync(new ChoiceSubmission { Value = v, SelectedOptionId = v });
+    }
+
+    private static string FormatLabel(string id) =>
+        id.Replace('-', ' ').Replace('_', ' ');
+}
