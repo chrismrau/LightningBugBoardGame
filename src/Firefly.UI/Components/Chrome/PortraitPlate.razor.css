@@ -1,0 +1,18 @@
+.portrait {
+    width: 2.6rem;
+    height: 2.6rem;
+    object-fit: cover;
+    border-radius: 3px;
+    background: #121820;
+    border: 1px solid rgba(180, 200, 230, 0.2);
+    flex-shrink: 0;
+}
+
+.portrait.compact {
+    width: 1.35rem;
+    height: 1.35rem;
+}
+
+.portrait.placeholder {
+    background: linear-gradient(135deg, #1a2434, #0e141e);
+}

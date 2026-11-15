@@ -15,7 +15,7 @@
     <header class="play-header">
         <div class="brand">
             <span class="mark">Lightning Bug</span>
-            <span class="mode">Hotseat · P3 Fly / Nav</span>
+            <span class="mode">Hotseat · P4 Ship Sheet</span>
         </div>
         <ScenarioChip ScenarioCardId="@_snap.ScenarioCardId"
                       UseBlueSun="@_snap.UseBlueSun"
@@ -24,7 +24,7 @@
                       RestartRequested="OnRestart" />
     </header>
 
-    <StatusStrip Snapshot="_snap" />
+    <StatusStrip Snapshot="_snap" ShipSheetRequested="OpenShipSheet" />
     <PendingHost @ref="_pendingHost"
                  Pending="_snap.Pending"
                  ChoiceSubmitted="OnChoiceSubmitted"
@@ -37,14 +37,19 @@
                ClearPathRequested="OnFullBurnClearPath" />
 
     <div class="play-body">
-        <VerseMap SelectedSectorId="_snap.SelectedSectorId"
-                  Ships="_snap.ShipTokens"
-                  Markers="_snap.Markers"
-                  LegalSectorIds="_flyChrome.LegalSectorIds"
-                  PathSectorIds="_flyChrome.PathSectorIds"
-                  PathDestinationId="_flyChrome.PathDestinationId"
-                  BoardArtAvailable="_boardArt"
-                  SectorSelected="OnSectorSelected" />
+        <div class="map-host">
+            <ShipSheet Sheet="_snap.ShipSheet"
+                       IsOpen="_shipSheetOpen"
+                       IsOpenChanged="OnShipSheetOpenChanged" />
+            <VerseMap SelectedSectorId="_snap.SelectedSectorId"
+                      Ships="_snap.ShipTokens"
+                      Markers="_snap.Markers"
+                      LegalSectorIds="_flyChrome.LegalSectorIds"
+                      PathSectorIds="_flyChrome.PathSectorIds"
+                      PathDestinationId="_flyChrome.PathDestinationId"
+                      BoardArtAvailable="_boardArt"
+                      SectorSelected="OnSectorSelected" />
+        </div>
         <InspectPanel Info="_snap.Inspect" />
     </div>
 
@@ -80,6 +85,7 @@
     private string? _toast;
     private FlyUiMode _flyMode = FlyUiMode.None;
     private IReadOnlyList<string> _burnPath = Array.Empty<string>();
+    private bool _shipSheetOpen;
 
     protected override void OnInitialized()
     {
@@ -276,10 +282,15 @@
     {
         _flyMode = FlyUiMode.None;
         _burnPath = Array.Empty<string>();
+        _shipSheetOpen = false;
         Session.StartNew(args.ScenarioId, args.BlueSun, args.Bounty, args.Corvette);
         _map = Session.Game.Map;
         _toast = null;
     }
+
+    private void OpenShipSheet() => _shipSheetOpen = true;
+
+    private void OnShipSheetOpenChanged(bool open) => _shipSheetOpen = open;
 
     public void Dispose()
     {

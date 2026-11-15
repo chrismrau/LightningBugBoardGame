@@ -43,6 +43,25 @@ if (Directory.Exists(repo.ShipIconsDirectory))
     });
 }
 
+// Option B plates + full ship card scans under reference/Cards/{…}
+void MapCardArt(string directory, string requestPath)
+{
+    if (Directory.Exists(directory))
+    {
+        app.UseStaticFiles(new StaticFileOptions
+        {
+            FileProvider = new PhysicalFileProvider(directory),
+            RequestPath = requestPath
+        });
+    }
+}
+
+MapCardArt(repo.ShipCardsDirectory, "/cards/ships");
+MapCardArt(repo.CrewArtDirectory, "/cards/crew");
+MapCardArt(repo.GearArtDirectory, "/cards/gear");
+MapCardArt(repo.DriveCoreArtDirectory, "/cards/drive-cores");
+MapCardArt(repo.ShipUpgradeArtDirectory, "/cards/ship-upgrades");
+
 app.UseAntiforgery();
 app.MapStaticAssets();
 app.MapHub<PlayHub>("/hubs/play");

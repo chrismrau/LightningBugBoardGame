@@ -1,0 +1,457 @@
+.ship-sheet {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 24;
+    pointer-events: none;
+    font-family: "Segoe UI", system-ui, sans-serif;
+    color: #e8eef8;
+}
+
+.sheet-tab {
+    pointer-events: auto;
+    position: absolute;
+    top: 4.5rem;
+    left: 0;
+    z-index: 26;
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    border: 1px solid rgba(180, 200, 230, 0.28);
+    border-left: none;
+    border-radius: 0 4px 4px 0;
+    background: linear-gradient(180deg, #243248, #151c28);
+    color: #f0c36a;
+    padding: 0.85rem 0.35rem;
+    cursor: pointer;
+    letter-spacing: 0.08em;
+    transition: background 160ms ease, border-color 160ms ease, transform 180ms ease;
+}
+
+.ship-sheet.is-open .sheet-tab {
+    left: min(28rem, 92vw);
+    transform: rotate(180deg) translateX(1px);
+}
+
+.sheet-tab:hover {
+    border-color: rgba(240, 195, 106, 0.55);
+    background: linear-gradient(180deg, #2e3d54, #1a2434);
+}
+
+.tab-label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    opacity: 0.8;
+}
+
+.tab-ship {
+    display: block;
+    margin-top: 0.35rem;
+    font-size: 0.78rem;
+    font-weight: 650;
+    max-height: 8rem;
+    overflow: hidden;
+}
+
+.sheet-panel {
+    pointer-events: auto;
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: min(28rem, 92vw);
+    display: flex;
+    flex-direction: column;
+    background: linear-gradient(180deg, rgba(14, 20, 32, 0.98), rgba(8, 12, 20, 0.96));
+    border-right: 1px solid rgba(180, 200, 230, 0.22);
+    box-shadow: 8px 0 28px rgba(0, 0, 0, 0.35);
+    transform: translateX(-105%);
+    transition: transform 220ms ease;
+}
+
+.ship-sheet.is-open .sheet-panel {
+    transform: translateX(0);
+}
+
+.ship-sheet.is-closed .sheet-panel {
+    visibility: hidden;
+    transition: transform 220ms ease, visibility 0s linear 220ms;
+}
+
+.sheet-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.85rem 1rem 0.65rem;
+    border-bottom: 1px solid rgba(180, 200, 230, 0.16);
+}
+
+.title-block h2 {
+    margin: 0;
+    font-size: 1.15rem;
+    color: #f0c36a;
+    font-weight: 650;
+}
+
+.title-block .seat {
+    margin: 0.2rem 0 0;
+    font-size: 0.75rem;
+    color: #8fa0b8;
+}
+
+.close-btn {
+    margin-left: auto;
+    border: 1px solid rgba(180, 200, 230, 0.28);
+    background: transparent;
+    color: #b7c6da;
+    border-radius: 4px;
+    width: 1.8rem;
+    height: 1.8rem;
+    cursor: pointer;
+}
+
+.close-btn:hover {
+    border-color: rgba(240, 195, 106, 0.5);
+    color: #f0c36a;
+}
+
+.sheet-scroll {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    padding: 0.75rem 1rem 1.25rem;
+    display: grid;
+    gap: 1rem;
+}
+
+.meta-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.45rem 0.75rem;
+}
+
+.meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+}
+
+.meta .k {
+    font-size: 0.62rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #8fa0b8;
+}
+
+.meta .v {
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.meta .v.code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 0.72rem;
+    font-weight: 500;
+    word-break: break-all;
+}
+
+.ship-art {
+    border: 1px solid rgba(180, 200, 230, 0.18);
+    border-radius: 4px;
+    overflow: hidden;
+    background: #0a1018;
+}
+
+.ship-card-img {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-height: 11rem;
+    object-fit: contain;
+    background: #0a1018;
+}
+
+.holds {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.hold-block h3,
+.drive-upgrades h3,
+.crew-roster h3,
+.jobs h3,
+.solid h3,
+.onboard-gear h4 {
+    margin: 0 0 0.45rem;
+    font-size: 0.78rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #a8b8ce;
+    font-weight: 650;
+}
+
+.count {
+    color: #8fa0b8;
+    font-weight: 500;
+    letter-spacing: 0;
+    text-transform: none;
+}
+
+.hold-grid {
+    display: grid;
+    gap: 0.28rem;
+}
+
+.hold-grid.cargo {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.hold-grid.stash,
+.hold-grid.fuel-only,
+.hold-grid.passenger-only {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.hold-cell {
+    aspect-ratio: 1;
+    border: 1px solid rgba(160, 185, 220, 0.28);
+    border-radius: 3px;
+    background: rgba(20, 28, 40, 0.85);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: #d7e4f7;
+}
+
+.hold-cell.kind-empty {
+    background: rgba(12, 16, 24, 0.55);
+    border-style: dashed;
+    opacity: 0.7;
+}
+
+.hold-cell.kind-fuel,
+.hold-cell.kind-fuelandparts {
+    border-color: rgba(120, 190, 255, 0.55);
+    color: #9fd0ff;
+}
+
+.hold-cell.kind-parts {
+    border-color: rgba(180, 170, 120, 0.55);
+    color: #e2d39a;
+}
+
+.hold-cell.kind-cargo {
+    border-color: rgba(140, 200, 140, 0.5);
+    color: #b5e0b5;
+}
+
+.hold-cell.kind-contraband {
+    border-color: rgba(220, 120, 120, 0.55);
+    color: #f0b0b0;
+}
+
+.hold-cell.kind-passenger {
+    border-color: rgba(180, 160, 220, 0.5);
+    color: #d4c4f0;
+}
+
+.hold-cell.kind-fugitive {
+    border-color: rgba(230, 150, 90, 0.55);
+    color: #f0c09a;
+}
+
+.hold-legend {
+    margin: 0;
+    font-size: 0.72rem;
+    color: #8fa0b8;
+}
+
+.drive-upgrades {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.slot-card {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    padding: 0.45rem 0.55rem;
+    border: 1px solid rgba(180, 200, 230, 0.18);
+    border-radius: 4px;
+    background: rgba(16, 22, 34, 0.85);
+}
+
+.slot-card.is-empty {
+    opacity: 0.55;
+    border-style: dashed;
+}
+
+.slot-name {
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.slot-meta {
+    font-size: 0.72rem;
+    color: #8fa0b8;
+}
+
+.upgrade-list {
+    display: grid;
+    gap: 0.35rem;
+}
+
+.crew-list,
+.job-list,
+.solid-list,
+.gear-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.crew-list {
+    display: grid;
+    gap: 0.45rem;
+}
+
+.crew-card {
+    display: flex;
+    gap: 0.55rem;
+    padding: 0.45rem 0.55rem;
+    border: 1px solid rgba(180, 200, 230, 0.18);
+    border-radius: 4px;
+    background: rgba(16, 22, 34, 0.85);
+}
+
+.crew-card.is-leader {
+    border-color: rgba(240, 195, 106, 0.45);
+}
+
+.crew-card.is-disgruntled {
+    border-color: rgba(220, 120, 90, 0.55);
+}
+
+.crew-name {
+    font-size: 0.9rem;
+    font-weight: 650;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    align-items: center;
+}
+
+.skills {
+    font-size: 0.72rem;
+    color: #8fa0b8;
+    margin-top: 0.15rem;
+}
+
+.badge {
+    font-size: 0.62rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    padding: 0.1rem 0.3rem;
+    border-radius: 3px;
+    border: 1px solid rgba(180, 200, 230, 0.3);
+    color: #c5d3e6;
+    font-weight: 600;
+}
+
+.badge.leader {
+    border-color: rgba(240, 195, 106, 0.55);
+    color: #f0c36a;
+}
+
+.badge.disg {
+    border-color: rgba(220, 120, 90, 0.55);
+    color: #f0a080;
+}
+
+.badge.wanted {
+    border-color: rgba(220, 90, 90, 0.55);
+    color: #f0a0a0;
+}
+
+.badge.immoral,
+.badge.illegal {
+    border-color: rgba(200, 100, 100, 0.5);
+    color: #f0b0b0;
+}
+
+.gear-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    margin-top: 0.35rem;
+}
+
+.gear-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.15rem 0.35rem;
+    border-radius: 3px;
+    border: 1px solid rgba(160, 185, 220, 0.25);
+    font-size: 0.72rem;
+    background: rgba(10, 14, 22, 0.6);
+}
+
+.onboard-gear {
+    margin-top: 0.65rem;
+}
+
+.jobs {
+    display: grid;
+    gap: 0.85rem;
+}
+
+.job-card {
+    padding: 0.4rem 0.5rem;
+    border: 1px solid rgba(180, 200, 230, 0.18);
+    border-radius: 4px;
+    background: rgba(16, 22, 34, 0.85);
+    margin-bottom: 0.35rem;
+}
+
+.job-card.inactive {
+    opacity: 0.92;
+    border-style: dashed;
+}
+
+.job-name {
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.job-meta {
+    font-size: 0.72rem;
+    color: #8fa0b8;
+    margin-top: 0.15rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    align-items: center;
+}
+
+.empty-note {
+    margin: 0;
+    font-size: 0.8rem;
+    color: #8fa0b8;
+}
+
+.solid-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+}
+
+.solid-list li {
+    padding: 0.2rem 0.45rem;
+    border: 1px solid rgba(160, 185, 220, 0.28);
+    border-radius: 3px;
+    font-size: 0.78rem;
+    background: rgba(16, 22, 34, 0.85);
+}

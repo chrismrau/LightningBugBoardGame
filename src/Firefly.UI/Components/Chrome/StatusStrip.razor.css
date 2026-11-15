@@ -31,3 +31,18 @@
 .stat.pending.is-active .value {
     color: #ffd27a;
 }
+
+.ship-link {
+    border: none;
+    background: transparent;
+    padding: 0;
+    color: #f0c36a;
+    font-size: 0.95rem;
+    font-weight: 650;
+    cursor: pointer;
+    text-align: left;
+}
+
+.ship-link:hover {
+    text-decoration: underline;
+}
